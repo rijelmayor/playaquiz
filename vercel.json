@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "buildCommand": null,
+  "outputDirectory": "public",
+  "routes": [
+    { "src": "/", "dest": "/public/admin.html" },
+    { "src": "/admin", "dest": "/public/admin.html" },
+    { "src": "/foh", "dest": "/public/foh.html" },
+    { "src": "/player", "dest": "/public/player.html" },
+    { "src": "/(.*)", "dest": "/public/$1" }
+  ]
+}
