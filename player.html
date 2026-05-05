@@ -559,14 +559,14 @@ async function init() {
   const savedSessionId = localStorage.getItem('paq_session_id');
   const savedPlayerId  = localStorage.getItem('paq_player_id');
   if (savedSessionId && savedPlayerId) {
-    const {data:p} = await sb.from('players').select('*').eq('id', savedPlayerId).single();
+    const {data:p} = await sb.from('players').select('*').eq('id', savedPlayerId).maybeSingle();
     if (p && p.session_id === savedSessionId) {
       SESSION_ID  = savedSessionId;
       playerData  = p;
       currentScore    = p.score;
       currentCorrect  = p.correct_count;
       isEliminated    = p.is_eliminated;
-      const {data:sess} = await sb.from('game_sessions').select('*').eq('id', SESSION_ID).single();
+      const {data:sess} = await sb.from('game_sessions').select('*').eq('id', SESSION_ID).maybeSingle();
       sessionData = sess;
       if (isEliminated) { showEliminated(); return; }
       if (sess.status === 'ended') { await showResult(); return; }
@@ -587,22 +587,36 @@ async function verifySession() {
   const btn = document.getElementById('verify-btn');
   btn.disabled = true; btn.textContent = '...';
 
-  const {data:sess} = await sb.from('game_sessions')
-    .select('*').eq('room_code', code).single();
+  // Use .maybeSingle() — returns null (not error) when no row found
+  // Also try both exact match and trimmed match for safety
+  const { data: sess, error } = await sb
+    .from('game_sessions')
+    .select('*')
+    .ilike('room_code', code)   // case-insensitive match
+    .maybeSingle();
 
   btn.disabled = false; btn.textContent = 'Verify →';
 
-  if (!sess) {
+  if (error) {
+    console.error('Supabase error:', error);
     document.getElementById('inp-session').classList.add('error');
-    showErr('Session not found. Check the ID and try again.');
+    showErr(`Connection error: ${error.message}`);
     return;
   }
+
+  if (!sess) {
+    document.getElementById('inp-session').classList.add('error');
+    showErr(`No session found with ID "${code}". Ask your host for the correct code.`);
+    return;
+  }
+
   if (sess.status === 'ended') {
+    document.getElementById('inp-session').classList.add('error');
     showErr('This quiz session has already ended.');
     return;
   }
 
-  // Success
+  // ── Success ──
   SESSION_ID  = sess.id;
   sessionData = sess;
   localStorage.setItem('paq_session_id', sess.id);
@@ -615,9 +629,9 @@ async function verifySession() {
   const badge = document.getElementById('session-badge');
   badge.classList.add('show');
   document.getElementById('session-badge-txt').textContent =
-    `${sess.title} · Room: ${sess.room_code}`;
+    `✓ ${sess.title} · Room: ${sess.room_code}`;
 
-  // Unlock name + emoji
+  // Unlock name + emoji fields
   document.getElementById('name-group').style.opacity = '1';
   document.getElementById('name-group').style.pointerEvents = 'auto';
   document.getElementById('emoji-group').style.opacity = '1';
@@ -743,7 +757,7 @@ async function joinGame() {
     score:        0,
     correct_count:0,
     is_eliminated:false
-  }).select().single();
+  }).select().maybeSingle();
 
   if (error) {
     showErr('Could not join — please try again');

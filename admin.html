@@ -557,8 +557,8 @@ body::before{content:'';position:fixed;inset:0;opacity:0.025;pointer-events:none
 // ══════════════════════════════════════════════
 // CONFIG — Replace with your Supabase credentials
 // ══════════════════════════════════════════════
-const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
+const SUPABASE_URL = 'https://YOUR_PROJECT.supabase.co';
+const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ══════════════════════════════════════════════
@@ -582,20 +582,32 @@ let mfhCurrentPhase = 'waiting';
 // INIT
 // ══════════════════════════════════════════════
 async function init() {
-  // Load or create session
   SESSION_ID = localStorage.getItem('paq_session_id');
+
+  // Try to load existing session
+  if (SESSION_ID) {
+    const { data, error } = await sb.from('game_sessions')
+      .select('*').eq('id', SESSION_ID).maybeSingle();
+    if (!error && data) {
+      sessionData = data;
+    } else {
+      // Stale ID — clear it and create fresh
+      localStorage.removeItem('paq_session_id');
+      SESSION_ID = null;
+    }
+  }
+
+  // Create a new session if none exists
   if (!SESSION_ID) {
     const code = generateCode();
     const { data, error } = await sb.from('game_sessions').insert({
       room_code: code, title: 'PlayAQuiz', status: 'waiting'
-    }).select().single();
-    if (error) { showToast('Failed to create session', 'error'); return; }
+    }).select().maybeSingle();
+    if (error || !data) { toast('Failed to create session: ' + (error?.message||'unknown'), 'error'); return; }
     SESSION_ID = data.id;
     localStorage.setItem('paq_session_id', SESSION_ID);
     sessionData = data;
-  } else {
-    const { data } = await sb.from('game_sessions').select('*').eq('id', SESSION_ID).single();
-    sessionData = data;
+    toast(`New session created — Room: ${code}`, 'info');
   }
 
   await loadCategories();

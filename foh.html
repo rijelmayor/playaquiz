@@ -315,8 +315,8 @@ html,body{height:100%;width:100%;overflow:hidden;background:var(--bg);color:var(
 // ══════════════════════════════════════════════
 // CONFIG
 // ══════════════════════════════════════════════
-const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
+const SUPABASE_URL = 'https://YOUR_PROJECT.supabase.co';
+const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ══════════════════════════════════════════════
@@ -365,7 +365,7 @@ async function init() {
     document.getElementById('ftr-tip').textContent = 'No session — open admin panel first';
     return;
   }
-  const {data} = await sb.from('game_sessions').select('*').eq('id',SESSION_ID).single();
+  const {data} = await sb.from('game_sessions').select('*').eq('id',SESSION_ID).maybeSingle();
   sessionData = data;
   await loadAll();
   updateHeader();
