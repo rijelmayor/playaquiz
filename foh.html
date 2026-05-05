@@ -274,6 +274,52 @@ html,body{height:100%;width:100%;overflow:hidden;background:var(--bg);color:var(
   opacity: 1;
 }
 
+/* Response Distribution UI */
+.dist-container {
+  margin-top: 2rem;
+  width: 100%;
+  animation: fadeIn 0.5s ease;
+}
+.dist-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1rem;
+  gap: 1rem;
+  font-family: var(--font-m); /* JetBrains Mono for numbers */
+  font-size: 1.25rem;
+}
+.dist-label {
+  font-weight: bold;
+  width: 50px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.5rem;
+  border-radius: 8px;
+  color: var(--accent);
+}
+.dist-bar-wrap {
+  flex-grow: 1;
+  background: rgba(255, 255, 255, 0.05);
+  height: 24px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.dist-bar {
+  height: 100%;
+  background: var(--accent);
+  width: 0%; /* Animates in */
+  transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.dist-stat {
+  width: 140px;
+  text-align: right;
+  color: var(--text);
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
 </style>
 </head>
@@ -518,7 +564,13 @@ function handleEvent(evt) {
       document.getElementById('timeup-banner').classList.add('show');
       document.getElementById('ftr-tip').textContent="⏱ Time's up! Waiting for host to reveal answer...";
       document.getElementById('resp-pill').classList.remove('visible');
+      
+      // 👇 ADD THIS: Show distribution if admin skipped the timer
+      if (!document.getElementById('current-distribution')) {
+         renderResponseDistribution(currentQ.id);
+      }
       break;
+      
     case 'answer_revealed':
       revealAnswerFOH();
       break;
@@ -641,6 +693,10 @@ function loadFOHQuestion(q, idx, total) {
   currentQ = q;
   hasTimeEnded = false;
 
+  // 👇 ADD THIS: Clean up old distribution from previous questions
+  const oldDist = document.getElementById('current-distribution');
+  if (oldDist) oldDist.remove();
+
   const scene = document.querySelector('.q-scene');
   const respSection = document.getElementById('resp-section');
 
@@ -734,32 +790,83 @@ function renderFOHResponseBars(q, answersMap, highlightCorrect = false) {
 
 
 function handleTimeUp() {
-  const scene = document.querySelector('.q-scene');
   const respSection = document.getElementById('resp-section');
 
-  // mark scene transitioning
-  scene.classList.add('transitioning');
+  // prevent duplicate execution
+  if (respSection.classList.contains('visible')) return;
 
-  // slight delay for smooth feel
-  setTimeout(() => {
-    scene.classList.add('locked');
+  document.getElementById('timeup-banner').classList.add('show');
+  document.getElementById('resp-pill').classList.remove('visible');
 
-    // show banner
-    document.getElementById('timeup-banner').classList.add('show');
+  respSection.style.display = 'flex';
 
-    // show responses
-    respSection.style.display = 'flex';
+  requestAnimationFrame(() => {
+    respSection.classList.add('visible');
+  });
 
-    requestAnimationFrame(() => {
-      respSection.classList.add('visible');
+  // 🔥 ALWAYS recompute from fresh answers
+  renderFOHResponseBars(currentQ, answers, false);
+
+  // 👇 ADD THIS: Trigger your new percentage distribution here
+  renderResponseDistribution(currentQ.id);
+
+  setFtr("Responses locked — waiting for host...");
+}
+
+async function renderResponseDistribution(questionId) {
+  if (!questionId) return;
+
+  // 1. Fetch all responses for the current question
+  const { data: responses, error } = await supabase
+    .from('mfh_responses')
+    .select('answer')
+    .eq('question_id', questionId);
+
+  if (error) {
+    console.error("Error fetching responses:", error);
+    return;
+  }
+
+  // 2. Tally the answers
+  const counts = { A: 0, B: 0, C: 0, D: 0 };
+  let total = 0;
+
+  if (responses) {
+    responses.forEach(r => {
+      if (counts[r.answer] !== undefined) counts[r.answer]++;
+      total++;
     });
+  }
 
-    document.getElementById('resp-pill').classList.remove('visible');
+  // 3. Build the DOM elements
+  const distContainer = document.createElement('div');
+  distContainer.className = 'dist-container';
+  distContainer.id = 'current-distribution';
 
-    renderFOHResponseBars(currentQ, answers, false);
+  ['A', 'B', 'C', 'D'].forEach(opt => {
+    const count = counts[opt];
+    const percentage = total > 0 ? Math.round((count / total) * 100) : 0;
 
-    setFtr("Responses locked — waiting for host...");
-  }, 120);
+    distContainer.innerHTML += `
+      <div class="dist-row">
+        <div class="dist-label">${opt}</div>
+        <div class="dist-bar-wrap">
+          <div class="dist-bar" style="width: ${percentage}%"></div>
+        </div>
+        <div class="dist-stat">${count} (${percentage}%)</div>
+      </div>
+    `;
+  });
+
+  // 4. Inject into the FOH view
+  // NOTE: Change 'question-wrap' to whatever ID holds your current question in foh.html
+  const targetContainer = document.getElementById('question-wrap') || document.body; 
+  
+  // Clean up any old distribution before appending the new one
+  const oldDist = document.getElementById('current-distribution');
+  if (oldDist) oldDist.remove();
+
+  targetContainer.appendChild(distContainer);
 }
 
 
