@@ -9,113 +9,167 @@
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#05050f;--s1:rgba(255,255,255,0.04);--s2:rgba(255,255,255,0.07);
-  --border:rgba(255,255,255,0.09);--border2:rgba(255,255,255,0.16);
-  --accent:#00f0ff;--v:#7c3aed;--amber:#f59e0b;--rose:#f43f5e;
-  --green:#10b981;--text:#f0f0ff;--muted:rgba(255,255,255,0.45);
+  --bg:#05050f;
+  --border:rgba(255,255,255,0.09);
+  --border2:rgba(255,255,255,0.16);
+  --accent:#00f0ff;
+  --v:#7c3aed;
+  --amber:#f59e0b;
+  --rose:#f43f5e;
+  --green:#10b981;
+  --text:#f0f0ff;
+  --muted:rgba(255,255,255,0.45);
   --font-d:'Clash Display',sans-serif;
   --font-b:'Cabinet Grotesk',sans-serif;
   --font-m:'JetBrains Mono',monospace;
 }
-html,body{height:100%;width:100%;background:var(--bg);color:var(--text);
-  font-family:var(--font-b);overflow:hidden}
+html,body{height:100%;width:100%;background:var(--bg);color:var(--text);font-family:var(--font-b);overflow:hidden}
 body{display:flex;align-items:center;justify-content:center;position:relative}
 
-/* ── Background effects ── */
+/* ── Stars ── */
 .stars{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
-.star{position:absolute;border-radius:50%;background:#fff;
-  animation:twinkle var(--dur) ease-in-out infinite var(--del)}
-@keyframes twinkle{0%,100%{opacity:0.08}50%{opacity:var(--op)}}
-.orb{position:fixed;border-radius:50%;filter:blur(100px);opacity:0.1;pointer-events:none;z-index:0;
-  animation:orbdrift 10s ease-in-out infinite alternate}
-.orb1{width:500px;height:500px;background:var(--accent);top:-150px;right:-100px}
-.orb2{width:450px;height:450px;background:var(--v);bottom:-120px;left:-100px;animation-duration:13s}
-.orb3{width:300px;height:300px;background:var(--amber);top:50%;left:50%;animation-duration:8s}
-@keyframes orbdrift{from{transform:translate(0,0)}to{transform:translate(40px,30px)}}
+.star{position:absolute;border-radius:50%;background:#fff;animation:twinkle var(--dur) ease-in-out infinite var(--del)}
+@keyframes twinkle{0%,100%{opacity:0.07}50%{opacity:var(--op)}}
+.orb{position:fixed;border-radius:50%;filter:blur(110px);opacity:0.09;pointer-events:none;z-index:0;animation:od 11s ease-in-out infinite alternate}
+.orb1{width:500px;height:500px;background:var(--accent);top:-160px;right:-120px}
+.orb2{width:450px;height:450px;background:var(--v);bottom:-130px;left:-110px;animation-duration:14s}
+.orb3{width:280px;height:280px;background:var(--amber);top:40%;left:40%;animation-duration:9s}
+@keyframes od{from{transform:translate(0,0)}to{transform:translate(44px,32px)}}
 
 /* ── Screens ── */
 .screen{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-  z-index:10;padding:20px;transition:opacity 0.4s,transform 0.4s}
+  z-index:10;padding:16px;transition:opacity 0.4s,transform 0.4s;overflow-y:auto}
 .screen.hidden{opacity:0;pointer-events:none;transform:translateY(18px)}
 
-/* ══════════════════════════════
-   JOIN SCREEN
-══════════════════════════════ */
-.join-card{width:100%;max-width:420px;
+/* ════════════════════════════════════
+   JOIN CARD
+════════════════════════════════════ */
+.join-card{
+  width:100%;max-width:430px;
   background:rgba(255,255,255,0.03);
-  border:1px solid var(--border);border-radius:24px;
-  padding:38px 34px;backdrop-filter:blur(24px);
-  box-shadow:0 40px 80px rgba(0,0,0,0.5);
-  animation:slideUp 0.6s cubic-bezier(.34,1.56,.64,1) forwards}
+  border:1px solid var(--border);
+  border-radius:26px;
+  padding:34px 30px 28px;
+  backdrop-filter:blur(28px);
+  box-shadow:0 40px 90px rgba(0,0,0,0.55);
+  animation:slideUp 0.6s cubic-bezier(.34,1.56,.64,1) forwards;
+  position:relative;
+}
 @keyframes slideUp{from{transform:translateY(44px);opacity:0}to{transform:translateY(0);opacity:1}}
 
-.logo{font-family:var(--font-d);font-size:26px;font-weight:800;letter-spacing:-0.5px;margin-bottom:6px}
+/* Logo */
+.logo{font-family:var(--font-d);font-size:24px;font-weight:800;letter-spacing:-0.5px;margin-bottom:4px}
 .logo em{color:var(--accent);font-style:normal}
-.logo-sub{font-size:13px;color:var(--muted);margin-bottom:28px}
+.logo-sub{font-size:13px;color:var(--muted);margin-bottom:26px}
 
-.room-status{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;
-  background:rgba(0,240,255,0.07);border:1px solid rgba(0,240,255,0.18);
-  border-radius:99px;margin-bottom:26px}
-.rs-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);
-  animation:blink 1.4s infinite}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
-.rs-txt{font-size:12px;font-family:var(--font-m);color:var(--accent)}
+/* Form */
+.fg{margin-bottom:16px}
+.form-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;
+  letter-spacing:0.07em;display:block;margin-bottom:6px}
 
-.form-label{font-size:11px;font-weight:700;color:var(--muted);
-  text-transform:uppercase;letter-spacing:0.07em;display:block;margin-bottom:7px}
-.form-input{width:100%;background:rgba(255,255,255,0.07);border:1px solid var(--border);
-  border-radius:12px;padding:13px 16px;color:var(--text);font-family:var(--font-b);
-  font-size:16px;font-weight:600;outline:none;transition:border 0.15s,box-shadow 0.15s}
-.form-input::placeholder{color:var(--muted);font-weight:400}
+/* Session ID input with verify button */
+.session-input-wrap{display:flex;gap:8px}
+.form-input{flex:1;background:rgba(255,255,255,0.07);border:1px solid var(--border);
+  border-radius:12px;padding:12px 15px;color:var(--text);font-family:var(--font-m);
+  font-size:15px;font-weight:600;outline:none;transition:border 0.15s,box-shadow 0.15s;
+  letter-spacing:0.05em;text-transform:uppercase;width:100%}
+.form-input::placeholder{color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0}
 .form-input:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(0,240,255,0.1)}
+.form-input.name-input{text-transform:none;letter-spacing:0;font-family:var(--font-b);font-size:16px}
+.form-input.error{border-color:var(--rose);box-shadow:0 0 0 3px rgba(244,63,94,0.12)}
+.form-input.success{border-color:var(--green);box-shadow:0 0 0 3px rgba(16,185,129,0.1)}
 
-/* Color picker */
-.color-row{display:flex;gap:9px;flex-wrap:wrap;margin-top:9px}
-.cdot{width:34px;height:34px;border-radius:50%;cursor:pointer;
-  border:3px solid transparent;transition:all 0.15s;flex-shrink:0}
-.cdot.sel{border-color:#fff;transform:scale(1.22);box-shadow:0 0 12px rgba(255,255,255,0.3)}
-.cdot:hover:not(.sel){transform:scale(1.1)}
+.verify-btn{padding:12px 16px;background:rgba(0,240,255,0.1);border:1px solid rgba(0,240,255,0.25);
+  border-radius:12px;color:var(--accent);font-size:13px;font-weight:700;font-family:var(--font-b);
+  cursor:pointer;transition:all 0.15s;white-space:nowrap;flex-shrink:0}
+.verify-btn:hover{background:rgba(0,240,255,0.18)}
+.verify-btn:disabled{opacity:0.4;cursor:not-allowed}
 
-.join-btn{width:100%;margin-top:26px;padding:16px;
-  background:var(--accent);color:#000;border:none;border-radius:14px;
-  font-size:16px;font-weight:800;font-family:var(--font-b);cursor:pointer;
-  transition:all 0.2s;letter-spacing:0.01em}
-.join-btn:hover{background:#33f5ff;box-shadow:0 0 30px rgba(0,240,255,0.35);transform:translateY(-1px)}
-.join-btn:active{transform:scale(0.98)}
-.join-btn:disabled{opacity:0.5;cursor:not-allowed;transform:none}
+/* Session verified badge */
+.session-badge{display:none;align-items:center;gap:8px;margin-top:8px;padding:8px 13px;
+  background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.22);
+  border-radius:10px;font-size:13px;color:#34d399}
+.session-badge.show{display:flex}
+.sb-dot{width:6px;height:6px;border-radius:50%;background:var(--green);
+  box-shadow:0 0 6px var(--green);flex-shrink:0}
+.sb-txt{font-family:var(--font-m);font-size:12px}
 
-.fg{margin-bottom:18px}
-.err-msg{font-size:13px;color:var(--rose);margin-top:10px;display:none;text-align:center}
+/* ── Emoji Picker ── */
+.emoji-label-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.emoji-search{background:rgba(255,255,255,0.06);border:1px solid var(--border);
+  border-radius:8px;padding:6px 11px;color:var(--text);font-size:13px;
+  font-family:var(--font-b);outline:none;width:130px;transition:border 0.15s}
+.emoji-search:focus{border-color:var(--accent)}
+.emoji-search::placeholder{color:var(--muted);font-size:12px}
 
-/* ══════════════════════════════
+.emoji-grid-wrap{background:rgba(0,0,0,0.25);border:1px solid var(--border);
+  border-radius:14px;padding:10px;max-height:148px;overflow-y:auto}
+.emoji-grid-wrap::-webkit-scrollbar{width:4px}
+.emoji-grid-wrap::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px}
+.emoji-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:4px}
+.emoji-btn{width:100%;aspect-ratio:1;border:none;background:transparent;
+  font-size:22px;cursor:pointer;border-radius:8px;transition:all 0.12s;
+  display:flex;align-items:center;justify-content:center;line-height:1}
+.emoji-btn:hover{background:rgba(255,255,255,0.1);transform:scale(1.2)}
+.emoji-btn.sel{background:rgba(0,240,255,0.12);border:1.5px solid rgba(0,240,255,0.35);transform:scale(1.15)}
+
+/* Selected emoji preview */
+.selected-emoji-preview{display:flex;align-items:center;gap:10px;padding:10px 14px;
+  background:rgba(255,255,255,0.04);border:1px solid var(--border);
+  border-radius:12px;margin-top:10px}
+.sep-emoji{font-size:28px;line-height:1}
+.sep-info{flex:1}
+.sep-label{font-size:11px;color:var(--muted);font-family:var(--font-m);text-transform:uppercase;letter-spacing:0.06em}
+.sep-name{font-size:14px;font-weight:700;margin-top:1px}
+
+/* Join button */
+.join-btn{width:100%;margin-top:20px;padding:15px;background:var(--accent);color:#000;
+  border:none;border-radius:14px;font-size:16px;font-weight:800;font-family:var(--font-b);
+  cursor:pointer;transition:all 0.2s;letter-spacing:0.01em;display:flex;align-items:center;
+  justify-content:center;gap:8px}
+.join-btn:hover:not(:disabled){background:#33f5ff;box-shadow:0 0 32px rgba(0,240,255,0.35);transform:translateY(-1px)}
+.join-btn:active:not(:disabled){transform:scale(0.98)}
+.join-btn:disabled{opacity:0.45;cursor:not-allowed;transform:none}
+
+.err-msg{font-size:13px;color:var(--rose);margin-top:10px;display:none;
+  text-align:center;background:rgba(244,63,94,0.07);border:1px solid rgba(244,63,94,0.18);
+  border-radius:8px;padding:8px 12px}
+
+/* ════════════════════════════════════
    WAITING SCREEN
-══════════════════════════════ */
-.waiting-card{text-align:center;padding:0 20px;animation:slideUp 0.5s forwards}
-.wait-avatar{width:88px;height:88px;border-radius:50%;display:flex;align-items:center;
-  justify-content:center;font-size:30px;font-weight:800;margin:0 auto 20px;
-  position:relative}
-.wait-avatar::after{content:'';position:absolute;inset:-5px;border-radius:50%;
-  border:2.5px solid transparent;border-top-color:currentColor;
+════════════════════════════════════ */
+.wait-wrap{text-align:center;padding:0 20px;animation:slideUp 0.5s forwards}
+.wait-emoji-ring{width:100px;height:100px;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:48px;margin:0 auto 20px;position:relative;
+  background:rgba(255,255,255,0.04);border:1px solid var(--border)}
+.wait-emoji-ring::after{content:'';position:absolute;inset:-5px;border-radius:50%;
+  border:2.5px solid transparent;border-top-color:var(--accent);
   animation:spin 1.8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-.wait-name{font-family:var(--font-d);font-size:28px;font-weight:800;margin-bottom:6px}
-.wait-sub{font-size:14px;color:var(--muted);margin-bottom:28px}
-.wait-pill{display:inline-flex;align-items:center;gap:8px;padding:10px 22px;
+.wait-name{font-family:var(--font-d);font-size:26px;font-weight:800;margin-bottom:4px}
+.wait-sub{font-size:14px;color:var(--muted);margin-bottom:26px;line-height:1.5}
+.wait-pill{display:inline-flex;align-items:center;gap:8px;padding:9px 20px;
   background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:99px;
   font-size:14px;font-weight:600}
-.wait-cat{margin-top:16px;font-size:13px;font-family:var(--font-m);color:var(--muted)}
+.wait-cat{margin-top:14px;font-size:12px;font-family:var(--font-m);color:var(--muted)}
+.wait-room{margin-top:10px;font-size:12px;font-family:var(--font-m);color:rgba(0,240,255,0.6)}
 
-/* ══════════════════════════════
+/* ════════════════════════════════════
    QUIZ SCREEN
-══════════════════════════════ */
+════════════════════════════════════ */
 .quiz-wrap{width:100%;max-width:520px}
 
-.quiz-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+/* Player identity bar */
+.player-id-bar{display:flex;align-items:center;gap:10px;padding:8px 14px;
+  background:rgba(255,255,255,0.04);border:1px solid var(--border);
+  border-radius:99px;margin-bottom:14px;width:fit-content}
+.pib-emoji{font-size:22px;line-height:1}
+.pib-name{font-size:13px;font-weight:700;color:var(--text)}
+.pib-score{font-size:12px;font-family:var(--font-m);color:var(--accent);margin-left:4px}
+
+.quiz-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
 .q-counter{font-size:13px;font-family:var(--font-m);color:var(--muted)}
-.score-pill{font-size:13px;font-weight:700;color:var(--accent);
-  font-family:var(--font-m);padding:4px 12px;background:rgba(0,240,255,0.08);
-  border:1px solid rgba(0,240,255,0.2);border-radius:99px}
-.timer-ring-wrap{position:relative;width:56px;height:56px}
+.timer-ring-wrap{position:relative;width:56px;height:56px;flex-shrink:0}
 .timer-ring{transform:rotate(-90deg)}
 .trb{fill:none;stroke:rgba(255,255,255,0.08);stroke-width:4.5}
 .trf{fill:none;stroke:var(--accent);stroke-width:4.5;stroke-linecap:round;
@@ -123,115 +177,104 @@ body{display:flex;align-items:center;justify-content:center;position:relative}
 .timer-n{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
   font-size:15px;font-weight:800;font-family:var(--font-m)}
 
-.prog-bar{height:4px;background:rgba(255,255,255,0.08);border-radius:99px;
-  margin-bottom:18px;overflow:hidden}
-.prog-fill{height:4px;border-radius:99px;
-  background:linear-gradient(90deg,var(--v),var(--accent));transition:width 0.5s}
+.prog-bar{height:4px;background:rgba(255,255,255,0.08);border-radius:99px;margin-bottom:16px;overflow:hidden}
+.prog-fill{height:4px;border-radius:99px;background:linear-gradient(90deg,var(--v),var(--accent));transition:width 0.5s}
 
 .q-card{background:rgba(255,255,255,0.04);border:1px solid var(--border);
-  border-radius:20px;padding:22px;margin-bottom:14px;backdrop-filter:blur(12px)}
-.q-txt{font-family:var(--font-d);font-size:clamp(16px,4vw,22px);font-weight:700;
-  line-height:1.35;letter-spacing:-0.2px}
-.q-category-tag{font-size:11px;font-family:var(--font-m);color:var(--muted);
-  margin-bottom:10px;display:block}
+  border-radius:20px;padding:20px;margin-bottom:12px;backdrop-filter:blur(12px)}
+.q-category-tag{font-size:11px;font-family:var(--font-m);color:var(--muted);margin-bottom:8px;display:block}
+.q-txt{font-family:var(--font-d);font-size:clamp(15px,4vw,21px);font-weight:700;line-height:1.35;letter-spacing:-0.2px}
 
-.opts-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.opt-btn{width:100%;padding:15px 13px;border-radius:14px;
+/* Options */
+.opts-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.opt-btn{width:100%;padding:14px 12px;border-radius:14px;
   background:rgba(255,255,255,0.05);border:1.5px solid rgba(255,255,255,0.09);
-  color:var(--text);font-size:14px;font-weight:600;font-family:var(--font-b);
+  color:var(--text);font-size:13px;font-weight:600;font-family:var(--font-b);
   cursor:pointer;transition:all 0.15s;text-align:left;
-  display:flex;align-items:center;gap:10px;word-break:break-word}
-.opt-btn:hover:not(:disabled){background:rgba(255,255,255,0.1);
-  border-color:var(--accent);transform:translateY(-1px)}
+  display:flex;align-items:center;gap:9px;word-break:break-word}
+.opt-btn:hover:not(:disabled){background:rgba(255,255,255,0.1);border-color:var(--accent);transform:translateY(-1px)}
 .opt-btn:active:not(:disabled){transform:scale(0.97)}
 .opt-btn:disabled{cursor:default}
 .opt-btn.chosen{border-color:var(--accent);background:rgba(0,240,255,0.1)}
 .opt-btn.correct{border-color:var(--green);background:rgba(16,185,129,0.14)}
 .opt-btn.wrong{border-color:var(--rose);background:rgba(244,63,94,0.08)}
-.opt-letter{width:28px;height:28px;border-radius:8px;background:rgba(255,255,255,0.09);
-  display:flex;align-items:center;justify-content:center;
-  font-size:11px;font-weight:700;flex-shrink:0;font-family:var(--font-m)}
+.opt-letter{width:27px;height:27px;border-radius:8px;background:rgba(255,255,255,0.09);
+  display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;
+  flex-shrink:0;font-family:var(--font-m)}
 .opt-btn.correct .opt-letter{background:rgba(16,185,129,0.3)}
 .opt-btn.wrong .opt-letter{background:rgba(244,63,94,0.25)}
 .opt-btn.chosen .opt-letter{background:rgba(0,240,255,0.2)}
 
-/* ── Pending reveal state ── */
-.pending-box{border-radius:16px;padding:20px;margin-top:12px;
-  text-align:center;display:none;
-  animation:popIn 0.35s cubic-bezier(.34,1.56,.64,1)}
+/* ── Pending boxes ── */
+.pending-box{border-radius:16px;padding:18px;margin-top:10px;text-align:center;
+  display:none;animation:popIn 0.35s cubic-bezier(.34,1.56,.64,1)}
 .pending-box.show{display:block}
-.pending-box.answered{
-  background:rgba(124,58,237,0.08);
-  border:1px solid rgba(124,58,237,0.28)}
-.pending-box.missed{
-  background:rgba(245,158,11,0.07);
-  border:1px solid rgba(245,158,11,0.25)}
+.pending-box.answered{background:rgba(124,58,237,0.08);border:1px solid rgba(124,58,237,0.28)}
+.pending-box.missed{background:rgba(245,158,11,0.07);border:1px solid rgba(245,158,11,0.25)}
 @keyframes popIn{from{transform:scale(0.82);opacity:0}to{transform:scale(1);opacity:1}}
-.pending-icon{font-size:36px;display:block;margin-bottom:10px;
-  animation:bob 1.5s ease-in-out infinite}
+.pending-icon{font-size:34px;display:block;margin-bottom:8px;animation:bob 1.5s ease-in-out infinite}
 @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
-.pending-title{font-family:var(--font-d);font-size:18px;font-weight:800}
+.pending-title{font-family:var(--font-d);font-size:17px;font-weight:800}
 .pending-title.answered{color:#c4b5fd}
 .pending-title.missed{color:var(--amber)}
-.pending-sub{font-size:12px;color:var(--muted);margin-top:6px;font-family:var(--font-m)}
-.pending-dots{display:inline-flex;gap:5px;margin-top:10px}
-.pending-dots span{width:6px;height:6px;border-radius:50%;
-  background:rgba(196,181,253,0.55);
+.pending-sub{font-size:12px;color:var(--muted);margin-top:5px;font-family:var(--font-m)}
+.pending-dots{display:inline-flex;gap:5px;margin-top:8px}
+.pending-dots span{width:6px;height:6px;border-radius:50%;background:rgba(196,181,253,0.5);
   animation:dotpulse 1.3s ease-in-out infinite}
 .pending-dots span:nth-child(2){animation-delay:.2s}
 .pending-dots span:nth-child(3){animation-delay:.4s}
-@keyframes dotpulse{0%,100%{opacity:0.3;transform:scale(0.7)}50%{opacity:1;transform:scale(1.3)}}
+@keyframes dotpulse{0%,100%{opacity:0.25;transform:scale(0.7)}50%{opacity:1;transform:scale(1.3)}}
 
-/* ── Feedback card (shown after reveal) ── */
-.feedback-card{border-radius:16px;padding:18px 20px;margin-top:12px;
-  display:none;animation:popIn 0.35s cubic-bezier(.34,1.56,.64,1)}
+/* ── Feedback card ── */
+.feedback-card{border-radius:16px;padding:16px 18px;margin-top:10px;display:none;
+  animation:popIn 0.35s cubic-bezier(.34,1.56,.64,1)}
 .feedback-card.show{display:block}
 .feedback-card.correct{background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.22)}
 .feedback-card.wrong{background:rgba(244,63,94,0.08);border:1px solid rgba(244,63,94,0.18)}
-.feedback-card.timeout{background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2)}
-.fb-emoji{font-size:30px;margin-bottom:6px;display:block}
-.fb-title{font-family:var(--font-d);font-size:20px;font-weight:800}
+.feedback-card.timeout{background:rgba(245,158,11,0.07);border:1px solid rgba(245,158,11,0.2)}
+.fb-emoji{font-size:28px;margin-bottom:5px;display:block}
+.fb-title{font-family:var(--font-d);font-size:19px;font-weight:800}
 .fb-pts{font-size:13px;font-family:var(--font-m);color:var(--accent);margin-top:3px}
-.fb-exp{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.55}
+.fb-exp{font-size:12px;color:var(--muted);margin-top:7px;line-height:1.55}
 
-/* ══════════════════════════════
+/* ════════════════════════════════════
    ELIMINATED SCREEN
-══════════════════════════════ */
-.elim-card{text-align:center;padding:20px;animation:slideUp 0.5s forwards;max-width:380px}
-.elim-icon-big{font-size:72px;margin-bottom:16px;animation:shake 0.5s ease-in-out}
+════════════════════════════════════ */
+.elim-wrap{text-align:center;padding:20px;max-width:380px;animation:slideUp 0.5s forwards}
+.elim-player-emoji{font-size:56px;margin-bottom:10px;display:block;animation:shake 0.5s ease}
 @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
-.elim-headline{font-family:var(--font-d);font-size:36px;font-weight:900;color:var(--rose);margin-bottom:8px}
-.elim-msg{font-size:15px;color:var(--muted);margin-bottom:24px;line-height:1.6}
+.elim-zap{font-size:36px;display:block;margin-bottom:4px}
+.elim-headline{font-family:var(--font-d);font-size:32px;font-weight:900;color:var(--rose);margin-bottom:8px}
+.elim-msg{font-size:14px;color:var(--muted);margin-bottom:22px;line-height:1.6}
 .elim-score-box{background:rgba(255,255,255,0.04);border:1px solid var(--border);
-  border-radius:16px;padding:18px;margin-bottom:20px}
-.elim-score-val{font-family:var(--font-d);font-size:48px;font-weight:900;color:var(--accent)}
-.elim-score-lbl{font-size:13px;color:var(--muted);font-family:var(--font-m)}
+  border-radius:16px;padding:16px;margin-bottom:16px}
+.elim-score-val{font-family:var(--font-d);font-size:44px;font-weight:900;color:var(--accent)}
+.elim-score-lbl{font-size:12px;color:var(--muted);font-family:var(--font-m);margin-top:2px}
 .elim-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.elim-stat{background:rgba(255,255,255,0.03);border:1px solid var(--border);
-  border-radius:12px;padding:12px}
-.elim-stat-val{font-family:var(--font-d);font-size:24px;font-weight:800}
-.elim-stat-lbl{font-size:11px;color:var(--muted);font-family:var(--font-m);margin-top:2px}
+.elim-stat{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:12px;padding:12px}
+.elim-sv{font-family:var(--font-d);font-size:22px;font-weight:800}
+.elim-sl{font-size:11px;color:var(--muted);font-family:var(--font-m);margin-top:2px}
 
-/* ══════════════════════════════
+/* ════════════════════════════════════
    RESULT SCREEN
-══════════════════════════════ */
-.result-card{width:100%;max-width:440px;text-align:center;
+════════════════════════════════════ */
+.result-card{width:100%;max-width:420px;text-align:center;
   background:rgba(255,255,255,0.03);border:1px solid var(--border);
-  border-radius:24px;padding:36px 30px;backdrop-filter:blur(24px);
+  border-radius:24px;padding:32px 28px;backdrop-filter:blur(24px);
   animation:slideUp 0.5s forwards}
-.res-emoji{font-size:60px;margin-bottom:14px;display:block;
+.res-player-emoji{font-size:52px;display:block;margin-bottom:8px;
   animation:bounce 1s ease-in-out infinite alternate}
-@keyframes bounce{from{transform:translateY(0)}to{transform:translateY(-18px)}}
-.res-headline{font-family:var(--font-d);font-size:22px;font-weight:800;margin-bottom:4px}
-.res-score{font-family:var(--font-d);font-size:58px;font-weight:900;
-  color:var(--accent);letter-spacing:-2px;line-height:1}
-.res-sub{font-size:13px;color:var(--muted);margin-top:4px;margin-bottom:24px}
-.res-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:24px}
-.res-stat{background:rgba(255,255,255,0.05);border-radius:12px;padding:14px 8px}
-.rsv{font-family:var(--font-d);font-size:24px;font-weight:800}
-.rsl{font-size:11px;color:var(--muted);font-family:var(--font-m);margin-top:2px}
-.res-rank{font-size:14px;color:var(--muted2);font-family:var(--font-m);margin-bottom:20px}
-.replay-btn{width:100%;padding:15px;background:var(--v);color:#fff;border:none;
+@keyframes bounce{from{transform:translateY(0)}to{transform:translateY(-16px)}}
+.res-player-name{font-family:var(--font-d);font-size:20px;font-weight:800;margin-bottom:14px}
+.res-headline{font-size:14px;color:var(--muted);margin-bottom:4px}
+.res-score{font-family:var(--font-d);font-size:54px;font-weight:900;color:var(--accent);
+  letter-spacing:-2px;line-height:1}
+.res-sub{font-size:12px;color:var(--muted);margin-top:3px;margin-bottom:22px;font-family:var(--font-m)}
+.res-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;margin-bottom:22px}
+.res-stat{background:rgba(255,255,255,0.05);border-radius:12px;padding:13px 8px}
+.rsv{font-family:var(--font-d);font-size:22px;font-weight:800}
+.rsl{font-size:10px;color:var(--muted);font-family:var(--font-m);margin-top:2px;text-transform:uppercase;letter-spacing:0.06em}
+.replay-btn{width:100%;padding:14px;background:var(--v);color:#fff;border:none;
   border-radius:14px;font-size:15px;font-weight:800;font-family:var(--font-b);
   cursor:pointer;transition:all 0.2s}
 .replay-btn:hover{background:#6d28d9;box-shadow:0 0 24px rgba(124,58,237,0.4);transform:translateY(-1px)}
@@ -245,55 +288,94 @@ body{display:flex;align-items:center;justify-content:center;position:relative}
 <div class="orb orb2"></div>
 <div class="orb orb3"></div>
 
-<!-- ══ JOIN ══ -->
+<!-- ════ JOIN SCREEN ════ -->
 <div class="screen" id="screen-join">
   <div class="join-card">
     <div class="logo">Play<em>A</em>Quiz</div>
-    <div class="logo-sub">Real-time quiz experience</div>
-    <div class="room-status">
-      <div class="rs-dot"></div>
-      <span class="rs-txt" id="rs-txt">Connecting...</span>
-    </div>
+    <div class="logo-sub">Enter your session ID to join the game</div>
+
+    <!-- Step 1: Session ID -->
     <div class="fg">
+      <label class="form-label">Session ID</label>
+      <div class="session-input-wrap">
+        <input class="form-input" id="inp-session" placeholder="e.g. QUIZ01"
+          maxlength="20" oninput="this.value=this.value.toUpperCase()"
+          onkeydown="if(event.key==='Enter')verifySession()">
+        <button class="verify-btn" id="verify-btn" onclick="verifySession()">Verify →</button>
+      </div>
+      <div class="session-badge" id="session-badge">
+        <div class="sb-dot"></div>
+        <span class="sb-txt" id="session-badge-txt">Connected</span>
+      </div>
+    </div>
+
+    <!-- Step 2: Name (locked until session verified) -->
+    <div class="fg" id="name-group" style="opacity:0.35;pointer-events:none;transition:opacity 0.3s">
       <label class="form-label">Your Name</label>
-      <input class="form-input" id="inp-name" placeholder="Enter your name..." maxlength="22"
-        onkeydown="if(event.key==='Enter')joinGame()">
+      <input class="form-input name-input" id="inp-name" placeholder="Enter your name..."
+        maxlength="22" onkeydown="if(event.key==='Enter')joinGame()">
     </div>
-    <div class="fg" style="margin-bottom:0">
-      <label class="form-label">Pick a color</label>
-      <div class="color-row" id="color-row"></div>
+
+    <!-- Step 3: Emoji Picker (locked until session verified) -->
+    <div class="fg" id="emoji-group" style="opacity:0.35;pointer-events:none;transition:opacity 0.3s;margin-bottom:0">
+      <div class="emoji-label-row">
+        <label class="form-label" style="margin-bottom:0">Pick your emoji</label>
+        <input class="emoji-search" id="emoji-search" placeholder="🔍 Search..."
+          oninput="filterEmojis(this.value)">
+      </div>
+      <div class="emoji-grid-wrap" style="margin-top:8px">
+        <div class="emoji-grid" id="emoji-grid"></div>
+      </div>
+      <div class="selected-emoji-preview" id="emoji-preview">
+        <span class="sep-emoji" id="sep-emoji">😎</span>
+        <div class="sep-info">
+          <div class="sep-label">Selected Avatar</div>
+          <div class="sep-name" id="sep-name">Cool</div>
+        </div>
+      </div>
     </div>
-    <button class="join-btn" id="join-btn" onclick="joinGame()">Join Game →</button>
+
+    <button class="join-btn" id="join-btn" onclick="joinGame()" disabled>
+      <span id="join-btn-emoji">😎</span> Join Game →
+    </button>
     <div class="err-msg" id="err-msg"></div>
   </div>
 </div>
 
-<!-- ══ WAITING ══ -->
+<!-- ════ WAITING SCREEN ════ -->
 <div class="screen hidden" id="screen-waiting">
-  <div class="waiting-card">
-    <div class="wait-avatar" id="wait-avatar"></div>
+  <div class="wait-wrap">
+    <div class="wait-emoji-ring" id="wait-emoji-ring">😎</div>
     <div class="wait-name" id="wait-name">Player</div>
-    <div class="wait-sub">You're in! Waiting for the host to start...</div>
+    <div class="wait-sub">You're in! Waiting for the host to start the game...</div>
     <div class="wait-pill">
       <span>👥</span>
       <span><span id="wait-count">1</span> player<span id="wait-plural">s</span> joined</span>
     </div>
     <div class="wait-cat" id="wait-cat"></div>
+    <div class="wait-room" id="wait-room"></div>
   </div>
 </div>
 
-<!-- ══ QUIZ ══ -->
+<!-- ════ QUIZ SCREEN ════ -->
 <div class="screen hidden" id="screen-quiz">
   <div class="quiz-wrap">
+
+    <!-- Player identity bar -->
+    <div class="player-id-bar" id="player-id-bar">
+      <span class="pib-emoji" id="pib-emoji">😎</span>
+      <span class="pib-name" id="pib-name">Player</span>
+      <span class="pib-score" id="pib-score">· 0 pts</span>
+    </div>
+
+    <!-- Header row -->
     <div class="quiz-header">
-      <div>
-        <div class="q-counter" id="q-counter">Q 1 / 8</div>
-        <div class="score-pill" id="score-pill">0 pts</div>
-      </div>
+      <div class="q-counter" id="q-counter">Q 1 / 8</div>
       <div class="timer-ring-wrap">
         <svg class="timer-ring" width="56" height="56" viewBox="0 0 56 56">
           <circle class="trb" cx="28" cy="28" r="23"/>
-          <circle class="trf" id="trf" cx="28" cy="28" r="23" stroke-dasharray="145" stroke-dashoffset="0"/>
+          <circle class="trf" id="trf" cx="28" cy="28" r="23"
+            stroke-dasharray="145" stroke-dashoffset="0"/>
         </svg>
         <div class="timer-n" id="timer-n">15</div>
       </div>
@@ -316,14 +398,14 @@ body{display:flex;align-items:center;justify-content:center;position:relative}
       <div class="pending-dots"><span></span><span></span><span></span></div>
     </div>
 
-    <!-- Pending: time ran out without answering -->
+    <!-- Pending: time ran out -->
     <div class="pending-box missed" id="pending-missed">
       <span class="pending-icon" style="animation:none">⏰</span>
       <div class="pending-title missed">Time's Up!</div>
       <div class="pending-sub">You didn't answer in time. Waiting for reveal...</div>
     </div>
 
-    <!-- Feedback: shown only after admin reveals -->
+    <!-- Feedback (shown after admin reveals) -->
     <div class="feedback-card" id="feedback-card">
       <span class="fb-emoji" id="fb-emoji">🎉</span>
       <div class="fb-title" id="fb-title">Correct!</div>
@@ -333,36 +415,32 @@ body{display:flex;align-items:center;justify-content:center;position:relative}
   </div>
 </div>
 
-<!-- ══ ELIMINATED ══ -->
+<!-- ════ ELIMINATED SCREEN ════ -->
 <div class="screen hidden" id="screen-eliminated">
-  <div class="elim-card">
-    <div class="elim-icon-big">⚡</div>
+  <div class="elim-wrap">
+    <span class="elim-player-emoji" id="elim-player-emoji">😎</span>
+    <span class="elim-zap">⚡</span>
     <div class="elim-headline">Eliminated!</div>
-    <div class="elim-msg">The host has removed you from the game.<br>Better luck next time!</div>
+    <div class="elim-msg">The host removed you from the game.<br>Here's how you did!</div>
     <div class="elim-score-box">
       <div class="elim-score-val" id="elim-final-score">0</div>
       <div class="elim-score-lbl">Total Points Scored</div>
     </div>
     <div class="elim-stats">
-      <div class="elim-stat">
-        <div class="elim-stat-val" id="elim-correct">0</div>
-        <div class="elim-stat-lbl">Correct</div>
-      </div>
-      <div class="elim-stat">
-        <div class="elim-stat-val" id="elim-acc">0%</div>
-        <div class="elim-stat-lbl">Accuracy</div>
-      </div>
+      <div class="elim-stat"><div class="elim-sv" id="elim-correct">0</div><div class="elim-sl">Correct</div></div>
+      <div class="elim-stat"><div class="elim-sv" id="elim-acc">0%</div><div class="elim-sl">Accuracy</div></div>
     </div>
   </div>
 </div>
 
-<!-- ══ RESULT ══ -->
+<!-- ════ RESULT SCREEN ════ -->
 <div class="screen hidden" id="screen-result">
   <div class="result-card">
-    <span class="res-emoji" id="res-emoji">🏆</span>
-    <div class="res-headline" id="res-headline">Well Played!</div>
+    <span class="res-player-emoji" id="res-player-emoji">😎</span>
+    <div class="res-player-name" id="res-player-name">Player</div>
+    <div class="res-headline">Total Score</div>
     <div class="res-score" id="res-score">0</div>
-    <div class="res-sub">Total points scored</div>
+    <div class="res-sub">points earned</div>
     <div class="res-stats">
       <div class="res-stat"><div class="rsv" id="rs-correct">0</div><div class="rsl">Correct</div></div>
       <div class="res-stat"><div class="rsv" id="rs-accuracy">0%</div><div class="rsl">Accuracy</div></div>
@@ -374,10 +452,10 @@ body{display:flex;align-items:center;justify-content:center;position:relative}
 
 <script>
 // ══════════════════════════════════════════════
-// CONFIG — Replace with your Supabase credentials
+// CONFIG
 // ══════════════════════════════════════════════
-const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
+const SUPABASE_URL = 'https://YOUR_PROJECT.supabase.co';
+const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ══════════════════════════════════════════════
@@ -386,129 +464,191 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const starsEl = document.getElementById('stars');
 for(let i=0;i<90;i++){
   const s=document.createElement('div'); s.className='star';
-  const size=Math.random()*2.2+0.4;
-  s.style.cssText=`width:${size}px;height:${size}px;top:${Math.random()*100}%;left:${Math.random()*100}%;--dur:${2+Math.random()*5}s;--del:${Math.random()*5}s;--op:${0.25+Math.random()*0.55};`;
+  const sz=Math.random()*2.2+0.4;
+  s.style.cssText=`width:${sz}px;height:${sz}px;top:${Math.random()*100}%;left:${Math.random()*100}%;--dur:${2+Math.random()*5}s;--del:${Math.random()*5}s;--op:${0.2+Math.random()*0.5}`;
   starsEl.appendChild(s);
 }
 
 // ══════════════════════════════════════════════
-// COLORS
+// EMOJI DATA
 // ══════════════════════════════════════════════
-const COLORS = [
-  '#00f0ff','#7c3aed','#f59e0b','#10b981',
-  '#f43f5e','#3b82f6','#ec4899','#f97316',
-  '#14b8a6','#a855f7','#84cc16','#06b6d4'
+const EMOJIS = [
+  {e:'😎',n:'Cool'},    {e:'🦁',n:'Lion'},    {e:'🐯',n:'Tiger'},  {e:'🦊',n:'Fox'},
+  {e:'🐺',n:'Wolf'},    {e:'🦝',n:'Raccoon'}, {e:'🐸',n:'Frog'},   {e:'🐙',n:'Octopus'},
+  {e:'🦄',n:'Unicorn'}, {e:'🐲',n:'Dragon'},  {e:'🦋',n:'Butterfly'},{e:'🦅',n:'Eagle'},
+  {e:'🦜',n:'Parrot'},  {e:'🐬',n:'Dolphin'}, {e:'🦈',n:'Shark'},  {e:'🐧',n:'Penguin'},
+  {e:'🦩',n:'Flamingo'},{e:'🦉',n:'Owl'},     {e:'🐻',n:'Bear'},   {e:'🐼',n:'Panda'},
+  {e:'🐨',n:'Koala'},   {e:'🦊',n:'Fox'},     {e:'🐮',n:'Cow'},    {e:'🐷',n:'Pig'},
+  {e:'🤖',n:'Robot'},   {e:'👾',n:'Alien'},   {e:'💀',n:'Skull'},  {e:'🎃',n:'Pumpkin'},
+  {e:'🧙',n:'Wizard'},  {e:'🥷',n:'Ninja'},   {e:'🦸',n:'Hero'},   {e:'🦹',n:'Villain'},
+  {e:'👻',n:'Ghost'},   {e:'🎯',n:'Target'},  {e:'🏆',n:'Trophy'}, {e:'⚡',n:'Lightning'},
+  {e:'🔥',n:'Fire'},    {e:'💎',n:'Diamond'}, {e:'🌙',n:'Moon'},   {e:'⭐',n:'Star'},
+  {e:'🌈',n:'Rainbow'}, {e:'🍕',n:'Pizza'},   {e:'🎮',n:'Gaming'}, {e:'🎸',n:'Guitar'},
+  {e:'🚀',n:'Rocket'},  {e:'🛸',n:'UFO'},     {e:'🌊',n:'Wave'},   {e:'🎭',n:'Theater'},
 ];
-let selectedColor = COLORS[0];
 
-const colorRow = document.getElementById('color-row');
-COLORS.forEach((c,i)=>{
-  const d=document.createElement('div');
-  d.className='cdot'+(i===0?' sel':'');
-  d.style.background=c;
-  d.onclick=()=>{
-    document.querySelectorAll('.cdot').forEach(x=>x.classList.remove('sel'));
-    d.classList.add('sel'); selectedColor=c;
-    if(playerData) updateAvatarColor(c);
-  };
-  colorRow.appendChild(d);
-});
+let selectedEmoji = EMOJIS[0];
+let allEmojis = [...EMOJIS];
+
+function buildEmojiGrid(list) {
+  const grid = document.getElementById('emoji-grid');
+  grid.innerHTML = '';
+  list.forEach(item => {
+    const btn = document.createElement('button');
+    btn.className = 'emoji-btn' + (item.e === selectedEmoji.e ? ' sel' : '');
+    btn.textContent = item.e;
+    btn.title = item.n;
+    btn.onclick = () => pickEmoji(item);
+    grid.appendChild(btn);
+  });
+}
+
+function pickEmoji(item) {
+  selectedEmoji = item;
+  document.querySelectorAll('.emoji-btn').forEach(b => {
+    b.classList.toggle('sel', b.textContent === item.e);
+  });
+  document.getElementById('sep-emoji').textContent = item.e;
+  document.getElementById('sep-name').textContent = item.n;
+  document.getElementById('join-btn-emoji').textContent = item.e;
+}
+
+function filterEmojis(q) {
+  const filtered = q.trim()
+    ? EMOJIS.filter(e => e.n.toLowerCase().includes(q.toLowerCase()) || e.e.includes(q))
+    : EMOJIS;
+  buildEmojiGrid(filtered);
+}
+
+// Build on load
+buildEmojiGrid(EMOJIS);
 
 // ══════════════════════════════════════════════
 // STATE
 // ══════════════════════════════════════════════
-let SESSION_ID = null;
-let sessionData = null;
-let playerData = null;         // our player row in DB
+let SESSION_ID   = null;
+let sessionData  = null;
+let playerData   = null;
 let currentScore = 0;
 let currentCorrect = 0;
-let currentQ = null;           // current question object
-let totalQ = 0;
-let qIdx = 0;
-let answered = false;
-let answerData = null;         // stored until reveal
-let timerInterval = null;
-let timeLeft = 15;
+let currentQ     = null;
+let totalQ       = 0;
+let qIdx         = 0;
+let answered     = false;
+let answerData   = null;
+let timerInterval= null;
+let timeLeft     = 15;
 let isEliminated = false;
-let categories = [];
+let categories   = [];
 
 // ══════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════
 async function init() {
-  SESSION_ID = localStorage.getItem('paq_session_id');
-  if(!SESSION_ID){
-    setRoomStatus('No session found — check the room URL', false);
-    return;
+  const {data:cats} = await sb.from('categories').select('*');
+  categories = cats || [];
+
+  // Auto-fill session from URL param e.g. player.html?session=QUIZ01
+  const urlParam = new URLSearchParams(window.location.search).get('session');
+  if (urlParam) {
+    document.getElementById('inp-session').value = urlParam.toUpperCase();
+    await verifySession();
   }
 
-  const {data:sess} = await sb.from('game_sessions').select('*').eq('id',SESSION_ID).single();
-  if(!sess){ setRoomStatus('Session not found', false); return; }
-  sessionData = sess;
-
-  const {data:cats} = await sb.from('categories').select('*');
-  categories = cats||[];
-
-  setRoomStatus(`Room: ${sess.room_code} · ${sess.title}`, true);
-  setupRealtime();
-
-  // If game already active and we have a saved player, try to rejoin
-  const savedPlayerId = localStorage.getItem('paq_player_id');
-  if(savedPlayerId){
-    const {data:p} = await sb.from('players').select('*').eq('id',savedPlayerId).single();
-    if(p && p.session_id===SESSION_ID){
-      playerData=p;
-      currentScore=p.score; currentCorrect=p.correct_count;
-      isEliminated=p.is_eliminated;
-      if(isEliminated){ showEliminated(); return; }
-      if(sess.status==='waiting'){ showWaiting(); }
-      else if(sess.status==='active'||sess.status==='reveal'){
-        // Re-join mid-game: load current question
-        showWaiting();
-      } else if(sess.status==='ended'){
-        await showResult();
-      }
+  // Try to restore saved player session
+  const savedSessionId = localStorage.getItem('paq_session_id');
+  const savedPlayerId  = localStorage.getItem('paq_player_id');
+  if (savedSessionId && savedPlayerId) {
+    const {data:p} = await sb.from('players').select('*').eq('id', savedPlayerId).single();
+    if (p && p.session_id === savedSessionId) {
+      SESSION_ID  = savedSessionId;
+      playerData  = p;
+      currentScore    = p.score;
+      currentCorrect  = p.correct_count;
+      isEliminated    = p.is_eliminated;
+      const {data:sess} = await sb.from('game_sessions').select('*').eq('id', SESSION_ID).single();
+      sessionData = sess;
+      if (isEliminated) { showEliminated(); return; }
+      if (sess.status === 'ended') { await showResult(); return; }
+      showWaiting();
+      setupRealtime();
       return;
     }
   }
 }
 
-function setRoomStatus(txt, online) {
-  const el=document.getElementById('rs-txt');
-  el.textContent=txt;
-  el.parentElement.style.background=online?'rgba(0,240,255,0.07)':'rgba(244,63,94,0.07)';
-  el.parentElement.style.borderColor=online?'rgba(0,240,255,0.18)':'rgba(244,63,94,0.2)';
-  el.style.color=online?'var(--accent)':'var(--rose)';
+// ══════════════════════════════════════════════
+// VERIFY SESSION
+// ══════════════════════════════════════════════
+async function verifySession() {
+  const code = document.getElementById('inp-session').value.trim().toUpperCase();
+  if (!code) { showErr('Please enter a Session ID'); return; }
+
+  const btn = document.getElementById('verify-btn');
+  btn.disabled = true; btn.textContent = '...';
+
+  const {data:sess} = await sb.from('game_sessions')
+    .select('*').eq('room_code', code).single();
+
+  btn.disabled = false; btn.textContent = 'Verify →';
+
+  if (!sess) {
+    document.getElementById('inp-session').classList.add('error');
+    showErr('Session not found. Check the ID and try again.');
+    return;
+  }
+  if (sess.status === 'ended') {
+    showErr('This quiz session has already ended.');
+    return;
+  }
+
+  // Success
+  SESSION_ID  = sess.id;
+  sessionData = sess;
+  localStorage.setItem('paq_session_id', sess.id);
+
+  document.getElementById('inp-session').classList.remove('error');
+  document.getElementById('inp-session').classList.add('success');
+  document.getElementById('inp-session').disabled = true;
+  btn.style.display = 'none';
+
+  const badge = document.getElementById('session-badge');
+  badge.classList.add('show');
+  document.getElementById('session-badge-txt').textContent =
+    `${sess.title} · Room: ${sess.room_code}`;
+
+  // Unlock name + emoji
+  document.getElementById('name-group').style.opacity = '1';
+  document.getElementById('name-group').style.pointerEvents = 'auto';
+  document.getElementById('emoji-group').style.opacity = '1';
+  document.getElementById('emoji-group').style.pointerEvents = 'auto';
+  document.getElementById('join-btn').disabled = false;
+  document.getElementById('inp-name').focus();
 }
 
 // ══════════════════════════════════════════════
 // REALTIME
 // ══════════════════════════════════════════════
 function setupRealtime() {
-  // Session updates
-  sb.channel('player-session').on('postgres_changes',
+  sb.channel('player-session-'+SESSION_ID).on('postgres_changes',
     {event:'UPDATE',schema:'public',table:'game_sessions',filter:`id=eq.${SESSION_ID}`},
     (payload)=>{ sessionData=payload.new; handleSessionChange(); }
   ).subscribe();
 
-  // Game events
-  sb.channel('player-events').on('postgres_changes',
+  sb.channel('player-events-'+SESSION_ID).on('postgres_changes',
     {event:'INSERT',schema:'public',table:'game_events',filter:`session_id=eq.${SESSION_ID}`},
     (payload)=>{ handleEvent(payload.new); }
   ).subscribe();
 
-  // Watch our own player row (elimination)
-  if(playerData){
-    watchPlayer();
-  }
+  if (playerData) watchMyPlayer();
 }
 
-function watchPlayer() {
-  sb.channel('my-player').on('postgres_changes',
+function watchMyPlayer() {
+  sb.channel('my-player-'+playerData.id).on('postgres_changes',
     {event:'UPDATE',schema:'public',table:'players',filter:`id=eq.${playerData.id}`},
     (payload)=>{
-      if(payload.new.is_eliminated && !isEliminated){
-        isEliminated=true;
+      if (payload.new.is_eliminated && !isEliminated) {
+        isEliminated = true;
         showEliminated();
       }
     }
@@ -519,167 +659,172 @@ function watchPlayer() {
 // EVENT HANDLER
 // ══════════════════════════════════════════════
 function handleEvent(evt) {
-  switch(evt.event_type){
+  switch(evt.event_type) {
     case 'new_question':
       loadQuestion(evt.payload.question, evt.payload.qIdx, evt.payload.total);
       break;
     case 'time_up':
-      if(!answered) handleTimeout();
+      if (!answered) handleTimeout();
       break;
     case 'answer_revealed':
       revealOnPlayer();
       break;
     case 'game_ended':
-      setTimeout(()=>showResult(), 1000);
+      setTimeout(() => showResult(), 1000);
       break;
     case 'game_reset':
-      currentScore=0; currentCorrect=0; answered=false; answerData=null;
-      isEliminated=false;
+      currentScore=0; currentCorrect=0; answered=false; answerData=null; isEliminated=false;
       localStorage.removeItem('paq_player_id');
-      playerData=null;
+      playerData = null; SESSION_ID = null; sessionData = null;
+      // Reset form
+      document.getElementById('inp-session').value='';
+      document.getElementById('inp-session').disabled=false;
+      document.getElementById('inp-session').classList.remove('success','error');
+      document.getElementById('verify-btn').style.display='';
+      document.getElementById('verify-btn').disabled=false;
+      document.getElementById('session-badge').classList.remove('show');
+      document.getElementById('name-group').style.opacity='0.35';
+      document.getElementById('name-group').style.pointerEvents='none';
+      document.getElementById('emoji-group').style.opacity='0.35';
+      document.getElementById('emoji-group').style.pointerEvents='none';
+      document.getElementById('join-btn').disabled=true;
+      document.getElementById('inp-name').value='';
       showScreen('join');
       break;
     case 'player_eliminated':
-      if(playerData && evt.payload.player_id===playerData.id){
-        isEliminated=true;
-        showEliminated();
+      if (playerData && evt.payload.player_id === playerData.id) {
+        isEliminated = true; showEliminated();
       }
       break;
     case 'category_changed':
       loadWaitCategory();
       break;
     case 'settings_updated':
-      if(sessionData){
-        sessionData.room_code=evt.payload.room_code||sessionData.room_code;
-        sessionData.title=evt.payload.title||sessionData.title;
-        setRoomStatus(`Room: ${sessionData.room_code} · ${sessionData.title}`, true);
+      if (sessionData) {
+        sessionData.room_code = evt.payload.room_code || sessionData.room_code;
+        sessionData.title     = evt.payload.title     || sessionData.title;
+        document.getElementById('session-badge-txt').textContent =
+          `${sessionData.title} · Room: ${sessionData.room_code}`;
       }
       break;
   }
 }
 
 function handleSessionChange() {
-  // Update player count pill on waiting screen
-  if(getCurrentScreen()==='waiting'){
-    refreshPlayerCount();
-  }
-  // Category display
-  if(sessionData.status==='active' && getCurrentScreen()==='waiting'){
-    // Game started while we were waiting — question will arrive via new_question event
-  }
+  if (getCurrentScreen() === 'waiting') refreshPlayerCount();
 }
 
 // ══════════════════════════════════════════════
 // JOIN
 // ══════════════════════════════════════════════
 async function joinGame() {
+  if (!SESSION_ID) { showErr('Verify your Session ID first!'); return; }
+
   const name = document.getElementById('inp-name').value.trim();
-  if(!name){ showErr('Please enter your name'); return; }
-  if(!sessionData){ showErr('No session connected'); return; }
-  if(sessionData.status==='ended'){ showErr('This quiz has already ended'); return; }
+  if (!name) { showErr('Please enter your name'); return; }
+  if (sessionData?.status === 'ended') { showErr('This quiz has already ended'); return; }
 
-  const btn=document.getElementById('join-btn');
-  btn.disabled=true; btn.textContent='Joining...';
+  const btn = document.getElementById('join-btn');
+  btn.disabled=true; btn.innerHTML='<span>⏳</span> Joining...';
 
-  // Check if name taken
-  const {data:existing}=await sb.from('players')
-    .select('id').eq('session_id',SESSION_ID).eq('name',name);
-  if(existing && existing.length>0){
-    showErr('That name is taken — try another!');
-    btn.disabled=false; btn.textContent='Join Game →'; return;
+  // Check if name taken in this session
+  const {data:existing} = await sb.from('players')
+    .select('id').eq('session_id', SESSION_ID).eq('name', name);
+  if (existing && existing.length > 0) {
+    showErr('That name is already taken — try another!');
+    btn.disabled=false; btn.innerHTML=`<span>${selectedEmoji.e}</span> Join Game →`;
+    return;
   }
 
-  const {data:p, error}=await sb.from('players').insert({
-    session_id:SESSION_ID, name, avatar_color:selectedColor,
-    score:0, correct_count:0, is_eliminated:false
+  const {data:p, error} = await sb.from('players').insert({
+    session_id:   SESSION_ID,
+    name,
+    avatar_color: selectedEmoji.e,   // store emoji in avatar_color field
+    score:        0,
+    correct_count:0,
+    is_eliminated:false
   }).select().single();
 
-  if(error){
+  if (error) {
     showErr('Could not join — please try again');
-    btn.disabled=false; btn.textContent='Join Game →'; return;
+    btn.disabled=false; btn.innerHTML=`<span>${selectedEmoji.e}</span> Join Game →`;
+    return;
   }
 
-  playerData=p;
+  playerData = p;
   localStorage.setItem('paq_player_id', p.id);
   currentScore=0; currentCorrect=0;
 
-  // Subscribe to our own row for elimination detection
-  watchPlayer();
-
+  watchMyPlayer();
+  setupRealtime();
   showWaiting();
   refreshPlayerCount();
   loadWaitCategory();
 }
 
-function showErr(msg){
-  const el=document.getElementById('err-msg');
+function showErr(msg) {
+  const el = document.getElementById('err-msg');
   el.textContent=msg; el.style.display='block';
-  setTimeout(()=>el.style.display='none', 3500);
+  setTimeout(()=>el.style.display='none', 3800);
 }
 
 // ══════════════════════════════════════════════
 // WAITING
 // ══════════════════════════════════════════════
-function showWaiting(){
+function showWaiting() {
   showScreen('waiting');
-  const init=playerData.name.split(' ').map(w=>w[0]).join('').toUpperCase().substring(0,2);
-  const av=document.getElementById('wait-avatar');
-  av.style.cssText=`width:88px;height:88px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:800;margin:0 auto 20px;position:relative;background:${playerData.avatar_color}22;color:${playerData.avatar_color}`;
-  av.textContent=init;
-  document.getElementById('wait-name').textContent=playerData.name;
+  const emoji = playerData.avatar_color; // emoji stored here
+  document.getElementById('wait-emoji-ring').textContent = emoji;
+  document.getElementById('wait-name').textContent = playerData.name;
+  document.getElementById('wait-room').textContent =
+    sessionData ? `Session: ${sessionData.room_code}` : '';
 }
 
-async function refreshPlayerCount(){
-  const {count}=await sb.from('players')
-    .select('*',{count:'exact',head:true})
-    .eq('session_id',SESSION_ID);
-  const n=count||0;
-  document.getElementById('wait-count').textContent=n;
-  document.getElementById('wait-plural').textContent=n===1?'':'s';
+async function refreshPlayerCount() {
+  const {count} = await sb.from('players')
+    .select('*',{count:'exact',head:true}).eq('session_id', SESSION_ID);
+  const n = count||0;
+  document.getElementById('wait-count').textContent = n;
+  document.getElementById('wait-plural').textContent = n===1?'':'s';
 }
 
-function loadWaitCategory(){
-  if(!sessionData?.category_id) return;
-  const cat=categories.find(c=>c.id===sessionData.category_id);
-  if(cat) document.getElementById('wait-cat').textContent=`Category: ${cat.icon} ${cat.name}`;
-}
-
-async function updateAvatarColor(color){
-  if(!playerData) return;
-  await sb.from('players').update({avatar_color:color}).eq('id',playerData.id);
-  playerData.avatar_color=color;
-  const av=document.getElementById('wait-avatar');
-  if(av){ av.style.background=`${color}22`; av.style.color=color; }
+function loadWaitCategory() {
+  if (!sessionData?.category_id) return;
+  const cat = categories.find(c=>c.id===sessionData.category_id);
+  if (cat) document.getElementById('wait-cat').textContent=`Category: ${cat.icon} ${cat.name}`;
 }
 
 // ══════════════════════════════════════════════
 // LOAD QUESTION
 // ══════════════════════════════════════════════
-function loadQuestion(q, idx, total){
-  if(isEliminated) return;
+function loadQuestion(q, idx, total) {
+  if (isEliminated) return;
   currentQ=q; qIdx=idx; totalQ=total;
   answered=false; answerData=null;
-
   showScreen('quiz');
 
-  document.getElementById('q-counter').textContent=`Q ${idx+1} / ${total}`;
-  document.getElementById('q-txt').textContent=q.question_text;
-  document.getElementById('prog-fill').style.width=`${((idx+1)/total)*100}%`;
-  document.getElementById('score-pill').textContent=currentScore+' pts';
+  // Update player bar
+  const emoji = playerData?.avatar_color || '😎';
+  document.getElementById('pib-emoji').textContent  = emoji;
+  document.getElementById('pib-name').textContent   = playerData?.name || 'Player';
+  document.getElementById('pib-score').textContent  = `· ${currentScore} pts`;
 
-  // Category tag
-  const cat=categories.find(c=>c.id===q.category_id);
-  document.getElementById('q-category-tag').textContent=cat?`${cat.icon} ${cat.name}`:'';
+  document.getElementById('q-counter').textContent  = `Q ${idx+1} / ${total}`;
+  document.getElementById('q-txt').textContent      = q.question_text;
+  document.getElementById('prog-fill').style.width  = `${((idx+1)/total)*100}%`;
 
-  // Reset state
+  const cat = categories.find(c=>c.id===q.category_id);
+  document.getElementById('q-category-tag').textContent = cat?`${cat.icon} ${cat.name}`:'';
+
+  // Reset
   document.getElementById('pending-answered').classList.remove('show');
   document.getElementById('pending-missed').classList.remove('show');
-  document.getElementById('feedback-card').classList.remove('show');
-  document.getElementById('feedback-card').style.display='none';
+  const fc=document.getElementById('feedback-card');
+  fc.classList.remove('show'); fc.style.display='none';
 
   // Build options
-  const opts=[q.option_a,q.option_b,q.option_c,q.option_d];
-  const grid=document.getElementById('opts-grid');
+  const opts = [q.option_a,q.option_b,q.option_c,q.option_d];
+  const grid = document.getElementById('opts-grid');
   grid.innerHTML='';
   opts.forEach((opt,i)=>{
     const btn=document.createElement('button');
@@ -689,18 +834,18 @@ function loadQuestion(q, idx, total){
     grid.appendChild(btn);
   });
 
-  // Start timer
+  // Timer
   clearInterval(timerInterval);
   timeLeft=q.time_limit||15;
   updateTimerUI(q.time_limit||15);
   timerInterval=setInterval(()=>{
     timeLeft--;
     updateTimerUI(q.time_limit||15);
-    if(timeLeft<=0){ clearInterval(timerInterval); }
+    if(timeLeft<=0) clearInterval(timerInterval);
   },1000);
 }
 
-function updateTimerUI(max){
+function updateTimerUI(max) {
   const n=document.getElementById('timer-n');
   const ring=document.getElementById('trf');
   const t=Math.max(0,timeLeft);
@@ -715,148 +860,124 @@ function updateTimerUI(max){
 // ══════════════════════════════════════════════
 // SELECT ANSWER
 // ══════════════════════════════════════════════
-async function selectAnswer(idx){
-  if(answered || isEliminated) return;
+async function selectAnswer(idx) {
+  if(answered||isEliminated) return;
   answered=true;
   clearInterval(timerInterval);
 
   const q=currentQ;
   const isCorrect=idx===q.correct_option;
-  const pts=isCorrect ? Math.max(20, Math.round((q.points||100)*(timeLeft/(q.time_limit||15)))) : 0;
+  const pts=isCorrect?Math.max(20,Math.round((q.points||100)*(timeLeft/(q.time_limit||15)))):0;
+  answerData={idx,isCorrect,pts,q};
 
-  // Store for reveal
-  answerData={idx, isCorrect, pts, q};
+  document.querySelectorAll('.opt-btn').forEach((b,i)=>{
+    b.disabled=true;
+    if(i===idx) b.classList.add('chosen');
+  });
 
-  // Visual: mark chosen
-  const btns=document.querySelectorAll('.opt-btn');
-  btns.forEach((b,i)=>{ b.disabled=true; if(i===idx) b.classList.add('chosen'); });
-
-  // Save to DB
   await sb.from('answers').insert({
-    session_id:SESSION_ID,
-    question_id:q.id,
-    player_id:playerData.id,
-    chosen_option:idx,
-    is_correct:isCorrect,
-    points_earned:pts,
-    time_taken_ms:(q.time_limit||15)*1000-timeLeft*1000
-  }).then(()=>{});
+    session_id:    SESSION_ID,
+    question_id:   q.id,
+    player_id:     playerData.id,
+    chosen_option: idx,
+    is_correct:    isCorrect,
+    points_earned: pts,
+    time_taken_ms: (q.time_limit||15)*1000-timeLeft*1000
+  });
 
-  // Show pending — NOT result yet
   document.getElementById('pending-answered').classList.add('show');
 }
 
 // ══════════════════════════════════════════════
-// TIMEOUT (no answer selected)
+// TIMEOUT
 // ══════════════════════════════════════════════
-async function handleTimeout(){
+async function handleTimeout() {
   if(answered) return;
   answered=true;
   clearInterval(timerInterval);
-
   const q=currentQ;
-  answerData={idx:-1, isCorrect:false, pts:0, q};
-
+  answerData={idx:-1,isCorrect:false,pts:0,q};
   document.querySelectorAll('.opt-btn').forEach(b=>b.disabled=true);
-
-  // Save timeout answer
   await sb.from('answers').insert({
-    session_id:SESSION_ID,
-    question_id:q.id,
-    player_id:playerData.id,
-    chosen_option:-1,
-    is_correct:false,
-    points_earned:0,
-    time_taken_ms:(q.time_limit||15)*1000
-  }).then(()=>{});
-
+    session_id:    SESSION_ID,
+    question_id:   q.id,
+    player_id:     playerData.id,
+    chosen_option: -1,
+    is_correct:    false,
+    points_earned: 0,
+    time_taken_ms: (q.time_limit||15)*1000
+  });
   document.getElementById('pending-missed').classList.add('show');
 }
 
 // ══════════════════════════════════════════════
-// REVEAL ANSWER (triggered by admin)
+// REVEAL
 // ══════════════════════════════════════════════
-async function revealOnPlayer(){
+async function revealOnPlayer() {
   if(!answerData) return;
-  const {idx, isCorrect, pts, q}=answerData;
+  const {idx,isCorrect,pts,q}=answerData;
 
-  // Apply score
   if(isCorrect){ currentScore+=pts; currentCorrect++; }
 
-  // Update DB score
   await sb.from('players').update({
     score:currentScore, correct_count:currentCorrect
   }).eq('id',playerData.id);
 
-  // Update option buttons to show correct/wrong
-  const btns=document.querySelectorAll('.opt-btn');
-  btns.forEach((b,i)=>{
+  document.querySelectorAll('.opt-btn').forEach((b,i)=>{
     b.classList.remove('chosen');
     if(i===q.correct_option) b.classList.add('correct');
-    else if(i===idx) b.classList.add('wrong');
+    else if(i===idx)         b.classList.add('wrong');
   });
 
-  // Hide pending boxes
   document.getElementById('pending-answered').classList.remove('show');
   document.getElementById('pending-missed').classList.remove('show');
 
-  // Show feedback
   const fc=document.getElementById('feedback-card');
   const type=idx===-1?'timeout':isCorrect?'correct':'wrong';
-  fc.className='feedback-card show '+type;
+  fc.className=`feedback-card show ${type}`;
   fc.style.display='block';
+  document.getElementById('fb-emoji').textContent = idx===-1?'⏰':isCorrect?'🎉':'❌';
+  document.getElementById('fb-title').textContent = idx===-1?'Time Up!':isCorrect?'Correct!':'Wrong!';
+  document.getElementById('fb-pts').textContent   = pts>0?`+${pts} pts`:'No points this round';
+  document.getElementById('fb-exp').textContent   = q.explanation||'';
 
-  document.getElementById('fb-emoji').textContent=
-    idx===-1?'⏰':isCorrect?'🎉':'❌';
-  document.getElementById('fb-title').textContent=
-    idx===-1?'Time Up!':isCorrect?'Correct!':'Wrong!';
-  document.getElementById('fb-pts').textContent=
-    pts>0?`+${pts} pts`:'No points this round';
-  document.getElementById('fb-exp').textContent=
-    q.explanation||'';
-  document.getElementById('score-pill').textContent=currentScore+' pts';
-
+  // Update score in identity bar
+  document.getElementById('pib-score').textContent = `· ${currentScore} pts`;
   answerData=null;
 }
 
 // ══════════════════════════════════════════════
 // ELIMINATED
 // ══════════════════════════════════════════════
-function showEliminated(){
+function showEliminated() {
   clearInterval(timerInterval);
   showScreen('eliminated');
-  document.getElementById('elim-final-score').textContent=currentScore;
-  document.getElementById('elim-correct').textContent=currentCorrect+(totalQ?'/'+totalQ:'');
-  const acc=totalQ>0?Math.round((currentCorrect/totalQ)*100):0;
-  document.getElementById('elim-acc').textContent=acc+'%';
+  const emoji = playerData?.avatar_color||'😎';
+  document.getElementById('elim-player-emoji').textContent = emoji;
+  document.getElementById('elim-final-score').textContent  = currentScore;
+  document.getElementById('elim-correct').textContent      = `${currentCorrect}${totalQ?'/'+totalQ:''}`;
+  const acc = totalQ>0?Math.round((currentCorrect/totalQ)*100):0;
+  document.getElementById('elim-acc').textContent = acc+'%';
 }
 
 // ══════════════════════════════════════════════
 // RESULT
 // ══════════════════════════════════════════════
-async function showResult(){
-  if(isEliminated) return; // show eliminated screen
+async function showResult() {
+  if(isEliminated) return;
   clearInterval(timerInterval);
   showScreen('result');
 
-  document.getElementById('res-score').textContent=currentScore;
-  document.getElementById('rs-correct').textContent=`${currentCorrect}/${totalQ}`;
+  const emoji = playerData?.avatar_color||'😎';
+  document.getElementById('res-player-emoji').textContent = emoji;
+  document.getElementById('res-player-name').textContent  = playerData?.name||'Player';
+  document.getElementById('res-score').textContent        = currentScore;
+  document.getElementById('rs-correct').textContent       = `${currentCorrect}/${totalQ}`;
   const acc=totalQ>0?Math.round((currentCorrect/totalQ)*100):0;
   document.getElementById('rs-accuracy').textContent=acc+'%';
 
-  // Emoji + headline based on score
-  const pctScore=totalQ>0?currentCorrect/totalQ:0;
-  let emoji='💪', headline='Good Effort!';
-  if(pctScore>=0.9){ emoji='🏆'; headline='Outstanding!'; }
-  else if(pctScore>=0.7){ emoji='🎖️'; headline='Well Played!'; }
-  else if(pctScore>=0.5){ emoji='🌟'; headline='Solid Round!'; }
-  document.getElementById('res-emoji').textContent=emoji;
-  document.getElementById('res-headline').textContent=headline;
-
-  // Fetch rank
   const {data:allPlayers}=await sb.from('players')
-    .select('id,score,is_eliminated')
-    .eq('session_id',SESSION_ID)
+    .select('id,score').eq('session_id',SESSION_ID)
     .order('score',{ascending:false});
   const rank=(allPlayers||[]).findIndex(p=>p.id===playerData?.id)+1;
   document.getElementById('rs-rank').textContent=rank>0?`#${rank}`:'—';
@@ -865,25 +986,40 @@ async function showResult(){
 // ══════════════════════════════════════════════
 // PLAY AGAIN
 // ══════════════════════════════════════════════
-function playAgain(){
+function playAgain() {
   currentScore=0; currentCorrect=0; playerData=null;
   answered=false; answerData=null; isEliminated=false;
+  SESSION_ID=null; sessionData=null;
   localStorage.removeItem('paq_player_id');
+  localStorage.removeItem('paq_session_id');
+  // Reset join form
+  document.getElementById('inp-session').value='';
+  document.getElementById('inp-session').disabled=false;
+  document.getElementById('inp-session').classList.remove('success','error');
+  document.getElementById('verify-btn').style.display='';
+  document.getElementById('verify-btn').disabled=false;
+  document.getElementById('session-badge').classList.remove('show');
+  document.getElementById('name-group').style.opacity='0.35';
+  document.getElementById('name-group').style.pointerEvents='none';
+  document.getElementById('emoji-group').style.opacity='0.35';
+  document.getElementById('emoji-group').style.pointerEvents='none';
+  document.getElementById('join-btn').disabled=true;
+  document.getElementById('inp-name').value='';
+  document.getElementById('emoji-search').value='';
+  buildEmojiGrid(EMOJIS);
   showScreen('join');
-  const btn=document.getElementById('join-btn');
-  btn.disabled=false; btn.textContent='Join Game →';
 }
 
 // ══════════════════════════════════════════════
-// SCREEN UTIL
+// UTILS
 // ══════════════════════════════════════════════
 function showScreen(name){
   document.querySelectorAll('.screen').forEach(s=>s.classList.add('hidden'));
   document.getElementById('screen-'+name).classList.remove('hidden');
 }
 function getCurrentScreen(){
-  const active=[...document.querySelectorAll('.screen')].find(s=>!s.classList.contains('hidden'));
-  return active?.id.replace('screen-','')||'';
+  const a=[...document.querySelectorAll('.screen')].find(s=>!s.classList.contains('hidden'));
+  return a?.id.replace('screen-','')||'';
 }
 
 // ══════════════════════════════════════════════
