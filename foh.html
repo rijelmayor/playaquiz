@@ -352,7 +352,7 @@ let sessionData = null;
 let questions = [], players = [], answers = {}, categories = [];
 let currentPhase = 'waiting';
 let timerInterval = null;
-let timeLeft = 15;
+let timeLeft = 30;
 let currentQ = null;
 let bubbles = [];
 
@@ -486,24 +486,55 @@ function handleEvent(evt) {
   }
 }
 
-// ══════════════════════════════════════════════
-// PHASE SYNC (on load / reconnect)
-// ══════════════════════════════════════════════
 function syncPhase() {
   const status = sessionData?.status || 'waiting';
+  const revealed = sessionData?.answer_revealed;
+
   if (status === 'waiting') {
     showPhase('waiting');
-    players.forEach(p => setTimeout(()=>addBubble(p), Math.random()*500));
-  } else if (status === 'active' || status === 'reveal') {
+    players.forEach(p => setTimeout(() => addBubble(p), Math.random() * 500));
+    return;
+  }
+
+  if (status === 'active') {
     const qi = sessionData.current_question_index;
+
     if (qi >= 0 && questions[qi]) {
       loadFOHQuestion(questions[qi], qi, questions.length);
-      if (status === 'reveal') setTimeout(()=>revealAnswerFOH(), 300);
+
+      // 👇 KEY CHANGE
+      if (revealed) {
+        // Only reveal when admin explicitly triggers it
+        setTimeout(() => revealAnswerFOH(), 300);
+      } else {
+        // 👇 THIS IS YOUR NEW STATE
+        handleTimeUpVisualIfNeeded();
+      }
     }
-  } else if (status === 'leaderboard') {
+    return;
+  }
+
+  if (status === 'leaderboard') {
     showFOHLeaderboard();
-  } else if (status === 'ended') {
+    return;
+  }
+
+  if (status === 'ended') {
     showFOHResult();
+    return;
+  }
+}
+
+
+function handleTimeUpVisualIfNeeded() {
+  // If timer already expired (reconnect case)
+  if (isTimerExpired()) {
+    document.getElementById('timeup-banner').classList.add('show');
+    document.getElementById('resp-section').style.display = 'flex';
+    document.getElementById('resp-pill').classList.remove('visible');
+
+    renderResponseBars(currentResponses);
+    setFooterTip("Responses locked — waiting for host...");
   }
 }
 
@@ -557,11 +588,11 @@ function loadFOHQuestion(q, idx, total) {
   setFtr(`Players: choose your answer! ⏱`);
 
   clearInterval(timerInterval);
-  timeLeft = q.time_limit || 15;
-  updateTimer(q.time_limit||15);
+  timeLeft = q.time_limit || 30;
+  updateTimer(q.time_limit||30);
   timerInterval = setInterval(()=>{
     timeLeft--;
-    updateTimer(q.time_limit||15);
+    updateTimer(q.time_limit||30);
     updateRespProgress();
     if(timeLeft<=0) clearInterval(timerInterval);
   },1000);
