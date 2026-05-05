@@ -313,229 +313,504 @@ html,body{height:100%;width:100%;overflow:hidden;background:var(--bg);color:var(
 
 <script>
 // ══════════════════════════════════════════════
-// FOH STATE MACHINE (PRODUCTION)
+// CONFIG
 // ══════════════════════════════════════════════
+const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-const STATES = {
-  WAITING: 'waiting',
-  ACTIVE: 'active',
-  LOCKED: 'locked',
-  REVEAL: 'reveal',
-  LEADERBOARD: 'leaderboard',
-  ENDED: 'ended'
-};
+// ══════════════════════════════════════════════
+// BG CANVAS
+// ══════════════════════════════════════════════
+const canvas = document.getElementById('bg');
+const ctx = canvas.getContext('2d');
+function resizeBg(){canvas.width=window.innerWidth;canvas.height=window.innerHeight}
+resizeBg(); window.addEventListener('resize',resizeBg);
+const pts = Array.from({length:70},()=>({
+  x:Math.random()*window.innerWidth,y:Math.random()*window.innerHeight,
+  r:Math.random()*1.5+0.3,s:Math.random()*0.25+0.04,
+  a:Math.random()*Math.PI*2,op:Math.random()*0.35+0.08
+}));
+function drawBg(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  pts.forEach(p=>{
+    p.x+=Math.cos(p.a)*p.s; p.y+=Math.sin(p.a)*p.s; p.a+=0.003;
+    if(p.x<0)p.x=canvas.width; if(p.x>canvas.width)p.x=0;
+    if(p.y<0)p.y=canvas.height; if(p.y>canvas.height)p.y=0;
+    ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    ctx.fillStyle=`rgba(0,240,255,${p.op})`; ctx.fill();
+  });
+  requestAnimationFrame(drawBg);
+}
+drawBg();
 
-let currentState = null;
+// ══════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════
+let SESSION_ID = null;
+let sessionData = null;
+let questions = [], players = [], answers = {}, categories = [];
+let currentPhase = 'waiting';
 let timerInterval = null;
+let timeLeft = 30;
 let currentQ = null;
+let bubbles = [];
 
 // ══════════════════════════════════════════════
-// STATE CONTROLLER
+// INIT
 // ══════════════════════════════════════════════
-function setState(nextState, payload = {}) {
-  if (currentState === nextState) return;
+async function init() {
+  SESSION_ID = localStorage.getItem('paq_session_id');
+  if (!SESSION_ID) {
+    document.getElementById('ftr-tip').textContent = 'No session — open admin panel first';
+    return;
+  }
+  const {data} = await sb.from('game_sessions').select('*').eq('id',SESSION_ID).maybeSingle();
+  sessionData = data;
+  await loadAll();
+  updateHeader();
+  syncPhase();
+  setupRealtime();
+}
 
-  console.log(`STATE: ${currentState} → ${nextState}`);
-  currentState = nextState;
+async function loadAll() {
+  const [qRes, pRes, aRes, cRes] = await Promise.all([
+    sb.from('questions').select('*').eq('session_id',SESSION_ID).order('sort_order'),
+    sb.from('players').select('*').eq('session_id',SESSION_ID).order('score',{ascending:false}),
+    sb.from('answers').select('*').eq('session_id',SESSION_ID),
+    sb.from('categories').select('*')
+  ]);
+  questions = qRes.data||[];
+  players = pRes.data||[];
+  answers = {};
+  (aRes.data||[]).forEach(a=>{
+    if(!answers[a.question_id]) answers[a.question_id]={};
+    answers[a.question_id][a.player_id]=a;
+  });
+  categories = cRes.data||[];
+}
 
-  // kill running timer on state switch
-  clearInterval(timerInterval);
+// ══════════════════════════════════════════════
+// REALTIME
+// ══════════════════════════════════════════════
+function setupRealtime() {
+  sb.channel('foh-session').on('postgres_changes',
+    {event:'*',schema:'public',table:'game_sessions',filter:`id=eq.${SESSION_ID}`},
+    (payload)=>{ sessionData=payload.new; updateHeader(); syncPhase(); }
+  ).subscribe();
 
-  switch (nextState) {
-    case STATES.WAITING:
-      renderWaiting();
+  sb.channel('foh-players').on('postgres_changes',
+    {event:'*',schema:'public',table:'players',filter:`session_id=eq.${SESSION_ID}`},
+    async(payload)=>{
+      await reloadPlayers();
+      updateHeader();
+      if(payload.eventType==='INSERT') showAnnouncement(payload.new);
+    }
+  ).subscribe();
+
+  sb.channel('foh-answers').on('postgres_changes',
+    {event:'*',schema:'public',table:'answers',filter:`session_id=eq.${SESSION_ID}`},
+    async()=>{ await reloadAnswers(); updateRespProgress(); }
+  ).subscribe();
+
+  sb.channel('foh-events').on('postgres_changes',
+    {event:'INSERT',schema:'public',table:'game_events',filter:`session_id=eq.${SESSION_ID}`},
+    (payload)=>{ handleEvent(payload.new); }
+  ).subscribe();
+}
+
+async function reloadPlayers() {
+  const {data}=await sb.from('players').select('*').eq('session_id',SESSION_ID).order('score',{ascending:false});
+  players=data||[];
+}
+async function reloadAnswers() {
+  const {data}=await sb.from('answers').select('*').eq('session_id',SESSION_ID);
+  answers={};
+  (data||[]).forEach(a=>{
+    if(!answers[a.question_id])answers[a.question_id]={};
+    answers[a.question_id][a.player_id]=a;
+  });
+}
+
+// ══════════════════════════════════════════════
+// EVENT HANDLER
+// ══════════════════════════════════════════════
+function handleEvent(evt) {
+  switch(evt.event_type) {
+    case 'game_started':
+      clearInterval(timerInterval);
+      bubbles=[]; document.getElementById('bubble-field').innerHTML='';
       break;
-
-    case STATES.ACTIVE:
-      renderQuestion(payload);
-      startTimer(payload.question);
+    case 'new_question':
+      loadFOHQuestion(evt.payload.question, evt.payload.qIdx, evt.payload.total);
       break;
-
-    case STATES.LOCKED:
-      renderTimeUp();
+    case 'time_up':
+      clearInterval(timerInterval);
+      document.getElementById('timeup-banner').classList.add('show');
+      document.getElementById('ftr-tip').textContent="⏱ Time's up! Waiting for host to reveal answer...";
+      document.getElementById('resp-pill').classList.remove('visible');
       break;
-
-    case STATES.REVEAL:
-      renderReveal();
+    case 'answer_revealed':
+      revealAnswerFOH();
       break;
-
-    case STATES.LEADERBOARD:
-      renderLeaderboard();
+    case 'show_leaderboard':
+      showFOHLeaderboard();
       break;
-
-    case STATES.ENDED:
-      renderResult();
+    case 'hide_leaderboard':
+      showPhase('question');
+      break;
+    case 'game_ended':
+      setTimeout(()=>showFOHResult(), 1500);
+      break;
+    case 'game_reset':
+      clearInterval(timerInterval);
+      bubbles=[]; document.getElementById('bubble-field').innerHTML='';
+      document.getElementById('resp-pill').classList.remove('visible');
+      showPhase('waiting');
+      updateHeader();
+      setFtr('Waiting for players to join...');
+      break;
+    case 'player_eliminated':
+      handleElimination(evt.payload.player_id);
+      break;
+    case 'category_changed':
+      loadCategoryDisplay();
+      break;
+    case 'settings_updated':
+      if(sessionData){
+        sessionData.room_code=evt.payload.room_code||sessionData.room_code;
+        sessionData.title=evt.payload.title||sessionData.title;
+        updateHeader();
+      }
       break;
   }
 }
 
-// ══════════════════════════════════════════════
-// RENDERERS
-// ══════════════════════════════════════════════
+function syncPhase() {
+  const status = sessionData?.status || 'waiting';
+  const revealed = sessionData?.answer_revealed;
 
-function renderWaiting() {
-  showPhase('waiting');
-  setFtr("Waiting for players to join...");
+  if (status === 'waiting') {
+    showPhase('waiting');
+    players.forEach(p => setTimeout(() => addBubble(p), Math.random() * 500));
+    return;
+  }
+
+  if (status === 'active') {
+    const qi = sessionData.current_question_index;
+
+    if (qi >= 0 && questions[qi]) {
+      loadFOHQuestion(questions[qi], qi, questions.length);
+
+      // 👇 KEY CHANGE
+      if (revealed) {
+        // Only reveal when admin explicitly triggers it
+        setTimeout(() => revealAnswerFOH(), 300);
+      } else {
+        // 👇 THIS IS YOUR NEW STATE
+        handleTimeUpVisualIfNeeded();
+      }
+    }
+    return;
+  }
+
+  if (status === 'leaderboard') {
+    showFOHLeaderboard();
+    return;
+  }
+
+  if (status === 'ended') {
+    showFOHResult();
+    return;
+  }
 }
 
-function renderQuestion({ question, index, total }) {
-  currentQ = question;
+
+function handleTimeUpVisualIfNeeded() {
+  // If timer already expired (reconnect case)
+  if (isTimerExpired()) {
+    document.getElementById('timeup-banner').classList.add('show');
+    document.getElementById('resp-section').style.display = 'flex';
+    document.getElementById('resp-pill').classList.remove('visible');
+
+    renderResponseBars(currentResponses);
+    setFooterTip("Responses locked — waiting for host...");
+  }
+}
+
+// ══════════════════════════════════════════════
+// HEADER
+// ══════════════════════════════════════════════
+function updateHeader() {
+  const activePlayers = players.filter(p=>!p.is_eliminated).length;
+  document.getElementById('hdr-player-count').textContent = players.length;
+  document.getElementById('hdr-room').textContent = sessionData?.room_code||'——';
+  document.getElementById('wait-room-code').textContent = sessionData?.room_code||'——';
+  loadCategoryDisplay();
+}
+
+function loadCategoryDisplay() {
+  const cat = categories.find(c=>c.id===sessionData?.category_id);
+  document.getElementById('hdr-cat').textContent = cat ? `${cat.icon} ${cat.name}` : '🎯 General';
+}
+
+// ══════════════════════════════════════════════
+// PHASES
+// ══════════════════════════════════════════════
+function showPhase(name) {
+  document.querySelectorAll('.phase').forEach(p=>p.classList.add('out'));
+  document.getElementById('phase-'+name).classList.remove('out');
+  currentPhase = name;
+  if (name !== 'question') {
+    document.getElementById('resp-pill').classList.remove('visible');
+  }
+}
+
+// ══════════════════════════════════════════════
+// QUESTION
+// ══════════════════════════════════════════════
+let hasTimeEnded = false; // prevent duplicate firing
+
+function loadFOHQuestion(q, idx, total) {
+  currentQ = q;
+  hasTimeEnded = false; // reset for new question
 
   showPhase('question');
-
-  document.getElementById('q-badge').textContent = `Q ${index+1} / ${total}`;
-  document.getElementById('q-prog-bar').style.width = `${((index+1)/total)*100}%`;
-  document.getElementById('q-text').textContent = question.question_text;
+  document.getElementById('q-badge').textContent = `Q ${idx+1} / ${total}`;
+  document.getElementById('q-prog-bar').style.width = `${((idx+1)/total)*100}%`;
+  document.getElementById('q-text').textContent = q.question_text;
 
   // reset UI
   document.getElementById('resp-section').style.display = 'none';
   document.getElementById('timeup-banner').classList.remove('show');
-  document.getElementById('resp-pill').classList.add('visible');
+  document.getElementById('resp-pill').classList.remove('visible');
 
-  // render options
-  const opts = [question.option_a, question.option_b, question.option_c, question.option_d];
+  const opts = [q.option_a,q.option_b,q.option_c,q.option_d];
   document.getElementById('q-opts').innerHTML = opts.map((o,i)=>`
     <div class="q-opt" id="foh-opt-${i}">
       <span class="opt-letter">${'ABCD'[i]}</span>${o}
     </div>`).join('');
 
-  setFtr("Players: choose your answer! ⏱");
-}
+  setFtr(`Players: choose your answer! ⏱`);
 
-function renderTimeUp() {
-  document.getElementById('timeup-banner').classList.add('show');
-  document.getElementById('resp-section').style.display = 'flex';
-  document.getElementById('resp-pill').classList.remove('visible');
-
-  renderResponseBars(currentResponses);
-
-  setFtr("Responses locked — waiting for host...");
-}
-
-function renderReveal() {
-  const correct = currentQ.correct_option;
-  const opts = document.querySelectorAll('.q-opt');
-
-  opts.forEach((opt, i) => {
-    opt.classList.add('revealed');
-
-    if (i === correct) opt.classList.add('correct');
-    else opt.classList.add('wrong');
-  });
-
-  setFtr("Correct answer revealed!");
-}
-
-function renderLeaderboard() {
-  showFOHLeaderboard();
-}
-
-function renderResult() {
-  showFOHResult();
-}
-
-// ══════════════════════════════════════════════
-// TIMER (SERVER-SYNCED)
-// ══════════════════════════════════════════════
-function startTimer(q) {
   clearInterval(timerInterval);
+  timeLeft = q.time_limit || 30;
 
-  const duration = q.time_limit || 30;
-  const startTime = new Date(sessionData.question_started_at).getTime();
+  updateTimer(timeLeft);
 
-  timerInterval = setInterval(() => {
-    const now = Date.now();
-    const elapsed = Math.floor((now - startTime) / 1000);
-    const remaining = duration - elapsed;
+  timerInterval = setInterval(()=>{
+    timeLeft--;
 
-    updateTimer(Math.max(remaining, 0));
+    updateTimer(q.time_limit || 30);
     updateRespProgress();
 
-    // transition → LOCKED
-    if (remaining <= 0 && currentState === STATES.ACTIVE) {
-      setState(STATES.LOCKED);
+    // ✅ KEY FIX
+    if (timeLeft <= 0 && !hasTimeEnded) {
+      hasTimeEnded = true;
+      clearInterval(timerInterval);
+      handleTimeUp(); // 👈 THIS IS WHAT YOU WERE MISSING
     }
 
-  }, 250); // high precision
+  },1000);
+}
+
+
+function handleTimeUp() {
+  // Show banner
+  document.getElementById('timeup-banner').classList.add('show');
+
+  // Show response distribution
+  const respSection = document.getElementById('resp-section');
+  respSection.style.display = 'flex';
+
+  // Stop response progress UI
+  document.getElementById('resp-pill').classList.remove('visible');
+
+  // Render distribution immediately
+  renderResponseBars(currentResponses);
+
+  // Update footer
+  setFtr("Responses locked — waiting for host to reveal answer...");
+}
+
+function updateTimer(max) {
+  const n = document.getElementById('q-timer-n');
+  const ring = document.getElementById('q-timer-ring');
+  n.textContent = Math.max(0,timeLeft);
+  const pct = Math.max(0,timeLeft)/max;
+  ring.style.strokeDashoffset = 195*(1-pct);
+  const color = pct>0.4?'#00f0ff':pct>0.2?'#f59e0b':'#f43f5e';
+  ring.style.stroke = color;
+  n.style.color = pct>0.4?'white':color;
 }
 
 // ══════════════════════════════════════════════
-// STATE SYNC (REALTIME SAFE)
+// RESPONSE PROGRESS (live %)
 // ══════════════════════════════════════════════
-function syncPhase() {
-  if (!sessionData) return;
+function updateRespProgress() {
+  if (!currentQ || currentPhase !== 'question') return;
+  const curAns = answers[currentQ.id]||{};
+  const totalAns = Object.keys(curAns).length;
+  const activePl = players.filter(p=>!p.is_eliminated).length;
+  if (activePl === 0) return;
+  const pct = Math.round((totalAns/activePl)*100);
+  const pill = document.getElementById('resp-pill');
+  pill.classList.add('visible');
+  document.getElementById('rpill-fill').style.width = pct+'%';
+  document.getElementById('rpill-txt').textContent = pct+'%';
+  document.getElementById('rpill-count').textContent = `${totalAns}/${activePl} answered`;
+  setFtr(`${totalAns} of ${activePl} players answered (${pct}%) ⏱`);
+}
 
-  const s = sessionData;
-  const q = questions[s.current_question_index];
+// ══════════════════════════════════════════════
+// REVEAL ANSWER
+// ══════════════════════════════════════════════
+function revealAnswerFOH() {
+  if (!currentQ) return;
+  clearInterval(timerInterval);
+  document.getElementById('timeup-banner').classList.remove('show');
+  document.getElementById('resp-pill').classList.remove('visible');
+  const q = currentQ;
+  [0,1,2,3].forEach(i=>{
+    const el = document.getElementById('foh-opt-'+i);
+    if(el) el.classList.add('revealed', i===q.correct_option?'correct':'wrong');
+  });
+  // Response bars
+  const curAns = answers[q.id]||{};
+  const total = Object.keys(curAns).length;
+  const counts = [0,0,0,0];
+  Object.values(curAns).forEach(a=>{ if(a.chosen_option>=0&&a.chosen_option<4) counts[a.chosen_option]++; });
+  const maxC = Math.max(...counts,1);
+  const colors = ['#00f0ff','#7c3aed','#f59e0b','#10b981'];
+  document.getElementById('resp-bars').innerHTML = counts.map((c,i)=>`
+    <div class="resp-row">
+      <span class="resp-lbl">${'ABCD'[i]}</span>
+      <div class="resp-track"><div class="resp-bar" id="rb-${i}" style="width:0%;background:${i===q.correct_option?'var(--green)':colors[i]}"></div></div>
+      <span class="resp-cnt">${c}</span>
+    </div>`).join('');
+  document.getElementById('resp-section').style.display='flex';
+  document.getElementById('resp-section').style.flexDirection='column';
+  document.getElementById('resp-section').style.gap='8px';
+  setTimeout(()=>{
+    counts.forEach((c,i)=>{ const b=document.getElementById('rb-'+i); if(b)b.style.width=Math.round(c/maxC*100)+'%'; });
+  },100);
+  setFtr(`${total} response${total===1?'':'s'} · Correct: ${[q.option_a,q.option_b,q.option_c,q.option_d][q.correct_option]}`);
+}
 
-  switch (s.status) {
+// ══════════════════════════════════════════════
+// LEADERBOARD
+// ══════════════════════════════════════════════
+function showFOHLeaderboard() {
+  clearInterval(timerInterval);
+  const top = [...players].filter(p=>!p.is_eliminated).sort((a,b)=>b.score-a.score).slice(0,6);
+  const em = ['🥇','🥈','🥉'];
+  const maxScore = top[0]?.score||1;
+  document.getElementById('lb-list').innerHTML = top.map((p,i)=>{
+    const init=p.name.split(' ').map(w=>w[0]).join('').toUpperCase().substring(0,2);
+    return `<div class="lb-row ${i===0?'r1':i===1?'r2':i===2?'r3':''}" style="animation-delay:${i*0.08}s">
+      <span class="lb-rank">${em[i]||'#'+(i+1)}</span>
+      <div class="lb-av" style="background:${p.avatar_color}22;color:${p.avatar_color}">${init}</div>
+      <span class="lb-name">${p.name}</span>
+      <div class="lb-bar-wrap"><div class="lb-bar" style="width:${Math.round((p.score||0)/maxScore*100)}%;background:${p.avatar_color}"></div></div>
+      <span class="lb-correct">${p.correct_count||0} correct</span>
+      <span class="lb-score ${i===0?'gold':''}">${p.score||0}</span>
+    </div>`;
+  }).join('');
+  showPhase('leaderboard');
+  setFtr('Current standings');
+}
 
-    case 'waiting':
-      setState(STATES.WAITING);
-      break;
+// ══════════════════════════════════════════════
+// FINAL RESULT
+// ══════════════════════════════════════════════
+function showFOHResult() {
+  clearInterval(timerInterval);
+  showPhase('result');
+  const active = [...players].filter(p=>!p.is_eliminated).sort((a,b)=>b.score-a.score);
+  const winner = active[0];
+  document.getElementById('r-winner').textContent = winner ? `Winner: ${winner.name}` : 'No winner';
+  document.getElementById('r-score').textContent = `${winner?.score||0} pts`;
+  const top3 = active.slice(0,3);
+  const order = top3.length>=3?[top3[1],top3[0],top3[2]]:top3.length===2?[top3[1],top3[0]]:[top3[0]||null];
+  const pbCls=['pb2','pb1','pb3'];
+  const pbEmoji=['🥈','🥇','🥉'];
+  document.getElementById('podium').innerHTML = order.filter(Boolean).map((p,i)=>{
+    const init=p.name.split(' ').map(w=>w[0]).join('').toUpperCase().substring(0,2);
+    return `<div class="pod-block">
+      <div class="pod-av" style="background:${p.avatar_color}22;color:${p.avatar_color}">${init}</div>
+      <div class="pod-name">${p.name}</div>
+      <div class="pod-score">${p.score} pts</div>
+      <div class="pod-bar ${pbCls[i]}">${pbEmoji[i]}</div>
+    </div>`;
+  }).join('');
+  for(let i=0;i<100;i++) setTimeout(()=>launchFW(),Math.random()*4000);
+  setFtr('Thanks for playing PlayAQuiz! 🎊');
+}
 
-    case 'active':
-
-      setState(STATES.ACTIVE, {
-        question: q,
-        index: s.current_question_index,
-        total: questions.length
-      });
-
-      // derive LOCKED from time (not DB)
-      if (isTimeExpired(s)) {
-        setState(STATES.LOCKED);
-      }
-
-      // reveal is explicit control
-      if (s.answer_revealed) {
-        setState(STATES.REVEAL);
-      }
-
-      break;
-
-    case 'leaderboard':
-      setState(STATES.LEADERBOARD);
-      break;
-
-    case 'ended':
-      setState(STATES.ENDED);
-      break;
+function launchFW() {
+  const colors=['#00f0ff','#7c3aed','#f59e0b','#10b981','#f43f5e','#ec4899'];
+  const cx=Math.random()*window.innerWidth;
+  const cy=Math.random()*window.innerHeight*0.7;
+  for(let i=0;i<14;i++){
+    const p=document.createElement('div'); p.className='fw';
+    const angle=(i/14)*Math.PI*2;
+    const dist=65+Math.random()*90;
+    const dur=0.6+Math.random()*0.7;
+    p.style.cssText=`left:${cx}px;top:${cy}px;background:${colors[Math.floor(Math.random()*colors.length)]};--tx:${Math.cos(angle)*dist}px;--ty:${Math.sin(angle)*dist}px;--d:${dur}s`;
+    document.body.appendChild(p);
+    setTimeout(()=>p.remove(),dur*1000);
   }
 }
 
 // ══════════════════════════════════════════════
-// TIME CHECK (CRITICAL)
+// ELIMINATE DISPLAY
 // ══════════════════════════════════════════════
-function isTimeExpired(session) {
-  const q = questions[session.current_question_index];
-  if (!q || !session.question_started_at) return false;
-
-  const duration = q.time_limit || 30;
-  const start = new Date(session.question_started_at).getTime();
-
-  return (Date.now() - start) >= duration * 1000;
+function handleElimination(playerId) {
+  const p = players.find(x=>x.id===playerId);
+  if (!p) return;
+  const flash = document.getElementById('elim-flash');
+  document.getElementById('elim-flash-name').textContent = p.name;
+  flash.classList.add('show');
+  setTimeout(()=>flash.classList.remove('show'), 3200);
 }
 
 // ══════════════════════════════════════════════
-// REALTIME HOOKS (EXAMPLE)
+// BUBBLES (waiting phase)
 // ══════════════════════════════════════════════
-
-// call this whenever sessionData updates
-function onSessionUpdate(newSession) {
-  sessionData = newSession;
-  syncPhase();
+function addBubble(player) {
+  const field = document.getElementById('bubble-field');
+  const w=field.offsetWidth, h=field.offsetHeight;
+  const el=document.createElement('div'); el.className='pbubble';
+  const x=Math.random()*(w-220), y=Math.random()*(h-80);
+  const fd=(2.5+Math.random()*3)+'s', fd2=(Math.random()*2)+'s';
+  el.style.cssText=`left:${x}px;top:${y}px;background:${player.avatar_color}16;border-color:${player.avatar_color}36;--fd:${fd};--fd2:${fd2}`;
+  const init=player.name.split(' ').map(w=>w[0]).join('').toUpperCase().substring(0,2);
+  el.innerHTML=`<div class="ba" style="background:${player.avatar_color}22;color:${player.avatar_color}">${init}</div>
+    <div><div class="bn">${player.name}</div><div class="bpts">${player.score||0} pts</div></div>`;
+  field.appendChild(el);
+  bubbles.push({el,id:player.id});
 }
 
-// call this whenever answers update
-function onAnswersUpdate(newResponses) {
-  currentResponses = newResponses;
-
-  // update distribution LIVE in LOCKED state
-  if (currentState === STATES.LOCKED) {
-    renderResponseBars(currentResponses);
-  }
+function showAnnouncement(player) {
+  if (currentPhase !== 'waiting') return;
+  addBubble(player);
+  const wrap=document.getElementById('announce-wrap');
+  const init=player.name.split(' ').map(w=>w[0]).join('').toUpperCase().substring(0,2);
+  const card=document.createElement('div'); card.className='announce-card';
+  card.style.background=`${player.avatar_color}16`;
+  card.style.borderColor=`${player.avatar_color}36`;
+  card.innerHTML=`<div class="ba" style="background:${player.avatar_color}30;color:${player.avatar_color};width:42px;height:42px">${init}</div>
+    <span><strong style="color:var(--accent)">${player.name}</strong> just joined!</span><span style="font-size:20px">👋</span>`;
+  wrap.innerHTML=''; wrap.appendChild(card);
+  setTimeout(()=>{ if(wrap.contains(card)) wrap.removeChild(card); }, 3700);
+  setFtr(`${players.length} player${players.length===1?'':'s'} waiting — game starts soon!`);
 }
+
+function setFtr(txt) {
+  document.getElementById('ftr-tip').textContent = txt;
+}
+
+init();
 </script>
 </body>
 </html>
