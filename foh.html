@@ -635,26 +635,33 @@ function showPhase(name) {
   }
 }
 
-// ══════════════════════════════════════════════
-// QUESTION
-// ══════════════════════════════════════════════
-let hasTimeEnded = false; // prevent duplicate firing
+let hasTimeEnded = false;
 
 function loadFOHQuestion(q, idx, total) {
   currentQ = q;
-  hasTimeEnded = false; // reset for new question
+  hasTimeEnded = false;
 
+  const scene = document.querySelector('.q-scene');
+  const respSection = document.getElementById('resp-section');
+
+  // ── RESET TRANSITION STATE (CORRECT POSITION ✔)
+  scene.classList.remove('locked', 'reveal', 'transitioning');
+
+  respSection.classList.remove('visible');
+  respSection.style.display = 'none';
+
+  document.getElementById('timeup-banner').classList.remove('show');
+  document.getElementById('resp-pill').classList.remove('visible');
+
+  // ── PHASE UI
   showPhase('question');
+
   document.getElementById('q-badge').textContent = `Q ${idx+1} / ${total}`;
   document.getElementById('q-prog-bar').style.width = `${((idx+1)/total)*100}%`;
   document.getElementById('q-text').textContent = q.question_text;
 
-  // reset UI
-  document.getElementById('resp-section').style.display = 'none';
-  document.getElementById('timeup-banner').classList.remove('show');
-  document.getElementById('resp-pill').classList.remove('visible');
-
-  const opts = [q.option_a,q.option_b,q.option_c,q.option_d];
+  // ── OPTIONS
+  const opts = [q.option_a, q.option_b, q.option_c, q.option_d];
   document.getElementById('q-opts').innerHTML = opts.map((o,i)=>`
     <div class="q-opt" id="foh-opt-${i}">
       <span class="opt-letter">${'ABCD'[i]}</span>${o}
@@ -662,25 +669,26 @@ function loadFOHQuestion(q, idx, total) {
 
   setFtr(`Players: choose your answer! ⏱`);
 
+  // ── TIMER
   clearInterval(timerInterval);
-  timeLeft = q.time_limit || 30;
 
+  timeLeft = q.time_limit || 30;
   updateTimer(timeLeft);
 
-  timerInterval = setInterval(()=>{
+  timerInterval = setInterval(() => {
     timeLeft--;
 
-    updateTimer(q.time_limit || 30);
+    // ✅ FIX: use remaining time
+    updateTimer(timeLeft);
     updateRespProgress();
 
-    // ✅ KEY FIX
     if (timeLeft <= 0 && !hasTimeEnded) {
       hasTimeEnded = true;
       clearInterval(timerInterval);
-      handleTimeUp(); // 👈 THIS IS WHAT YOU WERE MISSING
+      handleTimeUp();
     }
 
-  },1000);
+  }, 1000);
 }
 
 
