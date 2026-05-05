@@ -278,6 +278,12 @@ body{display:flex;align-items:center;justify-content:center;position:relative}
   border-radius:14px;font-size:15px;font-weight:800;font-family:var(--font-b);
   cursor:pointer;transition:all 0.2s}
 .replay-btn:hover{background:#6d28d9;box-shadow:0 0 24px rgba(124,58,237,0.4);transform:translateY(-1px)}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
 </style>
 </head>
 <body>
@@ -582,62 +588,63 @@ async function init() {
 // ══════════════════════════════════════════════
 async function verifySession() {
   const code = document.getElementById('inp-session').value.trim().toUpperCase();
-  if (!code) { showErr('Please enter a Session ID'); return; }
-
-  const btn = document.getElementById('verify-btn');
-  btn.disabled = true; btn.textContent = '...';
-
-  // Use .maybeSingle() — returns null (not error) when no row found
-  // Also try both exact match and trimmed match for safety
-  const { data: sess, error } = await sb
-    .from('game_sessions')
-    .select('*')
-    .ilike('room_code', code)   // case-insensitive match
-    .maybeSingle();
-
-  btn.disabled = false; btn.textContent = 'Verify →';
-
-  if (error) {
-    console.error('Supabase error:', error);
-    document.getElementById('inp-session').classList.add('error');
-    showErr(`Connection error: ${error.message}`);
+  if (!code) {
+    showErr('Please enter a Session ID');
     return;
   }
 
-  if (!sess) {
+  const btn = document.getElementById('verify-btn');
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.innerHTML = `<span style="display:inline-block;animation:spin 1s linear infinite">⟳</span> Verifying...`;
+
+  const { data: sess, error } = await sb
+    .from('game_sessions')
+    .select('*')
+    .ilike('room_code', code)
+    .maybeSingle();
+
+  // Reset button
+  btn.disabled = false;
+  btn.textContent = originalText;
+
+  if (error || !sess) {
     document.getElementById('inp-session').classList.add('error');
-    showErr(`No session found with ID "${code}". Ask your host for the correct code.`);
+    showErr(`No session found with ID "${code}". Ask host for correct code.`);
     return;
   }
 
   if (sess.status === 'ended') {
-    document.getElementById('inp-session').classList.add('error');
-    showErr('This quiz session has already ended.');
+    showErr('This quiz has already ended.');
     return;
   }
 
-  // ── Success ──
-  SESSION_ID  = sess.id;
+  // SUCCESS ANIMATION
+  SESSION_ID = sess.id;
   sessionData = sess;
   localStorage.setItem('paq_session_id', sess.id);
 
-  document.getElementById('inp-session').classList.remove('error');
-  document.getElementById('inp-session').classList.add('success');
-  document.getElementById('inp-session').disabled = true;
-  btn.style.display = 'none';
+  const input = document.getElementById('inp-session');
+  input.classList.remove('error');
+  input.classList.add('success');
+  input.disabled = true;
 
+  // Show success badge with animation
   const badge = document.getElementById('session-badge');
   badge.classList.add('show');
-  document.getElementById('session-badge-txt').textContent =
-    `✓ ${sess.title} · Room: ${sess.room_code}`;
+  document.getElementById('session-badge-txt').innerHTML = 
+    `✅ Connected • <strong>${sess.room_code}</strong>`;
 
-  // Unlock name + emoji fields
+  // Unlock next fields with nice transition
   document.getElementById('name-group').style.opacity = '1';
   document.getElementById('name-group').style.pointerEvents = 'auto';
   document.getElementById('emoji-group').style.opacity = '1';
   document.getElementById('emoji-group').style.pointerEvents = 'auto';
+  
   document.getElementById('join-btn').disabled = false;
   document.getElementById('inp-name').focus();
+
+  toast("Session verified successfully!", "success");
 }
 
 // ══════════════════════════════════════════════
