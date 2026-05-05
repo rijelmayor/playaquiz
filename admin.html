@@ -357,33 +357,15 @@ body::before{content:'';position:fixed;inset:0;opacity:0.025;pointer-events:none
         <div class="stat-card sc-green"><div class="stat-label">Responses</div><div class="stat-val" id="s-responses">0</div></div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
-        <!-- SETTINGS CARD - UPDATED -->
-<div class="card" id="settings-card">
-  <div class="card-head">
-    <div class="card-title">📋 Session Settings</div>
-  </div>
-  
-  <div class="fg">
-    <label class="form-label">Session Title</label>
-    <input class="form-input" id="set-title" value="PlayAQuiz Live" placeholder="Quiz Night">
-  </div>
-
-  <div class="fg">
-    <label class="form-label">Session ID (Room Code) — <strong>Manual Input</strong></label>
-    <div style="display:flex;gap:10px">
-      <input class="form-input" id="set-room" maxlength="12" style="text-transform:uppercase;letter-spacing:2px;font-size:18px;font-weight:700" 
-             placeholder="e.g. QUIZ42">
-      <button class="btn btn-cyan" onclick="saveSettings()">Save Session ID</button>
-    </div>
-    <small style="color:#64748b;font-size:12px;margin-top:6px;display:block">
-      This code will be shown on FOH and used by players
-    </small>
-  </div>
-
-  <div style="margin-top:16px;padding:12px;background:rgba(0,240,255,0.08);border-radius:12px;border:1px solid rgba(0,240,255,0.2)">
-    <strong>Current Room Code:</strong> <span id="current-room-display" style="font-family:var(--font-mono);color:var(--cyan);font-size:18px">——</span>
-  </div>
-</div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">Top Players <span class="badge badge-cyan">LIVE</span></div></div>
+          <div id="dash-leaderboard"><p style="color:var(--muted);font-size:13px">No players yet.</p></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">Recent Joins <span class="badge badge-green">STREAM</span></div></div>
+          <div id="dash-recent"><p style="color:var(--muted);font-size:13px">Waiting...</p></div>
+        </div>
+      </div>
     </div>
 
     <!-- ── GAME CONTROL ── -->
@@ -575,8 +557,8 @@ body::before{content:'';position:fixed;inset:0;opacity:0.025;pointer-events:none
 // ══════════════════════════════════════════════
 // CONFIG — Replace with your Supabase credentials
 // ══════════════════════════════════════════════
-const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
+const SUPABASE_URL = 'https://YOUR_PROJECT.supabase.co';
+const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ══════════════════════════════════════════════
@@ -599,26 +581,39 @@ let mfhCurrentPhase = 'waiting';
 // ══════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════
-// INIT
 async function init() {
-  // Create or get session
-  const {data: sess} = await sb.from('game_sessions').select('*').limit(1).maybeSingle();
-  
-  if (!sess) {
-    // Create default session
-    const {data: newSess} = await sb.from('game_sessions').insert({
-      room_code: "QUIZ" + Math.floor(1000 + Math.random()*9000),
-      title: "PlayAQuiz Live",
-      status: "waiting"
-    }).select().single();
-    sessionData = newSess;
-    SESSION_ID = newSess.id;
-  } else {
-    sessionData = sess;
-    SESSION_ID = sess.id;
+  SESSION_ID = localStorage.getItem('paq_session_id');
+
+  // Try to load existing session
+  if (SESSION_ID) {
+    const { data, error } = await sb.from('game_sessions')
+      .select('*').eq('id', SESSION_ID).maybeSingle();
+    if (!error && data) {
+      sessionData = data;
+    } else {
+      // Stale ID — clear it and create fresh
+      localStorage.removeItem('paq_session_id');
+      SESSION_ID = null;
+    }
   }
 
-  await loadAllData();
+  // Create a new session if none exists
+  if (!SESSION_ID) {
+    const code = generateCode();
+    const { data, error } = await sb.from('game_sessions').insert({
+      room_code: code, title: 'PlayAQuiz', status: 'waiting'
+    }).select().maybeSingle();
+    if (error || !data) { toast('Failed to create session: ' + (error?.message||'unknown'), 'error'); return; }
+    SESSION_ID = data.id;
+    localStorage.setItem('paq_session_id', SESSION_ID);
+    sessionData = data;
+    toast(`New session created — Room: ${code}`, 'info');
+  }
+
+  await loadCategories();
+  await loadQuestions();
+  await loadPlayers();
+  await loadAnswers();
   renderAll();
   setupRealtime();
   toast('Session loaded ✓', 'success');
@@ -953,31 +948,12 @@ async function setSessionCategory() {
 // SETTINGS
 // ══════════════════════════════════════════════
 async function saveSettings() {
-  const title = document.getElementById('set-title').value.trim() || "PlayAQuiz Live";
-  let code = document.getElementById('set-room').value.trim().toUpperCase();
-
-  if (!code) {
-    toast("Please enter a Session ID", "error");
-    return;
-  }
-  if (code.length < 4) {
-    toast("Session ID should be at least 4 characters", "error");
-    return;
-  }
-
-  const {error} = await sb.from('game_sessions').update({
-    title,
-    room_code: code
-  }).eq('id', SESSION_ID);
-
-  if (error) {
-    toast("Error saving: " + error.message, "error");
-    return;
-  }
-
+  const title = document.getElementById('set-title').value;
+  const code = document.getElementById('set-room').value.toUpperCase();
+  await updateSession({ title, room_code: code });
   await broadcast('settings_updated', { title, room_code: code });
-  toast("✅ Session ID updated successfully!", "success");
   renderAll();
+  toast('Settings saved', 'success');
 }
 
 // ══════════════════════════════════════════════
@@ -1094,13 +1070,6 @@ function renderAll() {
     document.getElementById('mfh-room-code').textContent = sessionData.room_code;
   }
   document.getElementById('player-count-badge').textContent = `${players.length} player${players.length===1?'':'s'}`;
-
-
-  if (sessionData) {
-    document.getElementById('current-room-display').textContent = sessionData.room_code;
-    document.getElementById('room-code-display').textContent = sessionData.room_code;
-  }
-
 }
 
 function renderStats() {

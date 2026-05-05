@@ -278,12 +278,6 @@ body{display:flex;align-items:center;justify-content:center;position:relative}
   border-radius:14px;font-size:15px;font-weight:800;font-family:var(--font-b);
   cursor:pointer;transition:all 0.2s}
 .replay-btn:hover{background:#6d28d9;box-shadow:0 0 24px rgba(124,58,237,0.4);transform:translateY(-1px)}
-
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
 </style>
 </head>
 <body>
@@ -460,8 +454,8 @@ body{display:flex;align-items:center;justify-content:center;position:relative}
 // ══════════════════════════════════════════════
 // CONFIG
 // ══════════════════════════════════════════════
-const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
+const SUPABASE_URL = 'https://YOUR_PROJECT.supabase.co';
+const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ══════════════════════════════════════════════
@@ -588,63 +582,62 @@ async function init() {
 // ══════════════════════════════════════════════
 async function verifySession() {
   const code = document.getElementById('inp-session').value.trim().toUpperCase();
-  if (!code) {
-    showErr('Please enter a Session ID');
-    return;
-  }
+  if (!code) { showErr('Please enter a Session ID'); return; }
 
   const btn = document.getElementById('verify-btn');
-  const originalText = btn.textContent;
-  btn.disabled = true;
-  btn.innerHTML = `<span style="display:inline-block;animation:spin 1s linear infinite">⟳</span> Verifying...`;
+  btn.disabled = true; btn.textContent = '...';
 
+  // Use .maybeSingle() — returns null (not error) when no row found
+  // Also try both exact match and trimmed match for safety
   const { data: sess, error } = await sb
     .from('game_sessions')
     .select('*')
-    .ilike('room_code', code)
+    .ilike('room_code', code)   // case-insensitive match
     .maybeSingle();
 
-  // Reset button
-  btn.disabled = false;
-  btn.textContent = originalText;
+  btn.disabled = false; btn.textContent = 'Verify →';
 
-  if (error || !sess) {
+  if (error) {
+    console.error('Supabase error:', error);
     document.getElementById('inp-session').classList.add('error');
-    showErr(`No session found with ID "${code}". Ask host for correct code.`);
+    showErr(`Connection error: ${error.message}`);
+    return;
+  }
+
+  if (!sess) {
+    document.getElementById('inp-session').classList.add('error');
+    showErr(`No session found with ID "${code}". Ask your host for the correct code.`);
     return;
   }
 
   if (sess.status === 'ended') {
-    showErr('This quiz has already ended.');
+    document.getElementById('inp-session').classList.add('error');
+    showErr('This quiz session has already ended.');
     return;
   }
 
-  // SUCCESS ANIMATION
-  SESSION_ID = sess.id;
+  // ── Success ──
+  SESSION_ID  = sess.id;
   sessionData = sess;
   localStorage.setItem('paq_session_id', sess.id);
 
-  const input = document.getElementById('inp-session');
-  input.classList.remove('error');
-  input.classList.add('success');
-  input.disabled = true;
+  document.getElementById('inp-session').classList.remove('error');
+  document.getElementById('inp-session').classList.add('success');
+  document.getElementById('inp-session').disabled = true;
+  btn.style.display = 'none';
 
-  // Show success badge with animation
   const badge = document.getElementById('session-badge');
   badge.classList.add('show');
-  document.getElementById('session-badge-txt').innerHTML = 
-    `✅ Connected • <strong>${sess.room_code}</strong>`;
+  document.getElementById('session-badge-txt').textContent =
+    `✓ ${sess.title} · Room: ${sess.room_code}`;
 
-  // Unlock next fields with nice transition
+  // Unlock name + emoji fields
   document.getElementById('name-group').style.opacity = '1';
   document.getElementById('name-group').style.pointerEvents = 'auto';
   document.getElementById('emoji-group').style.opacity = '1';
   document.getElementById('emoji-group').style.pointerEvents = 'auto';
-  
   document.getElementById('join-btn').disabled = false;
   document.getElementById('inp-name').focus();
-
-  toast("Session verified successfully!", "success");
 }
 
 // ══════════════════════════════════════════════
