@@ -2,850 +2,803 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>PlayAQuiz — Join & Play</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800;14..32,900&display=swap" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1">
+  <title>PlayAQuiz — Play</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --bg: #06080f;
+      --card: #0d1120;
+      --surface: #111827;
+      --border: rgba(255,255,255,0.08);
+      --border2: rgba(255,255,255,0.12);
+      --text: #f0f4ff;
+      --muted: rgba(240,244,255,0.5);
+      --accent: #3b82f6;
+      --green: #10b981;
+      --yellow: #f59e0b;
+      --red: #ef4444;
+      --purple: #8b5cf6;
+      --radius: 20px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html { height: 100%; }
     body {
-      background: linear-gradient(135deg, #0a0c15 0%, #0f111a 100%);
-      font-family: 'Inter', sans-serif;
-      color: #eef2ff;
+      background: var(--bg);
+      font-family: 'Space Grotesk', sans-serif;
+      color: var(--text);
+      min-height: 100%;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 0;
+    }
+
+    /* Background orbs */
+    body::before, body::after {
+      content: '';
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.12;
+      pointer-events: none;
+      z-index: 0;
+    }
+    body::before { width: 400px; height: 400px; background: var(--accent); top: -100px; left: -100px; }
+    body::after  { width: 300px; height: 300px; background: var(--purple); bottom: 0; right: -50px; }
+
+    .app {
+      width: 100%;
+      max-width: 520px;
       min-height: 100vh;
       display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
+      flex-direction: column;
+      position: relative;
+      z-index: 1;
+      padding: 16px;
     }
-    /* Container */
-    .container {
-      width: 100%;
-      max-width: 500px;
-      margin: 0 auto;
-    }
-    /* Cards */
+
+    /* ── Card ── */
     .card {
-      background: rgba(17, 19, 31, 0.95);
-      backdrop-filter: blur(20px);
-      border: 1px solid rgba(59, 130, 246, 0.2);
-      border-radius: 32px;
-      padding: 32px;
-      transition: all 0.3s ease;
+      background: var(--card);
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      padding: 24px;
+      width: 100%;
     }
+
+    /* ── Logo ── */
     .logo {
-      font-size: 32px;
+      font-size: 28px;
       font-weight: 800;
       text-align: center;
-      margin-bottom: 8px;
       letter-spacing: -0.5px;
+      margin-bottom: 6px;
     }
-    .logo span { color: #3b82f6; }
-    .sub {
-      text-align: center;
-      color: #8b92a8;
-      font-size: 14px;
-      margin-bottom: 28px;
-    }
-    /* Form */
-    .input-group {
-      margin-bottom: 20px;
-    }
-    label {
-      font-size: 12px;
-      font-weight: 600;
-      color: #8b92a8;
-      display: block;
-      margin-bottom: 8px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
+    .logo-accent { color: var(--accent); }
+    .tagline { text-align: center; font-size: 14px; color: var(--muted); margin-bottom: 24px; }
+
+    /* ── Form ── */
+    .form-group { margin-bottom: 18px; }
+    label { font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 6px; text-transform: uppercase; letter-spacing: .8px; }
     input, select {
       width: 100%;
-      background: #0a0c15;
-      border: 1px solid #2a2f3f;
-      border-radius: 16px;
+      background: var(--bg);
+      border: 1.5px solid rgba(255,255,255,0.1);
+      border-radius: 14px;
       padding: 14px 16px;
-      color: #eef2ff;
+      color: var(--text);
       font-size: 16px;
+      font-family: 'Space Grotesk', sans-serif;
       outline: none;
-      transition: all 0.2s;
+      transition: border-color .2s, box-shadow .2s;
     }
-    input:focus, select:focus { border-color: #3b82f6; }
-    button {
+    input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
+
+    /* ── Buttons ── */
+    .btn {
       width: 100%;
-      background: #3b82f6;
+      background: var(--accent);
       border: none;
-      padding: 14px;
-      border-radius: 16px;
-      font-weight: 700;
+      padding: 16px;
+      border-radius: 14px;
+      font-weight: 800;
       font-size: 16px;
+      font-family: 'Space Grotesk', sans-serif;
       color: white;
       cursor: pointer;
-      transition: all 0.2s;
-      margin-top: 8px;
+      transition: all .15s;
+      letter-spacing: .3px;
     }
-    button:active { transform: scale(0.97); }
-    button.secondary { background: #2a2f3f; }
-    button:disabled { opacity: 0.5; cursor: not-allowed; }
-    /* Emoji grid */
-    .emoji-grid {
+    .btn:hover { filter: brightness(1.1); }
+    .btn:active { transform: scale(0.97); filter: brightness(.95); }
+    .btn:disabled { opacity: .5; cursor: not-allowed; transform: none; filter: none; }
+    .btn-ghost { background: var(--surface); border: 1px solid var(--border2); color: var(--text); }
+    .btn-green { background: var(--green); }
+
+    /* ── Avatar Grid ── */
+    .avatar-grid {
       display: grid;
       grid-template-columns: repeat(6, 1fr);
       gap: 8px;
-      margin-top: 12px;
-      max-height: 160px;
+      max-height: 180px;
       overflow-y: auto;
-      padding: 4px;
+      padding: 2px;
+      scrollbar-width: none;
     }
-    .emoji-option {
-      background: #0a0c15;
-      border: 1px solid #2a2f3f;
-      border-radius: 12px;
-      padding: 10px;
-      font-size: 28px;
-      text-align: center;
-      cursor: pointer;
-      transition: all 0.1s;
-    }
-    .emoji-option.selected {
-      border-color: #3b82f6;
-      background: rgba(59,130,246,0.15);
-      transform: scale(1.02);
-    }
-    /* Waiting screen */
-    .waiting-animation {
-      text-align: center;
-      animation: pulse 1.5s infinite;
-    }
-    .waiting-emoji {
-      font-size: 72px;
-      margin-bottom: 20px;
-      display: inline-block;
-    }
-    .player-name-display {
-      font-size: 24px;
-      font-weight: 700;
-      margin: 12px 0;
-    }
-    .room-code-large {
-      font-family: monospace;
-      font-size: 32px;
-      font-weight: 800;
-      letter-spacing: 4px;
-      background: #1e293b;
-      display: inline-block;
-      padding: 8px 24px;
-      border-radius: 60px;
-      margin: 16px 0;
-    }
-    /* Quiz screen */
-    .quiz-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 24px;
-    }
-    .question-counter {
-      background: #1e293b;
-      padding: 6px 14px;
-      border-radius: 40px;
-      font-size: 13px;
-      font-weight: 600;
-    }
-    .timer-circle {
-      position: relative;
-      width: 56px;
-      height: 56px;
-    }
-    .timer-svg {
-      transform: rotate(-90deg);
-    }
-    .timer-text {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 18px;
-      font-weight: 800;
-    }
-    .question-text {
-      font-size: 22px;
-      font-weight: 700;
-      line-height: 1.4;
-      margin: 20px 0;
-    }
-    .options-list {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      margin: 20px 0;
-    }
-    .option-btn {
-      background: #0a0c15;
-      border: 2px solid #2a2f3f;
-      border-radius: 20px;
-      padding: 16px 20px;
-      font-size: 16px;
-      font-weight: 500;
-      text-align: left;
-      cursor: pointer;
-      transition: all 0.15s;
-      display: flex;
-      align-items: center;
-      gap: 14px;
-    }
-    .option-btn:hover:not(:disabled) {
-      border-color: #3b82f6;
-      background: rgba(59,130,246,0.1);
-    }
-    .option-letter {
-      width: 36px;
-      height: 36px;
-      background: #1e293b;
+    .avatar-grid::-webkit-scrollbar { display: none; }
+    .avatar-opt {
+      aspect-ratio: 1;
+      background: var(--bg);
+      border: 2px solid rgba(255,255,255,0.08);
       border-radius: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-weight: 800;
-      font-size: 16px;
+      font-size: 26px;
+      cursor: pointer;
+      transition: all .1s;
     }
-    .option-btn.selected {
-      border-color: #3b82f6;
-      background: rgba(59,130,246,0.15);
-    }
-    .option-btn.correct {
-      border-color: #10b981;
-      background: rgba(16,185,129,0.15);
-    }
-    .option-btn.wrong {
-      border-color: #ef4444;
-      background: rgba(239,68,68,0.1);
-      opacity: 0.6;
-    }
-    .feedback-card {
+    .avatar-opt:active { transform: scale(0.9); }
+    .avatar-opt.selected { border-color: var(--accent); background: rgba(59,130,246,0.15); transform: scale(1.05); }
+
+    /* ── Waiting Screen ── */
+    .waiting-card { text-align: center; padding: 40px 24px; }
+    .avatar-display { font-size: 80px; margin-bottom: 16px; animation: float 3s ease-in-out infinite; }
+    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
+    .player-name { font-size: 24px; font-weight: 800; margin-bottom: 8px; }
+    .wait-sub { font-size: 14px; color: var(--muted); margin-bottom: 24px; }
+    .room-display {
+      display: inline-block;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 36px;
+      font-weight: 700;
+      letter-spacing: 6px;
       background: rgba(59,130,246,0.1);
-      border: 1px solid rgba(59,130,246,0.3);
-      border-radius: 20px;
-      padding: 20px;
-      margin-top: 16px;
-      text-align: center;
-      animation: fadeIn 0.3s;
+      border: 2px solid rgba(59,130,246,0.25);
+      border-radius: 16px;
+      padding: 14px 32px;
+      margin-bottom: 24px;
     }
-    .feedback-card.correct { background: rgba(16,185,129,0.1); border-color: #10b981; }
-    .feedback-card.wrong { background: rgba(239,68,68,0.1); border-color: #ef4444; }
-    .pending-box {
-      background: #1e293b;
-      border-radius: 20px;
-      padding: 20px;
-      text-align: center;
-      margin-top: 16px;
-    }
-    .score-badge {
-      background: #f59e0b;
-      color: #0a0c15;
-      padding: 4px 12px;
-      border-radius: 20px;
-      font-weight: 800;
+    .player-count-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 40px;
+      padding: 8px 18px;
       font-size: 14px;
+      font-weight: 600;
     }
-    /* Result screen */
-    .result-stats {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      margin: 24px 0;
+    .pc-num { font-size: 22px; font-weight: 800; color: var(--green); }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); animation: blink 1.2s infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    /* ── Quiz Screen ── */
+    .quiz-card { display: flex; flex-direction: column; gap: 16px; }
+
+    .quiz-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
     }
-    .stat-box {
-      background: #0a0c15;
-      border-radius: 20px;
-      padding: 16px;
+    .q-counter {
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      padding: 6px 14px;
+      border-radius: 40px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .score-chip {
+      background: rgba(245,158,11,0.15);
+      border: 1px solid rgba(245,158,11,0.3);
+      padding: 6px 14px;
+      border-radius: 40px;
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--yellow);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Player timer */
+    .p-timer { position: relative; width: 52px; height: 52px; flex-shrink: 0; }
+    .p-timer svg { transform: rotate(-90deg); }
+    .p-timer-text {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 17px;
+      font-weight: 700;
+    }
+    .p-timer-urgent { animation: shake .3s infinite; }
+    @keyframes shake { 0%,100%{transform:scale(1)} 50%{transform:scale(1.15)} }
+
+    .q-text {
+      font-size: 20px;
+      font-weight: 700;
+      line-height: 1.45;
+    }
+
+    /* Options */
+    .options-list { display: flex; flex-direction: column; gap: 10px; }
+    .opt-btn {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: var(--bg);
+      border: 2px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      padding: 16px 18px;
+      font-size: 16px;
+      font-weight: 600;
+      font-family: 'Space Grotesk', sans-serif;
+      color: var(--text);
+      cursor: pointer;
+      text-align: left;
+      width: 100%;
+      transition: all .12s;
+    }
+    .opt-btn:active:not(:disabled) { transform: scale(0.98); }
+    .opt-btn:hover:not(:disabled) { border-color: var(--accent); background: rgba(59,130,246,0.07); }
+    .opt-btn:disabled { cursor: not-allowed; }
+    .opt-letter {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 15px;
+      flex-shrink: 0;
+    }
+    .opt-btn.selected { border-color: var(--accent); background: rgba(59,130,246,0.12); }
+    .opt-btn.selected .opt-letter { background: var(--accent); }
+    .opt-btn.correct { border-color: var(--green); background: rgba(16,185,129,0.12); }
+    .opt-btn.correct .opt-letter { background: var(--green); }
+    .opt-btn.wrong { border-color: var(--red); background: rgba(239,68,68,0.08); opacity: .65; }
+    .opt-btn.timeout { opacity: 0.5; }
+
+    /* Feedback */
+    .feedback {
+      border-radius: 16px;
+      padding: 18px 20px;
       text-align: center;
+      font-weight: 700;
+      font-size: 16px;
+      animation: popIn .3s cubic-bezier(0.34,1.56,0.64,1);
     }
-    .stat-value {
+    @keyframes popIn { from{transform:scale(0.8);opacity:0} to{transform:scale(1);opacity:1} }
+    .feedback-correct { background: rgba(16,185,129,0.15); border: 2px solid rgba(16,185,129,0.4); }
+    .feedback-wrong { background: rgba(239,68,68,0.1); border: 2px solid rgba(239,68,68,0.3); }
+    .feedback-timeout { background: rgba(245,158,11,0.1); border: 2px solid rgba(245,158,11,0.25); }
+    .feedback-pending {
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      padding: 14px 20px;
+      border-radius: 14px;
+      text-align: center;
+      font-size: 14px;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .points-pop {
       font-size: 32px;
       font-weight: 800;
-      color: #3b82f6;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--green);
+      margin-bottom: 4px;
     }
-    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    .hidden { display: none; }
-    .mt-4 { margin-top: 16px; }
-    .flex { display: flex; gap: 12px; align-items: center; }
+
+    /* Result screen */
+    .result-card { text-align: center; padding: 32px 24px; }
+    .result-icon { font-size: 80px; margin-bottom: 16px; }
+    .result-title { font-size: 32px; font-weight: 800; margin-bottom: 24px; }
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+    .stat-box { background: var(--surface); border: 1px solid var(--border2); border-radius: 16px; padding: 16px; }
+    .stat-num { font-family: 'JetBrains Mono', monospace; font-size: 32px; font-weight: 700; color: var(--accent); }
+    .stat-lbl { font-size: 12px; color: var(--muted); margin-top: 4px; font-weight: 600; }
+
+    /* ── Eliminated ── */
+    .eliminated-card {
+      text-align: center;
+      padding: 48px 24px;
+      background: rgba(239,68,68,0.08);
+      border: 2px solid rgba(239,68,68,0.25);
+      border-radius: var(--radius);
+    }
+
+    /* ── Utils ── */
+    .hidden { display: none !important; }
+    .error-msg { color: var(--red); font-size: 13px; text-align: center; margin-top: 10px; font-weight: 600; }
+    .mt-3 { margin-top: 12px; }
+    .divider { height: 1px; background: var(--border); margin: 16px 0; }
   </style>
 </head>
 <body>
-<div class="container" id="app">
-  <!-- JOIN SCREEN -->
+<div class="app">
+
+  <!-- ═══ JOIN SCREEN ═══ -->
   <div id="joinScreen">
+    <br>
     <div class="card">
-      <div class="logo">PLAY<span>A</span>QUIZ</div>
-      <div class="sub">Enter room code to join</div>
-      
-      <div class="input-group">
-        <label>🎮 ROOM CODE</label>
-        <input type="text" id="roomCodeInput" placeholder="e.g., A7B3F2" maxlength="10" autocomplete="off" style="text-transform:uppercase">
+      <div class="logo">PLAY<span class="logo-accent">A</span>QUIZ</div>
+      <div class="tagline">Enter the room to start playing</div>
+
+      <div class="form-group">
+        <label>🎮 Room Code</label>
+        <input id="roomCodeInput" type="text" placeholder="e.g. A7B3F2" maxlength="10" autocomplete="off" autocapitalize="characters">
       </div>
-      
-      <div class="input-group">
-        <label>👤 YOUR NAME</label>
-        <input type="text" id="playerNameInput" placeholder="Enter your name" maxlength="20">
+      <div class="form-group">
+        <label>👤 Your Name</label>
+        <input id="playerNameInput" type="text" placeholder="Enter your nickname" maxlength="20">
       </div>
-      
-      <div class="input-group">
-        <label>😎 CHOOSE AVATAR</label>
-        <div class="emoji-grid" id="emojiGrid"></div>
+      <div class="form-group">
+        <label>🎭 Choose Avatar</label>
+        <div class="avatar-grid" id="avatarGrid"></div>
       </div>
-      
-      <button id="joinBtn" onclick="joinGame()">🚀 JOIN GAME</button>
-      <div id="joinError" style="color:#ef4444; font-size:13px; margin-top:12px; text-align:center"></div>
+
+      <button class="btn" id="joinBtn" onclick="joinGame()">🚀 Join Game</button>
+      <div class="error-msg" id="joinError"></div>
     </div>
   </div>
 
-  <!-- WAITING SCREEN -->
+  <!-- ═══ WAITING SCREEN ═══ -->
   <div id="waitingScreen" class="hidden">
-    <div class="card" style="text-align:center">
-      <div class="waiting-animation">
-        <div class="waiting-emoji" id="waitingEmoji">😎</div>
-        <div class="player-name-display" id="waitingName">Player</div>
-        <div class="sub">Waiting for host to start...</div>
-        <div class="room-code-large" id="waitingRoomCode">——</div>
-        <div class="flex" style="justify-content:center; margin-top:20px">
-          <span>👥 Players: </span><span id="playerCountWait">0</span>
-        </div>
+    <br>
+    <div class="card waiting-card">
+      <div class="avatar-display" id="waitAvatar">😎</div>
+      <div class="player-name" id="waitName">Player</div>
+      <div class="wait-sub">You're in! Waiting for the host to start...</div>
+      <div class="room-display" id="waitRoom">——</div>
+      <div class="player-count-chip">
+        <div class="dot"></div>
+        <span id="waitPlayerCount">0</span> players ready
       </div>
     </div>
   </div>
 
-  <!-- QUIZ SCREEN -->
+  <!-- ═══ QUIZ SCREEN ═══ -->
   <div id="quizScreen" class="hidden">
-    <div class="card">
+    <br>
+    <div class="card quiz-card">
       <div class="quiz-header">
-        <div class="question-counter" id="questionCounter">Q1 / 0</div>
-        <div class="score-badge" id="scoreDisplay">0 pts</div>
-        <div class="timer-circle">
-          <svg class="timer-svg" width="56" height="56" viewBox="0 0 56 56">
-            <circle cx="28" cy="28" r="24" fill="none" stroke="#2a2f3f" stroke-width="4"/>
-            <circle id="timerRing" cx="28" cy="28" r="24" fill="none" stroke="#3b82f6" stroke-width="4" stroke-linecap="round" stroke-dasharray="150.8" stroke-dashoffset="0"/>
+        <div class="q-counter" id="qCounter">Q1</div>
+        <div class="score-chip" id="scoreChip">0 pts</div>
+        <div class="p-timer">
+          <svg width="52" height="52" viewBox="0 0 52 52">
+            <circle cx="26" cy="26" r="22" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4"/>
+            <circle id="pTimerRing" cx="26" cy="26" r="22" fill="none" stroke="var(--accent)" stroke-width="4" stroke-linecap="round" stroke-dasharray="138.2" stroke-dashoffset="0"/>
           </svg>
-          <div class="timer-text" id="timerText">0</div>
+          <div class="p-timer-text" id="pTimerNum">—</div>
         </div>
       </div>
-      
-      <div class="question-text" id="questionText">Loading...</div>
-      
-      <div class="options-list" id="optionsList"></div>
-      
-      <!-- Pending / Feedback -->
-      <div id="pendingBox" class="pending-box hidden">
-        <span>⏳</span> Answer locked! Waiting for reveal...
-      </div>
-      <div id="feedbackBox" class="feedback-card hidden"></div>
+
+      <div class="q-text" id="quizQText">Loading...</div>
+
+      <div class="options-list" id="optList"></div>
+
+      <div id="pendingBox" class="feedback-pending hidden">⏳ Locked in! Waiting for answer reveal...</div>
+      <div id="feedbackBox" class="hidden"></div>
     </div>
   </div>
 
-  <!-- RESULT SCREEN -->
+  <!-- ═══ RESULT SCREEN ═══ -->
   <div id="resultScreen" class="hidden">
-    <div class="card" style="text-align:center">
-      <div style="font-size: 64px; margin-bottom: 16px;">🏆</div>
-      <div style="font-size: 28px; font-weight: 800;">Game Over!</div>
-      <div class="result-stats">
+    <br>
+    <div class="card result-card">
+      <div class="result-icon" id="resultIcon">🏆</div>
+      <div class="result-title">Quiz Over!</div>
+      <div class="stats-grid">
         <div class="stat-box">
-          <div class="stat-value" id="finalScore">0</div>
-          <div>Total Points</div>
+          <div class="stat-num" id="rScore">0</div>
+          <div class="stat-lbl">Total Points</div>
         </div>
         <div class="stat-box">
-          <div class="stat-value" id="finalCorrect">0</div>
-          <div>Correct Answers</div>
+          <div class="stat-num" id="rRank">—</div>
+          <div class="stat-lbl">Your Rank</div>
         </div>
         <div class="stat-box">
-          <div class="stat-value" id="finalRank">—</div>
-          <div>Rank</div>
+          <div class="stat-num" id="rCorrect">0</div>
+          <div class="stat-lbl">Correct</div>
         </div>
         <div class="stat-box">
-          <div class="stat-value" id="finalAccuracy">0%</div>
-          <div>Accuracy</div>
+          <div class="stat-num" id="rAccuracy">0%</div>
+          <div class="stat-lbl">Accuracy</div>
         </div>
       </div>
-      <button onclick="playAgain()">🔄 PLAY AGAIN</button>
+      <div id="rankMessage" style="font-size:18px;font-weight:700;margin-bottom:20px;color:var(--yellow)"></div>
+      <button class="btn btn-ghost" onclick="playAgain()">🔄 Play Again</button>
     </div>
   </div>
-</div>
+
+  <!-- ═══ ELIMINATED SCREEN ═══ -->
+  <div id="eliminatedScreen" class="hidden">
+    <br>
+    <div class="eliminated-card">
+      <div style="font-size:72px;margin-bottom:16px">⚡</div>
+      <div style="font-size:28px;font-weight:800;margin-bottom:8px">You've been eliminated</div>
+      <div style="color:var(--muted);margin-bottom:24px">The host removed you from this game</div>
+      <button class="btn btn-ghost" onclick="playAgain()">← Back to Lobby</button>
+    </div>
+  </div>
+
+</div><!-- end .app -->
 
 <script>
-  const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
-  const SUPABASE_ANON_KEY = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
-  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  
-  // Available emojis
-  const AVATARS = [
-    '😎', '🦁', '🐯', '🐱', '🐶', '🐺', '🦊', '🐸', '🐧', '🐙', '🦄', '🐲', 
-    '🚀', '⭐', '🔥', '⚡', '🎮', '🏆', '💎', '🌈', '🍕', '🎸', '👾', '🤖'
-  ];
-  
-  let selectedEmoji = '😎';
-  let currentSessionId = null;
-  let currentPlayer = null;
-  let currentQuestion = null;
-  let currentQuestionIndex = -1;
-  let totalQuestions = 0;
-  let answered = false;
-  let timerInterval = null;
-  let timeLeft = 0;
-  let totalTime = 0;
-  let selectedOption = -1;
-  let playerScore = 0;
-  let correctCount = 0;
-  let questionsList = [];
-  
-  // Build emoji grid
-  function buildEmojiGrid() {
-    const grid = document.getElementById('emojiGrid');
-    grid.innerHTML = AVATARS.map(emoji => `
-      <div class="emoji-option ${selectedEmoji === emoji ? 'selected' : ''}" onclick="selectEmoji('${emoji}')">
-        ${emoji}
-      </div>
-    `).join('');
-  }
-  
-  function selectEmoji(emoji) {
-    selectedEmoji = emoji;
-    document.querySelectorAll('.emoji-option').forEach(el => {
-      el.classList.remove('selected');
-      if (el.innerText === emoji) el.classList.add('selected');
-    });
-  }
-  
-  // Join game
-  async function joinGame() {
-    const roomCode = document.getElementById('roomCodeInput').value.trim().toUpperCase();
-    const playerName = document.getElementById('playerNameInput').value.trim();
-    
-    if (!roomCode) { showJoinError('Enter room code'); return; }
-    if (!playerName) { showJoinError('Enter your name'); return; }
-    if (playerName.length < 2) { showJoinError('Name too short'); return; }
-    
-    document.getElementById('joinBtn').disabled = true;
-    document.getElementById('joinBtn').innerText = 'Joining...';
-    
-    // Find session by room code
-    const { data: session, error: sessError } = await sb
-      .from('game_sessions')
-      .select('*')
-      .eq('room_code', roomCode)
-      .maybeSingle();
-    
-    if (sessError || !session) {
-      showJoinError('Invalid room code. Check and try again.');
-      resetJoinBtn();
-      return;
-    }
-    
-    if (session.status === 'ended') {
-      showJoinError('This game has already ended.');
-      resetJoinBtn();
-      return;
-    }
-    
-    currentSessionId = session.id;
-    
-    // Check if name exists
-    const { data: existing } = await sb
-      .from('players')
-      .select('id')
-      .eq('session_id', currentSessionId)
-      .eq('name', playerName);
-    
-    if (existing && existing.length > 0) {
-      showJoinError('Name already taken. Choose another.');
-      resetJoinBtn();
-      return;
-    }
-    
-    // Create player
-    const { data: player, error: playerError } = await sb
-      .from('players')
-      .insert({
-        session_id: currentSessionId,
-        name: playerName,
-        avatar_color: selectedEmoji,
-        score: 0,
-        correct_count: 0,
-        is_eliminated: false
-      })
-      .select()
-      .single();
-    
-    if (playerError) {
-      showJoinError('Failed to join. Try again.');
-      resetJoinBtn();
-      return;
-    }
-    
-    currentPlayer = player;
-    localStorage.setItem('paq_player_id', currentPlayer.id);
-    localStorage.setItem('paq_session_id', currentSessionId);
-    
-    // Load questions and setup
-    await loadGameData();
-    setupRealtime();
-    showWaitingScreen();
-  }
-  
-  async function loadGameData() {
-    const { data: qs } = await sb
-      .from('questions')
-      .select('*')
-      .eq('session_id', currentSessionId)
-      .order('sort_order');
-    questionsList = qs || [];
-    totalQuestions = questionsList.length;
-  }
-  
-  function setupRealtime() {
-    // Listen for game events
-    sb.channel(`player-${currentPlayer.id}`)
-      .on('postgres_changes', {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'game_events',
-        filter: `session_id=eq.${currentSessionId}`
-      }, (payload) => handleGameEvent(payload.new))
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'players',
-        filter: `id=eq.${currentPlayer.id}`
-      }, (payload) => {
-        if (payload.new.is_eliminated) {
-          alert('You have been eliminated from the game!');
-          showResultScreen();
-        }
-      })
-      .subscribe();
-    
-    // Session status updates
-    sb.channel(`session-${currentSessionId}`)
-      .on('postgres_changes', {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'game_sessions',
-        filter: `id=eq.${currentSessionId}`
-      }, (payload) => {
-        if (payload.new.status === 'ended') showResultScreen();
-        if (payload.new.status === 'waiting' && !currentQuestion) showWaitingScreen();
-      })
-      .subscribe();
-      
-    // Player count
-    refreshPlayerCount();
-    setInterval(refreshPlayerCount, 3000);
-  }
-  
-  function handleGameEvent(event) {
-    console.log('Event:', event.event_type);
-    
-    switch(event.event_type) {
-      case 'new_question':
-        // Store question data
-        currentQuestion = event.payload.question;
-        currentQuestionIndex = event.payload.qIdx;
-        totalQuestions = event.payload.total;
-        answered = false;
-        selectedOption = -1;
-        break;
-        
-      case 'show_question_view':
-        displayQuestion(currentQuestion, currentQuestionIndex);
-        showQuizScreen();
-        break;
-        
-      case 'answer_reveal':
-        revealAndScore(event.payload.correctOption);
-        break;
-        
-      case 'game_ended':
-        showResultScreen();
-        break;
-        
-      case 'game_reset':
-        resetPlayerState();
-        showWaitingScreen();
-        break;
-        
-      case 'category_banner':
-        // Just visual on FOH, not needed for player
-        break;
-    }
-  }
-  
-  function displayQuestion(question, idx) {
-    if (!question) return;
-    document.getElementById('questionCounter').innerHTML = `Q${idx+1} / ${totalQuestions}`;
-    document.getElementById('questionText').innerHTML = question.question_text;
-    document.getElementById('scoreDisplay').innerHTML = `${playerScore} pts`;
-    
-    const options = [
-      question.option_a, question.option_b, 
-      question.option_c, question.option_d
-    ];
-    const letters = ['A', 'B', 'C', 'D'];
-    const container = document.getElementById('optionsList');
-    container.innerHTML = options.map((opt, i) => `
-      <div class="option-btn" onclick="submitAnswer(${i})" data-opt="${i}">
-        <div class="option-letter">${letters[i]}</div>
-        <div>${opt}</div>
-      </div>
-    `).join('');
-    
-    // Reset timer
-    totalTime = question.time_limit || 20;
-    timeLeft = totalTime;
-    startTimer();
-    
-    // Hide feedback and pending
-    document.getElementById('pendingBox').classList.add('hidden');
-    document.getElementById('feedbackBox').classList.add('hidden');
-    answered = false;
-    
-    // Enable all options
-    document.querySelectorAll('.option-btn').forEach(btn => {
-      btn.style.pointerEvents = 'auto';
-      btn.classList.remove('selected', 'correct', 'wrong');
-    });
-  }
-  
-  function startTimer() {
-    if (timerInterval) clearInterval(timerInterval);
-    updateTimerUI();
-    timerInterval = setInterval(() => {
-      if (timeLeft > 0 && !answered) {
-        timeLeft--;
-        updateTimerUI();
-        if (timeLeft === 0) {
-          // Time's up - auto submit empty answer
-          clearInterval(timerInterval);
-          if (!answered) submitAnswer(-1);
-        }
-      } else if (answered) {
-        clearInterval(timerInterval);
-      }
-    }, 1000);
-  }
-  
-  function updateTimerUI() {
-    const ring = document.getElementById('timerRing');
-    const timerText = document.getElementById('timerText');
-    const circumference = 2 * Math.PI * 24;
-    const progress = timeLeft / totalTime;
-    const dashoffset = circumference * (1 - progress);
-    ring.style.strokeDashoffset = dashoffset;
-    timerText.innerText = timeLeft;
-    
-    if (timeLeft <= 5) ring.style.stroke = '#ef4444';
-    else if (timeLeft <= 10) ring.style.stroke = '#f59e0b';
-    else ring.style.stroke = '#3b82f6';
-  }
-  
-  async function submitAnswer(optionIdx) {
-    if (answered) return;
-    if (!currentQuestion) return;
-    
-    answered = true;
-    clearInterval(timerInterval);
-    selectedOption = optionIdx;
-    
-    // Highlight selected option
-    document.querySelectorAll('.option-btn').forEach(btn => {
-      btn.style.pointerEvents = 'none';
-      if (parseInt(btn.dataset.opt) === optionIdx) {
-        btn.classList.add('selected');
-      }
-    });
-    
-    const isCorrect = (optionIdx === currentQuestion.correct_option);
-    const pointsEarned = isCorrect ? Math.round((currentQuestion.points || 100) * (timeLeft / totalTime)) : 0;
-    
-    // Save answer to DB
-    await sb.from('answers').insert({
-      session_id: currentSessionId,
-      question_id: currentQuestion.id,
-      player_id: currentPlayer.id,
-      chosen_option: optionIdx,
-      is_correct: isCorrect,
-      points_earned: pointsEarned,
-      time_taken_ms: (totalTime - timeLeft) * 1000
-    });
-    
-    // Show pending
-    document.getElementById('pendingBox').classList.remove('hidden');
-  }
-  
-  async function revealAndScore(correctOption) {
-    if (!currentQuestion) return;
-    
-    document.getElementById('pendingBox').classList.add('hidden');
-    
-    // Find player's answer
-    const { data: myAnswer } = await sb
-      .from('answers')
-      .select('*')
-      .eq('question_id', currentQuestion.id)
-      .eq('player_id', currentPlayer.id)
-      .single();
-    
-    const isCorrect = myAnswer?.is_correct || false;
-    const earned = myAnswer?.points_earned || 0;
-    
-    if (isCorrect) {
-      playerScore += earned;
-      correctCount++;
-      await sb.from('players').update({ score: playerScore, correct_count: correctCount }).eq('id', currentPlayer.id);
-      document.getElementById('scoreDisplay').innerHTML = `${playerScore} pts`;
-    }
-    
-    // Highlight correct/wrong on options
-    document.querySelectorAll('.option-btn').forEach((btn, idx) => {
-      if (idx === correctOption) btn.classList.add('correct');
-      else if (idx === selectedOption && selectedOption !== correctOption) btn.classList.add('wrong');
-    });
-    
-    // Show feedback
-    const feedbackBox = document.getElementById('feedbackBox');
-    feedbackBox.classList.remove('hidden', 'correct', 'wrong');
-    if (isCorrect) {
-      feedbackBox.classList.add('correct');
-      feedbackBox.innerHTML = `<span>🎉 CORRECT! +${earned} points</span>`;
-    } else {
-      feedbackBox.classList.add('wrong');
-      const correctLetter = String.fromCharCode(65 + correctOption);
-      feedbackBox.innerHTML = `<span>❌ WRONG! The correct answer was ${correctLetter}.</span>`;
-    }
-    
-    // Update player data locally
-    currentPlayer.score = playerScore;
-    currentPlayer.correct_count = correctCount;
-  }
-  
-  async function refreshPlayerCount() {
-    if (!currentSessionId) return;
-    const { count } = await sb
-      .from('players')
-      .select('*', { count: 'exact', head: true })
-      .eq('session_id', currentSessionId);
-    document.getElementById('playerCountWait').innerText = count || 0;
-  }
-  
-  async function showResultScreen() {
-    if (timerInterval) clearInterval(timerInterval);
-    
-    // Get final rank
-    const { data: allPlayers } = await sb
-      .from('players')
-      .select('id, score')
-      .eq('session_id', currentSessionId)
-      .order('score', { ascending: false });
-    
-    const rank = (allPlayers || []).findIndex(p => p.id === currentPlayer.id) + 1;
-    const accuracy = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0;
-    
-    document.getElementById('finalScore').innerHTML = playerScore;
-    document.getElementById('finalCorrect').innerHTML = `${correctCount}/${totalQuestions}`;
-    document.getElementById('finalRank').innerHTML = `#${rank}`;
-    document.getElementById('finalAccuracy').innerHTML = `${accuracy}%`;
-    
-    showScreen('resultScreen');
-  }
-  
-  function resetPlayerState() {
-    playerScore = 0;
-    correctCount = 0;
-    currentQuestion = null;
-    answered = false;
-    if (timerInterval) clearInterval(timerInterval);
-  }
-  
-  function playAgain() {
-    localStorage.removeItem('paq_player_id');
-    localStorage.removeItem('paq_session_id');
-    currentSessionId = null;
-    currentPlayer = null;
-    resetPlayerState();
-    document.getElementById('roomCodeInput').value = '';
-    document.getElementById('playerNameInput').value = '';
-    showScreen('joinScreen');
-    resetJoinBtn();
-  }
-  
-  function showWaitingScreen() {
-    document.getElementById('waitingEmoji').innerHTML = currentPlayer?.avatar_color || '😎';
-    document.getElementById('waitingName').innerHTML = currentPlayer?.name || 'Player';
-    document.getElementById('waitingRoomCode').innerHTML = '???';
-    // Get room code
-    sb.from('game_sessions').select('room_code').eq('id', currentSessionId).single().then(({ data }) => {
-      if (data) document.getElementById('waitingRoomCode').innerHTML = data.room_code;
-    });
-    showScreen('waitingScreen');
-  }
-  
-  function showQuizScreen() { showScreen('quizScreen'); }
-  
-  function showScreen(screenId) {
-    document.getElementById('joinScreen').classList.add('hidden');
-    document.getElementById('waitingScreen').classList.add('hidden');
-    document.getElementById('quizScreen').classList.add('hidden');
-    document.getElementById('resultScreen').classList.add('hidden');
-    document.getElementById(screenId).classList.remove('hidden');
-  }
-  
-  function showJoinError(msg) {
-    const errDiv = document.getElementById('joinError');
-    errDiv.innerText = msg;
-    setTimeout(() => errDiv.innerText = '', 3000);
-  }
-  
-  function resetJoinBtn() {
-    document.getElementById('joinBtn').disabled = false;
-    document.getElementById('joinBtn').innerText = '🚀 JOIN GAME';
-  }
-  
-  // Check for existing player session
-  async function checkExistingSession() {
-    const savedPlayerId = localStorage.getItem('paq_player_id');
-    const savedSessionId = localStorage.getItem('paq_session_id');
-    if (savedPlayerId && savedSessionId) {
-      const { data: player } = await sb.from('players').select('*').eq('id', savedPlayerId).maybeSingle();
-      const { data: session } = await sb.from('game_sessions').select('*').eq('id', savedSessionId).maybeSingle();
-      if (player && session && session.status !== 'ended') {
-        currentPlayer = player;
-        currentSessionId = savedSessionId;
-        playerScore = player.score;
-        correctCount = player.correct_count;
-        await loadGameData();
-        setupRealtime();
-        if (session.status === 'active' || session.status === 'reveal') {
-          showQuizScreen();
-        } else {
-          showWaitingScreen();
-        }
-        return true;
-      }
-    }
-    return false;
-  }
-  
-  // Initialize
-  buildEmojiGrid();
-  selectEmoji('😎');
-  checkExistingSession().then(found => {
-    if (!found) showScreen('joinScreen');
+const SUPABASE_URL  = 'https://efgirqbaayfjwswnwbop.supabase.co';
+const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+// ─── Audio ───
+const AC = window.AudioContext || window.webkitAudioContext;
+let ac;
+function getAC() { if (!ac) ac = new AC(); if (ac.state==='suspended') ac.resume(); return ac; }
+function tone(freq, dur, vol, type='sine', delay=0) {
+  try {
+    const ctx = getAC(), o = ctx.createOscillator(), g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.type = type; o.frequency.value = freq;
+    const t = ctx.currentTime + delay;
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    o.start(t); o.stop(t + dur + 0.05);
+  } catch(e) {}
+}
+function tickSound() { tone(1100, 0.05, 0.2, 'square'); }
+function alertTick() { tone(880, 0.08, 0.35, 'square'); }
+function correctSound() {
+  [[523,0],[659,.1],[784,.2],[1047,.3]].forEach(([f,d]) => tone(f,.18,.4,'sine',d));
+}
+function wrongSound() { tone(180,.4,.4,'sawtooth'); }
+function lockedSound() { tone(800,.06,.2,'sine'); }
+function timesUpSound() {
+  [0,.15,.3,.45].forEach(d => tone(220,.12,.4,'square',d));
+  tone(160,.6,.5,'sawtooth',.65);
+}
+
+// ─── State ───
+const AVATARS = ['😎','🦁','🐯','🐱','🐶','🐺','🦊','🐸','🐧','🐙','🦄','🐲','🚀','⭐','🔥','⚡','🎮','🏆','💎','🌈','🍕','🎸','👾','🤖','🦋','🎃','🦅','🐬','🦈','🐻','🎯','🧠'];
+let selEmoji = '😎';
+let SESSION_ID = null, myPlayer = null;
+let curQuestion = null, curQIdx = -1, totalQ = 0;
+let answered = false, selOption = -1;
+let myScore = 0, myCorrect = 0, myQCount = 0;
+let timerIv = null, timeLeft = 0, totalTime = 0;
+let playerCountIv = null;
+let realtimeChannel = null;
+
+// ─── Avatar Grid ───
+function buildAvatarGrid() {
+  const grid = document.getElementById('avatarGrid');
+  grid.innerHTML = AVATARS.map(e => `<div class="avatar-opt${e===selEmoji?' selected':''}" onclick="pickAvatar('${e}')">${e}</div>`).join('');
+}
+function pickAvatar(e) {
+  selEmoji = e;
+  document.querySelectorAll('.avatar-opt').forEach(el => {
+    el.classList.toggle('selected', el.innerText.trim() === e);
   });
-  
-  // Expose globals
-  window.selectEmoji = selectEmoji;
-  window.joinGame = joinGame;
-  window.submitAnswer = submitAnswer;
-  window.playAgain = playAgain;
+}
+
+// ─── Join ───
+async function joinGame() {
+  // Unlock audio context on first tap
+  try { getAC(); } catch(e) {}
+  const roomCode = document.getElementById('roomCodeInput').value.trim().toUpperCase();
+  const name = document.getElementById('playerNameInput').value.trim();
+  if (!roomCode) { showErr('Enter room code'); return; }
+  if (!name || name.length < 2) { showErr('Enter a name (min 2 chars)'); return; }
+  const btn = document.getElementById('joinBtn');
+  btn.disabled = true; btn.innerText = 'Joining...';
+  const { data: session } = await sb.from('game_sessions').select('*').eq('room_code', roomCode).maybeSingle();
+  if (!session) { showErr('Room not found. Check the code.'); resetJoinBtn(); return; }
+  if (session.status === 'ended') { showErr('This game has ended.'); resetJoinBtn(); return; }
+  SESSION_ID = session.id;
+  // Check name uniqueness
+  const { data: existing } = await sb.from('players').select('id').eq('session_id', SESSION_ID).eq('name', name).maybeSingle();
+  if (existing) { showErr('Name taken. Try another.'); resetJoinBtn(); return; }
+  // Create player
+  const { data: player, error } = await sb.from('players').insert({ session_id: SESSION_ID, name, avatar_color: selEmoji, score: 0, correct_count: 0 }).select().single();
+  if (error || !player) { showErr('Could not join. Try again.'); resetJoinBtn(); return; }
+  myPlayer = player;
+  localStorage.setItem('paq_pid', player.id);
+  localStorage.setItem('paq_sid', SESSION_ID);
+  setupRealtime();
+  startPlayerCountPoll();
+  showWaiting();
+}
+
+function showErr(msg) { document.getElementById('joinError').innerText = msg; setTimeout(() => document.getElementById('joinError').innerText = '', 4000); }
+function resetJoinBtn() { const b = document.getElementById('joinBtn'); b.disabled=false; b.innerText='🚀 Join Game'; }
+
+// ─── Realtime — single channel per player ───
+function setupRealtime() {
+  if (realtimeChannel) { sb.removeChannel(realtimeChannel); }
+  realtimeChannel = sb.channel(`paq-${SESSION_ID}`)
+    .on('postgres_changes', { event:'INSERT', schema:'public', table:'game_events', filter:`session_id=eq.${SESSION_ID}` },
+      p => handleEvent(p.new))
+    .on('postgres_changes', { event:'UPDATE', schema:'public', table:'game_sessions', filter:`id=eq.${SESSION_ID}` },
+      p => { if (p.new.status==='ended') showResult(); if (p.new.status==='waiting') showWaiting(); })
+    .on('postgres_changes', { event:'UPDATE', schema:'public', table:'players', filter:`id=eq.${myPlayer.id}` },
+      p => { if (p.new.is_eliminated) { stopTimer(); showEliminated(); } myPlayer = {...myPlayer, ...p.new}; })
+    .subscribe();
+}
+
+function handleEvent(evt) {
+  switch(evt.event_type) {
+    case 'new_question':
+      curQuestion = evt.payload.question;
+      curQIdx = evt.payload.qIdx;
+      totalQ = evt.payload.total;
+      answered = false; selOption = -1;
+      break;
+    case 'show_question_view':
+      displayQuestion(evt.payload.question || curQuestion, curQIdx);
+      showScreen('quiz');
+      break;
+    case 'answer_reveal':
+      revealAndScore(evt.payload.correctOption);
+      break;
+    case 'game_ended':
+      stopTimer();
+      showResult();
+      break;
+    case 'game_reset':
+      stopTimer();
+      myScore = 0; myCorrect = 0; myQCount = 0;
+      showWaiting();
+      break;
+    case 'player_eliminated':
+      if (evt.payload.playerId === myPlayer.id) { stopTimer(); showEliminated(); }
+      break;
+  }
+}
+
+function displayQuestion(q, idx) {
+  if (!q) return;
+  curQuestion = q;
+  myQCount++;
+  document.getElementById('qCounter').innerText = `Q${(idx??0)+1}${totalQ>0?' / '+totalQ:''}`;
+  document.getElementById('scoreChip').innerText = myScore + ' pts';
+  document.getElementById('quizQText').innerText = q.question_text;
+  const letters = ['A','B','C','D'];
+  const opts = [q.option_a, q.option_b, q.option_c, q.option_d];
+  document.getElementById('optList').innerHTML = opts.map((o,i) => `
+    <button class="opt-btn" data-idx="${i}" onclick="submitAnswer(${i})">
+      <div class="opt-letter">${letters[i]}</div>
+      <span>${o}</span>
+    </button>`).join('');
+  hide('pendingBox'); hide('feedbackBox');
+  answered = false; selOption = -1;
+  totalTime = q.time_limit || 20;
+  timeLeft = totalTime;
+  startTimer();
+}
+
+function startTimer() {
+  stopTimer();
+  updateTimerUI();
+  timerIv = setInterval(() => {
+    timeLeft--;
+    updateTimerUI();
+    if (timeLeft <= 5 && timeLeft > 0 && !answered) alertTick();
+    else if (timeLeft > 5 && timeLeft % 5 === 0 && !answered) tickSound();
+    if (timeLeft <= 0) {
+      stopTimer();
+      if (!answered) {
+        timesUpSound();
+        answered = true;
+        submitAnswer(-1, true); // timeout
+      }
+    }
+  }, 1000);
+}
+
+function stopTimer() { clearInterval(timerIv); timerIv = null; }
+
+function updateTimerUI() {
+  const ring = document.getElementById('pTimerRing');
+  const num = document.getElementById('pTimerNum');
+  const circum = 2 * Math.PI * 22; // ~138.2
+  ring.style.strokeDashoffset = circum * (1 - timeLeft/totalTime);
+  num.innerText = timeLeft;
+  if (timeLeft <= 5) {
+    ring.style.stroke = '#ef4444';
+    num.parentElement.classList.add('p-timer-urgent');
+  } else if (timeLeft <= 10) {
+    ring.style.stroke = '#f59e0b';
+    num.parentElement.classList.remove('p-timer-urgent');
+  } else {
+    ring.style.stroke = '#3b82f6';
+    num.parentElement.classList.remove('p-timer-urgent');
+  }
+}
+
+async function submitAnswer(optIdx, isTimeout=false) {
+  if (answered && optIdx !== -1) return;
+  if (answered) return;
+  answered = true;
+  stopTimer();
+  selOption = optIdx;
+  lockedSound();
+  // Visually select
+  document.querySelectorAll('.opt-btn').forEach((btn, i) => {
+    btn.disabled = true;
+    if (i === optIdx) btn.classList.add('selected');
+    if (isTimeout) btn.classList.add('timeout');
+  });
+  show('pendingBox'); hide('feedbackBox');
+  const isCorrect = !isTimeout && optIdx === curQuestion?.correct_option;
+  const pts = isCorrect ? Math.round((curQuestion?.points || 100) * Math.max(0.1, timeLeft / totalTime)) : 0;
+  // Fire and forget — don't block UI
+  saveAnswer(optIdx, isCorrect, pts);
+}
+
+async function saveAnswer(optIdx, isCorrect, pts) {
+  if (!curQuestion || !myPlayer) return;
+  try {
+    await sb.from('answers').upsert({
+      session_id: SESSION_ID,
+      question_id: curQuestion.id,
+      player_id: myPlayer.id,
+      chosen_option: optIdx,
+      is_correct: isCorrect,
+      points_earned: pts,
+      time_taken_ms: (totalTime - timeLeft) * 1000
+    }, { onConflict: 'question_id,player_id' });
+  } catch(e) { console.error('saveAnswer error', e); }
+}
+
+async function revealAndScore(correctOption) {
+  if (!curQuestion) return;
+  stopTimer();
+  hide('pendingBox');
+  // Highlight options
+  document.querySelectorAll('.opt-btn').forEach((btn, i) => {
+    btn.disabled = true;
+    if (i === correctOption) btn.classList.add('correct');
+    else if (i === selOption && selOption !== correctOption) btn.classList.add('wrong');
+  });
+  // Fetch my answer from DB
+  const { data: myAns } = await sb.from('answers').select('is_correct,points_earned').eq('question_id', curQuestion.id).eq('player_id', myPlayer.id).maybeSingle();
+  const correct = myAns?.is_correct || false;
+  const earned = myAns?.points_earned || 0;
+  if (correct) { myScore += earned; myCorrect++; correctSound(); }
+  else wrongSound();
+  if (correct) await sb.from('players').update({ score: myScore, correct_count: myCorrect }).eq('id', myPlayer.id);
+  document.getElementById('scoreChip').innerText = myScore + ' pts';
+  const fb = document.getElementById('feedbackBox');
+  fb.className = 'feedback';
+  if (selOption === -1) {
+    fb.classList.add('feedback-timeout');
+    fb.innerHTML = `<div style="font-size:20px;margin-bottom:4px">⏰ Time's up!</div><div style="color:var(--muted)">The correct answer was ${['A','B','C','D'][correctOption]}</div>`;
+  } else if (correct) {
+    fb.classList.add('feedback-correct');
+    fb.innerHTML = `<div class="points-pop">+${earned}</div><div>🎉 Correct! Well done!</div>`;
+  } else {
+    fb.classList.add('feedback-wrong');
+    fb.innerHTML = `<div style="font-size:20px;margin-bottom:4px">❌ Wrong</div><div style="color:var(--muted)">Correct: <strong>${['A','B','C','D'][correctOption]}</strong></div>`;
+  }
+  show('feedbackBox');
+}
+
+// ─── Result ───
+async function showResult() {
+  stopTimer();
+  // Get rank
+  let rank = '—';
+  try {
+    const { data: all } = await sb.from('players').select('id,score').eq('session_id', SESSION_ID).order('score', {ascending:false});
+    const idx = (all||[]).findIndex(p => p.id === myPlayer.id);
+    if (idx >= 0) rank = `#${idx+1}`;
+  } catch(e) {}
+  const accuracy = myQCount > 0 ? Math.round((myCorrect/myQCount)*100) : 0;
+  document.getElementById('rScore').innerText = myScore;
+  document.getElementById('rRank').innerText = rank;
+  document.getElementById('rCorrect').innerText = `${myCorrect}/${myQCount}`;
+  document.getElementById('rAccuracy').innerText = accuracy + '%';
+  const rankNum = parseInt(rank.replace('#',''));
+  let icon = '🏆', msg = '';
+  if (rankNum === 1) { icon = '🥇'; msg = 'You won! Incredible!'; }
+  else if (rankNum === 2) { icon = '🥈'; msg = 'Runner up! So close!'; }
+  else if (rankNum === 3) { icon = '🥉'; msg = 'Top 3! Amazing!'; }
+  else if (accuracy >= 80) { icon = '🌟'; msg = 'Excellent accuracy!'; }
+  else if (accuracy >= 60) { icon = '⭐'; msg = 'Good effort!'; }
+  else { icon = '💪'; msg = 'Better luck next time!'; }
+  document.getElementById('resultIcon').innerText = icon;
+  document.getElementById('rankMessage').innerText = msg;
+  showScreen('result');
+}
+
+function showEliminated() { showScreen('eliminated'); }
+
+// ─── Helpers ───
+function showWaiting() {
+  if (myPlayer) {
+    document.getElementById('waitAvatar').innerText = myPlayer.avatar_color || '😎';
+    document.getElementById('waitName').innerText = myPlayer.name || 'Player';
+  }
+  // Load room code
+  if (SESSION_ID) {
+    sb.from('game_sessions').select('room_code').eq('id', SESSION_ID).single().then(({ data }) => {
+      if (data) document.getElementById('waitRoom').innerText = data.room_code;
+    });
+  }
+  showScreen('waiting');
+}
+
+function startPlayerCountPoll() {
+  const refresh = async () => {
+    if (!SESSION_ID) return;
+    const { count } = await sb.from('players').select('*', {count:'exact',head:true}).eq('session_id', SESSION_ID);
+    document.getElementById('waitPlayerCount').innerText = count || 0;
+  };
+  refresh();
+  playerCountIv = setInterval(refresh, 4000);
+}
+
+function showScreen(id) {
+  ['join','waiting','quiz','result','eliminated'].forEach(s => {
+    document.getElementById(s + 'Screen').classList.add('hidden');
+  });
+  document.getElementById(id + 'Screen').classList.remove('hidden');
+}
+function hide(id) { document.getElementById(id).classList.add('hidden'); }
+function show(id) { document.getElementById(id).classList.remove('hidden'); }
+
+function playAgain() {
+  localStorage.removeItem('paq_pid');
+  localStorage.removeItem('paq_sid');
+  if (realtimeChannel) sb.removeChannel(realtimeChannel);
+  clearInterval(playerCountIv);
+  stopTimer();
+  SESSION_ID = null; myPlayer = null;
+  myScore = 0; myCorrect = 0; myQCount = 0;
+  answered = false; selOption = -1;
+  document.getElementById('roomCodeInput').value = '';
+  document.getElementById('playerNameInput').value = '';
+  showScreen('join');
+  resetJoinBtn();
+  document.getElementById('joinError').innerText = '';
+}
+
+// ─── Resume session ───
+async function checkExisting() {
+  const pid = localStorage.getItem('paq_pid');
+  const sid = localStorage.getItem('paq_sid');
+  if (!pid || !sid) return false;
+  const [{ data: player }, { data: session }] = await Promise.all([
+    sb.from('players').select('*').eq('id', pid).maybeSingle(),
+    sb.from('game_sessions').select('*').eq('id', sid).maybeSingle()
+  ]);
+  if (!player || !session || session.status === 'ended') return false;
+  myPlayer = player; SESSION_ID = sid;
+  myScore = player.score; myCorrect = player.correct_count;
+  if (player.is_eliminated) { showEliminated(); return true; }
+  setupRealtime();
+  startPlayerCountPoll();
+  if (session.status === 'active' || session.status === 'reveal') showScreen('quiz');
+  else showWaiting();
+  return true;
+}
+
+// ─── Init ───
+buildAvatarGrid();
+pickAvatar('😎');
+checkExisting().then(found => { if (!found) showScreen('join'); });
+
+window.joinGame = joinGame;
+window.pickAvatar = pickAvatar;
+window.submitAnswer = submitAnswer;
+window.playAgain = playAgain;
 </script>
 </body>
 </html>
