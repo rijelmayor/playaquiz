@@ -703,19 +703,57 @@ function launchFW(){
 }
 
 // ══ INIT ══
-async function init(){
-  const saved=localStorage.getItem('paq_foh_sid');
-  if(saved){
-    const{data,error}=await sb.from('game_sessions').select('*').eq('id',saved).maybeSingle();
-    if(!error&&data&&data.status!=='ended'){
-      SID=saved;sess=data;
-      document.getElementById('foh-join-screen').style.display='none';
-      document.getElementById('foh-shell').style.display='grid';
-      await loadAll();updateHeader();syncPhase();setupRT();return;
-    }
-    localStorage.removeItem('paq_foh_sid');
+async function init() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const roomCode = urlParams.get('room');
+
+  if (!roomCode) {
+    document.body.innerHTML = "<h1 style='color:white; padding:50px;'>Error: No Room Code in URL (?room=XXXX)</h1>";
+    return;
   }
+
+  // 1. Fetch the session first
+  const { data: sess, error } = await _supabase
+    .from('sessions')
+    .select('*, categories(*)')
+    .eq('room_code', roomCode.toUpperCase())
+    .single();
+
+  if (error || !sess) {
+    console.error("Session not found", error);
+    alert("Session not found or expired.");
+    return;
+  }
+
+  curSess = sess;
+  syncSession(); // Set initial phase (Waiting, Reading, etc.)
+  loadPlayers();
+
+  // 2. ONLY NOW start subscriptions using curSess.id
+  _supabase.channel('session-updates')
+    .on('postgres_changes', { 
+      event: 'UPDATE', 
+      schema: 'public', 
+      table: 'sessions', 
+      filter: `id=eq.${curSess.id}` 
+    }, payload => {
+      curSess = payload.new;
+      syncSession();
+    })
+    .subscribe();
+
+  _supabase.channel('player-updates')
+    .on('postgres_changes', { 
+      event: '*', 
+      schema: 'public', 
+      table: 'players', 
+      filter: `session_id=eq.${curSess.id}` 
+    }, () => {
+      loadPlayers(); // Refresh player list when someone joins
+    })
+    .subscribe();
 }
+
 init();
 </script>
 </body>
