@@ -752,13 +752,13 @@ async function resetGame() {
 function startQuestion(idx) {
   const q = questions[idx];
   if (!q) return;
-  timeLeft = q.time_limit || 15;
+  timeLeft = q.time_limit || 30;
   updateTimerUI(q);
   clearInterval(timerInterval);
   timerInterval = setInterval(() => {
     timeLeft--;
     updateTimerUI(q);
-    updateMfhTimer(q.time_limit || 15);
+    updateMfhTimer(q.time_limit || 30);
     if (timeLeft <= 0) {
       clearInterval(timerInterval);
       timeExpired = true;
@@ -774,7 +774,7 @@ function startQuestion(idx) {
 }
 
 function updateTimerUI(q) {
-  const max = q?.time_limit || 15;
+  const max = q?.time_limit || 30;
   document.getElementById('gcb-timer').textContent = `⏱ ${timeLeft}s`;
   const pct = Math.max(0,(timeLeft/max)*100);
   document.getElementById('q-prog-fill').style.width = pct+'%';
@@ -892,7 +892,7 @@ async function addQuestion() {
     session_id: SESSION_ID, category_id: catId || null,
     question_text: text, option_a: a, option_b: b, option_c: c, option_d: d,
     correct_option: parseInt(document.getElementById('nq-correct').value),
-    time_limit: parseInt(document.getElementById('nq-time').value) || 15,
+    time_limit: parseInt(document.getElementById('nq-time').value) || 30,
     points: parseInt(document.getElementById('nq-points').value) || 100,
     explanation: document.getElementById('nq-exp').value.trim(),
     sort_order: questions.length
@@ -911,14 +911,14 @@ async function removeQuestion(id) {
 
 async function loadDefaults() {
   const defaults = [
-    {t:"What does HTML stand for?",a:"Hyper Text Markup Language",b:"High Tech Modern Language",c:"Hyper Transfer Markup Language",d:"Home Tool Markup Language",c_idx:0,time:15,pts:100,exp:"HTML = Hyper Text Markup Language."},
-    {t:"Which planet is known as the Red Planet?",a:"Venus",b:"Jupiter",c:"Mars",d:"Saturn",c_idx:2,time:15,pts:100,exp:"Mars is red due to iron oxide on its surface."},
-    {t:"What is the capital of Japan?",a:"Seoul",b:"Beijing",c:"Tokyo",d:"Bangkok",c_idx:2,time:15,pts:100,exp:"Tokyo is Japan's capital city."},
-    {t:"Who painted the Mona Lisa?",a:"Michelangelo",b:"Leonardo da Vinci",c:"Raphael",d:"Caravaggio",c_idx:1,time:20,pts:150,exp:"Leonardo da Vinci, painted 1503–1519."},
-    {t:"What is 12 × 12?",a:"132",b:"144",c:"124",d:"148",c_idx:1,time:10,pts:100,exp:"12 × 12 = 144."},
-    {t:"Which ocean is the largest?",a:"Atlantic",b:"Indian",c:"Arctic",d:"Pacific",c_idx:3,time:15,pts:100,exp:"Pacific Ocean, ~165 million km²."},
-    {t:"What gas do plants absorb?",a:"Oxygen",b:"Nitrogen",c:"Carbon Dioxide",d:"Hydrogen",c_idx:2,time:15,pts:100,exp:"Plants absorb CO₂ during photosynthesis."},
-    {t:"How many sides does a hexagon have?",a:"5",b:"6",c:"7",d:"8",c_idx:1,time:10,pts:100,exp:"A hexagon has 6 sides."}
+    {t:"What does HTML stand for?",a:"Hyper Text Markup Language",b:"High Tech Modern Language",c:"Hyper Transfer Markup Language",d:"Home Tool Markup Language",c_idx:0,time:30,pts:100,exp:"HTML = Hyper Text Markup Language."},
+    {t:"Which planet is known as the Red Planet?",a:"Venus",b:"Jupiter",c:"Mars",d:"Saturn",c_idx:2,time:30,pts:100,exp:"Mars is red due to iron oxide on its surface."},
+    {t:"What is the capital of Japan?",a:"Seoul",b:"Beijing",c:"Tokyo",d:"Bangkok",c_idx:2,time:30,pts:100,exp:"Tokyo is Japan's capital city."},
+    {t:"Who painted the Mona Lisa?",a:"Michelangelo",b:"Leonardo da Vinci",c:"Raphael",d:"Caravaggio",c_idx:1,time:30,pts:150,exp:"Leonardo da Vinci, painted 1503–1519."},
+    {t:"What is 12 × 12?",a:"132",b:"144",c:"124",d:"148",c_idx:1,time:30,pts:100,exp:"12 × 12 = 144."},
+    {t:"Which ocean is the largest?",a:"Atlantic",b:"Indian",c:"Arctic",d:"Pacific",c_idx:3,time:30,pts:100,exp:"Pacific Ocean, ~165 million km²."},
+    {t:"What gas do plants absorb?",a:"Oxygen",b:"Nitrogen",c:"Carbon Dioxide",d:"Hydrogen",c_idx:2,time:30,pts:100,exp:"Plants absorb CO₂ during photosynthesis."},
+    {t:"How many sides does a hexagon have?",a:"5",b:"6",c:"7",d:"8",c_idx:1,time:30,pts:100,exp:"A hexagon has 6 sides."}
   ];
   for (let i=0; i<defaults.length; i++) {
     const q = defaults[i];
