@@ -206,6 +206,75 @@ html,body{height:100%;width:100%;overflow:hidden;background:var(--bg);color:var(
 .elim-icon{font-size:64px;margin-bottom:12px}
 .elim-text{font-family:var(--font-d);font-size:40px;font-weight:900;color:var(--rose)}
 .elim-name{font-size:28px;font-weight:700;color:var(--text);margin-top:8px}
+
+
+/* ── State Transitions ── */
+
+.q-scene.transitioning {
+  transition: transform 0.35s ease, opacity 0.35s ease;
+}
+
+/* ACTIVE → LOCKED */
+.q-scene.locked {
+  transform: scale(0.98);
+  opacity: 0.92;
+}
+
+/* TIME UP banner animation */
+.timeup-banner {
+  transform: translateY(10px) scale(0.95);
+  opacity: 0;
+}
+.timeup-banner.show {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+  transition: all 0.35s cubic-bezier(.34,1.56,.64,1);
+}
+
+/* Response bars entrance */
+.resp-section {
+  opacity: 0;
+  transform: translateY(10px);
+}
+.resp-section.visible {
+  opacity: 1;
+  transform: translateY(0);
+  transition: all 0.4s ease;
+}
+
+/* Bar growth animation */
+.resp-bar {
+  transition: width 0.8s cubic-bezier(.4,0,.2,1), background 0.4s ease;
+}
+
+/* REVEAL effects */
+.q-opt {
+  transition: all 0.4s ease;
+}
+
+/* Correct pulse */
+.q-opt.correct {
+  animation: correctPulse 0.6s ease;
+}
+@keyframes correctPulse {
+  0%   { transform: scale(1); box-shadow: 0 0 0 rgba(16,185,129,0); }
+  50%  { transform: scale(1.04); box-shadow: 0 0 40px rgba(16,185,129,0.4); }
+  100% { transform: scale(1); }
+}
+
+/* Wrong fade */
+.q-opt.wrong {
+  opacity: 0.35;
+  transform: scale(0.96);
+}
+
+/* Smooth dim background feel */
+.q-scene.reveal {
+  transform: scale(1);
+  opacity: 1;
+}
+
+
 </style>
 </head>
 <body>
@@ -254,7 +323,7 @@ html,body{height:100%;width:100%;overflow:hidden;background:var(--bg);color:var(
       <div class="bubble-field" id="bubble-field"></div>
       <div class="waiting-wrap">
         <div class="w-title"><span class="glow">Get Ready</span><br>to Play!</div>
-        <div class="w-sub">Open playaquiz.xyz/player and enter the room code</div>
+        <div class="w-sub">ENTER THE ROOM CODE TO JOIN!</div>
         <div class="room-big" id="wait-room-code">——</div>
         <div class="room-hint">Join now — game starts soon!</div>
       </div>
@@ -352,7 +421,7 @@ let sessionData = null;
 let questions = [], players = [], answers = {}, categories = [];
 let currentPhase = 'waiting';
 let timerInterval = null;
-let timeLeft = 15;
+let timeLeft = 30;
 let currentQ = null;
 let bubbles = [];
 
@@ -486,24 +555,55 @@ function handleEvent(evt) {
   }
 }
 
-// ══════════════════════════════════════════════
-// PHASE SYNC (on load / reconnect)
-// ══════════════════════════════════════════════
 function syncPhase() {
   const status = sessionData?.status || 'waiting';
+  const revealed = sessionData?.answer_revealed;
+
   if (status === 'waiting') {
     showPhase('waiting');
-    players.forEach(p => setTimeout(()=>addBubble(p), Math.random()*500));
-  } else if (status === 'active' || status === 'reveal') {
+    players.forEach(p => setTimeout(() => addBubble(p), Math.random() * 500));
+    return;
+  }
+
+  if (status === 'active') {
     const qi = sessionData.current_question_index;
+
     if (qi >= 0 && questions[qi]) {
       loadFOHQuestion(questions[qi], qi, questions.length);
-      if (status === 'reveal') setTimeout(()=>revealAnswerFOH(), 300);
+
+      // 👇 KEY CHANGE
+      if (revealed) {
+        // Only reveal when admin explicitly triggers it
+        setTimeout(() => revealAnswerFOH(), 300);
+      } else {
+        // 👇 THIS IS YOUR NEW STATE
+        handleTimeUpVisualIfNeeded();
+      }
     }
-  } else if (status === 'leaderboard') {
+    return;
+  }
+
+  if (status === 'leaderboard') {
     showFOHLeaderboard();
-  } else if (status === 'ended') {
+    return;
+  }
+
+  if (status === 'ended') {
     showFOHResult();
+    return;
+  }
+}
+
+
+function handleTimeUpVisualIfNeeded() {
+  // If timer already expired (reconnect case)
+  if (isTimerExpired()) {
+    document.getElementById('timeup-banner').classList.add('show');
+    document.getElementById('resp-section').style.display = 'flex';
+    document.getElementById('resp-pill').classList.remove('visible');
+
+    renderResponseBars(currentResponses);
+    setFooterTip("Responses locked — waiting for host...");
   }
 }
 
@@ -535,20 +635,33 @@ function showPhase(name) {
   }
 }
 
-// ══════════════════════════════════════════════
-// QUESTION
-// ══════════════════════════════════════════════
+let hasTimeEnded = false;
+
 function loadFOHQuestion(q, idx, total) {
   currentQ = q;
-  showPhase('question');
-  document.getElementById('q-badge').textContent = `Q ${idx+1} / ${total}`;
-  document.getElementById('q-prog-bar').style.width = `${((idx+1)/total)*100}%`;
-  document.getElementById('q-text').textContent = q.question_text;
-  document.getElementById('resp-section').style.display = 'none';
+  hasTimeEnded = false;
+
+  const scene = document.querySelector('.q-scene');
+  const respSection = document.getElementById('resp-section');
+
+  // ── RESET TRANSITION STATE (CORRECT POSITION ✔)
+  scene.classList.remove('locked', 'reveal', 'transitioning');
+
+  respSection.classList.remove('visible');
+  respSection.style.display = 'none';
+
   document.getElementById('timeup-banner').classList.remove('show');
   document.getElementById('resp-pill').classList.remove('visible');
 
-  const opts = [q.option_a,q.option_b,q.option_c,q.option_d];
+  // ── PHASE UI
+  showPhase('question');
+
+  document.getElementById('q-badge').textContent = `Q ${idx+1} / ${total}`;
+  document.getElementById('q-prog-bar').style.width = `${((idx+1)/total)*100}%`;
+  document.getElementById('q-text').textContent = q.question_text;
+
+  // ── OPTIONS
+  const opts = [q.option_a, q.option_b, q.option_c, q.option_d];
   document.getElementById('q-opts').innerHTML = opts.map((o,i)=>`
     <div class="q-opt" id="foh-opt-${i}">
       <span class="opt-letter">${'ABCD'[i]}</span>${o}
@@ -556,16 +669,91 @@ function loadFOHQuestion(q, idx, total) {
 
   setFtr(`Players: choose your answer! ⏱`);
 
+  // ── TIMER
   clearInterval(timerInterval);
-  timeLeft = q.time_limit || 15;
-  updateTimer(q.time_limit||15);
-  timerInterval = setInterval(()=>{
+
+  timeLeft = q.time_limit || 30;
+  updateTimer(timeLeft);
+
+  timerInterval = setInterval(() => {
     timeLeft--;
-    updateTimer(q.time_limit||15);
+
+    // ✅ FIX: use remaining time
+    updateTimer(timeLeft);
     updateRespProgress();
-    if(timeLeft<=0) clearInterval(timerInterval);
-  },1000);
+
+    if (timeLeft <= 0 && !hasTimeEnded) {
+      hasTimeEnded = true;
+      clearInterval(timerInterval);
+      handleTimeUp();
+    }
+
+  }, 1000);
 }
+
+
+function renderFOHResponseBars(q, answersMap, highlightCorrect = false) {
+  const curAns = answersMap[q.id] || {};
+  const total = Object.keys(curAns).length;
+
+  const counts = [0,0,0,0];
+  Object.values(curAns).forEach(a => {
+    if (a.chosen_option >= 0 && a.chosen_option < 4) {
+      counts[a.chosen_option]++;
+    }
+  });
+
+  const maxC = Math.max(...counts, 1);
+  const colors = ['#00f0ff','#7c3aed','#f59e0b','#10b981'];
+
+  document.getElementById('resp-bars').innerHTML = counts.map((c,i)=>`
+    <div class="resp-row">
+      <span class="resp-lbl">${'ABCD'[i]}</span>
+      <div class="resp-track">
+        <div class="resp-bar"
+             id="rb-${i}"
+             style="width:0%;
+             background:${highlightCorrect && i===q.correct_option ? 'var(--green)' : colors[i]}">
+        </div>
+      </div>
+      <span class="resp-cnt">${c}</span>
+    </div>
+  `).join('');
+
+  // animate bars
+  requestAnimationFrame(()=>{
+    counts.forEach((c,i)=>{
+      const b = document.getElementById('rb-'+i);
+      if (b) b.style.width = Math.round(c / maxC * 100) + '%';
+    });
+  });
+
+  return { total, counts };
+}
+
+
+
+function handleTimeUp() {
+  const respSection = document.getElementById('resp-section');
+
+  // prevent duplicate execution
+  if (respSection.classList.contains('visible')) return;
+
+  document.getElementById('timeup-banner').classList.add('show');
+  document.getElementById('resp-pill').classList.remove('visible');
+
+  respSection.style.display = 'flex';
+
+  requestAnimationFrame(() => {
+    respSection.classList.add('visible');
+  });
+
+  // 🔥 ALWAYS recompute from fresh answers
+  renderFOHResponseBars(currentQ, answers, false);
+
+  setFtr("Responses locked — waiting for host...");
+}
+
 
 function updateTimer(max) {
   const n = document.getElementById('q-timer-n');
@@ -601,34 +789,49 @@ function updateRespProgress() {
 // ══════════════════════════════════════════════
 function revealAnswerFOH() {
   if (!currentQ) return;
+
+  const scene = document.querySelector('.q-scene');
+
   clearInterval(timerInterval);
-  document.getElementById('timeup-banner').classList.remove('show');
-  document.getElementById('resp-pill').classList.remove('visible');
-  const q = currentQ;
-  [0,1,2,3].forEach(i=>{
-    const el = document.getElementById('foh-opt-'+i);
-    if(el) el.classList.add('revealed', i===q.correct_option?'correct':'wrong');
-  });
-  // Response bars
-  const curAns = answers[q.id]||{};
-  const total = Object.keys(curAns).length;
-  const counts = [0,0,0,0];
-  Object.values(curAns).forEach(a=>{ if(a.chosen_option>=0&&a.chosen_option<4) counts[a.chosen_option]++; });
-  const maxC = Math.max(...counts,1);
-  const colors = ['#00f0ff','#7c3aed','#f59e0b','#10b981'];
-  document.getElementById('resp-bars').innerHTML = counts.map((c,i)=>`
-    <div class="resp-row">
-      <span class="resp-lbl">${'ABCD'[i]}</span>
-      <div class="resp-track"><div class="resp-bar" id="rb-${i}" style="width:0%;background:${i===q.correct_option?'var(--green)':colors[i]}"></div></div>
-      <span class="resp-cnt">${c}</span>
-    </div>`).join('');
-  document.getElementById('resp-section').style.display='flex';
-  document.getElementById('resp-section').style.flexDirection='column';
-  document.getElementById('resp-section').style.gap='8px';
-  setTimeout(()=>{
-    counts.forEach((c,i)=>{ const b=document.getElementById('rb-'+i); if(b)b.style.width=Math.round(c/maxC*100)+'%'; });
-  },100);
-  setFtr(`${total} response${total===1?'':'s'} · Correct: ${[q.option_a,q.option_b,q.option_c,q.option_d][q.correct_option]}`);
+
+  scene.classList.add('reveal');
+
+  // step 1: slight pause for dramatic effect
+  setTimeout(() => {
+
+    // highlight answers
+    [0,1,2,3].forEach(i => {
+      const el = document.getElementById('foh-opt-'+i);
+      if (!el) return;
+
+      el.classList.add('revealed');
+
+      if (i === currentQ.correct_option) {
+        el.classList.add('correct');
+      } else {
+        el.classList.add('wrong');
+      }
+    });
+
+    // step 2: recolor bars AFTER highlight
+    setTimeout(() => {
+      const { total } = renderFOHResponseBars(currentQ, answers, true);
+
+      setFtr(`${total} responses · Correct: ${
+        [currentQ.option_a,currentQ.option_b,currentQ.option_c,currentQ.option_d][currentQ.correct_option]
+      }`);
+    }, 250);
+
+  }, 180);
+}
+
+
+function onAnswersUpdate(newAnswers) {
+  answers = newAnswers;
+
+  if (currentState === 'locked') {
+    renderFOHResponseBars(currentQ, answers, false);
+  }
 }
 
 // ══════════════════════════════════════════════
