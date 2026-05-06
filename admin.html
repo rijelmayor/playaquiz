@@ -3,1278 +3,1142 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PlayAQuiz — Admin Control</title>
-<link href="https://fonts.googleapis.com/css2?family=Clash+Display:wght@400;500;600;700&family=Cabinet+Grotesk:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<title>PlayAQuiz — Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Clash+Display:wght@400;600;700;800&family=Cabinet+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#080810;--s1:#0f0f1a;--s2:#161625;--s3:#1e1e32;
-  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
-  --cyan:#00f0ff;--violet:#7c3aed;--amber:#f59e0b;--rose:#f43f5e;
-  --green:#10b981;--text:#eeeeff;--muted:#64748b;--muted2:#94a3b8;
-  --r:14px;--rs:8px;
-  --font-display:'Clash Display',sans-serif;
-  --font-body:'Cabinet Grotesk',sans-serif;
-  --font-mono:'JetBrains Mono',monospace;
+  --bg:#07070f;--s1:#0e0e1c;--s2:#151528;--s3:#1c1c34;
+  --b:rgba(255,255,255,0.07);--b2:rgba(255,255,255,0.13);
+  --cyan:#00f0ff;--v:#7c3aed;--amber:#f59e0b;--rose:#f43f5e;--green:#10b981;
+  --text:#eeeeff;--muted:#64748b;--muted2:#94a3b8;--r:14px;--rs:8px;
+  --fd:'Clash Display',sans-serif;--fb:'Cabinet Grotesk',sans-serif;--fm:'JetBrains Mono',monospace;
 }
-html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font-body);overflow:hidden}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--fb);overflow:hidden}
 body{display:flex;flex-direction:column}
-
-/* ── Noise overlay ── */
-body::before{content:'';position:fixed;inset:0;opacity:0.025;pointer-events:none;z-index:999;
-  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
-  background-size:128px}
-
-/* ── Top bar ── */
-.topbar{display:flex;align-items:center;justify-content:space-between;
-  padding:14px 28px;border-bottom:1px solid var(--border);
-  background:var(--s1);flex-shrink:0;z-index:50}
-.logo{font-family:var(--font-display);font-size:22px;font-weight:700;letter-spacing:-0.5px}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:13px 24px;
+  border-bottom:1px solid var(--b);background:var(--s1);flex-shrink:0;z-index:50;gap:12px}
+.logo{font-family:var(--fd);font-size:20px;font-weight:800;letter-spacing:-0.5px;flex-shrink:0}
 .logo em{color:var(--cyan);font-style:normal}
-.logo sup{font-size:10px;background:var(--rose);color:#fff;padding:2px 6px;border-radius:4px;font-family:var(--font-mono);font-style:normal;vertical-align:super;margin-left:4px}
-.topbar-mid{display:flex;align-items:center;gap:10px}
-.room-pill{display:flex;align-items:center;gap:8px;padding:6px 14px;
+.logo sup{font-size:9px;background:var(--rose);color:#fff;padding:2px 5px;border-radius:4px;
+  font-family:var(--fm);font-style:normal;vertical-align:super;margin-left:3px}
+.room-pill{display:flex;align-items:center;gap:7px;padding:5px 13px;
   background:rgba(0,240,255,0.06);border:1px solid rgba(0,240,255,0.2);
-  border-radius:99px;font-family:var(--font-mono);font-size:13px;color:var(--cyan)}
+  border-radius:99px;font-family:var(--fm);font-size:13px;color:var(--cyan)}
 .live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);
-  box-shadow:0 0 8px var(--green);animation:blink 1.4s infinite}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:0.25}}
-.topbar-right{display:flex;align-items:center;gap:10px}
-.player-count-badge{font-family:var(--font-mono);font-size:12px;color:var(--muted2);
-  padding:5px 12px;background:var(--s2);border:1px solid var(--border);border-radius:99px}
-
-/* ── Layout ── */
+  box-shadow:0 0 8px var(--green);animation:blink 1.4s infinite;flex-shrink:0}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
+.tbr{display:flex;align-items:center;gap:10px}
+.pill-sm{font-family:var(--fm);font-size:12px;color:var(--muted2);padding:5px 11px;
+  background:var(--s2);border:1px solid var(--b);border-radius:99px}
+.btn-new-sess{padding:5px 13px;background:rgba(244,63,94,0.1);border:1px solid rgba(244,63,94,0.25);
+  border-radius:8px;color:var(--rose);font-size:12px;font-weight:700;cursor:pointer;
+  font-family:var(--fb);transition:all 0.15s}
+.btn-new-sess:hover{background:rgba(244,63,94,0.2)}
 .layout{display:flex;flex:1;overflow:hidden}
-.sidebar{width:210px;flex-shrink:0;background:var(--s1);border-right:1px solid var(--border);
-  padding:20px 12px;display:flex;flex-direction:column;gap:3px;overflow-y:auto}
-.nav-group-label{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:0.12em;
+.sidebar{width:200px;flex-shrink:0;background:var(--s1);border-right:1px solid var(--b);
+  padding:18px 10px;display:flex;flex-direction:column;gap:3px;overflow-y:auto}
+.ngl{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:0.12em;
   text-transform:uppercase;padding:6px 10px 4px;margin-top:8px}
-.nav-btn{display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;
-  border-radius:var(--rs);font-size:13px;font-weight:600;color:var(--muted2);
-  background:none;border:none;cursor:pointer;transition:all 0.15s;text-align:left;
-  font-family:var(--font-body)}
-.nav-btn:hover{background:var(--s2);color:var(--text)}
-.nav-btn.active{background:rgba(0,240,255,0.08);color:var(--cyan);border:1px solid rgba(0,240,255,0.15)}
-.nav-icon{width:18px;text-align:center;font-size:15px;flex-shrink:0}
-.nav-divider{height:1px;background:var(--border);margin:6px 0}
-
-/* ── Main ── */
-.main{flex:1;overflow-y:auto;padding:28px 32px}
-.page{display:none}
-.page.active{display:block;animation:fadeIn 0.2s ease}
-@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-
-/* ── Page header ── */
-.ph{margin-bottom:24px}
-.ph h1{font-family:var(--font-display);font-size:28px;font-weight:700;letter-spacing:-0.5px}
+.nb{display:flex;align-items:center;gap:9px;width:100%;padding:9px 11px;border-radius:var(--rs);
+  font-size:13px;font-weight:600;color:var(--muted2);background:none;border:none;cursor:pointer;
+  transition:all 0.15s;text-align:left;font-family:var(--fb)}
+.nb:hover{background:var(--s2);color:var(--text)}
+.nb.active{background:rgba(0,240,255,0.08);color:var(--cyan);border:1px solid rgba(0,240,255,0.15)}
+.ni{width:17px;text-align:center;font-size:14px;flex-shrink:0}
+.ndiv{height:1px;background:var(--b);margin:5px 0}
+.main{flex:1;overflow-y:auto;padding:24px 28px}
+.page{display:none}.page.active{display:block;animation:fi 0.2s ease}
+@keyframes fi{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.ph{margin-bottom:20px}.ph h1{font-family:var(--fd);font-size:26px;font-weight:700;letter-spacing:-0.5px}
 .ph p{font-size:14px;color:var(--muted2);margin-top:3px}
-
-/* ── Stat cards ── */
-.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
-.stat-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);
-  padding:18px;position:relative;overflow:hidden}
-.stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px}
-.sc-cyan::after{background:var(--cyan)}.sc-violet::after{background:var(--violet)}
-.sc-amber::after{background:var(--amber)}.sc-green::after{background:var(--green)}
-.sc-rose::after{background:var(--rose)}
-.stat-label{font-size:11px;font-family:var(--font-mono);color:var(--muted);text-transform:uppercase;letter-spacing:0.08em}
-.stat-val{font-family:var(--font-display);font-size:36px;font-weight:700;margin-top:4px}
-.sc-cyan .stat-val{color:var(--cyan)}.sc-violet .stat-val{color:var(--violet)}
-.sc-amber .stat-val{color:var(--amber)}.sc-green .stat-val{color:var(--green)}
-.sc-rose .stat-val{color:var(--rose)}
-
-/* ── Cards ── */
-.card{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);
-  padding:22px;margin-bottom:18px}
-.card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
-.card-title{font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px}
-.badge{font-size:11px;padding:2px 8px;border-radius:99px;font-family:var(--font-mono);font-weight:500}
-.badge-cyan{background:rgba(0,240,255,0.1);color:var(--cyan);border:1px solid rgba(0,240,255,0.2)}
-.badge-rose{background:rgba(244,63,94,0.1);color:var(--rose);border:1px solid rgba(244,63,94,0.2)}
-.badge-green{background:rgba(16,185,129,0.1);color:var(--green);border:1px solid rgba(16,185,129,0.2)}
-.badge-amber{background:rgba(245,158,11,0.1);color:var(--amber);border:1px solid rgba(245,158,11,0.2)}
-.badge-violet{background:rgba(124,58,237,0.1);color:#a78bfa;border:1px solid rgba(124,58,237,0.2)}
-
-/* ── Forms ── */
-.form-label{font-size:11px;font-weight:700;color:var(--muted2);text-transform:uppercase;
-  letter-spacing:0.06em;display:block;margin-bottom:6px}
-.form-input,.form-select,.form-textarea{width:100%;background:var(--s2);
-  border:1px solid var(--border);border-radius:var(--rs);padding:10px 13px;
-  color:var(--text);font-family:var(--font-body);font-size:14px;outline:none;transition:border 0.15s}
-.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--cyan);
-  box-shadow:0 0 0 3px rgba(0,240,255,0.08)}
-.form-textarea{resize:vertical;min-height:70px}
-.form-select{cursor:pointer}
-.form-grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.form-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
-.form-row{display:flex;gap:10px}
-.fg{margin-bottom:14px}
-
-/* ── Buttons ── */
-.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;
-  border-radius:var(--rs);font-size:14px;font-weight:700;cursor:pointer;
-  border:none;transition:all 0.15s;font-family:var(--font-body);white-space:nowrap}
-.btn:active{transform:scale(0.97)}
-.btn:disabled{opacity:0.4;cursor:not-allowed;transform:none}
-.btn-cyan{background:var(--cyan);color:#000}
-.btn-cyan:hover:not(:disabled){background:#33f5ff;box-shadow:0 0 20px rgba(0,240,255,0.3)}
-.btn-ghost{background:var(--s2);color:var(--text);border:1px solid var(--border2)}
-.btn-ghost:hover:not(:disabled){background:var(--s3)}
-.btn-danger{background:var(--rose);color:#fff}
-.btn-danger:hover:not(:disabled){background:#fb7185}
-.btn-green{background:var(--green);color:#fff}
-.btn-green:hover:not(:disabled){background:#34d399;box-shadow:0 0 20px rgba(16,185,129,0.3)}
-.btn-violet{background:var(--violet);color:#fff}
-.btn-violet:hover:not(:disabled){background:#6d28d9;box-shadow:0 0 20px rgba(124,58,237,0.3)}
-.btn-amber{background:var(--amber);color:#000}
-.btn-amber:hover:not(:disabled){background:#fbbf24}
+.sg{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.sc{background:var(--s1);border:1px solid var(--b);border-radius:var(--r);padding:16px;position:relative;overflow:hidden}
+.sc::after{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.sc-c::after{background:var(--cyan)}.sc-v::after{background:var(--v)}
+.sc-a::after{background:var(--amber)}.sc-g::after{background:var(--green)}
+.slbl{font-size:11px;font-family:var(--fm);color:var(--muted);text-transform:uppercase;letter-spacing:0.08em}
+.sval{font-family:var(--fd);font-size:32px;font-weight:700;margin-top:3px}
+.sc-c .sval{color:var(--cyan)}.sc-v .sval{color:var(--v)}.sc-a .sval{color:var(--amber)}.sc-g .sval{color:var(--green)}
+.card{background:var(--s1);border:1px solid var(--b);border-radius:var(--r);padding:20px;margin-bottom:16px}
+.ch{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.ct{font-size:15px;font-weight:700;display:flex;align-items:center;gap:7px}
+.badge{font-size:11px;padding:2px 8px;border-radius:99px;font-family:var(--fm);font-weight:500;border:1px solid}
+.bc{background:rgba(0,240,255,0.08);color:var(--cyan);border-color:rgba(0,240,255,0.2)}
+.bv{background:rgba(124,58,237,0.08);color:#a78bfa;border-color:rgba(124,58,237,0.2)}
+.bg{background:rgba(16,185,129,0.08);color:var(--green);border-color:rgba(16,185,129,0.2)}
+.ba{background:rgba(245,158,11,0.08);color:var(--amber);border-color:rgba(245,158,11,0.2)}
+.br{background:rgba(244,63,94,0.08);color:var(--rose);border-color:rgba(244,63,94,0.2)}
+.fl{font-size:11px;font-weight:700;color:var(--muted2);text-transform:uppercase;
+  letter-spacing:0.06em;display:block;margin-bottom:5px}
+.fi,.fs{width:100%;background:var(--s2);border:1px solid var(--b);border-radius:var(--rs);
+  padding:10px 13px;color:var(--text);font-family:var(--fb);font-size:14px;outline:none;transition:border 0.15s}
+.fi:focus,.fs:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(0,240,255,0.08)}
+.fs{cursor:pointer}.fg2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fg3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}.frow{display:flex;gap:10px}.fg{margin-bottom:12px}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 17px;border-radius:var(--rs);
+  font-size:14px;font-weight:700;cursor:pointer;border:none;transition:all 0.15s;font-family:var(--fb);white-space:nowrap}
+.btn:active{transform:scale(0.97)}.btn:disabled{opacity:0.35;cursor:not-allowed;transform:none!important}
+.btn-c{background:var(--cyan);color:#000}.btn-c:hover:not(:disabled){background:#33f5ff;box-shadow:0 0 20px rgba(0,240,255,0.3)}
+.btn-g{background:var(--green);color:#fff}.btn-g:hover:not(:disabled){background:#34d399;box-shadow:0 0 20px rgba(16,185,129,0.3)}
+.btn-v{background:var(--v);color:#fff}.btn-v:hover:not(:disabled){background:#6d28d9;box-shadow:0 0 20px rgba(124,58,237,0.3)}
+.btn-a{background:var(--amber);color:#000}.btn-a:hover:not(:disabled){background:#fbbf24}
+.btn-r{background:var(--rose);color:#fff}.btn-r:hover:not(:disabled){background:#fb7185}
+.btn-ghost{background:var(--s2);color:var(--text);border:1px solid var(--b2)}.btn-ghost:hover:not(:disabled){background:var(--s3)}
 .btn-sm{padding:6px 13px;font-size:12px}
-.btn-icon{padding:7px;background:var(--s2);border:1px solid var(--border);border-radius:var(--rs);
-  color:var(--muted2);cursor:pointer;font-size:15px;transition:all 0.15s;display:inline-flex;align-items:center}
-.btn-icon:hover{color:var(--text);border-color:var(--border2)}
+.btn-icon{padding:7px;background:var(--s2);border:1px solid var(--b);border-radius:var(--rs);
+  color:var(--muted2);cursor:pointer;font-size:14px;transition:all 0.15s;display:inline-flex;align-items:center}
+.btn-icon:hover{color:var(--text);border-color:var(--b2)}
 
-/* ── Game Control Bar ── */
-.gcb{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);
-  padding:18px 22px;margin-bottom:20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-.gcb-status{flex:1;min-width:150px}
-.gcb-label{font-size:11px;font-family:var(--font-mono);color:var(--muted);text-transform:uppercase;letter-spacing:0.08em}
-.gcb-value{font-family:var(--font-display);font-size:22px;font-weight:700;margin-top:2px}
-.status-waiting{color:var(--amber)}.status-active{color:var(--green)}
-.status-reveal{color:var(--violet)}.status-leaderboard{color:var(--cyan)}.status-ended{color:var(--muted2)}
-.q-indicator{font-family:var(--font-mono);font-size:13px;color:var(--muted2)}
-.timer-display{font-family:var(--font-mono);font-size:13px;color:var(--muted2);min-width:80px}
+/* ── GAME FLOW ── */
+.flow-card{background:linear-gradient(135deg,rgba(0,240,255,0.03),rgba(124,58,237,0.03));
+  border:1px solid rgba(0,240,255,0.14);border-radius:var(--r);padding:20px;margin-bottom:16px}
+.flow-steps{display:flex;flex-direction:column;gap:9px;margin-top:14px}
+.fstep{display:flex;align-items:center;gap:12px;padding:11px 15px;border-radius:var(--rs);
+  background:rgba(255,255,255,0.02);border:1px solid var(--b);transition:all 0.2s}
+.fstep.step-active{background:rgba(0,240,255,0.05);border-color:rgba(0,240,255,0.2)}
+.fstep.step-done{background:rgba(16,185,129,0.04);border-color:rgba(16,185,129,0.16)}
+.fstep.step-disabled{opacity:0.45}
+.step-num{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;flex-shrink:0;font-family:var(--fm);background:rgba(255,255,255,0.07);color:var(--muted2)}
+.fstep.step-active .step-num{background:rgba(0,240,255,0.15);color:var(--cyan)}
+.fstep.step-done .step-num{background:rgba(16,185,129,0.15);color:var(--green)}
+.step-body{flex:1}.step-lbl{font-size:13px;font-weight:700}
+.step-desc{font-size:11px;color:var(--muted2);margin-top:2px;font-family:var(--fm)}
+.step-act{flex-shrink:0;display:flex;gap:6px;align-items:center}
 
-/* ── Progress ── */
-.prog-wrap{background:rgba(255,255,255,0.06);border-radius:99px;height:5px;margin-top:8px}
-.prog-fill{height:5px;border-radius:99px;background:var(--cyan);transition:width 0.4s}
+/* category picker inline */
+.cat-picker-box{display:none;padding:14px;background:rgba(0,0,0,0.25);border-radius:var(--rs);
+  border:1px solid var(--b);margin-top:4px;margin-bottom:2px}
+.cat-grid{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px}
+.catpill{padding:7px 14px;border-radius:99px;font-size:13px;font-weight:600;cursor:pointer;
+  border:1px solid var(--b);background:rgba(255,255,255,0.04);color:var(--muted2);
+  transition:all 0.15s;display:flex;align-items:center;gap:6px}
+.catpill:hover{border-color:var(--b2);color:var(--text);transform:translateY(-1px)}
+.catpill.sel{transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,0.3)}
 
-/* ── Mini FOH Preview ── */
-.mini-foh{background:#05050f;border:1px solid rgba(0,240,255,0.12);border-radius:var(--r);
-  overflow:hidden;margin-bottom:20px}
-.mfh{background:rgba(0,0,0,0.5);padding:10px 16px;border-bottom:1px solid rgba(255,255,255,0.05);
+/* mini foh */
+.mfoh{background:#03030c;border:1px solid rgba(0,240,255,0.12);border-radius:var(--r);overflow:hidden;margin-bottom:16px}
+.mfoh-hdr{background:rgba(0,0,0,0.45);padding:9px 14px;border-bottom:1px solid rgba(255,255,255,0.05);
   display:flex;align-items:center;justify-content:space-between}
-.mfh-title{font-size:11px;font-family:var(--font-mono);color:var(--cyan);text-transform:uppercase;
+.mfoh-title{font-size:11px;font-family:var(--fm);color:var(--cyan);text-transform:uppercase;
   letter-spacing:0.1em;display:flex;align-items:center;gap:6px}
-.mfh-body{padding:14px;min-height:160px}
-.mfh-waiting{text-align:center;padding:20px}
-.mfh-room{font-family:var(--font-display);font-size:32px;font-weight:700;color:var(--amber);
-  letter-spacing:0.1em;margin-bottom:6px}
-.mfh-q-text{font-size:13px;font-weight:700;color:#fff;margin-bottom:10px;line-height:1.4}
-.mfh-opts{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px}
-.mfh-opt{font-size:11px;padding:7px 10px;border-radius:6px;font-weight:600;
-  display:flex;align-items:center;gap:5px;border:1px solid transparent;transition:all 0.3s}
-.mfh-opt:nth-child(1){background:rgba(0,240,255,0.08);border-color:rgba(0,240,255,0.2);color:var(--cyan)}
-.mfh-opt:nth-child(2){background:rgba(124,58,237,0.08);border-color:rgba(124,58,237,0.2);color:#a78bfa}
-.mfh-opt:nth-child(3){background:rgba(245,158,11,0.08);border-color:rgba(245,158,11,0.2);color:var(--amber)}
-.mfh-opt:nth-child(4){background:rgba(16,185,129,0.08);border-color:rgba(16,185,129,0.2);color:var(--green)}
-.mfh-opt.mfh-correct{background:rgba(16,185,129,0.2)!important;border-color:var(--green)!important;color:#fff!important}
-.mfh-opt.mfh-wrong{opacity:0.25!important}
-.mfh-timer-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
-.mfh-tbar{flex:1;height:4px;background:rgba(255,255,255,0.08);border-radius:99px;overflow:hidden}
-.mfh-tfill{height:4px;border-radius:99px;background:var(--cyan);transition:width 1s linear}
-.mfh-tnum{font-size:11px;font-family:var(--font-mono);color:var(--muted2);min-width:28px;text-align:right}
-.mfh-resp-row{display:flex;align-items:center;gap:6px;margin-bottom:4px}
-.mfh-rl{font-size:10px;font-family:var(--font-mono);width:14px;color:var(--muted2)}
-.mfh-rt{flex:1;height:5px;background:rgba(255,255,255,0.06);border-radius:99px;overflow:hidden}
-.mfh-rb{height:5px;border-radius:99px;transition:width 0.8s}
-.mfh-rc{font-size:10px;font-family:var(--font-mono);color:var(--muted);min-width:14px;text-align:right}
-.mfh-lb-row{display:flex;align-items:center;gap:8px;padding:5px 0;
-  border-bottom:1px solid rgba(255,255,255,0.04);font-size:12px}
-.mfh-lb-row:last-child{border-bottom:none}
-.mfh-foot{background:rgba(0,0,0,0.4);padding:8px 16px;border-top:1px solid rgba(255,255,255,0.04);
-  font-size:11px;font-family:var(--font-mono);color:var(--muted2);display:flex;justify-content:space-between}
+.mfoh-body{padding:13px;min-height:120px}
+.mfoh-foot{background:rgba(0,0,0,0.4);padding:7px 14px;border-top:1px solid rgba(255,255,255,0.04);
+  font-size:11px;font-family:var(--fm);color:var(--muted2);display:flex;justify-content:space-between}
 
-/* ── Reveal button ── */
-.reveal-block{margin-top:14px;padding-top:14px;border-top:1px solid var(--border);
-  display:flex;align-items:center;gap:14px;flex-wrap:wrap}
-.reveal-status{flex:1;display:flex;align-items:center;gap:8px;font-size:12px;
-  font-family:var(--font-mono);color:var(--muted2)}
+/* reveal */
+.rblock{margin-top:12px;padding-top:12px;border-top:1px solid var(--b);display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.rstatus{flex:1;display:flex;align-items:center;gap:8px;font-size:12px;font-family:var(--fm);color:var(--muted2)}
 .ri{width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0}
-.ri.waiting{background:var(--amber);box-shadow:0 0 6px var(--amber);animation:blink 1.4s infinite}
-.ri.ready{background:var(--violet);box-shadow:0 0 10px var(--violet);animation:blink 0.8s infinite}
-.ri.revealed{background:var(--green);box-shadow:0 0 6px var(--green)}
+.ri.w{background:var(--amber);box-shadow:0 0 6px var(--amber);animation:blink 1.4s infinite}
+.ri.r{background:var(--v);box-shadow:0 0 10px var(--v);animation:blink 0.8s infinite}
+.ri.d{background:var(--green);box-shadow:0 0 6px var(--green)}
 
-/* ── Question list ── */
-.q-list{display:flex;flex-direction:column;gap:8px}
-.q-item{background:var(--s2);border:1px solid var(--border);border-radius:var(--rs);
-  padding:12px 14px;display:flex;align-items:flex-start;gap:12px;transition:border 0.15s}
-.q-item:hover{border-color:var(--border2)}
-.q-item.active-q{border-color:rgba(0,240,255,0.4);background:rgba(0,240,255,0.03)}
-.q-num{width:28px;height:28px;border-radius:6px;background:rgba(0,240,255,0.08);
-  color:var(--cyan);font-size:11px;font-weight:700;display:flex;align-items:center;
-  justify-content:center;flex-shrink:0;font-family:var(--font-mono)}
-.q-content{flex:1;min-width:0}
-.q-text{font-size:13px;font-weight:600;margin-bottom:5px}
-.q-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px}
-.q-tag{font-size:10px;padding:2px 8px;border-radius:99px;font-family:var(--font-mono)}
-.q-actions{display:flex;gap:5px;flex-shrink:0}
-.q-opt-tag{font-size:10px;padding:2px 8px;border-radius:4px;background:rgba(255,255,255,0.05);color:var(--muted2);font-family:var(--font-mono)}
-.q-opt-tag.correct{background:rgba(16,185,129,0.12);color:var(--green)}
+/* resp bars */
+.rrow{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.rltr{font-family:var(--fm);font-size:12px;width:18px;color:var(--muted2)}
+.rtrack{flex:1;height:8px;background:rgba(255,255,255,0.06);border-radius:99px;overflow:hidden}
+.rbar{height:8px;border-radius:99px;transition:width 0.6s}
+.rcnt{font-family:var(--fm);font-size:12px;color:var(--muted);min-width:24px;text-align:right}
 
-/* ── Players table ── */
-.player-row{display:flex;align-items:center;gap:12px;padding:10px 0;
-  border-bottom:1px solid var(--border)}
-.player-row:last-child{border-bottom:none}
-.p-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;
-  justify-content:center;font-size:13px;font-weight:800;flex-shrink:0}
-.p-name{flex:1;font-size:14px;font-weight:600}
-.p-score{font-family:var(--font-mono);font-size:13px;color:var(--cyan)}
-.p-eliminated{opacity:0.4;text-decoration:line-through}
-.rank-pip{font-size:11px;font-family:var(--font-mono);padding:2px 8px;border-radius:99px}
+/* player rows */
+.pr{display:flex;align-items:center;gap:11px;padding:9px 0;border-bottom:1px solid var(--b)}
+.pr:last-child{border-bottom:none}
+.pav{font-size:22px;flex-shrink:0;width:30px;text-align:center}
+.pnm{flex:1;font-size:14px;font-weight:600}
+.pscore{font-family:var(--fm);font-size:13px;color:var(--cyan);font-weight:700}
+.pelim{opacity:0.35;text-decoration:line-through}
+.rpip{font-size:11px;font-family:var(--fm);padding:2px 8px;border-radius:99px}
 .rp1{background:rgba(245,158,11,0.15);color:var(--amber)}
 .rp2{background:rgba(148,163,184,0.15);color:#94a3b8}
 .rp3{background:rgba(205,124,74,0.15);color:#cd7c4a}
 .rpn{background:rgba(255,255,255,0.04);color:var(--muted)}
-.elim-badge{font-size:10px;font-family:var(--font-mono);padding:2px 8px;border-radius:99px;
+.elim-tag{font-size:10px;font-family:var(--fm);padding:2px 8px;border-radius:99px;
   background:rgba(244,63,94,0.12);color:var(--rose);border:1px solid rgba(244,63,94,0.2)}
 
-/* ── Toggle ── */
-.toggle-row{display:flex;align-items:center;justify-content:space-between;
-  padding:11px 0;border-bottom:1px solid var(--border)}
-.toggle-row:last-child{border-bottom:none}
-.toggle-label{font-size:14px;font-weight:600}
-.toggle-desc{font-size:12px;color:var(--muted2);margin-top:2px}
+/* progress */
+.pw{background:rgba(255,255,255,0.06);border-radius:99px;height:5px;margin-top:8px}
+.pf{height:5px;border-radius:99px;background:var(--cyan);transition:width 0.4s}
+
+/* toggle */
+.tr{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--b)}
+.tr:last-child{border-bottom:none}
+.tname{font-size:14px;font-weight:600}.tdesc{font-size:12px;color:var(--muted2);margin-top:2px}
 .toggle{position:relative;width:42px;height:22px;flex-shrink:0}
 .toggle input{opacity:0;width:0;height:0}
-.ts{position:absolute;inset:0;background:var(--s3);border:1px solid var(--border2);
-  border-radius:99px;cursor:pointer;transition:all 0.2s}
-.ts::before{content:'';position:absolute;width:14px;height:14px;border-radius:50%;
-  background:var(--muted);top:3px;left:3px;transition:all 0.2s}
+.ts{position:absolute;inset:0;background:var(--s3);border:1px solid var(--b2);border-radius:99px;cursor:pointer;transition:all 0.2s}
+.ts::before{content:'';position:absolute;width:14px;height:14px;border-radius:50%;background:var(--muted);top:3px;left:3px;transition:all 0.2s}
 .toggle input:checked+.ts{background:rgba(0,240,255,0.15);border-color:var(--cyan)}
 .toggle input:checked+.ts::before{background:var(--cyan);transform:translateX(20px)}
 
-/* ── Category pills ── */
-.cat-grid{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
-.cat-pill{padding:7px 16px;border-radius:99px;font-size:13px;font-weight:600;cursor:pointer;
-  border:1px solid transparent;transition:all 0.15s;display:flex;align-items:center;gap:6px}
-.cat-pill:hover{transform:translateY(-1px)}
-.cat-pill.selected{transform:translateY(-1px);box-shadow:0 4px 20px rgba(0,0,0,0.3)}
+/* question list */
+.ql{display:flex;flex-direction:column;gap:8px}
+.qi{background:var(--s2);border:1px solid var(--b);border-radius:var(--rs);
+  padding:12px 14px;display:flex;align-items:flex-start;gap:11px}
+.qi.cur-q{border-color:rgba(0,240,255,0.4);background:rgba(0,240,255,0.03)}
+.qn{width:28px;height:28px;border-radius:6px;background:rgba(0,240,255,0.08);color:var(--cyan);
+  font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--fm)}
+.qc{flex:1;min-width:0}.qt{font-size:13px;font-weight:600;margin-bottom:5px}
+.qtags{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
+.qtag{font-size:10px;padding:2px 8px;border-radius:4px;font-family:var(--fm);background:rgba(255,255,255,0.05);color:var(--muted2)}
+.qtag.cor{background:rgba(16,185,129,0.12);color:var(--green)}
 
-/* ── Response distribution ── */
-.resp-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
-.resp-letter{font-family:var(--font-mono);font-size:12px;width:20px;color:var(--muted2)}
-.resp-track{flex:1;height:8px;background:rgba(255,255,255,0.06);border-radius:99px;overflow:hidden}
-.resp-bar{height:8px;border-radius:99px;transition:width 0.6s cubic-bezier(.4,0,.2,1)}
-.resp-cnt{font-family:var(--font-mono);font-size:12px;color:var(--muted);min-width:24px;text-align:right}
-.resp-pct{font-family:var(--font-mono);font-size:10px;color:var(--muted2);min-width:30px}
+/* lbc */
+.lbc{background:linear-gradient(135deg,rgba(124,58,237,0.06),rgba(0,240,255,0.02));
+  border:1px solid rgba(124,58,237,0.2);border-radius:var(--r);padding:18px;margin-bottom:16px}
 
-/* ── Alerts ── */
-.alert{border-radius:var(--rs);padding:11px 15px;font-size:13px;margin-bottom:14px;display:flex;align-items:center;gap:9px}
-.alert-info{background:rgba(0,240,255,0.06);border:1px solid rgba(0,240,255,0.15);color:var(--cyan)}
-.alert-warn{background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);color:var(--amber)}
-
-/* ── Scrollbar ── */
-::-webkit-scrollbar{width:5px}
-::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px}
-
-/* ── Leaderboard display control ── */
-.lb-control-card{background:linear-gradient(135deg,rgba(124,58,237,0.08),rgba(0,240,255,0.04));
-  border:1px solid rgba(124,58,237,0.25);border-radius:var(--r);padding:20px;margin-bottom:18px}
-.lb-control-title{font-size:15px;font-weight:700;margin-bottom:6px;color:#c4b5fd}
-.lb-control-desc{font-size:13px;color:var(--muted2);margin-bottom:14px}
-.lb-btn-row{display:flex;gap:10px;flex-wrap:wrap}
-
-/* ── Eliminate modal ── */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);
+/* modal overlay */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.78);backdrop-filter:blur(10px);
   z-index:200;display:none;align-items:center;justify-content:center}
-.modal-overlay.open{display:flex}
-.modal{background:var(--s1);border:1px solid var(--border2);border-radius:var(--r);
-  padding:28px;max-width:440px;width:90%;animation:popUp 0.3s cubic-bezier(.34,1.56,.64,1)}
-@keyframes popUp{from{transform:scale(0.85);opacity:0}to{transform:scale(1);opacity:1}}
-.modal h2{font-family:var(--font-display);font-size:22px;font-weight:700;margin-bottom:8px}
-.modal p{font-size:14px;color:var(--muted2);margin-bottom:20px;line-height:1.6}
-.modal-actions{display:flex;gap:10px;justify-content:flex-end}
-.modal-player-name{color:var(--rose);font-weight:700}
+.overlay.open{display:flex}
+.modal{background:var(--s1);border:1px solid var(--b2);border-radius:var(--r);padding:28px;
+  width:90%;animation:pu 0.3s cubic-bezier(.34,1.56,.64,1)}
+@keyframes pu{from{transform:scale(0.85);opacity:0}to{transform:scale(1);opacity:1}}
+.modal h2{font-family:var(--fd);font-size:22px;font-weight:700;margin-bottom:7px}
+.modal p{font-size:14px;color:var(--muted2);margin-bottom:18px;line-height:1.6}
+.modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:16px}
+.merr{font-size:13px;color:var(--rose);padding:9px 13px;background:rgba(244,63,94,0.08);
+  border:1px solid rgba(244,63,94,0.2);border-radius:8px;display:none;margin-top:8px}
+.code-hint{font-size:12px;color:var(--muted);font-family:var(--fm);margin-top:4px}
 
-/* ── Notification toast ── */
-.toast-container{position:fixed;top:20px;right:20px;z-index:300;display:flex;flex-direction:column;gap:8px}
-.toast{padding:12px 18px;border-radius:var(--rs);font-size:13px;font-weight:600;
-  backdrop-filter:blur(20px);animation:toastIn 0.3s cubic-bezier(.34,1.56,.64,1),toastOut 0.3s ease 3s forwards;
-  display:flex;align-items:center;gap:10px;min-width:220px;max-width:340px}
-@keyframes toastIn{from{transform:translateX(100px);opacity:0}to{transform:translateX(0);opacity:1}}
-@keyframes toastOut{to{transform:translateX(100px);opacity:0}}
-.toast-success{background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);color:#34d399}
-.toast-error{background:rgba(244,63,94,0.15);border:1px solid rgba(244,63,94,0.3);color:#fb7185}
-.toast-info{background:rgba(0,240,255,0.1);border:1px solid rgba(0,240,255,0.25);color:var(--cyan)}
+/* toast */
+.tw{position:fixed;top:18px;right:18px;z-index:300;display:flex;flex-direction:column;gap:7px}
+.toast{padding:11px 16px;border-radius:var(--rs);font-size:13px;font-weight:600;
+  backdrop-filter:blur(20px);animation:ti 0.3s cubic-bezier(.34,1.56,.64,1),tox 0.3s ease 3s forwards;
+  display:flex;align-items:center;gap:9px}
+@keyframes ti{from{transform:translateX(90px);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes tox{to{transform:translateX(90px);opacity:0}}
+.ts-s{background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);color:#34d399}
+.ts-e{background:rgba(244,63,94,0.15);border:1px solid rgba(244,63,94,0.3);color:#fb7185}
+.ts-i{background:rgba(0,240,255,0.1);border:1px solid rgba(0,240,255,0.25);color:var(--cyan)}
+.ts-w{background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.25);color:var(--amber)}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-thumb{background:var(--b2);border-radius:99px}
 </style>
 </head>
 <body>
+<div class="tw" id="tw"></div>
 
-<!-- Toast container -->
-<div class="toast-container" id="toast-container"></div>
-
-<!-- Eliminate modal -->
-<div class="modal-overlay" id="elim-modal">
-  <div class="modal">
-    <h2>⚡ Eliminate Player</h2>
-    <p>Are you sure you want to eliminate <span class="modal-player-name" id="elim-name">—</span>? They will be removed from the leaderboard and cannot answer further questions.</p>
+<!-- SETUP MODAL -->
+<div class="overlay" id="setup-modal">
+  <div class="modal" style="max-width:440px">
+    <h2>🎯 Create or Resume Session</h2>
+    <p>Enter a room code players will use to join. If this code already exists it will be resumed automatically.</p>
+    <div class="fg">
+      <label class="fl">Room Code <span style="color:var(--rose)">*</span></label>
+      <input class="fi" id="s-code" placeholder="e.g. QUIZ01" maxlength="12"
+        style="text-transform:uppercase;letter-spacing:0.1em;font-family:var(--fm);font-size:18px;font-weight:700"
+        oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')"
+        onkeydown="if(event.key==='Enter')createSession()">
+      <div class="code-hint">Letters & numbers only · 3–12 chars · e.g. QUIZ01 · ROUND1</div>
+    </div>
+    <div class="fg">
+      <label class="fl">Quiz Title</label>
+      <input class="fi" id="s-title" placeholder="PlayAQuiz" value="PlayAQuiz"
+        onkeydown="if(event.key==='Enter')createSession()">
+    </div>
+    <div class="merr" id="s-err"></div>
     <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeElimModal()">Cancel</button>
-      <button class="btn btn-danger" id="elim-confirm-btn">Eliminate</button>
+      <button class="btn btn-c" id="s-btn" onclick="createSession()">Create Session →</button>
     </div>
   </div>
 </div>
 
-<!-- Top Bar -->
+<!-- ELIMINATE MODAL -->
+<div class="overlay" id="elim-modal">
+  <div class="modal" style="max-width:420px">
+    <h2>⚡ Eliminate Player</h2>
+    <p>Remove <strong style="color:var(--rose)" id="elim-name">—</strong> from the game? They will see an elimination screen and cannot answer further questions.</p>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeElim()">Cancel</button>
+      <button class="btn btn-r" id="elim-ok">Eliminate</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOPBAR -->
 <div class="topbar">
   <div class="logo">Play<em>A</em>Quiz <sup>ADMIN</sup></div>
-  <div class="topbar-mid">
-    <div class="room-pill"><div class="live-dot"></div><span id="room-code-display">——</span></div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <div class="room-pill"><div class="live-dot"></div><span id="room-disp">——</span></div>
+    <button class="btn-new-sess" onclick="clearSession()">↺ New Session</button>
   </div>
-  <div class="topbar-right">
-    <div class="player-count-badge" id="player-count-badge">0 players</div>
+  <div class="tbr">
+    <div class="pill-sm" id="pc-badge">0 players</div>
   </div>
 </div>
 
 <div class="layout">
-  <!-- Sidebar -->
-  <div class="sidebar">
-    <div class="nav-group-label">Overview</div>
-    <button class="nav-btn active" onclick="nav('dashboard',this)"><span class="nav-icon">⬡</span>Dashboard</button>
-    <button class="nav-btn" onclick="nav('game',this)"><span class="nav-icon">▶</span>Game Control</button>
-    <div class="nav-divider"></div>
-    <div class="nav-group-label">Content</div>
-    <button class="nav-btn" onclick="nav('questions',this)"><span class="nav-icon">❓</span>Questions</button>
-    <button class="nav-btn" onclick="nav('categories',this)"><span class="nav-icon">🏷</span>Categories</button>
-    <button class="nav-btn" onclick="nav('players',this)"><span class="nav-icon">👥</span>Players</button>
-    <div class="nav-divider"></div>
-    <div class="nav-group-label">Settings</div>
-    <button class="nav-btn" onclick="nav('settings',this)"><span class="nav-icon">⚙</span>Settings</button>
-    <button class="nav-btn" onclick="nav('links',this)"><span class="nav-icon">↗</span>Open Apps</button>
+<div class="sidebar">
+  <div class="ngl">Control</div>
+  <button class="nb active" onclick="nav('game',this)"><span class="ni">▶</span>Game Control</button>
+  <button class="nb" onclick="nav('dashboard',this)"><span class="ni">⬡</span>Dashboard</button>
+  <div class="ndiv"></div>
+  <div class="ngl">Content</div>
+  <button class="nb" onclick="nav('questions',this)"><span class="ni">❓</span>Questions</button>
+  <button class="nb" onclick="nav('categories',this)"><span class="ni">🏷</span>Categories</button>
+  <button class="nb" onclick="nav('players',this)"><span class="ni">👥</span>Players</button>
+  <div class="ndiv"></div>
+  <div class="ngl">Config</div>
+  <button class="nb" onclick="nav('settings',this)"><span class="ni">⚙</span>Settings</button>
+  <button class="nb" onclick="nav('links',this)"><span class="ni">↗</span>Open Apps</button>
+</div>
+
+<div class="main">
+
+<!-- GAME CONTROL -->
+<div class="page active" id="page-game">
+  <div class="ph"><h1>Game Control</h1><p>Admin drives the entire game flow step by step</p></div>
+
+  <!-- Mini FOH -->
+  <div class="mfoh">
+    <div class="mfoh-hdr">
+      <div class="mfoh-title"><div class="live-dot"></div>FOH Live Preview</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="badge bc" id="mfoh-resp-badge" style="display:none">0%</span>
+        <span style="font-size:10px;font-family:var(--fm);color:var(--muted)" id="mfoh-phase-lbl">WAITING</span>
+      </div>
+    </div>
+    <div class="mfoh-body" id="mfoh-body">
+      <div style="text-align:center;padding:14px 0">
+        <div style="font-family:var(--fd);font-size:26px;font-weight:700;color:var(--amber);letter-spacing:0.1em" id="mfoh-room">——</div>
+        <div style="font-size:12px;color:var(--muted2);margin-top:4px" id="mfoh-wait-txt">0 players waiting</div>
+      </div>
+    </div>
+    <div class="mfoh-foot"><span id="mfoh-foot-txt">Waiting for game to start</span><span style="color:var(--cyan)">FOH</span></div>
   </div>
 
-  <div class="main">
+  <!-- FLOW STEPS -->
+  <div class="flow-card">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div style="font-family:var(--fd);font-size:17px;font-weight:700">🎮 Game Flow</div>
+      <span class="badge bc" id="flow-badge">IDLE</span>
+    </div>
+    <div style="font-size:12px;color:var(--muted2);margin-top:4px;font-family:var(--fm)" id="flow-desc">Set up questions, then follow the steps below.</div>
 
-    <!-- ── DASHBOARD ── -->
-    <div class="page active" id="page-dashboard">
-      <div class="ph"><h1>Dashboard</h1><p>Live session overview</p></div>
-      <div class="stats-grid">
-        <div class="stat-card sc-cyan"><div class="stat-label">Players</div><div class="stat-val" id="s-players">0</div></div>
-        <div class="stat-card sc-violet"><div class="stat-label">Questions</div><div class="stat-val" id="s-questions">0</div></div>
-        <div class="stat-card sc-amber"><div class="stat-label">Current Q</div><div class="stat-val" id="s-current-q">—</div></div>
-        <div class="stat-card sc-green"><div class="stat-label">Responses</div><div class="stat-val" id="s-responses">0</div></div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
-        <div class="card">
-          <div class="card-head"><div class="card-title">Top Players <span class="badge badge-cyan">LIVE</span></div></div>
-          <div id="dash-leaderboard"><p style="color:var(--muted);font-size:13px">No players yet.</p></div>
+    <div class="flow-steps">
+      <!-- Step 1: Category -->
+      <div class="fstep step-disabled" id="fstep-1">
+        <div class="step-num" id="snum-1">1</div>
+        <div class="step-body">
+          <div class="step-lbl">Select & Show Category</div>
+          <div class="step-desc" id="sdesc-1">Choose category to display on FOH</div>
         </div>
-        <div class="card">
-          <div class="card-head"><div class="card-title">Recent Joins <span class="badge badge-green">STREAM</span></div></div>
-          <div id="dash-recent"><p style="color:var(--muted);font-size:13px">Waiting...</p></div>
+        <div class="step-act">
+          <button class="btn btn-ghost btn-sm" onclick="toggleCatPicker()" id="btn-cat-pick">Pick Category</button>
+        </div>
+      </div>
+      <!-- Category picker -->
+      <div class="cat-picker-box" id="cat-picker-box">
+        <div style="font-size:11px;color:var(--muted2);margin-bottom:10px;font-family:var(--fm)">MANUAL SELECT</div>
+        <div class="cat-grid" id="cat-grid-inline"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm" onclick="autoSelectCat()">🎲 Random</button>
+          <button class="btn btn-c btn-sm" onclick="confirmCategory()">✓ Confirm &amp; Show on FOH</button>
+        </div>
+      </div>
+
+      <!-- Step 2: Countdown -->
+      <div class="fstep step-disabled" id="fstep-2">
+        <div class="step-num" id="snum-2">2</div>
+        <div class="step-body">
+          <div class="step-lbl">Start Game Countdown (3-2-1)</div>
+          <div class="step-desc">FOH shows countdown before questions begin</div>
+        </div>
+        <div class="step-act">
+          <button class="btn btn-g btn-sm" id="btn-countdown" onclick="startCountdown()" disabled>▶ Start 3-2-1</button>
+        </div>
+      </div>
+
+      <!-- Step 3: Reading time -->
+      <div class="fstep step-disabled" id="fstep-3">
+        <div class="step-num" id="snum-3">3</div>
+        <div class="step-body">
+          <div class="step-lbl">Question Reading Time</div>
+          <div class="step-desc" id="sdesc-3">Host reads question — choices hidden from players</div>
+        </div>
+        <div class="step-act">
+          <button class="btn btn-a btn-sm" id="btn-show-choices" onclick="showChoices()" disabled>Show Choices</button>
+        </div>
+      </div>
+
+      <!-- Step 4: Answer timer -->
+      <div class="fstep step-disabled" id="fstep-4">
+        <div class="step-num" id="snum-4">4</div>
+        <div class="step-body">
+          <div class="step-lbl">Players Answering</div>
+          <div class="step-desc" id="sdesc-4">Answer timer running</div>
+        </div>
+        <div class="step-act">
+          <button class="btn btn-v btn-sm" id="btn-reveal" onclick="revealAnswer()" disabled>🔓 Reveal Answer</button>
+        </div>
+      </div>
+
+      <!-- Step 5: Leaderboard -->
+      <div class="fstep step-disabled" id="fstep-5">
+        <div class="step-num" id="snum-5">5</div>
+        <div class="step-body">
+          <div class="step-lbl">Show Leaderboard on FOH</div>
+          <div class="step-desc">Display standings between questions</div>
+        </div>
+        <div class="step-act" style="display:flex;gap:6px">
+          <button class="btn btn-v btn-sm" id="btn-show-lb" onclick="showLeaderboard()" disabled>📊 Show LB</button>
+          <button class="btn btn-ghost btn-sm" id="btn-next-q" onclick="nextQuestion()" disabled>Next Q →</button>
+        </div>
+      </div>
+
+      <!-- Step 6: End -->
+      <div class="fstep step-disabled" id="fstep-6">
+        <div class="step-num" id="snum-6">6</div>
+        <div class="step-body">
+          <div class="step-lbl">End Game &amp; Show Results</div>
+          <div class="step-desc">Final podium shown on FOH</div>
+        </div>
+        <div class="step-act" style="display:flex;gap:6px">
+          <button class="btn btn-r btn-sm" id="btn-end" onclick="endGame()" disabled>🏁 End Game</button>
+          <button class="btn btn-ghost btn-sm" onclick="resetGame()">↺ Reset</button>
         </div>
       </div>
     </div>
+  </div>
 
-    <!-- ── GAME CONTROL ── -->
-    <div class="page" id="page-game">
-      <div class="ph"><h1>Game Control</h1><p>Manage the live quiz flow</p></div>
-
-      <!-- Mini FOH -->
-      <div class="mini-foh">
-        <div class="mfh">
-          <div class="mfh-title"><div class="live-dot"></div>FOH Preview</div>
-          <div style="display:flex;align-items:center;gap:10px">
-            <span class="badge badge-green" id="mfh-resp-badge" style="display:none">0% answered</span>
-            <span style="font-size:10px;font-family:var(--font-mono);color:var(--muted)" id="mfh-phase-label">WAITING</span>
-          </div>
-        </div>
-        <div class="mfh-body" id="mfh-body">
-          <div id="mfh-waiting" class="mfh-waiting">
-            <div class="mfh-room" id="mfh-room-code">——</div>
-            <div style="font-size:12px;color:var(--muted2)" id="mfh-player-count-txt">0 players waiting</div>
-          </div>
-        </div>
-        <div class="mfh-foot">
-          <span id="mfh-foot-tip">Game not started</span>
-          <span style="color:var(--cyan)">PlayAQuiz FOH</span>
-        </div>
-      </div>
-
-      <!-- Main control bar -->
-      <div class="gcb">
-        <div class="gcb-status">
-          <div class="gcb-label">Status</div>
-          <div class="gcb-value status-waiting" id="gcb-status">Waiting</div>
-        </div>
-        <div class="q-indicator" id="gcb-q-indicator">Q — / —</div>
-        <div class="timer-display" id="gcb-timer">⏱ —</div>
-        <button class="btn btn-green" id="btn-start" onclick="startGame()">▶ Start Game</button>
-        <button class="btn btn-violet" id="btn-next" onclick="nextQuestion()" disabled>Next Question →</button>
-        <button class="btn btn-ghost btn-sm" onclick="resetGame()">↺ Reset</button>
-      </div>
-
-      <!-- Current question -->
-      <div class="card">
-        <div class="card-head"><div class="card-title">Current Question</div></div>
-        <div id="current-q-display" style="color:var(--muted);font-size:14px">Game not started.</div>
-        <div class="prog-wrap" style="margin-top:14px"><div class="prog-fill" id="q-prog-fill" style="width:0%"></div></div>
-
-        <!-- Reveal block -->
-        <div class="reveal-block">
-          <div class="reveal-status">
-            <div class="ri" id="ri"></div>
-            <span id="reveal-status-txt">No active question</span>
-          </div>
-          <button class="btn btn-violet" id="btn-reveal" onclick="revealAnswer()" disabled>🔓 Reveal Answer</button>
-        </div>
-      </div>
-
-      <!-- Leaderboard control -->
-      <div class="lb-control-card">
-        <div class="lb-control-title">📊 Result & Leaderboard Display</div>
-        <div class="lb-control-desc">After revealing the answer, show the full leaderboard on the FOH screen. You control when players see the standings.</div>
-        <div class="lb-btn-row">
-          <button class="btn btn-violet btn-sm" id="btn-show-lb" onclick="showLeaderboard()" disabled>📊 Show Leaderboard on FOH</button>
-          <button class="btn btn-ghost btn-sm" id="btn-hide-lb" onclick="hideLeaderboard()" disabled>Hide Leaderboard</button>
-        </div>
-      </div>
-
-      <!-- Response distribution -->
-      <div class="card">
-        <div class="card-head">
-          <div class="card-title">Response Distribution</div>
-          <span class="badge badge-cyan" id="resp-pct-badge">0%</span>
-        </div>
-        <div id="response-chart"><p style="color:var(--muted);font-size:13px">No responses yet.</p></div>
-      </div>
+  <!-- Current Q -->
+  <div class="card">
+    <div class="ch">
+      <div class="ct">Current Question <span class="badge bc" id="qpb">— / —</span></div>
+      <div style="font-family:var(--fm);font-size:13px;color:var(--muted2)" id="timer-disp">⏱ —</div>
     </div>
-
-    <!-- ── QUESTIONS ── -->
-    <div class="page" id="page-questions">
-      <div class="ph"><h1>Question Bank</h1><p>Build your question set</p></div>
-      <div class="card">
-        <div class="card-head"><div class="card-title">Add Question</div></div>
-        <div class="fg">
-          <label class="form-label">Question Text</label>
-          <input class="form-input" id="nq-text" placeholder="Type your question...">
-        </div>
-        <div class="fg">
-          <label class="form-label">Category</label>
-          <select class="form-select" id="nq-category"><option value="">— No category —</option></select>
-        </div>
-        <div class="form-grid2" style="margin-bottom:12px">
-          <div class="fg" style="margin-bottom:0"><label class="form-label">Option A</label><input class="form-input" id="nq-a" placeholder="Answer A"></div>
-          <div class="fg" style="margin-bottom:0"><label class="form-label">Option B</label><input class="form-input" id="nq-b" placeholder="Answer B"></div>
-          <div class="fg" style="margin-bottom:0"><label class="form-label">Option C</label><input class="form-input" id="nq-c" placeholder="Answer C"></div>
-          <div class="fg" style="margin-bottom:0"><label class="form-label">Option D</label><input class="form-input" id="nq-d" placeholder="Answer D"></div>
-        </div>
-        <div class="form-grid3" style="margin-bottom:12px">
-          <div class="fg" style="margin-bottom:0"><label class="form-label">Correct</label>
-            <select class="form-select" id="nq-correct"><option value="0">A</option><option value="1">B</option><option value="2">C</option><option value="3">D</option></select>
-          </div>
-          <div class="fg" style="margin-bottom:0"><label class="form-label">Time (seconds)</label><input class="form-input" id="nq-time" type="number" value="15" min="5" max="120"></div>
-          <div class="fg" style="margin-bottom:0"><label class="form-label">Points</label><input class="form-input" id="nq-points" type="number" value="100" min="10" max="2000"></div>
-        </div>
-        <div class="fg"><label class="form-label">Explanation (optional)</label><input class="form-input" id="nq-exp" placeholder="Explain the correct answer..."></div>
-        <div style="display:flex;gap:10px">
-          <button class="btn btn-cyan" onclick="addQuestion()">+ Add Question</button>
-          <button class="btn btn-ghost" onclick="loadDefaults()">Load Sample Questions</button>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-head">
-          <div class="card-title">All Questions <span class="badge badge-cyan" id="q-count-badge">0</span></div>
-        </div>
-        <div class="q-list" id="q-list"><p style="color:var(--muted);font-size:13px">No questions yet.</p></div>
-      </div>
+    <div id="cur-q-display" style="color:var(--muted);font-size:13px">No active question.</div>
+    <div class="pw"><div class="pf" id="q-pf" style="width:0%"></div></div>
+    <div class="rblock">
+      <div class="rstatus"><div class="ri" id="ri"></div><span id="ri-txt">No active question</span></div>
     </div>
+  </div>
 
-    <!-- ── CATEGORIES ── -->
-    <div class="page" id="page-categories">
-      <div class="ph"><h1>Categories</h1><p>Manage quiz categories</p></div>
-      <div class="card">
-        <div class="card-head"><div class="card-title">Active Session Category</div></div>
-        <p style="font-size:13px;color:var(--muted2);margin-bottom:16px">Select the category for the current game session. This appears on the FOH screen.</p>
-        <div class="cat-grid" id="cat-grid"></div>
-        <button class="btn btn-cyan btn-sm" id="btn-set-cat" onclick="setSessionCategory()">Set Category for Session</button>
-      </div>
-      <div class="card">
-        <div class="card-head"><div class="card-title">All Categories</div></div>
-        <div id="cat-list"></div>
-      </div>
+  <!-- Response chart -->
+  <div class="card">
+    <div class="ch"><div class="ct">Response Distribution</div><span class="badge bc" id="resp-badge">0%</span></div>
+    <div id="resp-chart"><p style="color:var(--muted);font-size:13px">No responses yet.</p></div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div class="page" id="page-dashboard">
+  <div class="ph"><h1>Dashboard</h1><p>Live session overview</p></div>
+  <div class="sg">
+    <div class="sc sc-c"><div class="slbl">Players</div><div class="sval" id="s-players">0</div></div>
+    <div class="sc sc-v"><div class="slbl">Questions</div><div class="sval" id="s-questions">0</div></div>
+    <div class="sc sc-a"><div class="slbl">Current Q</div><div class="sval" id="s-curq">—</div></div>
+    <div class="sc sc-g"><div class="slbl">Responses</div><div class="sval" id="s-resps">0</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div class="card">
+      <div class="ch"><div class="ct">Leaderboard <span class="badge bc">LIVE</span></div></div>
+      <div id="dash-lb"><p style="color:var(--muted);font-size:13px">No players yet.</p></div>
     </div>
-
-    <!-- ── PLAYERS ── -->
-    <div class="page" id="page-players">
-      <div class="ph"><h1>Players</h1><p>Manage participants</p></div>
-      <div style="display:flex;gap:10px;margin-bottom:16px">
-        <input class="form-input" id="player-search" placeholder="Search players..." oninput="renderPlayers()" style="max-width:280px">
-        <button class="btn btn-danger btn-sm" onclick="clearAllPlayers()">Clear All</button>
-      </div>
-      <div class="card">
-        <div id="players-panel"><p style="color:var(--muted);font-size:13px">No players yet.</p></div>
-      </div>
+    <div class="card">
+      <div class="ch"><div class="ct">Recent Joins</div></div>
+      <div id="dash-recent"><p style="color:var(--muted);font-size:13px">Waiting...</p></div>
     </div>
+  </div>
+</div>
 
-    <!-- ── SETTINGS ── -->
-    <div class="page" id="page-settings">
-      <div class="ph"><h1>Settings</h1><p>Configure the quiz</p></div>
-      <div class="card">
-        <div class="card-head"><div class="card-title">Session</div></div>
-        <div class="fg"><label class="form-label">Quiz Title</label><input class="form-input" id="set-title" value="PlayAQuiz"></div>
-        <div class="fg"><label class="form-label">Room Code</label><input class="form-input" id="set-room" value="QUIZ01" maxlength="8"></div>
-        <button class="btn btn-cyan" onclick="saveSettings()">Save Settings</button>
-      </div>
-      <div class="card">
-        <div class="card-head"><div class="card-title">Display Options</div></div>
-        <div class="toggle-row"><div><div class="toggle-label">Show leaderboard automatically</div><div class="toggle-desc">Auto-show leaderboard on FOH after each answer reveal</div></div>
-          <label class="toggle"><input type="checkbox" id="tog-auto-lb"><span class="ts"></span></label></div>
-        <div class="toggle-row"><div><div class="toggle-label">Show answer explanations</div><div class="toggle-desc">Display explanation text on FOH after reveal</div></div>
-          <label class="toggle"><input type="checkbox" id="tog-explain" checked><span class="ts"></span></label></div>
-        <div class="toggle-row"><div><div class="toggle-label">Allow late join</div><div class="toggle-desc">Players can join after game starts</div></div>
-          <label class="toggle"><input type="checkbox" id="tog-latejoin" checked><span class="ts"></span></label></div>
-        <div style="margin-top:14px"><button class="btn btn-cyan" onclick="saveSettings()">Save Options</button></div>
-      </div>
+<!-- QUESTIONS -->
+<div class="page" id="page-questions">
+  <div class="ph"><h1>Question Bank</h1></div>
+  <div class="card">
+    <div class="ch"><div class="ct">Add Question</div></div>
+    <div class="fg"><label class="fl">Question Text</label><input class="fi" id="nq-text" placeholder="Type your question..."></div>
+    <div class="fg2" style="margin-bottom:10px">
+      <div><label class="fl">Category</label><select class="fs" id="nq-cat"><option value="">— None —</option></select></div>
+      <div><label class="fl">Reading Time (s)</label><input class="fi" id="nq-read" type="number" value="5" min="3" max="30"></div>
     </div>
-
-    <!-- ── LINKS ── -->
-    <div class="page" id="page-links">
-      <div class="ph"><h1>Open Apps</h1><p>Launch player and FOH interfaces</p></div>
-      <div class="alert alert-info">ℹ️ All interfaces sync in real-time via Supabase. Open them on separate devices or browser tabs.</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-        <a href="/player.html" target="_blank" style="text-decoration:none;display:block;background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:20px;cursor:pointer;transition:all 0.15s;color:var(--text)" onmouseover="this.style.borderColor='var(--cyan)'" onmouseout="this.style.borderColor='var(--border)'">
-          <div style="font-size:28px;margin-bottom:8px">🎮</div>
-          <div style="font-size:15px;font-weight:700;margin-bottom:4px">Player Interface</div>
-          <div style="font-size:13px;color:var(--cyan);font-family:var(--font-mono)">playaquiz.xyz/player</div>
-          <div style="font-size:12px;color:var(--muted2);margin-top:6px">Share with participants to join</div>
-        </a>
-        <a href="/foh.html" target="_blank" style="text-decoration:none;display:block;background:var(--s2);border:1px solid var(--border);border-radius:var(--r);padding:20px;cursor:pointer;transition:all 0.15s;color:var(--text)" onmouseover="this.style.borderColor='var(--violet)'" onmouseout="this.style.borderColor='var(--border)'">
-          <div style="font-size:28px;margin-bottom:8px">📺</div>
-          <div style="font-size:15px;font-weight:700;margin-bottom:4px">Front of House</div>
-          <div style="font-size:13px;color:#a78bfa;font-family:var(--font-mono)">playaquiz.xyz/foh</div>
-          <div style="font-size:12px;color:var(--muted2);margin-top:6px">Display on projector/big screen</div>
-        </a>
-      </div>
+    <div class="fg2" style="margin-bottom:10px">
+      <div class="fg" style="margin-bottom:0"><label class="fl">Option A</label><input class="fi" id="nq-a" placeholder="Answer A"></div>
+      <div class="fg" style="margin-bottom:0"><label class="fl">Option B</label><input class="fi" id="nq-b" placeholder="Answer B"></div>
+      <div class="fg" style="margin-bottom:0"><label class="fl">Option C</label><input class="fi" id="nq-c" placeholder="Answer C"></div>
+      <div class="fg" style="margin-bottom:0"><label class="fl">Option D</label><input class="fi" id="nq-d" placeholder="Answer D"></div>
     </div>
+    <div class="fg3" style="margin-bottom:10px">
+      <div><label class="fl">Correct</label><select class="fs" id="nq-correct"><option value="0">A</option><option value="1">B</option><option value="2">C</option><option value="3">D</option></select></div>
+      <div><label class="fl">Answer Time (s)</label><input class="fi" id="nq-time" type="number" value="15" min="5" max="120"></div>
+      <div><label class="fl">Points</label><input class="fi" id="nq-pts" type="number" value="100" min="10" max="2000"></div>
+    </div>
+    <div class="fg"><label class="fl">Explanation</label><input class="fi" id="nq-exp" placeholder="Explain the correct answer..."></div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-c" onclick="addQuestion()">+ Add Question</button>
+      <button class="btn btn-ghost" onclick="loadDefaults()">Load Samples</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="ch"><div class="ct">Questions <span class="badge bc" id="q-count-badge">0</span></div></div>
+    <div class="ql" id="q-list"><p style="color:var(--muted);font-size:13px">No questions yet.</p></div>
+  </div>
+</div>
 
-  </div><!-- /main -->
+<!-- CATEGORIES -->
+<div class="page" id="page-categories">
+  <div class="ph"><h1>Categories</h1></div>
+  <div class="card">
+    <div class="ch"><div class="ct">All Categories</div></div>
+    <div id="cat-list-full"><p style="color:var(--muted);font-size:13px">Loading...</p></div>
+  </div>
+</div>
+
+<!-- PLAYERS -->
+<div class="page" id="page-players">
+  <div class="ph"><h1>Players</h1></div>
+  <div style="display:flex;gap:10px;margin-bottom:14px">
+    <input class="fi" id="player-search" placeholder="Search players..." oninput="renderPlayers()" style="max-width:260px">
+    <button class="btn btn-r btn-sm" onclick="clearAllPlayers()">Clear All</button>
+  </div>
+  <div class="card"><div id="players-panel"><p style="color:var(--muted);font-size:13px">No players yet.</p></div></div>
+</div>
+
+<!-- SETTINGS -->
+<div class="page" id="page-settings">
+  <div class="ph"><h1>Settings</h1></div>
+  <div class="card">
+    <div class="ch"><div class="ct">Session</div></div>
+    <div class="fg"><label class="fl">Quiz Title</label><input class="fi" id="set-title" value="PlayAQuiz"></div>
+    <div class="fg"><label class="fl">Room Code</label><input class="fi" id="set-room" value="" maxlength="12"
+      oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,'')"></div>
+    <button class="btn btn-c" onclick="saveSettings()">Save Settings</button>
+  </div>
+  <div class="card">
+    <div class="ch"><div class="ct">Display Options</div></div>
+    <div class="tr"><div><div class="tname">Show answer explanations on FOH</div><div class="tdesc">Displays explanation text after reveal</div></div>
+      <label class="toggle"><input type="checkbox" id="tog-exp" checked><span class="ts"></span></label></div>
+    <div class="tr"><div><div class="tname">Allow late join</div><div class="tdesc">Players can join after game starts</div></div>
+      <label class="toggle"><input type="checkbox" id="tog-late" checked><span class="ts"></span></label></div>
+    <div style="margin-top:14px"><button class="btn btn-c" onclick="saveSettings()">Save</button></div>
+  </div>
+</div>
+
+<!-- LINKS -->
+<div class="page" id="page-links">
+  <div class="ph"><h1>Open Apps</h1></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+    <a href="/player.html" target="_blank" style="text-decoration:none;display:block;background:var(--s2);border:1px solid var(--b);border-radius:var(--r);padding:20px;color:var(--text)">
+      <div style="font-size:26px;margin-bottom:8px">🎮</div>
+      <div style="font-size:15px;font-weight:700;margin-bottom:4px">Player Interface</div>
+      <div style="font-size:12px;color:var(--cyan);font-family:var(--fm)">playaquiz.xyz/player.html</div>
+      <div style="font-size:12px;color:var(--muted2);margin-top:5px">Share with participants to join</div>
+    </a>
+    <a href="/foh.html" target="_blank" style="text-decoration:none;display:block;background:var(--s2);border:1px solid var(--b);border-radius:var(--r);padding:20px;color:var(--text)">
+      <div style="font-size:26px;margin-bottom:8px">📺</div>
+      <div style="font-size:15px;font-weight:700;margin-bottom:4px">Front of House</div>
+      <div style="font-size:12px;color:#a78bfa;font-family:var(--fm)">playaquiz.xyz/foh.html</div>
+      <div style="font-size:12px;color:var(--muted2);margin-top:5px">Show on projector or big screen</div>
+    </a>
+  </div>
+</div>
+
+</div><!-- /main -->
 </div><!-- /layout -->
 
 <script>
-// ══════════════════════════════════════════════
-// CONFIG — Replace with your Supabase credentials
-// ══════════════════════════════════════════════
-const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const SUPABASE_URL='https://YOUR_PROJECT.supabase.co';
+const SUPABASE_ANON_KEY='YOUR_ANON_KEY';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 
-// ══════════════════════════════════════════════
 // STATE
-// ══════════════════════════════════════════════
-let SESSION_ID = null;
-let sessionData = null;
-let questions = [];
-let players = [];
-let answers = {};
-let categories = [];
-let selectedCatId = null;
-let timerInterval = null;
-let timeLeft = 0;
-let answerRevealed = false;
-let timeExpired = false;
-let elimTarget = null;
-let mfhCurrentPhase = 'waiting';
+let SID=null,sess=null,questions=[],players=[],answers={},cats=[];
+let selCatId=null,selCat=null;
+let timerIv=null,readIv=null,cdIv=null;
+let timeLeft=0,readLeft=0;
+let revealed=false,choicesShown=false,gameGoing=false;
+let elimTarget=null;
 
-// ══════════════════════════════════════════════
-// INIT
-// ══════════════════════════════════════════════
-async function init() {
-  SESSION_ID = localStorage.getItem('paq_session_id');
-
-  // Try to load existing session
-  if (SESSION_ID) {
-    const { data, error } = await sb.from('game_sessions')
-      .select('*').eq('id', SESSION_ID).maybeSingle();
-    if (!error && data) {
-      sessionData = data;
-    } else {
-      // Stale ID — clear it and create fresh
-      localStorage.removeItem('paq_session_id');
-      SESSION_ID = null;
-    }
+// ══ INIT ══
+async function init(){
+  const saved=localStorage.getItem('paq_sid');
+  if(saved){
+    const{data,error}=await sb.from('game_sessions').select('*').eq('id',saved).maybeSingle();
+    if(!error&&data){SID=saved;sess=data;await loadAll();renderAll();setupRT();toast('Session loaded — Room: '+data.room_code,'s');initFlow();return;}
+    localStorage.removeItem('paq_sid');
   }
-
-  // Create a new session if none exists
-  if (!SESSION_ID) {
-    const code = generateCode();
-    const { data, error } = await sb.from('game_sessions').insert({
-      room_code: code, title: 'PlayAQuiz', status: 'waiting'
-    }).select().maybeSingle();
-    if (error || !data) { toast('Failed to create session: ' + (error?.message||'unknown'), 'error'); return; }
-    SESSION_ID = data.id;
-    localStorage.setItem('paq_session_id', SESSION_ID);
-    sessionData = data;
-    toast(`New session created — Room: ${code}`, 'info');
-  }
-
-  await loadCategories();
-  await loadQuestions();
-  await loadPlayers();
-  await loadAnswers();
-  renderAll();
-  setupRealtime();
-  toast('Session loaded ✓', 'success');
+  openSetup();
 }
 
-function generateCode() {
-  return Math.random().toString(36).substring(2,8).toUpperCase();
+async function loadAll(){
+  await Promise.all([loadCats(),loadQs(),loadPlayers(),loadAnswers()]);
+}
+async function loadCats(){const{data}=await sb.from('categories').select('*').order('name');cats=data||[];}
+async function loadQs(){const{data}=await sb.from('questions').select('*').eq('session_id',SID).order('sort_order');questions=data||[];}
+async function loadPlayers(){const{data}=await sb.from('players').select('*').eq('session_id',SID).order('score',{ascending:false});players=data||[];}
+async function loadAnswers(){
+  const{data}=await sb.from('answers').select('*').eq('session_id',SID);
+  answers={};(data||[]).forEach(a=>{if(!answers[a.question_id])answers[a.question_id]={};answers[a.question_id][a.player_id]=a;});
 }
 
-// ══════════════════════════════════════════════
-// REALTIME SUBSCRIPTIONS
-// ══════════════════════════════════════════════
-function setupRealtime() {
-  // Session changes
-  sb.channel('admin-session').on('postgres_changes',
-    { event: '*', schema: 'public', table: 'game_sessions', filter: `id=eq.${SESSION_ID}` },
-    (payload) => { sessionData = payload.new; renderAll(); }
-  ).subscribe();
-
-  // Players
-  sb.channel('admin-players').on('postgres_changes',
-    { event: '*', schema: 'public', table: 'players', filter: `session_id=eq.${SESSION_ID}` },
-    async () => { await loadPlayers(); renderAll(); }
-  ).subscribe();
-
-  // Answers
-  sb.channel('admin-answers').on('postgres_changes',
-    { event: '*', schema: 'public', table: 'answers', filter: `session_id=eq.${SESSION_ID}` },
-    async () => { await loadAnswers(); renderAll(); }
-  ).subscribe();
+// ══ SETUP ══
+function openSetup(){document.getElementById('setup-modal').classList.add('open');}
+async function createSession(){
+  const code=document.getElementById('s-code').value.trim().toUpperCase();
+  const title=document.getElementById('s-title').value.trim()||'PlayAQuiz';
+  const err=document.getElementById('s-err');err.style.display='none';
+  if(!code||code.length<3){err.textContent='Room code must be at least 3 characters';err.style.display='block';return;}
+  const btn=document.getElementById('s-btn');btn.disabled=true;btn.textContent='Connecting...';
+  const{data:ex}=await sb.from('game_sessions').select('*').ilike('room_code',code).maybeSingle();
+  if(ex){SID=ex.id;sess=ex;localStorage.setItem('paq_sid',SID);document.getElementById('setup-modal').classList.remove('open');btn.disabled=false;btn.textContent='Create Session →';await loadAll();renderAll();setupRT();initFlow();toast('Resumed — Room: '+ex.room_code,'i');return;}
+  const{data,error}=await sb.from('game_sessions').insert({room_code:code,title,status:'waiting'}).select().maybeSingle();
+  btn.disabled=false;btn.textContent='Create Session →';
+  if(error||!data){err.textContent='Error: '+(error?.message||'Failed');err.style.display='block';return;}
+  SID=data.id;sess=data;localStorage.setItem('paq_sid',SID);
+  document.getElementById('setup-modal').classList.remove('open');
+  await loadAll();renderAll();setupRT();initFlow();toast('Session created — Room: '+code,'s');
+}
+async function clearSession(){
+  if(!confirm('Start a new session?'))return;
+  clearInterval(timerIv);clearInterval(readIv);clearInterval(cdIv);
+  localStorage.removeItem('paq_sid');SID=null;sess=null;players=[];questions=[];answers={};openSetup();
 }
 
-// ══════════════════════════════════════════════
-// DATA LOADERS
-// ══════════════════════════════════════════════
-async function loadCategories() {
-  const { data } = await sb.from('categories').select('*').order('name');
-  categories = data || [];
+// ══ REALTIME ══
+function setupRT(){
+  sb.channel('a-sess').on('postgres_changes',{event:'*',schema:'public',table:'game_sessions',filter:`id=eq.${SID}`},(p)=>{sess=p.new;renderAll();}).subscribe();
+  sb.channel('a-pl').on('postgres_changes',{event:'*',schema:'public',table:'players',filter:`session_id=eq.${SID}`},async()=>{await loadPlayers();renderAll();}).subscribe();
+  sb.channel('a-ans').on('postgres_changes',{event:'*',schema:'public',table:'answers',filter:`session_id=eq.${SID}`},async()=>{await loadAnswers();renderAll();updateMfohResp();}).subscribe();
 }
-async function loadQuestions() {
-  const { data } = await sb.from('questions').select('*').eq('session_id', SESSION_ID).order('sort_order');
-  questions = data || [];
-}
-async function loadPlayers() {
-  const { data } = await sb.from('players').select('*').eq('session_id', SESSION_ID).order('score', {ascending:false});
-  players = data || [];
-}
-async function loadAnswers() {
-  const { data } = await sb.from('answers').select('*').eq('session_id', SESSION_ID);
-  answers = {};
-  (data||[]).forEach(a => {
-    if (!answers[a.question_id]) answers[a.question_id] = {};
-    answers[a.question_id][a.player_id] = a;
-  });
-}
+async function bcast(type,payload={}){await sb.from('game_events').insert({session_id:SID,event_type:type,payload});}
+async function updSess(data){await sb.from('game_sessions').update(data).eq('id',SID);sess={...sess,...data};}
 
-// ══════════════════════════════════════════════
-// BROADCAST HELPER
-// ══════════════════════════════════════════════
-async function broadcast(type, payload={}) {
-  await sb.from('game_events').insert({ session_id: SESSION_ID, event_type: type, payload });
+// ══ FLOW INIT ══
+function initFlow(){
+  // enable step 1 always
+  setStep(1,'active');
+  document.getElementById('btn-cat-pick').disabled=false;
+  // if game was in progress, restore state
+  if(sess.status!=='waiting'){restoreFlow();}
 }
-
-async function updateSession(data) {
-  await sb.from('game_sessions').update({ ...data }).eq('id', SESSION_ID);
-  sessionData = { ...sessionData, ...data };
-}
-
-// ══════════════════════════════════════════════
-// GAME FLOW
-// ══════════════════════════════════════════════
-async function startGame() {
-  if (!questions.length) { toast('Add questions first!', 'error'); return; }
-  await updateSession({ status: 'active', current_question_index: 0, answer_revealed: false, show_leaderboard: false });
-  await broadcast('game_started', { total: questions.length });
-  answerRevealed = false; timeExpired = false;
-  startQuestion(0);
-  setRevealState('active');
-  document.getElementById('btn-start').disabled = true;
-  document.getElementById('btn-next').disabled = true;
-  showMfhPhase('question');
-  renderGamePage();
-  toast('Game started!', 'success');
-}
-
-async function nextQuestion() {
-  if (!answerRevealed) { toast('Reveal the answer first!', 'error'); return; }
-  clearInterval(timerInterval);
-  const nextIdx = (sessionData.current_question_index || 0) + 1;
-  if (nextIdx >= questions.length) {
-    await endGame(); return;
-  }
-  answerRevealed = false; timeExpired = false;
-  await updateSession({ current_question_index: nextIdx, answer_revealed: false, show_leaderboard: false, status: 'active' });
-  await broadcast('next_question', { qIdx: nextIdx });
-  startQuestion(nextIdx);
-  setRevealState('active');
-  document.getElementById('btn-next').disabled = true;
-  document.getElementById('btn-show-lb').disabled = true;
-  document.getElementById('btn-hide-lb').disabled = true;
-  showMfhPhase('question');
-  renderGamePage();
-}
-
-async function endGame() {
-  clearInterval(timerInterval);
-  await updateSession({ status: 'ended' });
-  await broadcast('game_ended');
-  document.getElementById('btn-start').disabled = false;
-  document.getElementById('btn-next').disabled = true;
-  setRevealState('none');
-  showMfhPhase('result');
-  toast('Game ended!', 'info');
-  renderGamePage();
-}
-
-async function resetGame() {
-  if (!confirm('Reset game? All player scores will be cleared.')) return;
-  clearInterval(timerInterval);
-  answerRevealed = false; timeExpired = false;
-  await sb.from('players').delete().eq('session_id', SESSION_ID);
-  await sb.from('answers').delete().eq('session_id', SESSION_ID);
-  await updateSession({ status: 'waiting', current_question_index: -1, answer_revealed: false, show_leaderboard: false });
-  await broadcast('game_reset');
-  document.getElementById('btn-start').disabled = false;
-  document.getElementById('btn-next').disabled = true;
-  document.getElementById('btn-show-lb').disabled = true;
-  document.getElementById('btn-hide-lb').disabled = true;
-  setRevealState('none');
-  players = []; answers = {};
-  showMfhPhase('waiting');
-  renderAll();
-  toast('Game reset', 'info');
-}
-
-function startQuestion(idx) {
-  const q = questions[idx];
-  if (!q) return;
-  timeLeft = q.time_limit || 15;
-  updateTimerUI(q);
-  clearInterval(timerInterval);
-  timerInterval = setInterval(() => {
-    timeLeft--;
-    updateTimerUI(q);
-    updateMfhTimer(q.time_limit || 15);
-    if (timeLeft <= 0) {
-      clearInterval(timerInterval);
-      timeExpired = true;
-      if (!answerRevealed) setRevealState('ready');
-      updateSession({ status: 'reveal' });
-      broadcast('time_up', { qIdx: idx });
-      updateMfhFoot(`⏱ Time's up — click Reveal Answer`);
-    }
-  }, 1000);
-  broadcast('new_question', { qIdx: idx, question: q, total: questions.length });
-  renderMfhQuestion(false);
-  updateMfhFoot(`Q${idx+1}/${questions.length} — Players are answering...`);
-}
-
-function updateTimerUI(q) {
-  const max = q?.time_limit || 15;
-  document.getElementById('gcb-timer').textContent = `⏱ ${timeLeft}s`;
-  const pct = Math.max(0,(timeLeft/max)*100);
-  document.getElementById('q-prog-fill').style.width = pct+'%';
-  document.getElementById('q-prog-fill').style.background = pct>40?'var(--cyan)':pct>20?'var(--amber)':'var(--rose)';
-  updateMfhTimer(max);
-}
-
-// ══════════════════════════════════════════════
-// REVEAL ANSWER
-// ══════════════════════════════════════════════
-async function revealAnswer() {
-  if (answerRevealed) return;
-  answerRevealed = true;
-  clearInterval(timerInterval);
-  timeExpired = true;
-  await updateSession({ status: 'reveal', answer_revealed: true });
-  await broadcast('answer_revealed', { qIdx: sessionData.current_question_index });
-  setRevealState('revealed');
-  document.getElementById('btn-next').disabled = false;
-  document.getElementById('btn-show-lb').disabled = false;
-  renderMfhQuestion(true);
-  updateMfhFoot(`Answer revealed! Show leaderboard or move to next question.`);
-  renderGamePage();
-  toast('Answer revealed to all players', 'success');
-}
-
-// ══════════════════════════════════════════════
-// LEADERBOARD CONTROL
-// ══════════════════════════════════════════════
-async function showLeaderboard() {
-  await updateSession({ status: 'leaderboard', show_leaderboard: true });
-  await broadcast('show_leaderboard');
-  document.getElementById('btn-hide-lb').disabled = false;
-  showMfhPhase('leaderboard');
-  toast('Leaderboard shown on FOH', 'success');
-}
-
-async function hideLeaderboard() {
-  await updateSession({ status: 'reveal', show_leaderboard: false });
-  await broadcast('hide_leaderboard');
-  document.getElementById('btn-hide-lb').disabled = true;
-  showMfhPhase('question');
-  toast('Leaderboard hidden', 'info');
-}
-
-// ══════════════════════════════════════════════
-// REVEAL STATE HELPER
-// ══════════════════════════════════════════════
-function setRevealState(state) {
-  const btn = document.getElementById('btn-reveal');
-  const ind = document.getElementById('ri');
-  const txt = document.getElementById('reveal-status-txt');
-  const states = {
-    none:     { disabled: true,  cls: '',         text: 'No active question' },
-    active:   { disabled: true,  cls: '',         text: 'Timer running — reveal after time expires' },
-    ready:    { disabled: false, cls: 'ready',    text: 'Time expired — ready to reveal!' },
-    revealed: { disabled: true,  cls: 'revealed', text: 'Answer revealed to all players ✓' },
-  };
-  const s = states[state] || states.none;
-  btn.disabled = s.disabled;
-  ind.className = 'ri ' + s.cls;
-  txt.textContent = s.text;
-}
-
-// ══════════════════════════════════════════════
-// ELIMINATE PLAYER
-// ══════════════════════════════════════════════
-function openElimModal(playerId, playerName) {
-  elimTarget = playerId;
-  document.getElementById('elim-name').textContent = playerName;
-  document.getElementById('elim-modal').classList.add('open');
-  document.getElementById('elim-confirm-btn').onclick = () => confirmEliminate();
-}
-function closeElimModal() {
-  document.getElementById('elim-modal').classList.remove('open');
-  elimTarget = null;
-}
-async function confirmEliminate() {
-  if (!elimTarget) return;
-  await sb.from('players').update({ is_eliminated: true }).eq('id', elimTarget);
-  await broadcast('player_eliminated', { player_id: elimTarget });
-  closeElimModal();
-  await loadPlayers();
-  renderAll();
-  toast('Player eliminated', 'info');
-}
-async function restorePlayer(playerId) {
-  await sb.from('players').update({ is_eliminated: false }).eq('id', playerId);
-  await broadcast('player_restored', { player_id: playerId });
-  await loadPlayers();
-  renderAll();
-  toast('Player restored', 'success');
-}
-async function clearAllPlayers() {
-  if (!confirm('Clear all players?')) return;
-  await sb.from('players').delete().eq('session_id', SESSION_ID);
-  await sb.from('answers').delete().eq('session_id', SESSION_ID);
-  players = []; answers = {};
-  renderAll();
-  toast('All players cleared', 'info');
-}
-
-// ══════════════════════════════════════════════
-// QUESTION MANAGEMENT
-// ══════════════════════════════════════════════
-async function addQuestion() {
-  const text = document.getElementById('nq-text').value.trim();
-  const a = document.getElementById('nq-a').value.trim();
-  const b = document.getElementById('nq-b').value.trim();
-  const c = document.getElementById('nq-c').value.trim();
-  const d = document.getElementById('nq-d').value.trim();
-  if (!text || !a || !b || !c || !d) { toast('Fill in all fields', 'error'); return; }
-  const catId = document.getElementById('nq-category').value || null;
-  await sb.from('questions').insert({
-    session_id: SESSION_ID, category_id: catId || null,
-    question_text: text, option_a: a, option_b: b, option_c: c, option_d: d,
-    correct_option: parseInt(document.getElementById('nq-correct').value),
-    time_limit: parseInt(document.getElementById('nq-time').value) || 15,
-    points: parseInt(document.getElementById('nq-points').value) || 100,
-    explanation: document.getElementById('nq-exp').value.trim(),
-    sort_order: questions.length
-  });
-  await loadQuestions();
-  ['nq-text','nq-a','nq-b','nq-c','nq-d','nq-exp'].forEach(id => document.getElementById(id).value='');
-  renderAll();
-  toast('Question added', 'success');
-}
-
-async function removeQuestion(id) {
-  await sb.from('questions').delete().eq('id', id);
-  await loadQuestions();
-  renderAll();
-}
-
-async function loadDefaults() {
-  const defaults = [
-    {t:"What does HTML stand for?",a:"Hyper Text Markup Language",b:"High Tech Modern Language",c:"Hyper Transfer Markup Language",d:"Home Tool Markup Language",c_idx:0,time:15,pts:100,exp:"HTML = Hyper Text Markup Language."},
-    {t:"Which planet is known as the Red Planet?",a:"Venus",b:"Jupiter",c:"Mars",d:"Saturn",c_idx:2,time:15,pts:100,exp:"Mars is red due to iron oxide on its surface."},
-    {t:"What is the capital of Japan?",a:"Seoul",b:"Beijing",c:"Tokyo",d:"Bangkok",c_idx:2,time:15,pts:100,exp:"Tokyo is Japan's capital city."},
-    {t:"Who painted the Mona Lisa?",a:"Michelangelo",b:"Leonardo da Vinci",c:"Raphael",d:"Caravaggio",c_idx:1,time:20,pts:150,exp:"Leonardo da Vinci, painted 1503–1519."},
-    {t:"What is 12 × 12?",a:"132",b:"144",c:"124",d:"148",c_idx:1,time:10,pts:100,exp:"12 × 12 = 144."},
-    {t:"Which ocean is the largest?",a:"Atlantic",b:"Indian",c:"Arctic",d:"Pacific",c_idx:3,time:15,pts:100,exp:"Pacific Ocean, ~165 million km²."},
-    {t:"What gas do plants absorb?",a:"Oxygen",b:"Nitrogen",c:"Carbon Dioxide",d:"Hydrogen",c_idx:2,time:15,pts:100,exp:"Plants absorb CO₂ during photosynthesis."},
-    {t:"How many sides does a hexagon have?",a:"5",b:"6",c:"7",d:"8",c_idx:1,time:10,pts:100,exp:"A hexagon has 6 sides."}
-  ];
-  for (let i=0; i<defaults.length; i++) {
-    const q = defaults[i];
-    await sb.from('questions').insert({
-      session_id:SESSION_ID, question_text:q.t,
-      option_a:q.a, option_b:q.b, option_c:q.c, option_d:q.d,
-      correct_option:q.c_idx, time_limit:q.time, points:q.pts,
-      explanation:q.exp, sort_order:questions.length+i
-    });
-  }
-  await loadQuestions();
-  renderAll();
-  toast('Sample questions loaded', 'success');
-}
-
-// ══════════════════════════════════════════════
-// CATEGORIES
-// ══════════════════════════════════════════════
-async function setSessionCategory() {
-  if (!selectedCatId) { toast('Select a category first', 'error'); return; }
-  await updateSession({ category_id: selectedCatId });
-  await broadcast('category_changed', { category_id: selectedCatId });
-  toast('Category set for session', 'success');
-}
-
-// ══════════════════════════════════════════════
-// SETTINGS
-// ══════════════════════════════════════════════
-async function saveSettings() {
-  const title = document.getElementById('set-title').value;
-  const code = document.getElementById('set-room').value.toUpperCase();
-  await updateSession({ title, room_code: code });
-  await broadcast('settings_updated', { title, room_code: code });
-  renderAll();
-  toast('Settings saved', 'success');
-}
-
-// ══════════════════════════════════════════════
-// MINI FOH PREVIEW
-// ══════════════════════════════════════════════
-function showMfhPhase(phase) {
-  mfhCurrentPhase = phase;
-  const labels = { waiting:'WAITING', question:'QUESTION', leaderboard:'LEADERBOARD', result:'ENDED' };
-  document.getElementById('mfh-phase-label').textContent = labels[phase]||phase.toUpperCase();
-  const body = document.getElementById('mfh-body');
-  const qIdx = sessionData?.current_question_index ?? -1;
-  const q = questions[qIdx];
-
-  if (phase === 'waiting') {
-    body.innerHTML = `<div class="mfh-waiting">
-      <div class="mfh-room">${sessionData?.room_code||'——'}</div>
-      <div style="font-size:12px;color:var(--muted2)">${players.length} player${players.length===1?'':'s'} waiting</div>
-    </div>`;
-  } else if (phase === 'question') {
-    renderMfhQuestion(answerRevealed);
-  } else if (phase === 'leaderboard') {
-    const top = [...players].filter(p=>!p.is_eliminated).sort((a,b)=>b.score-a.score).slice(0,5);
-    const em = ['🥇','🥈','🥉'];
-    body.innerHTML = `<div style="font-size:13px;font-weight:700;color:#c4b5fd;margin-bottom:8px">🏆 Leaderboard</div>` +
-      (top.map((p,i)=>`<div class="mfh-lb-row">
-        <span>${em[i]||'#'+(i+1)}</span>
-        <span style="flex:1;font-weight:600;color:#fff">${p.name}</span>
-        <span style="font-family:var(--font-mono);color:var(--cyan);font-size:11px">${p.score} pts</span>
-      </div>`).join('')||'<p style="font-size:11px;color:var(--muted)">No players</p>');
-  } else if (phase === 'result') {
-    const winner = [...players].filter(p=>!p.is_eliminated).sort((a,b)=>b.score-a.score)[0];
-    body.innerHTML = `<div style="text-align:center;padding:16px 0">
-      <div style="font-size:40px">🏆</div>
-      <div style="font-size:15px;font-weight:700;color:#fff;margin-top:8px">${winner?.name||'—'}</div>
-      <div style="font-size:12px;font-family:var(--font-mono);color:var(--cyan)">${winner?.score||0} pts</div>
-    </div>`;
+function restoreFlow(){
+  const s=sess.status;
+  if(['category','countdown','reading','active','reveal','leaderboard'].includes(s)){
+    setStep(1,'done');setStep(2,s==='countdown'?'active':'done');
+    if(['reading','active','reveal','leaderboard'].includes(s)){setStep(3,s==='reading'?'active':'done');setStep(4,'active');}
+    if(['reveal','leaderboard'].includes(s)){setStep(4,'done');setStep(5,'active');document.getElementById('btn-show-lb').disabled=false;document.getElementById('btn-next-q').disabled=false;document.getElementById('btn-end').disabled=false;}
+    document.getElementById('btn-countdown').disabled=false;
   }
 }
 
-function renderMfhQuestion(revealed) {
-  const qIdx = sessionData?.current_question_index ?? -1;
-  const q = questions[qIdx];
-  if (!q) return;
-  const opts = [q.option_a, q.option_b, q.option_c, q.option_d];
-  const body = document.getElementById('mfh-body');
-  const curAnswers = answers[q.id] || {};
-  const totalAns = Object.keys(curAnswers).length;
-  const counts = [0,0,0,0];
-  Object.values(curAnswers).forEach(a => { if(a.chosen_option>=0) counts[a.chosen_option]++; });
-  const maxC = Math.max(...counts,1);
-  const colors = ['#00f0ff','#7c3aed','#f59e0b','#10b981'];
-
-  body.innerHTML = `
-    <div class="mfh-timer-row">
-      <div class="mfh-tbar"><div class="mfh-tfill" id="mfh-tfill" style="width:${(timeLeft/(q.time_limit||15))*100}%"></div></div>
-      <div class="mfh-tnum" id="mfh-tnum">${timeLeft}s</div>
-    </div>
-    <div class="mfh-q-text">${q.question_text}</div>
-    <div class="mfh-opts">${opts.map((o,i)=>`
-      <div class="mfh-opt ${revealed?(i===q.correct_option?'mfh-correct':'mfh-wrong'):''}">
-        <span style="font-size:9px;opacity:0.6;font-family:var(--font-mono)">${'ABCD'[i]}</span>${o}
-      </div>`).join('')}
-    </div>
-    ${revealed?`<div>${counts.map((c,i)=>`
-      <div class="mfh-resp-row">
-        <span class="mfh-rl">${'ABCD'[i]}</span>
-        <div class="mfh-rt"><div class="mfh-rb" style="width:${Math.round(c/maxC*100)}%;background:${i===q.correct_option?'var(--green)':colors[i]}"></div></div>
-        <span class="mfh-rc">${c}</span>
-      </div>`).join('')}</div>`:''}
-  `;
+// ══ STEP HELPERS ══
+function setStep(n,state){
+  const el=document.getElementById('fstep-'+n);
+  const num=document.getElementById('snum-'+n);
+  el.classList.remove('step-active','step-done','step-disabled');
+  if(state==='active'){el.classList.add('step-active');if(num)num.textContent=n;}
+  else if(state==='done'){el.classList.add('step-done');if(num)num.textContent='✓';}
+  else if(state==='disabled'){el.classList.add('step-disabled');if(num)num.textContent=n;}
+  else{if(num)num.textContent=n;}
+}
+function setMfohPhase(ph){
+  const labels={waiting:'WAITING',category:'CATEGORY',countdown:'COUNTDOWN',reading:'READING',question:'QUESTION',leaderboard:'LEADERBOARD',result:'ENDED'};
+  document.getElementById('mfoh-phase-lbl').textContent=labels[ph]||ph.toUpperCase();
+}
+function setMfohBody(html){document.getElementById('mfoh-body').innerHTML=html;}
+function setMfohFoot(txt){document.getElementById('mfoh-foot-txt').textContent=txt;}
+function setRevealUI(state){
+  const btn=document.getElementById('btn-reveal');
+  const ri=document.getElementById('ri'),txt=document.getElementById('ri-txt');
+  const map={none:{d:true,cls:'',t:'No active question'},active:{d:true,cls:'',t:'Timer running'},
+    waiting:{d:true,cls:'w',t:'Timer running — reveal after time expires'},
+    ready:{d:false,cls:'r',t:'⚡ Time up — click Reveal Answer!'},
+    revealed:{d:true,cls:'d',t:'Answer revealed to all players ✓'}};
+  const s=map[state]||map.none;
+  btn.disabled=s.d;ri.className='ri '+s.cls;txt.textContent=s.t;
 }
 
-function updateMfhTimer(max) {
-  const fill = document.getElementById('mfh-tfill');
-  const num = document.getElementById('mfh-tnum');
-  if (fill) fill.style.width = `${Math.max(0,(timeLeft/max)*100)}%`;
-  if (num) num.textContent = timeLeft+'s';
-
-  // Update response percentage badge
-  const qIdx = sessionData?.current_question_index ?? -1;
-  const q = questions[qIdx];
-  if (!q) return;
-  const curAnswers = answers[q.id] || {};
-  const totalAns = Object.keys(curAnswers).length;
-  const totalP = players.filter(p=>!p.is_eliminated).length;
-  const badge = document.getElementById('mfh-resp-badge');
-  if (badge && totalP > 0) {
-    const pct = Math.round((totalAns/totalP)*100);
-    badge.style.display = 'inline-flex';
-    badge.textContent = pct+'% answered';
-    updateMfhFoot(`${totalAns}/${totalP} players answered (${pct}%)`);
-  }
+// ══ STEP 1: CATEGORY ══
+function toggleCatPicker(){
+  const box=document.getElementById('cat-picker-box');
+  box.style.display=box.style.display==='none'?'block':'none';
+  renderCatGrid();
 }
-
-function updateMfhFoot(txt) {
-  const el = document.getElementById('mfh-foot-tip');
-  if (el) el.textContent = txt;
-}
-
-// ══════════════════════════════════════════════
-// RENDER FUNCTIONS
-// ══════════════════════════════════════════════
-function renderAll() {
-  renderStats();
-  renderDashLeaderboard();
-  renderDashRecent();
-  renderGamePage();
-  renderQList();
-  renderCategories();
-  renderPlayers();
-  // Update topbar
-  if (sessionData) {
-    document.getElementById('room-code-display').textContent = sessionData.room_code;
-    document.getElementById('mfh-room-code').textContent = sessionData.room_code;
-  }
-  document.getElementById('player-count-badge').textContent = `${players.length} player${players.length===1?'':'s'}`;
-}
-
-function renderStats() {
-  document.getElementById('s-players').textContent = players.length;
-  document.getElementById('s-questions').textContent = questions.length;
-  const qi = sessionData?.current_question_index ?? -1;
-  document.getElementById('s-current-q').textContent = qi>=0 ? qi+1 : '—';
-  const qIdx = qi;
-  const q = questions[qIdx];
-  const totalResp = q ? Object.keys(answers[q.id]||{}).length : 0;
-  document.getElementById('s-responses').textContent = totalResp;
-}
-
-function renderDashLeaderboard() {
-  const top = [...players].filter(p=>!p.is_eliminated).sort((a,b)=>b.score-a.score).slice(0,5);
-  const el = document.getElementById('dash-leaderboard');
-  if (!top.length) { el.innerHTML='<p style="color:var(--muted);font-size:13px">No players yet.</p>'; return; }
-  const em=['🥇','🥈','🥉'];
-  el.innerHTML = top.map((p,i)=>{
-    const init = p.name.split(' ').map(w=>w[0]).join('').toUpperCase().substring(0,2);
-    return `<div class="player-row">
-      <div class="p-avatar" style="background:${p.avatar_color}22;color:${p.avatar_color}">${init}</div>
-      <div class="p-name">${p.name}</div>
-      <div class="p-score">${p.score} pts</div>
-      <span class="rank-pip ${i<3?'rp'+(i+1):'rpn'}">${em[i]||'#'+(i+1)}</span>
-    </div>`;
-  }).join('');
-}
-
-function renderDashRecent() {
-  const recent = [...players].sort((a,b)=>new Date(b.joined_at)-new Date(a.joined_at)).slice(0,5);
-  const el = document.getElementById('dash-recent');
-  if (!recent.length) { el.innerHTML='<p style="color:var(--muted);font-size:13px">Waiting...</p>'; return; }
-  el.innerHTML = recent.map(p=>{
-    const init = p.name.split(' ').map(w=>w[0]).join('').toUpperCase().substring(0,2);
-    const t = new Date(p.joined_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-    return `<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)">
-      <div class="p-avatar" style="background:${p.avatar_color}22;color:${p.avatar_color};width:30px;height:30px;font-size:11px">${init}</div>
-      <div style="flex:1;font-size:13px;font-weight:600">${p.name}</div>
-      <div style="font-size:11px;color:var(--muted);font-family:var(--font-mono)">${t}</div>
-    </div>`;
-  }).join('');
-}
-
-function renderGamePage() {
-  const statusMap = {
-    waiting:     ['Waiting to Start','status-waiting'],
-    active:      ['Live — In Progress','status-active'],
-    reveal:      ['Answer Revealed','status-reveal'],
-    leaderboard: ['Showing Leaderboard','status-leaderboard'],
-    ended:       ['Game Ended','status-ended'],
-  };
-  const [txt,cls] = statusMap[sessionData?.status||'waiting'];
-  const el = document.getElementById('gcb-status');
-  if (el) { el.textContent=txt; el.className='gcb-value '+cls; }
-  const qi = sessionData?.current_question_index ?? -1;
-  document.getElementById('gcb-q-indicator').textContent = `Q ${qi>=0?qi+1:'—'} / ${questions.length}`;
-  const q = qi>=0 ? questions[qi] : null;
-  const cqd = document.getElementById('current-q-display');
-  if (cqd && q) {
-    const opts = [q.option_a,q.option_b,q.option_c,q.option_d];
-    cqd.innerHTML = `<div style="font-size:15px;font-weight:700;margin-bottom:12px">${q.question_text}</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">${opts.map((o,j)=>
-        `<div style="padding:8px 12px;border-radius:8px;background:${j===q.correct_option?'rgba(16,185,129,0.1)':'var(--s2)'};border:1px solid ${j===q.correct_option?'rgba(16,185,129,0.3)':'var(--border)'};font-size:13px"><b>${'ABCD'[j]}.</b> ${o}</div>`
-      ).join('')}</div>`;
-  } else if (cqd) { cqd.textContent = 'Game not started.'; }
-
-  // Response chart
-  const rc = document.getElementById('response-chart');
-  if (rc && q) {
-    const curAnswers = answers[q.id] || {};
-    const totalAns = Object.keys(curAnswers).length;
-    const totalP = players.filter(p=>!p.is_eliminated).length;
-    const pct = totalP>0 ? Math.round((totalAns/totalP)*100) : 0;
-    document.getElementById('resp-pct-badge').textContent = `${pct}% · ${totalAns}/${totalP}`;
-    if (!totalAns) { rc.innerHTML='<p style="color:var(--muted);font-size:13px">No responses yet.</p>'; }
-    else {
-      const counts=[0,0,0,0];
-      Object.values(curAnswers).forEach(a=>{ if(a.chosen_option>=0 && a.chosen_option<4) counts[a.chosen_option]++; });
-      const colors=['#00f0ff','#7c3aed','#f59e0b','#10b981'];
-      rc.innerHTML = counts.map((c,i)=>`
-        <div class="resp-row">
-          <span class="resp-letter">${'ABCD'[i]}</span>
-          <div class="resp-track"><div class="resp-bar" style="width:${totalAns>0?Math.round(c/totalAns*100):0}%;background:${i===q.correct_option?'var(--green)':colors[i]}"></div></div>
-          <span class="resp-cnt">${c}</span>
-          <span class="resp-pct">${totalAns>0?Math.round(c/totalAns*100):0}%</span>
-        </div>`).join('');
-    }
-  }
-}
-
-function renderQList() {
-  document.getElementById('q-count-badge').textContent = questions.length;
-  const el = document.getElementById('q-list');
-  if (!questions.length) { el.innerHTML='<p style="color:var(--muted);font-size:13px">No questions yet.</p>'; return; }
-  const qi = sessionData?.current_question_index ?? -1;
-  el.innerHTML = questions.map((q,i)=>{
-    const opts=[q.option_a,q.option_b,q.option_c,q.option_d];
-    const cat = categories.find(c=>c.id===q.category_id);
-    return `<div class="q-item ${i===qi?'active-q':''}">
-      <div class="q-num">${String(i+1).padStart(2,'0')}</div>
-      <div class="q-content">
-        <div class="q-text">${q.question_text}</div>
-        <div class="q-tags" style="margin-top:5px">
-          ${opts.map((o,j)=>`<span class="q-opt-tag ${j===q.correct_option?'correct':''}">${'ABCD'[j]}. ${o}</span>`).join('')}
-          ${cat?`<span class="badge badge-violet">${cat.icon} ${cat.name}</span>`:''}
-          <span class="badge badge-amber">⏱ ${q.time_limit}s · ${q.points}pts</span>
-        </div>
-      </div>
-      <div class="q-actions">
-        <button class="btn-icon" onclick="removeQuestion('${q.id}')" title="Delete">🗑</button>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function renderCategories() {
-  // Select grid
-  const grid = document.getElementById('cat-grid');
-  const curCat = sessionData?.category_id;
-  grid.innerHTML = categories.map(c=>`
-    <div class="cat-pill ${selectedCatId===c.id?'selected':''}" 
-      style="background:${selectedCatId===c.id?c.color+'22':'rgba(255,255,255,0.04)'};border-color:${selectedCatId===c.id?c.color:'rgba(255,255,255,0.1)'};color:${selectedCatId===c.id?c.color:'var(--muted2)'}"
-      onclick="selectCat('${c.id}')">
+function renderCatGrid(){
+  document.getElementById('cat-grid-inline').innerHTML=cats.map(c=>`
+    <div class="catpill ${selCatId===c.id?'sel':''}"
+      style="${selCatId===c.id?`background:${c.color}22;border-color:${c.color};color:${c.color}`:''}"
+      onclick="pickCat('${c.id}')">
       <span>${c.icon}</span>${c.name}
     </div>`).join('');
-  // List
-  const list = document.getElementById('cat-list');
-  list.innerHTML = categories.map(c=>`
-    <div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
-      <div style="width:32px;height:32px;border-radius:8px;background:${c.color}22;display:flex;align-items:center;justify-content:center;font-size:16px">${c.icon}</div>
+}
+function pickCat(id){selCatId=id;selCat=cats.find(c=>c.id===id);renderCatGrid();document.getElementById('sdesc-1').textContent='Selected: '+selCat.icon+' '+selCat.name;}
+function autoSelectCat(){
+  if(!cats.length){toast('No categories found','e');return;}
+  pickCat(cats[Math.floor(Math.random()*cats.length)].id);
+  toast('Random: '+selCat.icon+' '+selCat.name,'i');
+}
+async function confirmCategory(){
+  if(!selCatId){toast('Select a category first','e');return;}
+  await updSess({category_id:selCatId,status:'category'});
+  await bcast('show_category',{category:selCat});
+  document.getElementById('cat-picker-box').style.display='none';
+  setStep(1,'done');setStep(2,'active');
+  document.getElementById('btn-countdown').disabled=false;
+  setMfohPhase('category');
+  setMfohBody(`<div style="text-align:center;padding:18px 0">
+    <div style="font-size:42px;margin-bottom:8px">${selCat.icon}</div>
+    <div style="font-family:var(--fd);font-size:22px;font-weight:800;color:#fff">${selCat.name}</div>
+    <div style="font-size:11px;color:var(--muted2);margin-top:6px;font-family:var(--fm)">Category confirmed on FOH</div>
+  </div>`);
+  setMfohFoot(selCat.icon+' '+selCat.name+' — click Start Countdown when ready');
+  toast(selCat.icon+' '+selCat.name+' shown on FOH','s');
+}
+
+// ══ STEP 2: COUNTDOWN ══
+async function startCountdown(){
+  document.getElementById('btn-countdown').disabled=true;
+  setStep(2,'active');
+  await updSess({status:'countdown'});
+  await bcast('start_countdown',{});
+  setMfohPhase('countdown');
+  let cd=3;
+  showCdInMfoh(cd);
+  clearInterval(cdIv);
+  cdIv=setInterval(async()=>{
+    cd--;
+    if(cd>0){showCdInMfoh(cd);await bcast('countdown_tick',{count:cd});}
+    else{
+      clearInterval(cdIv);
+      setMfohBody(`<div style="text-align:center;padding:18px 0">
+        <div style="font-family:var(--fd);font-size:52px;font-weight:900;color:var(--green);animation:none">GO!</div>
+        <div style="font-size:12px;color:var(--muted2);font-family:var(--fm);margin-top:6px">Game Starting!</div>
+      </div>`);
+      await bcast('countdown_tick',{count:'GO'});
+      setTimeout(()=>{setStep(2,'done');launchQuestion(0);},1200);
+    }
+  },1000);
+}
+function showCdInMfoh(n){
+  setMfohBody(`<div style="text-align:center;padding:18px 0">
+    <div style="font-family:var(--fd);font-size:64px;font-weight:900;color:var(--cyan);line-height:1">${n}</div>
+    <div style="font-size:12px;color:var(--muted2);font-family:var(--fm);margin-top:8px">Get Ready!</div>
+  </div>`);
+}
+
+// ══ STEP 3: LAUNCH QUESTION ══
+async function launchQuestion(idx){
+  const q=questions[idx];if(!q){toast('No more questions','i');return;}
+  revealed=false;choicesShown=false;gameGoing=true;
+  await updSess({status:'reading',current_question_index:idx,answer_revealed:false,show_leaderboard:false});
+  await bcast('question_reading',{question:q,qIdx:idx,total:questions.length});
+  setStep(3,'active');setStep(4,'active');
+  document.getElementById('btn-show-choices').disabled=false;
+  document.getElementById('btn-reveal').disabled=true;
+  setRevealUI('active');
+  document.getElementById('sdesc-3').textContent=`Q${idx+1}: Reading time ${q.reading_time||5}s`;
+  document.getElementById('qpb').textContent=`${idx+1} / ${questions.length}`;
+  setMfohPhase('reading');
+  readLeft=q.reading_time||5;
+  showReadingMfoh(q,readLeft);
+  clearInterval(readIv);
+  readIv=setInterval(()=>{
+    readLeft--;
+    showReadingMfoh(q,readLeft);
+    if(readLeft<=0)clearInterval(readIv);
+  },1000);
+  renderCurQ();
+  setMfohFoot(`Q${idx+1}/${questions.length} — Host is reading...`);
+}
+function showReadingMfoh(q,t){
+  setMfohBody(`<div style="padding:8px 0">
+    <div style="font-size:10px;font-family:var(--fm);color:var(--muted2);margin-bottom:6px;text-align:center">HOST READING — CHOICES HIDDEN</div>
+    <div style="font-size:12px;font-weight:700;color:#fff;margin-bottom:10px;line-height:1.4">${q.question_text}</div>
+    <div style="text-align:center">
+      <div style="font-family:var(--fd);font-size:36px;font-weight:900;color:var(--amber)">${Math.max(0,t)}s</div>
+      <div style="font-size:10px;color:var(--muted2);font-family:var(--fm);margin-top:4px">reading timer</div>
+    </div>
+  </div>`);
+}
+
+// ══ STEP 3b: SHOW CHOICES ══
+async function showChoices(){
+  clearInterval(readIv);choicesShown=true;
+  const qi=sess.current_question_index;const q=questions[qi];
+  await updSess({status:'active'});
+  await bcast('show_choices',{qIdx:qi,question:q,total:questions.length});
+  document.getElementById('btn-show-choices').disabled=true;
+  setStep(3,'done');
+  document.getElementById('sdesc-4').textContent=`Q${qi+1} live — players answering`;
+  setRevealUI('waiting');
+  // answer timer
+  timeLeft=q.time_limit||15;
+  updateTimerUI(q);
+  clearInterval(timerIv);
+  timerIv=setInterval(()=>{
+    timeLeft--;
+    updateTimerUI(q);
+    updateMfohTimer(q);
+    if(timeLeft<=0){
+      clearInterval(timerIv);
+      bcast('time_up',{qIdx:qi});
+      updSess({status:'reveal'});
+      if(!revealed)setRevealUI('ready');
+      setMfohFoot("⏱ Time's up — click Reveal Answer");
+    }
+  },1000);
+  setMfohPhase('question');
+  renderMfohQ(false);
+  setMfohFoot(`Q${qi+1}/${questions.length} — Players answering...`);
+  toast('Choices shown to players!','s');
+}
+function updateTimerUI(q){
+  const max=q?.time_limit||15;
+  document.getElementById('timer-disp').textContent=`⏱ ${Math.max(0,timeLeft)}s`;
+  const pct=Math.max(0,(timeLeft/max)*100);
+  const pf=document.getElementById('q-pf');
+  pf.style.width=pct+'%';
+  pf.style.background=pct>40?'var(--cyan)':pct>20?'var(--amber)':'var(--rose)';
+}
+function updateMfohTimer(q){
+  const tf=document.getElementById('mfoh-tf');
+  const tn=document.getElementById('mfoh-tn');
+  if(tf)tf.style.width=Math.max(0,(timeLeft/(q?.time_limit||15))*100)+'%';
+  if(tn)tn.textContent=Math.max(0,timeLeft)+'s';
+  updateMfohResp();
+}
+function updateMfohResp(){
+  const qi=sess?.current_question_index??-1;const q=questions[qi];if(!q)return;
+  const curAns=answers[q.id]||{};const total=Object.keys(curAns).length;
+  const ap=players.filter(p=>!p.is_eliminated).length;
+  const badge=document.getElementById('mfoh-resp-badge');
+  if(ap>0){badge.style.display='inline-flex';badge.textContent=Math.round((total/ap)*100)+'% answered';}
+  if(ap>0)setMfohFoot(`${total}/${ap} players answered`);
+}
+
+// ══ STEP 4: REVEAL ══
+async function revealAnswer(){
+  if(revealed)return;revealed=true;
+  clearInterval(timerIv);
+  await updSess({status:'reveal',answer_revealed:true});
+  await bcast('answer_revealed',{qIdx:sess.current_question_index});
+  setRevealUI('revealed');
+  setStep(4,'done');setStep(5,'active');
+  document.getElementById('btn-show-lb').disabled=false;
+  document.getElementById('btn-next-q').disabled=false;
+  document.getElementById('btn-end').disabled=false;
+  renderMfohQ(true);
+  setMfohFoot('Answer revealed! Show leaderboard or next question.');
+  renderAll();toast('Answer revealed to all players','s');
+}
+
+// ══ STEP 5: LEADERBOARD ══
+async function showLeaderboard(){
+  await updSess({status:'leaderboard',show_leaderboard:true});
+  await bcast('show_leaderboard',{});
+  setMfohPhase('leaderboard');
+  renderMfohLB();
+  document.getElementById('btn-show-lb').disabled=true;
+  setMfohFoot('Leaderboard shown on FOH');
+  toast('Leaderboard shown on FOH','s');
+}
+async function nextQuestion(){
+  if(!revealed){toast('Reveal the answer first!','e');return;}
+  clearInterval(timerIv);clearInterval(readIv);
+  const next=(sess.current_question_index||0)+1;
+  if(next>=questions.length){toast('No more questions — end the game!','i');return;}
+  revealed=false;choicesShown=false;
+  document.getElementById('btn-reveal').disabled=true;
+  document.getElementById('btn-show-lb').disabled=true;
+  document.getElementById('btn-next-q').disabled=true;
+  await launchQuestion(next);
+}
+
+// ══ STEP 6: END ══
+async function endGame(){
+  clearInterval(timerIv);clearInterval(readIv);clearInterval(cdIv);
+  await updSess({status:'ended'});
+  await bcast('game_ended',{});
+  setMfohPhase('result');
+  renderMfohResult();
+  setStep(6,'active');
+  document.getElementById('btn-end').disabled=true;
+  toast('Game ended — final results shown!','s');
+  renderAll();
+}
+async function resetGame(){
+  if(!confirm('Reset game? All scores cleared.'))return;
+  clearInterval(timerIv);clearInterval(readIv);clearInterval(cdIv);
+  revealed=false;choicesShown=false;gameGoing=false;selCatId=null;selCat=null;
+  await sb.from('players').delete().eq('session_id',SID);
+  await sb.from('answers').delete().eq('session_id',SID);
+  await updSess({status:'waiting',current_question_index:-1,answer_revealed:false,show_leaderboard:false,category_id:null});
+  await bcast('game_reset',{});
+  players=[];answers={};
+  for(let i=1;i<=6;i++){setStep(i,i===1?'active':'disabled');}
+  document.getElementById('btn-countdown').disabled=true;
+  document.getElementById('btn-show-choices').disabled=true;
+  document.getElementById('btn-reveal').disabled=true;
+  document.getElementById('btn-show-lb').disabled=true;
+  document.getElementById('btn-next-q').disabled=true;
+  document.getElementById('btn-end').disabled=true;
+  setRevealUI('none');
+  setMfohPhase('waiting');
+  document.getElementById('cat-picker-box').style.display='none';
+  setMfohBody(`<div style="text-align:center;padding:14px 0">
+    <div style="font-family:var(--fd);font-size:26px;font-weight:700;color:var(--amber);letter-spacing:0.1em" id="mfoh-room">${sess?.room_code||'——'}</div>
+    <div style="font-size:12px;color:var(--muted2);margin-top:4px" id="mfoh-wait-txt">0 players waiting</div>
+  </div>`);
+  setMfohFoot('Game reset');
+  renderAll();toast('Game reset','i');
+}
+
+// ══ MINI FOH RENDERS ══
+function renderMfohQ(rev){
+  const qi=sess?.current_question_index??-1;const q=questions[qi];if(!q)return;
+  const opts=[q.option_a,q.option_b,q.option_c,q.option_d];
+  const curAns=answers[q.id]||{};
+  const counts=[0,0,0,0];Object.values(curAns).forEach(a=>{if(a.chosen_option>=0&&a.chosen_option<4)counts[a.chosen_option]++;});
+  const maxC=Math.max(...counts,1);
+  const colors=['#00f0ff','#7c3aed','#f59e0b','#10b981'];
+  const pct=Math.max(0,(timeLeft/(q.time_limit||15))*100);
+  setMfohBody(`
+    <div style="display:flex;align-items:center;gap:7px;margin-bottom:7px">
+      <div style="flex:1;height:4px;background:rgba(255,255,255,0.08);border-radius:99px;overflow:hidden">
+        <div id="mfoh-tf" style="height:4px;border-radius:99px;background:var(--cyan);width:${pct}%;transition:width 1s linear"></div>
+      </div>
+      <div id="mfoh-tn" style="font-size:11px;font-family:var(--fm);color:var(--muted2);min-width:24px">${Math.max(0,timeLeft)}s</div>
+    </div>
+    <div style="font-size:12px;font-weight:700;color:#fff;margin-bottom:9px;line-height:1.4">${q.question_text}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:8px">
+      ${opts.map((o,i)=>`<div style="font-size:10px;padding:6px 9px;border-radius:5px;font-weight:600;
+        display:flex;align-items:center;gap:4px;border:1px solid transparent;
+        ${rev?(i===q.correct_option?'background:rgba(16,185,129,0.2);border-color:var(--green);color:#fff':'opacity:0.25;background:rgba(255,255,255,0.03)')
+          :`background:rgba(${['0,240,255','124,58,237','245,158,11','16,185,129'][i]},0.08);border-color:rgba(${['0,240,255','124,58,237','245,158,11','16,185,129'][i]},0.2);color:${['var(--cyan)','#a78bfa','var(--amber)','var(--green)'][i]}`}">
+        <span style="font-size:9px;opacity:0.6;font-family:var(--fm)">${'ABCD'[i]}</span>${o}
+      </div>`).join('')}
+    </div>
+    ${rev?`<div>${counts.map((c,i)=>`<div style="display:flex;align-items:center;gap:5px;margin-bottom:3px">
+      <span style="font-size:9px;font-family:var(--fm);width:13px;color:var(--muted2)">${'ABCD'[i]}</span>
+      <div style="flex:1;height:5px;background:rgba(255,255,255,0.06);border-radius:99px;overflow:hidden">
+        <div style="height:5px;border-radius:99px;width:${Math.round(c/maxC*100)}%;background:${i===q.correct_option?'var(--green)':colors[i]}"></div>
+      </div>
+      <span style="font-size:9px;font-family:var(--fm);color:var(--muted)">${c}</span>
+    </div>`).join('')}</div>`:''}
+  `);
+}
+function renderMfohLB(){
+  const top=[...players].filter(p=>!p.is_eliminated).sort((a,b)=>b.score-a.score).slice(0,5);
+  const em=['🥇','🥈','🥉'];
+  setMfohBody(`<div style="font-size:12px;font-weight:700;color:#c4b5fd;margin-bottom:7px">🏆 Leaderboard</div>`+
+    (top.map((p,i)=>`<div style="display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04);font-size:11px">
+      <span>${em[i]||'#'+(i+1)}</span>
+      <span style="font-size:18px">${p.avatar_color}</span>
+      <span style="flex:1;font-weight:600;color:#fff">${p.name}</span>
+      <span style="font-family:var(--fm);color:var(--cyan)">${p.score}pts</span>
+    </div>`).join('')||'<p style="font-size:11px;color:var(--muted)">No players</p>'));
+}
+function renderMfohResult(){
+  const winner=[...players].filter(p=>!p.is_eliminated).sort((a,b)=>b.score-a.score)[0];
+  setMfohBody(`<div style="text-align:center;padding:14px 0">
+    <div style="font-size:36px;margin-bottom:8px">🏆</div>
+    <div style="font-size:26px">${winner?.avatar_color||'🎖️'}</div>
+    <div style="font-size:14px;font-weight:700;color:#fff;margin-top:4px">${winner?.name||'—'}</div>
+    <div style="font-size:12px;font-family:var(--fm);color:var(--cyan)">${winner?.score||0} pts</div>
+  </div>`);
+}
+
+// ══ QUESTIONS ══
+async function addQuestion(){
+  const text=document.getElementById('nq-text').value.trim();
+  const a=document.getElementById('nq-a').value.trim(),b=document.getElementById('nq-b').value.trim();
+  const c=document.getElementById('nq-c').value.trim(),d=document.getElementById('nq-d').value.trim();
+  if(!text||!a||!b||!c||!d){toast('Fill in all fields','e');return;}
+  await sb.from('questions').insert({
+    session_id:SID,category_id:document.getElementById('nq-cat').value||null,
+    question_text:text,option_a:a,option_b:b,option_c:c,option_d:d,
+    correct_option:parseInt(document.getElementById('nq-correct').value),
+    time_limit:parseInt(document.getElementById('nq-time').value)||15,
+    reading_time:parseInt(document.getElementById('nq-read').value)||5,
+    points:parseInt(document.getElementById('nq-pts').value)||100,
+    explanation:document.getElementById('nq-exp').value.trim(),
+    sort_order:questions.length
+  });
+  await loadQs();
+  ['nq-text','nq-a','nq-b','nq-c','nq-d','nq-exp'].forEach(id=>document.getElementById(id).value='');
+  renderAll();toast('Question added','s');
+}
+async function removeQuestion(id){await sb.from('questions').delete().eq('id',id);await loadQs();renderAll();}
+async function loadDefaults(){
+  const defs=[
+    {t:"What does HTML stand for?",a:"Hyper Text Markup Language",b:"High Tech Modern Language",c:"Hyper Transfer Markup Language",d:"Home Tool Markup Language",ci:0,ti:15,ri:5,pts:100,exp:"HTML = Hyper Text Markup Language"},
+    {t:"Which planet is known as the Red Planet?",a:"Venus",b:"Jupiter",c:"Mars",d:"Saturn",ci:2,ti:15,ri:5,pts:100,exp:"Mars is red due to iron oxide."},
+    {t:"What is the capital of Japan?",a:"Seoul",b:"Beijing",c:"Tokyo",d:"Bangkok",ci:2,ti:15,ri:5,pts:100,exp:"Tokyo is Japan's capital."},
+    {t:"Who painted the Mona Lisa?",a:"Michelangelo",b:"Leonardo da Vinci",c:"Raphael",d:"Caravaggio",ci:1,ti:20,ri:7,pts:150,exp:"Leonardo da Vinci, 1503–1519."},
+    {t:"How many sides does a hexagon have?",a:"5",b:"6",c:"7",d:"8",ci:1,ti:10,ri:4,pts:100,exp:"A hexagon has 6 sides."},
+  ];
+  for(let i=0;i<defs.length;i++){
+    const q=defs[i];
+    await sb.from('questions').insert({session_id:SID,question_text:q.t,option_a:q.a,option_b:q.b,option_c:q.c,option_d:q.d,correct_option:q.ci,time_limit:q.ti,reading_time:q.ri,points:q.pts,explanation:q.exp,sort_order:questions.length+i});
+  }
+  await loadQs();renderAll();toast('Sample questions loaded','s');
+}
+
+// ══ PLAYERS ══
+function openElim(id,name){elimTarget=id;document.getElementById('elim-name').textContent=name;document.getElementById('elim-modal').classList.add('open');document.getElementById('elim-ok').onclick=()=>confirmElim();}
+function closeElim(){document.getElementById('elim-modal').classList.remove('open');elimTarget=null;}
+async function confirmElim(){await sb.from('players').update({is_eliminated:true}).eq('id',elimTarget);await bcast('player_eliminated',{player_id:elimTarget});closeElim();await loadPlayers();renderAll();toast('Player eliminated','i');}
+async function restorePlayer(id){await sb.from('players').update({is_eliminated:false}).eq('id',id);await bcast('player_restored',{player_id:id});await loadPlayers();renderAll();toast('Player restored','s');}
+async function clearAllPlayers(){if(!confirm('Clear all players?'))return;await sb.from('players').delete().eq('session_id',SID);await sb.from('answers').delete().eq('session_id',SID);players=[];answers={};renderAll();toast('Cleared','i');}
+
+// ══ SETTINGS ══
+async function saveSettings(){
+  const title=document.getElementById('set-title').value;
+  const code=document.getElementById('set-room').value.toUpperCase();
+  await updSess({title,room_code:code});
+  await bcast('settings_updated',{title,room_code:code});
+  renderAll();toast('Settings saved','s');
+}
+
+// ══ RENDER ══
+function renderAll(){
+  if(!SID)return;
+  updateTopbar();renderStats();renderDashLB();renderDashRecent();renderQList();renderCatListFull();renderPlayers();renderGamePage();
+  const cnt=players.length;
+  const wt=document.getElementById('mfoh-wait-txt');if(wt)wt.textContent=`${cnt} player${cnt===1?'':'s'} waiting`;
+  const rm=document.getElementById('mfoh-room');if(rm)rm.textContent=sess?.room_code||'——';
+}
+function updateTopbar(){
+  document.getElementById('room-disp').textContent=sess?.room_code||'——';
+  document.getElementById('pc-badge').textContent=`${players.length} player${players.length===1?'':'s'}`;
+}
+function renderStats(){
+  document.getElementById('s-players').textContent=players.length;
+  document.getElementById('s-questions').textContent=questions.length;
+  const qi=sess?.current_question_index??-1;
+  document.getElementById('s-curq').textContent=qi>=0?qi+1:'—';
+  const q=questions[qi];
+  document.getElementById('s-resps').textContent=q?Object.keys(answers[q.id]||{}).length:0;
+}
+function renderDashLB(){
+  const top=[...players].filter(p=>!p.is_eliminated).sort((a,b)=>b.score-a.score).slice(0,5);
+  const el=document.getElementById('dash-lb');
+  const em=['🥇','🥈','🥉'];
+  el.innerHTML=top.length?top.map((p,i)=>`<div class="pr">
+    <div class="pav">${p.avatar_color}</div><div class="pnm">${p.name}</div>
+    <div class="pscore">${p.score}pts</div><span class="rpip ${i<3?'rp'+(i+1):'rpn'}">${em[i]||'#'+(i+1)}</span>
+  </div>`).join(''):'<p style="color:var(--muted);font-size:13px">No players yet.</p>';
+}
+function renderDashRecent(){
+  const recent=[...players].sort((a,b)=>new Date(b.joined_at)-new Date(a.joined_at)).slice(0,5);
+  const el=document.getElementById('dash-recent');
+  el.innerHTML=recent.length?recent.map(p=>{
+    const t=new Date(p.joined_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    return `<div style="display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid var(--b)">
+      <span style="font-size:22px">${p.avatar_color}</span>
+      <div style="flex:1;font-size:13px;font-weight:600">${p.name}</div>
+      <div style="font-size:11px;color:var(--muted);font-family:var(--fm)">${t}</div>
+    </div>`;
+  }).join(''):'<p style="color:var(--muted);font-size:13px">Waiting...</p>';
+}
+function renderQList(){
+  document.getElementById('q-count-badge').textContent=questions.length;
+  const el=document.getElementById('q-list');
+  const nqCat=document.getElementById('nq-cat');
+  if(nqCat)nqCat.innerHTML='<option value="">— None —</option>'+cats.map(c=>`<option value="${c.id}">${c.icon} ${c.name}</option>`).join('');
+  const qi=sess?.current_question_index??-1;
+  el.innerHTML=questions.length?questions.map((q,i)=>{
+    const opts=[q.option_a,q.option_b,q.option_c,q.option_d];
+    const cat=cats.find(c=>c.id===q.category_id);
+    return `<div class="qi ${i===qi?'cur-q':''}">
+      <div class="qn">${String(i+1).padStart(2,'0')}</div>
+      <div class="qc">
+        <div class="qt">${q.question_text}</div>
+        <div class="qtags">
+          ${opts.map((o,j)=>`<span class="qtag ${j===q.correct_option?'cor':''}">${'ABCD'[j]}. ${o}</span>`).join('')}
+          ${cat?`<span class="badge bv" style="font-size:10px">${cat.icon} ${cat.name}</span>`:''}
+          <span class="badge ba" style="font-size:10px">📖 ${q.reading_time||5}s ⏱ ${q.time_limit}s ${q.points}pts</span>
+        </div>
+      </div>
+      <button class="btn-icon" onclick="removeQuestion('${q.id}')">🗑</button>
+    </div>`;
+  }).join(''):'<p style="color:var(--muted);font-size:13px">No questions yet.</p>';
+}
+function renderCatListFull(){
+  const el=document.getElementById('cat-list-full');if(!el)return;
+  const cur=sess?.category_id;
+  el.innerHTML=cats.map(c=>`
+    <div style="display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--b)">
+      <div style="width:34px;height:34px;border-radius:9px;background:${c.color}22;display:flex;align-items:center;justify-content:center;font-size:18px">${c.icon}</div>
       <div style="flex:1;font-size:14px;font-weight:600">${c.name}</div>
-      ${curCat===c.id?'<span class="badge badge-green">Active</span>':''}
+      ${cur===c.id?'<span class="badge bg">Active</span>':''}
+      <span style="font-size:12px;color:var(--muted);font-family:var(--fm)">${questions.filter(q=>q.category_id===c.id).length} questions</span>
     </div>`).join('');
-  // Dropdown
-  const sel = document.getElementById('nq-category');
-  sel.innerHTML = '<option value="">— No category —</option>' +
-    categories.map(c=>`<option value="${c.id}">${c.icon} ${c.name}</option>`).join('');
+}
+function renderPlayers(){
+  const search=(document.getElementById('player-search')?.value||'').toLowerCase();
+  const filtered=players.filter(p=>p.name.toLowerCase().includes(search)).sort((a,b)=>b.score-a.score);
+  const el=document.getElementById('players-panel');
+  const em=['🥇','🥈','🥉'];
+  el.innerHTML=filtered.length?`<table style="width:100%;border-collapse:collapse">
+    <thead><tr style="border-bottom:1px solid var(--b)">${['#','Player','Score','Correct','Status','Actions'].map(h=>`<th style="text-align:left;padding:7px 9px;font-size:10px;font-family:var(--fm);color:var(--muted);text-transform:uppercase;letter-spacing:0.07em">${h}</th>`).join('')}</tr></thead>
+    <tbody>${filtered.map((p,i)=>`<tr style="border-bottom:1px solid var(--b)">
+      <td style="padding:8px 9px"><span class="rpip ${i<3?'rp'+(i+1):'rpn'}">${em[i]||'#'+(i+1)}</span></td>
+      <td style="padding:8px 9px"><div style="display:flex;align-items:center;gap:8px"><span style="font-size:22px">${p.avatar_color}</span><span class="${p.is_eliminated?'pelim':''}">${p.name}</span></div></td>
+      <td style="padding:8px 9px;font-family:var(--fm);color:var(--cyan);font-weight:700">${p.score}</td>
+      <td style="padding:8px 9px;font-family:var(--fm);color:var(--muted2)">${p.correct_count}</td>
+      <td style="padding:8px 9px">${p.is_eliminated?'<span class="elim-tag">Eliminated</span>':'<span style="font-size:12px;color:var(--green)">● Active</span>'}</td>
+      <td style="padding:8px 9px">${p.is_eliminated
+        ?`<button class="btn btn-g btn-sm" onclick="restorePlayer('${p.id}')">↩ Restore</button>`
+        :`<button class="btn btn-r btn-sm" onclick="openElim('${p.id}','${p.name.replace(/'/g,"\\'")}')">⚡ Eliminate</button>`}</td>
+    </tr>`).join('')}</tbody>
+  </table>`:'<p style="color:var(--muted);font-size:13px">No players found.</p>';
+}
+function renderGamePage(){
+  const statusMap={waiting:'Waiting',category:'Category Shown',countdown:'Countdown',reading:'Host Reading',active:'Players Answering',reveal:'Answer Revealed',leaderboard:'Leaderboard',ended:'Game Ended'};
+  const s=sess?.status||'waiting';
+  document.getElementById('flow-badge').textContent=s.toUpperCase();
+  document.getElementById('flow-desc').textContent=statusMap[s]||s;
+  renderCurQ();renderRespChart();
+}
+function renderCurQ(){
+  const qi=sess?.current_question_index??-1;const q=qi>=0?questions[qi]:null;
+  const el=document.getElementById('cur-q-display');if(!el)return;
+  if(!q){el.textContent='No active question.';return;}
+  const opts=[q.option_a,q.option_b,q.option_c,q.option_d];
+  el.innerHTML=`<div style="font-size:14px;font-weight:700;margin-bottom:10px">${q.question_text}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">${opts.map((o,j)=>
+      `<div style="padding:7px 11px;border-radius:8px;background:${j===q.correct_option?'rgba(16,185,129,0.1)':'var(--s2)'};border:1px solid ${j===q.correct_option?'rgba(16,185,129,0.3)':'var(--b)'};font-size:12px"><b>${'ABCD'[j]}.</b> ${o}</div>`
+    ).join('')}</div>`;
+}
+function renderRespChart(){
+  const qi=sess?.current_question_index??-1;const q=qi>=0?questions[qi]:null;
+  const el=document.getElementById('resp-chart');if(!el||!q){if(el)el.innerHTML='<p style="color:var(--muted);font-size:13px">No responses yet.</p>';return;}
+  const curAns=answers[q.id]||{};const total=Object.keys(curAns).length;
+  const ap=players.filter(p=>!p.is_eliminated).length;
+  document.getElementById('resp-badge').textContent=`${ap>0?Math.round((total/ap)*100):0}% · ${total}/${ap}`;
+  if(!total){el.innerHTML='<p style="color:var(--muted);font-size:13px">No responses yet.</p>';return;}
+  const counts=[0,0,0,0];Object.values(curAns).forEach(a=>{if(a.chosen_option>=0&&a.chosen_option<4)counts[a.chosen_option]++;});
+  const colors=['#00f0ff','#7c3aed','#f59e0b','#10b981'];
+  el.innerHTML=counts.map((c,i)=>`<div class="rrow">
+    <span class="rltr">${'ABCD'[i]}</span>
+    <div class="rtrack"><div class="rbar" style="width:${total>0?Math.round(c/total*100):0}%;background:${i===q.correct_option?'var(--green)':colors[i]}"></div></div>
+    <span class="rcnt">${c}</span></div>`).join('');
 }
 
-function selectCat(id) {
-  selectedCatId = id;
-  renderCategories();
-}
-
-function renderPlayers() {
-  const search = (document.getElementById('player-search')?.value||'').toLowerCase();
-  const filtered = players.filter(p=>p.name.toLowerCase().includes(search)).sort((a,b)=>b.score-a.score);
-  const el = document.getElementById('players-panel');
-  if (!filtered.length) { el.innerHTML='<p style="color:var(--muted);font-size:13px">No players found.</p>'; return; }
-  el.innerHTML = `<table style="width:100%;border-collapse:collapse">
-    <thead><tr style="border-bottom:1px solid var(--border)">
-      ${['#','Player','Score','Correct','Status','Actions'].map(h=>`<th style="text-align:left;padding:8px 10px;font-size:10px;font-family:var(--font-mono);color:var(--muted);text-transform:uppercase;letter-spacing:0.08em">${h}</th>`).join('')}
-    </tr></thead>
-    <tbody>${filtered.map((p,i)=>{
-      const init=p.name.split(' ').map(w=>w[0]).join('').toUpperCase().substring(0,2);
-      const rankCls=i<3?'rp'+(i+1):'rpn';
-      return `<tr style="border-bottom:1px solid var(--border)">
-        <td style="padding:9px 10px"><span class="rank-pip ${rankCls}">#${i+1}</span></td>
-        <td style="padding:9px 10px"><div style="display:flex;align-items:center;gap:9px">
-          <div class="p-avatar" style="background:${p.avatar_color}22;color:${p.avatar_color};width:30px;height:30px;font-size:11px">${init}</div>
-          <span class="p-name ${p.is_eliminated?'p-eliminated':''}">${p.name}</span>
-        </div></td>
-        <td style="padding:9px 10px;font-family:var(--font-mono);font-size:13px;color:var(--cyan);font-weight:700">${p.score}</td>
-        <td style="padding:9px 10px;font-family:var(--font-mono);font-size:13px;color:var(--muted2)">${p.correct_count}</td>
-        <td style="padding:9px 10px">${p.is_eliminated?'<span class="elim-badge">Eliminated</span>':'<span style="font-size:12px;color:var(--green)">● Active</span>'}</td>
-        <td style="padding:9px 10px"><div style="display:flex;gap:6px">
-          ${p.is_eliminated
-            ?`<button class="btn btn-green btn-sm" onclick="restorePlayer('${p.id}')">↩ Restore</button>`
-            :`<button class="btn btn-danger btn-sm" onclick="openElimModal('${p.id}','${p.name.replace(/'/g,"\\'")}')">⚡ Eliminate</button>`}
-        </div></td>
-      </tr>`;
-    }).join('')}</tbody>
-  </table>`;
-}
-
-// ══════════════════════════════════════════════
-// NAV
-// ══════════════════════════════════════════════
-function nav(page, el) {
+// ══ NAV ══
+function nav(page,el){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
   document.getElementById('page-'+page).classList.add('active');
-  if(el) el.classList.add('active');
-  if(page==='players') renderPlayers();
-  if(page==='game') { renderGamePage(); showMfhPhase(mfhCurrentPhase); }
-  if(page==='categories') renderCategories();
+  if(el)el.classList.add('active');
+  if(page==='players')renderPlayers();
+  if(page==='categories')renderCatListFull();
 }
 
-// ══════════════════════════════════════════════
-// TOAST
-// ══════════════════════════════════════════════
-function toast(msg, type='info') {
-  const icons = { success:'✓', error:'✕', info:'ℹ' };
-  const t = document.createElement('div');
-  t.className = `toast toast-${type}`;
-  t.innerHTML = `<span>${icons[type]}</span><span>${msg}</span>`;
-  document.getElementById('toast-container').appendChild(t);
-  setTimeout(()=>t.remove(), 3500);
+// ══ TOAST ══
+function toast(msg,type='i'){
+  const icons={s:'✓',e:'✕',i:'ℹ',w:'⚠'};
+  const cls={s:'ts-s',e:'ts-e',i:'ts-i',w:'ts-w'};
+  const t=document.createElement('div');
+  t.className=`toast ${cls[type]||'ts-i'}`;
+  t.innerHTML=`<span>${icons[type]||'ℹ'}</span><span>${msg}</span>`;
+  document.getElementById('tw').appendChild(t);
+  setTimeout(()=>t.remove(),3600);
 }
-function showToast(msg,type){toast(msg,type);}
 
-// ══════════════════════════════════════════════
-// START
-// ══════════════════════════════════════════════
 init();
 </script>
 </body>
