@@ -160,7 +160,7 @@
 
     .counter-pop { transform: scale(1.3); text-shadow: 0 0 8px #facc15; }
 
-    /* MAIN LAYOUT: Center screen + Right Leaderboard */
+    /* MAIN LAYOUT */
     .main-layout {
       display: flex;
       flex: 1;
@@ -279,7 +279,7 @@
 
     .crown-icon { font-size: 18px; margin-left: 4px; }
 
-    /* PERSISTENT FLOATING BUBBLES CONTAINER */
+    /* PERSISTENT FLOATING BUBBLES */
     .floating-bubbles {
       position: fixed;
       bottom: 20px;
@@ -324,7 +324,6 @@
     .persistent-bubble.new-player { animation: bubblePopIn 0.5s cubic-bezier(0.34, 1.3, 0.64, 1); }
     @keyframes bubblePopIn { 0% { transform: scale(0) rotate(-10deg); opacity: 0; } 50% { transform: scale(1.1); } 100% { transform: scale(1) rotate(0); opacity: 1; } }
 
-    /* Floating notification that appears briefly */
     .floating-notification {
       position: fixed;
       right: 340px;
@@ -376,7 +375,7 @@
       z-index: 10;
     }
 
-    /* ── QUESTION SCREEN (single column by default) ── */
+    /* QUESTION SCREEN */
     .q-wrapper {
       width: min(96%, 1100px);
       height: 90%;
@@ -386,14 +385,6 @@
       gap: 16px;
     }
 
-    .q-top-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-shrink: 0;
-    }
-
-    /* Main content area — switches between single-col and split */
     .q-body {
       flex: 1;
       display: grid;
@@ -407,20 +398,11 @@
       grid-template-columns: 1fr 1fr;
     }
 
-    /* Left column: question text + options */
     .q-left {
       display: flex;
       flex-direction: column;
       gap: 14px;
       min-width: 0;
-    }
-
-    .q-text-block {
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 20px;
-      padding: 20px 26px;
-      flex-shrink: 0;
     }
 
     .q-text {
@@ -476,7 +458,7 @@
       filter: grayscale(0.7);
     }
 
-    /* Right column: response bars panel (inside question screen when split) */
+    /* Right column: response bars panel */
     .q-right {
       display: flex;
       flex-direction: column;
@@ -598,78 +580,6 @@
       flex-shrink: 0;
     }
 
-    .resp-count-lbl {
-      width: 36px;
-      text-align: right;
-      font-size: 14px;
-      font-weight: 700;
-      color: var(--muted);
-      flex-shrink: 0;
-    }
-
-    /* ── RESPONSES SCREEN (standalone overlay) ── */
-    #screen-responses {
-      z-index: 12;
-      background: transparent;
-      align-items: flex-end;
-      justify-content: center;
-      padding-bottom: 32px;
-    }
-
-    #screen-responses.active {
-      pointer-events: none;
-    }
-
-    .resp-overlay-panel {
-      width: min(92%, 900px);
-      background: rgba(6, 8, 22, 0.92);
-      backdrop-filter: blur(24px);
-      border: 2px solid rgba(59, 130, 246, 0.35);
-      border-radius: 28px;
-      padding: 22px 28px 20px;
-      box-shadow: 0 -8px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
-      animation: slideUpPanel 0.45s cubic-bezier(0.34, 1.2, 0.64, 1);
-    }
-
-    @keyframes slideUpPanel {
-      from { opacity: 0; transform: translateY(60px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-
-    .resp-overlay-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 16px;
-    }
-
-    .resp-overlay-title {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 28px;
-      letter-spacing: 2px;
-      background: linear-gradient(135deg, #fff, #60a5fa);
-      -webkit-background-clip: text;
-      background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    .resp-overlay-count {
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--muted);
-      background: rgba(255,255,255,0.07);
-      padding: 4px 14px;
-      border-radius: 20px;
-      border: 1px solid rgba(255,255,255,0.1);
-    }
-
-    .resp-overlay-panel .resp-bar-row { margin-bottom: 10px; }
-    .resp-overlay-panel .resp-track { height: 46px; }
-    .resp-overlay-panel .resp-fill { font-size: 14px; padding: 0 14px; gap: 10px; }
-    .resp-overlay-panel .resp-fill-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; color: rgba(255,255,255,0.9); }
-    .resp-overlay-panel .resp-fill-pct { font-size: 15px; font-weight: 800; color: #fff; flex-shrink: 0; }
-
-    /* Waiting screen */
     .waiting-content { text-align: center; }
     .waiting-emoji { font-size: 90px; filter: drop-shadow(0 0 20px #3b82f6); animation: float 2.5s infinite; }
     @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-18px)} }
@@ -692,7 +602,7 @@
     .cat-overlay.show { opacity: 1; }
     .cat-name-big { font-family: 'Bebas Neue', sans-serif; font-size: 80px; background: linear-gradient(135deg, #fff, var(--accent)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
 
-    .lb-wrapper, .resp-wrapper { background: rgba(0,0,0,0.6); border-radius: 40px; padding: 30px; backdrop-filter: blur(12px); width: 80%; max-width: 800px; }
+    .lb-wrapper { background: rgba(0,0,0,0.6); border-radius: 40px; padding: 30px; backdrop-filter: blur(12px); width: 80%; max-width: 800px; }
     .lb-title { font-family: 'Bebas Neue', sans-serif; font-size: 60px; text-align: center; background: linear-gradient(135deg, var(--yellow), var(--pink)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
     .lb-list { display: flex; flex-direction: column; gap: 12px; }
     .lb-row { display: flex; align-items: center; gap: 16px; padding: 12px 20px; background: rgba(0,0,0,0.4); border-radius: 16px; }
@@ -724,7 +634,6 @@
   <div class="main-layout">
     <div class="center-stage">
       <div class="display-area">
-        <!-- Waiting Screen -->
         <div id="screen-waiting" class="screen active">
           <div class="waiting-content">
             <div class="waiting-emoji">🎮</div>
@@ -734,7 +643,6 @@
           </div>
         </div>
 
-        <!-- Question Screen (can split into two columns) -->
         <div id="screen-question" class="screen">
           <div class="q-wrapper">
             <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -751,9 +659,7 @@
               </div>
             </div>
 
-            <!-- q-body: switches between single column and two columns -->
             <div class="q-body" id="qBody">
-              <!-- Left side: question + options -->
               <div class="q-left">
                 <div style="text-align:center; padding:20px 0;">
                   <div class="q-text" id="qText" style="font-size:32px; font-weight:800;">Loading...</div>
@@ -761,7 +667,6 @@
                 <div class="options-grid" id="optionsGrid"></div>
               </div>
               
-              <!-- Right side: response bars (hidden by default) -->
               <div class="q-right" id="qRight">
                 <div class="resp-panel">
                   <div class="resp-panel-header">
@@ -775,7 +680,6 @@
           </div>
         </div>
 
-        <!-- Leaderboard Screen -->
         <div id="screen-leaderboard" class="screen">
           <div class="lb-wrapper">
             <div class="lb-title">🏆 LEADERBOARD</div>
@@ -783,18 +687,6 @@
           </div>
         </div>
 
-        <!-- Standalone Responses Overlay (for backward compatibility) -->
-        <div id="screen-responses" class="screen" style="align-items:flex-end;justify-content:center;padding-bottom:32px;pointer-events:none;">
-          <div class="resp-overlay-panel">
-            <div class="resp-overlay-header">
-              <span class="resp-overlay-title">📊 LIVE RESPONSES</span>
-              <span id="respOverlayCount" class="resp-overlay-count"></span>
-            </div>
-            <div id="respBarsContainer"></div>
-          </div>
-        </div>
-
-        <!-- Ended Screen -->
         <div id="screen-ended" class="screen">
           <div class="end-content">
             <div class="end-icon">🏁</div>
@@ -805,7 +697,6 @@
       </div>
     </div>
 
-    <!-- Right Live Leaderboard Panel -->
     <div class="live-leaderboard-panel">
       <div class="live-lb-header">
         <div class="live-lb-title"><span>🏆</span> LIVE RANKINGS</div>
@@ -817,7 +708,6 @@
     </div>
   </div>
 
-  <!-- Floating bubbles -->
   <div class="floating-bubbles" id="floatingBubbles"></div>
 
   <div class="footer">
@@ -841,14 +731,12 @@ const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
 const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-// Audio
 const AC = window.AudioContext || window.webkitAudioContext;
 let ac;
 function getAC() { if (!ac) ac = new AC(); if (ac.state === 'suspended') ac.resume(); return ac; }
 function playPopSound() { try { const ctx = getAC(); const o = ctx.createOscillator(), g = ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.type = 'sine'; o.frequency.value = 600 + Math.random() * 150; g.gain.value = 0.2; g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3); o.start(); o.stop(ctx.currentTime + 0.25); } catch(e) {} }
 function playJoinChime() { try { const ctx = getAC(); [[523,0],[659,0.08],[784,0.16]].forEach(([f,d]) => { const o = ctx.createOscillator(), g = ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.frequency.value = f; o.type = 'sine'; g.gain.value = 0.2; g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + d + 0.2); o.start(ctx.currentTime + d); o.stop(ctx.currentTime + d + 0.2); }); } catch(e) {} }
 
-// State
 let SESSION_ID = null;
 let currentQuestion = null;
 let timerInterval = null;
@@ -856,8 +744,6 @@ let timeLeft = 0, totalTime = 0;
 let lastKnownPlayerCount = 0;
 let gameActive = false;
 let realtimeChannels = [];
-
-// Store players
 let currentPlayers = new Map();
 
 const animatedCounterSpan = document.getElementById('animatedCounter');
@@ -873,7 +759,6 @@ function animateCounterNumber(newCount) {
 
 function escapeHtml(str) { return String(str || '').replace(/[&<>]/g, function(m){if(m==='&')return '&amp;';if(m==='<')return '&lt;';if(m==='>')return '&gt;';return m;}); }
 
-// Show floating notification
 function showFloatingNotification(playerName, avatarEmoji) {
   const container = document.querySelector('.main-layout');
   const notif = document.createElement('div');
@@ -887,7 +772,6 @@ function showFloatingNotification(playerName, avatarEmoji) {
   setTimeout(() => notif.remove(), 3000);
 }
 
-// Add persistent bubble
 function addPersistentBubble(playerId, playerName, avatarEmoji, score = 0) {
   if (!floatingBubblesContainer) return;
   if (document.getElementById(`bubble-${playerId}`)) return;
@@ -905,7 +789,6 @@ function addPersistentBubble(playerId, playerName, avatarEmoji, score = 0) {
   playJoinChime();
   playPopSound();
   showFloatingNotification(playerName, avatarEmoji);
-  
   floatingBubblesContainer.scrollTop = floatingBubblesContainer.scrollHeight;
 }
 
@@ -915,9 +798,7 @@ function updateBubbleScore(playerId, score) {
 }
 
 function clearAllBubbles() {
-  if (floatingBubblesContainer) {
-    floatingBubblesContainer.innerHTML = '';
-  }
+  if (floatingBubblesContainer) floatingBubblesContainer.innerHTML = '';
 }
 
 function updateLiveLeaderboard() {
@@ -926,6 +807,8 @@ function updateLiveLeaderboard() {
   const players = Array.from(currentPlayers.values())
     .filter(p => !p.is_eliminated)
     .sort((a, b) => b.score - a.score);
+  
+  console.log('📊 Updating leaderboard:', players.map(p => ({ name: p.name, score: p.score })));
   
   if (players.length === 0) {
     liveLeaderboardList.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);">👾 No players yet</div>';
@@ -942,7 +825,7 @@ function updateLiveLeaderboard() {
         <div class="live-lb-info">
           <div class="live-lb-name">${escapeHtml(p.name)}</div>
           <div class="live-lb-stats">
-            <span>✅ ${p.correct_count || 0}</span>
+            <span>✅ ${p.correct_count || 0} correct</span>
           </div>
         </div>
         <div class="live-lb-score">${p.score} ${crown}</div>
@@ -951,16 +834,14 @@ function updateLiveLeaderboard() {
   }).join('');
 }
 
-// Main sync function
 async function syncPlayers() {
   if (!SESSION_ID) return;
-  
-  console.log('Syncing players for session:', SESSION_ID);
   
   const { data: players, error } = await sb
     .from('players')
     .select('id, name, avatar_color, avatar_emoji, score, correct_count, is_eliminated')
-    .eq('session_id', SESSION_ID);
+    .eq('session_id', SESSION_ID)
+    .order('score', { ascending: false });
   
   if (error) {
     console.error('Error fetching players:', error);
@@ -969,7 +850,7 @@ async function syncPlayers() {
   
   if (!players) return;
   
-  console.log(`Found ${players.length} players`);
+  console.log(`👥 Synced ${players.length} players:`, players.map(p => ({ name: p.name, score: p.score })));
   
   const currentPlayerIds = new Set();
   const newCount = players.length;
@@ -984,10 +865,8 @@ async function syncPlayers() {
     const emoji = p.avatar_emoji || p.avatar_color || '🎮';
     
     if (!currentPlayers.has(p.id)) {
-      console.log('New player detected:', p.name, p.id);
-      if (!gameActive) {
-        addPersistentBubble(p.id, p.name, emoji, p.score || 0);
-      }
+      console.log('🆕 New player:', p.name, p.id);
+      if (!gameActive) addPersistentBubble(p.id, p.name, emoji, p.score || 0);
       currentPlayers.set(p.id, {
         name: p.name,
         avatar: emoji,
@@ -999,6 +878,7 @@ async function syncPlayers() {
       const existing = currentPlayers.get(p.id);
       const newScore = p.score || 0;
       if (existing.score !== newScore) {
+        console.log(`📈 Score update: ${p.name} ${existing.score} → ${newScore}`);
         updateBubbleScore(p.id, newScore);
       }
       currentPlayers.set(p.id, {
@@ -1022,37 +902,28 @@ async function syncPlayers() {
   updateLiveLeaderboard();
 }
 
-// Set up real-time subscription for players table
-// In foh.html, replace setupRealtimePlayers with this improved version:
 function setupRealtimePlayers() {
   if (!SESSION_ID) return;
-  
-  console.log('Setting up real-time player subscription for session:', SESSION_ID);
   
   realtimeChannels.forEach(ch => {
     try { sb.removeChannel(ch); } catch(e) {}
   });
   realtimeChannels = [];
   
-  // Subscribe to ALL changes on players table for this session
   const playersChannel = sb.channel(`players-all-${SESSION_ID}`);
   playersChannel
     .on('postgres_changes', {
-      event: '*',  // Listen to ALL events (INSERT, UPDATE, DELETE)
+      event: '*',
       schema: 'public',
       table: 'players',
       filter: `session_id=eq.${SESSION_ID}`
     }, (payload) => {
-      console.log('Player change detected:', payload.eventType, payload.new || payload.old);
-      // Immediately sync all players to refresh the leaderboard
+      console.log('🔄 Player change detected:', payload.eventType);
       syncPlayers();
     })
-    .subscribe((status) => {
-      console.log('Players channel status:', status);
-    });
+    .subscribe();
   realtimeChannels.push(playersChannel);
   
-  // Also subscribe to answers table to catch score updates
   const answersChannel = sb.channel(`answers-${SESSION_ID}`);
   answersChannel
     .on('postgres_changes', {
@@ -1061,9 +932,8 @@ function setupRealtimePlayers() {
       table: 'answers',
       filter: `session_id=eq.${SESSION_ID}`
     }, (payload) => {
-      console.log('New answer submitted, refreshing leaderboard');
-      // Delay slightly to allow player score update to complete
-      setTimeout(() => syncPlayers(), 500);
+      console.log('📝 New answer submitted');
+      setTimeout(() => syncPlayers(), 300);
     })
     .subscribe();
   realtimeChannels.push(answersChannel);
@@ -1096,7 +966,7 @@ function setupGameEvents() {
 }
 
 function handleEvent(evt) {
-  console.log('Game event:', evt.event_type, evt.payload);
+  console.log('🎮 Game event:', evt.event_type);
   
   switch(evt.event_type) {
     case 'category_banner':
@@ -1111,11 +981,8 @@ function handleEvent(evt) {
       break;
     case 'show_question_view':
       if (evt.payload && evt.payload.question) {
-        // Hide responses overlay and reset split view
-        document.getElementById('screen-responses')?.classList.remove('active');
         document.getElementById('qRight')?.classList.remove('visible');
         document.getElementById('qBody')?.classList.remove('with-responses');
-        
         displayQuestion(evt.payload.question);
         showScreen('question');
         startTimer(totalTime);
@@ -1132,7 +999,6 @@ function handleEvent(evt) {
       break;
     case 'show_responses':
       if (evt.payload) {
-        // Use inline side-by-side display instead of overlay
         displayResponseInline(evt.payload.distribution, evt.payload.totalPlayers, evt.payload.correctIdx, evt.payload.options);
       }
       break;
@@ -1191,7 +1057,6 @@ function startTimer(duration) {
 
 function stopTimer() { if (timerInterval) clearInterval(timerInterval); timerInterval = null; }
 
-// When timer hits zero, show responses inline side-by-side
 async function autoShowResponsesInline() {
   if (!currentQuestion || !SESSION_ID) return;
   try {
@@ -1203,7 +1068,7 @@ async function autoShowResponsesInline() {
     ans?.forEach(a => { if (a.chosen_option >= 0 && a.chosen_option < 4) dist[a.chosen_option]++; });
     const players = Array.from(currentPlayers.values());
     const opts = [currentQuestion.option_a, currentQuestion.option_b, currentQuestion.option_c, currentQuestion.option_d];
-    displayResponseInline(dist, players.length, null, opts); // null correctIdx — not revealed yet
+    displayResponseInline(dist, players.length, null, opts);
   } catch(e) { console.error('autoShowResponsesInline error', e); }
 }
 
@@ -1227,7 +1092,6 @@ function revealAnswer(correctIdx, options, explanation) {
     else el.classList.add('wrong');
   });
   
-  // If responses are already displayed inline, re-render with correct answer highlighted
   const qRight = document.getElementById('qRight');
   if (qRight && qRight.classList.contains('visible') && currentQuestion) {
     sb.from('answers').select('chosen_option')
@@ -1245,6 +1109,9 @@ function revealAnswer(correctIdx, options, explanation) {
   if (explanation) banner.innerHTML += `<div style="font-size:14px;opacity:.8;margin-top:4px">${explanation}</div>`;
   banner.classList.add('show');
   setTimeout(() => banner.classList.remove('show'), 5000);
+  
+  // Refresh leaderboard after answer reveal
+  setTimeout(() => syncPlayers(), 500);
 }
 
 function displayLeaderboard(leaders) {
@@ -1264,7 +1131,6 @@ function displayLeaderboard(leaders) {
   `).join('');
 }
 
-// NEW: Display responses inline in the q-right panel (side-by-side with question)
 function displayResponseInline(dist, totalPlayers, correctIdx, options) {
   if (!dist) dist = [0, 0, 0, 0];
   const colors = ['#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899'];
@@ -1272,11 +1138,9 @@ function displayResponseInline(dist, totalPlayers, correctIdx, options) {
   const total = dist.reduce((a, b) => a + b, 0);
   const maxCount = Math.max(...dist, 1);
   
-  // Update the inline panel count
   const countBadge = document.getElementById('respPanelCount');
   if (countBadge) countBadge.innerText = `${total} / ${totalPlayers} answered`;
   
-  // Show the right panel and switch to two-column layout
   const qRight = document.getElementById('qRight');
   const qBody = document.getElementById('qBody');
   if (qRight) qRight.classList.add('visible');
@@ -1302,46 +1166,8 @@ function displayResponseInline(dist, totalPlayers, correctIdx, options) {
     `;
   }).join('');
   
-  // Animate bars
   setTimeout(() => {
     document.querySelectorAll('#respBarsInline .resp-fill').forEach(el => {
-      el.style.width = el.dataset.target + '%';
-    });
-  }, 100);
-}
-
-// Keep old displayResponseDist for backward compatibility (standalone overlay)
-function displayResponseDist(dist, totalPlayers, correctIdx, options) {
-  if (!dist) dist = [0, 0, 0, 0];
-  const colors = ['#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899'];
-  const letters = ['A', 'B', 'C', 'D'];
-  const total = dist.reduce((a, b) => a + b, 0);
-  const maxCount = Math.max(...dist, 1);
-  const container = document.getElementById('respBarsContainer');
-  const countBadge = document.getElementById('respOverlayCount');
-  if (countBadge) countBadge.innerText = `${total} / ${totalPlayers} answered`;
-
-  container.innerHTML = dist.map((count, i) => {
-    const percentage = totalPlayers > 0 ? Math.round((count / totalPlayers) * 100) : 0;
-    const barWidth = maxCount > 0 ? (count / maxCount) * 100 : 0;
-    const isCorrect = correctIdx !== null && correctIdx !== undefined && i === correctIdx;
-    const choiceText = options && options[i] ? options[i] : '';
-    return `
-      <div class="resp-bar-row">
-        <div class="resp-ltr" style="background:${colors[i]}30;color:${colors[i]}">${letters[i]}</div>
-        <div class="resp-track">
-          <div class="resp-fill" style="width:0%;background:${isCorrect ? 'var(--green)' : colors[i]}" data-target="${barWidth}">
-            <span class="resp-fill-label">${escapeHtml(choiceText)}</span>
-            <span class="resp-fill-pct">${percentage}%</span>
-          </div>
-        </div>
-        <div style="width:52px;text-align:right;font-weight:700;font-size:16px;">${count}</div>
-      </div>
-    `;
-  }).join('');
-  
-  setTimeout(() => {
-    document.querySelectorAll('#respBarsContainer .resp-fill').forEach(el => {
       el.style.width = el.dataset.target + '%';
     });
   }, 100);
@@ -1356,17 +1182,6 @@ function showCategoryOverlay(icon, name) {
 }
 
 function showScreen(screenId) {
-  // If showing responses via old overlay method, just show overlay on top
-  if (screenId === 'responses') {
-    const el = document.getElementById('screen-responses');
-    if (el) el.classList.add('active');
-    return;
-  }
-  
-  // Hide responses overlay
-  const respEl = document.getElementById('screen-responses');
-  if (respEl) respEl.classList.remove('active');
-
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   const el = document.getElementById(`screen-${screenId}`);
   if (el) el.classList.add('active');
@@ -1409,13 +1224,12 @@ function updateFooterTime() {
   document.getElementById('footerTime').innerText = new Date().toLocaleTimeString();
 }
 
-// Aggressive polling as fallback
 let pollingInterval = null;
 function startPolling() {
   if (pollingInterval) clearInterval(pollingInterval);
   pollingInterval = setInterval(() => {
     syncPlayers();
-  }, 3000);
+  }, 5000);
 }
 
 async function init() {
@@ -1450,7 +1264,7 @@ async function init() {
   setupGameEvents();
   startPolling();
   
-  console.log('FOH initialized for session:', SESSION_ID);
+  console.log('✅ FOH initialized for session:', SESSION_ID);
 }
 
 init();
