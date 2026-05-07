@@ -335,6 +335,55 @@
     .display-area { position: relative; width: 100%; height: 100%; }
     .screen { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.4s ease; z-index: 1; }
     .screen.active { opacity: 1; pointer-events: auto; z-index: 10; }
+    /* Responses screen sits on top of the question screen without hiding it */
+    #screen-responses { z-index: 12; background: transparent; }
+    #screen-responses.active { pointer-events: none; }
+
+    /* Response overlay panel — docked to bottom of screen */
+    .resp-overlay-panel {
+      width: min(92%, 900px);
+      background: rgba(6, 8, 22, 0.92);
+      backdrop-filter: blur(24px);
+      border: 2px solid rgba(59, 130, 246, 0.35);
+      border-radius: 28px;
+      padding: 22px 28px 20px;
+      box-shadow: 0 -8px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
+      animation: slideUpPanel 0.45s cubic-bezier(0.34, 1.2, 0.64, 1);
+    }
+    @keyframes slideUpPanel {
+      from { opacity: 0; transform: translateY(60px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .resp-overlay-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .resp-overlay-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 28px;
+      letter-spacing: 2px;
+      background: linear-gradient(135deg, #fff, #60a5fa);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .resp-overlay-count {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--muted);
+      background: rgba(255,255,255,0.07);
+      padding: 4px 14px;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    /* Overlay bars — slightly taller so choice text is readable */
+    .resp-overlay-panel .resp-bar-row { margin-bottom: 10px; }
+    .resp-overlay-panel .resp-track { height: 46px; }
+    .resp-overlay-panel .resp-fill { font-size: 14px; padding: 0 14px; gap: 10px; }
+    .resp-overlay-panel .resp-fill-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; color: rgba(255,255,255,0.9); }
+    .resp-overlay-panel .resp-fill-pct { font-size: 15px; font-weight: 800; color: #fff; flex-shrink: 0; }
     
     .waiting-content { text-align: center; }
     .waiting-emoji { font-size: 90px; filter: drop-shadow(0 0 20px #3b82f6); animation: float 2.5s infinite; }
@@ -412,7 +461,7 @@
           </div>
         </div>
         <div id="screen-leaderboard" class="screen"><div class="lb-wrapper"><div class="lb-title">🏆 LEADERBOARD</div><div class="lb-list" id="lbList"></div></div></div>
-        <div id="screen-responses" class="screen"><div class="resp-wrapper"><div class="lb-title">📊 RESPONSE DISTRIBUTION</div><div id="respBarsContainer"></div></div></div>
+        <div id="screen-responses" class="screen" style="align-items:flex-end;justify-content:center;padding-bottom:32px;pointer-events:none;"><div class="resp-overlay-panel"><div class="resp-overlay-header"><span class="resp-overlay-title">📊 LIVE RESPONSES</span><span id="respOverlayCount" class="resp-overlay-count"></span></div><div id="respBarsContainer"></div></div></div>
         <div id="screen-ended" class="screen"><div class="end-content"><div class="end-icon">🏁</div><div class="end-title">GAME OVER!</div><div style="font-size:24px;color:var(--muted);margin-top:16px">Thanks for playing!</div></div></div>
       </div>
     </div>
@@ -759,6 +808,7 @@ function handleEvent(evt) {
       break;
     case 'show_question_view':
       if (evt.payload && evt.payload.question) {
+        document.getElementById('screen-responses')?.classList.remove('active');
         displayQuestion(evt.payload.question);
         showScreen('question');
         startTimer(totalTime);
@@ -825,11 +875,30 @@ function startTimer(duration) {
   timerInterval = setInterval(() => {
     timeLeft--;
     updateTimerUI();
-    if (timeLeft <= 0) stopTimer();
+    if (timeLeft <= 0) {
+      stopTimer();
+      autoShowResponses();
+    }
   }, 1000);
 }
 
 function stopTimer() { if (timerInterval) clearInterval(timerInterval); timerInterval = null; }
+
+async function autoShowResponses() {
+  if (!currentQuestion || !SESSION_ID) return;
+  try {
+    const { data: ans } = await sb.from('answers')
+      .select('chosen_option')
+      .eq('session_id', SESSION_ID)
+      .eq('question_id', currentQuestion.id);
+    const dist = [0, 0, 0, 0];
+    ans?.forEach(a => { if (a.chosen_option >= 0 && a.chosen_option < 4) dist[a.chosen_option]++; });
+    const players = Array.from(currentPlayers.values());
+    const opts = [currentQuestion.option_a, currentQuestion.option_b, currentQuestion.option_c, currentQuestion.option_d];
+    displayResponseDist(dist, players.length, null, opts); // null correctIdx — not revealed yet
+    showScreen('responses');
+  } catch(e) { console.error('autoShowResponses error', e); }
+}
 
 function updateTimerUI() {
   const ring = document.getElementById('timerRing');
@@ -850,6 +919,18 @@ function revealAnswer(correctIdx, options, explanation) {
     if (i === correctIdx) el.classList.add('correct');
     else el.classList.add('wrong');
   });
+  // If response overlay is already open, re-render bars with correct answer highlighted
+  const respScreen = document.getElementById('screen-responses');
+  if (respScreen && respScreen.classList.contains('active') && currentQuestion) {
+    sb.from('answers').select('chosen_option')
+      .eq('session_id', SESSION_ID).eq('question_id', currentQuestion.id)
+      .then(({ data: ans }) => {
+        const dist = [0, 0, 0, 0];
+        ans?.forEach(a => { if (a.chosen_option >= 0 && a.chosen_option < 4) dist[a.chosen_option]++; });
+        const opts = options || [currentQuestion.option_a, currentQuestion.option_b, currentQuestion.option_c, currentQuestion.option_d];
+        displayResponseDist(dist, Array.from(currentPlayers.values()).length, correctIdx, opts);
+      });
+  }
   const banner = document.getElementById('revealBanner');
   banner.innerHTML = `✅ Correct Answer: <strong>${letters[correctIdx]}</strong>${options && options[correctIdx] ? ` — ${options[correctIdx]}` : ''}`;
   if (explanation) banner.innerHTML += `<div style="font-size:14px;opacity:.8;margin-top:4px">${explanation}</div>`;
@@ -878,21 +959,34 @@ function displayResponseDist(dist, totalPlayers, correctIdx, options) {
   if (!dist) dist = [0, 0, 0, 0];
   const colors = ['#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899'];
   const letters = ['A', 'B', 'C', 'D'];
+  const total = dist.reduce((a, b) => a + b, 0);
   const maxCount = Math.max(...dist, 1);
   const container = document.getElementById('respBarsContainer');
+  // Update count badge
+  const countBadge = document.getElementById('respOverlayCount');
+  if (countBadge) countBadge.innerText = `${total} / ${totalPlayers} answered`;
+
   container.innerHTML = dist.map((count, i) => {
     const percentage = totalPlayers > 0 ? Math.round((count / totalPlayers) * 100) : 0;
     const barWidth = maxCount > 0 ? (count / maxCount) * 100 : 0;
-    const isCorrect = i === correctIdx;
+    const isCorrect = correctIdx !== null && correctIdx !== undefined && i === correctIdx;
+    const choiceText = options && options[i] ? options[i] : '';
     return `
       <div class="resp-bar-row">
         <div class="resp-ltr" style="background:${colors[i]}30;color:${colors[i]}">${letters[i]}</div>
-        <div class="resp-track"><div class="resp-fill" style="width:0%;background:${isCorrect ? 'var(--green)' : colors[i]}" data-target="${barWidth}"><span style="margin-left:auto;font-weight:800;">${percentage}%</span></div></div>
-        <div style="width:60px;text-align:right;font-weight:600;">${count}</div>
+        <div class="resp-track">
+          <div class="resp-fill" style="width:0%;background:${isCorrect ? 'var(--green)' : colors[i]}" data-target="${barWidth}">
+            <span class="resp-fill-label">${escapeHtml(choiceText)}</span>
+            <span class="resp-fill-pct">${percentage}%</span>
+          </div>
+        </div>
+        <div style="width:52px;text-align:right;font-weight:700;font-size:16px;">${count}</div>
       </div>
     `;
   }).join('');
-  setTimeout(() => { document.querySelectorAll('.resp-fill').forEach(el => { el.style.width = el.dataset.target + '%'; }); }, 100);
+  setTimeout(() => {
+    document.querySelectorAll('.resp-fill').forEach(el => { el.style.width = el.dataset.target + '%'; });
+  }, 100);
 }
 
 function showCategoryOverlay(icon, name) {
@@ -904,6 +998,16 @@ function showCategoryOverlay(icon, name) {
 }
 
 function showScreen(screenId) {
+  // Responses overlay sits ON TOP of question — don't hide question when showing responses
+  if (screenId === 'responses') {
+    const el = document.getElementById('screen-responses');
+    if (el) el.classList.add('active');
+    return;
+  }
+  // For any other screen, hide the responses overlay first
+  const respEl = document.getElementById('screen-responses');
+  if (respEl) respEl.classList.remove('active');
+
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   const el = document.getElementById(`screen-${screenId}`);
   if (el) el.classList.add('active');
