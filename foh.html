@@ -2,14 +2,21 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PlayAQuiz — Live Display</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>PlayAQuiz — Live Display with Bubble Burst Animations</title>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      user-select: none;
+    }
+
     :root {
       --bg: #04060e;
-      --surface: rgba(13,17,32,0.95);
+      --surface: rgba(13, 17, 32, 0.95);
       --accent: #3b82f6;
       --green: #10b981;
       --yellow: #f59e0b;
@@ -17,11 +24,13 @@
       --purple: #8b5cf6;
       --pink: #ec4899;
       --text: #ffffff;
-      --muted: rgba(255,255,255,0.5);
+      --muted: rgba(255, 255, 255, 0.5);
     }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; overflow: hidden; }
-    body {
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
       background: var(--bg);
       font-family: 'Space Grotesk', sans-serif;
       color: var(--text);
@@ -32,58 +41,127 @@
       content: '';
       position: fixed;
       inset: 0;
-      background-image:
-        linear-gradient(rgba(59,130,246,0.04) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(59,130,246,0.04) 1px, transparent 1px);
+      background-image: linear-gradient(rgba(59, 130, 246, 0.04) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(59, 130, 246, 0.04) 1px, transparent 1px);
       background-size: 60px 60px;
+      pointer-events: none;
       z-index: 0;
     }
 
-    /* ── Layout ── */
-    .foh { position: relative; width: 100%; height: 100vh; display: flex; flex-direction: column; z-index: 1; }
+    .foh {
+      position: relative;
+      width: 100%;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      z-index: 1;
+    }
 
+    /* TOP BAR with bubble counter */
     .top-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
       padding: 16px 32px;
-      background: rgba(4,6,14,0.8);
+      background: rgba(4, 6, 14, 0.8);
       backdrop-filter: blur(20px);
-      border-bottom: 1px solid rgba(59,130,246,0.15);
+      border-bottom: 1px solid rgba(59, 130, 246, 0.15);
       z-index: 20;
       flex-shrink: 0;
     }
+
     .logo {
       font-family: 'Bebas Neue', sans-serif;
       font-size: 32px;
       letter-spacing: 4px;
       background: linear-gradient(135deg, #fff 40%, var(--accent));
       -webkit-background-clip: text;
+      background-clip: text;
       -webkit-text-fill-color: transparent;
     }
+
     .live-badge {
       display: flex;
       align-items: center;
       gap: 8px;
-      background: rgba(16,185,129,0.15);
-      border: 1px solid rgba(16,185,129,0.3);
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.3);
       padding: 6px 16px;
       border-radius: 40px;
       font-weight: 700;
       font-size: 14px;
       color: var(--green);
     }
-    .live-dot { width: 8px; height: 8px; background: var(--green); border-radius: 50%; animation: pulse 1.5s infinite; }
-    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(0.8)} }
+
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--green);
+      border-radius: 50%;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+
     .room-badge {
       font-family: 'JetBrains Mono', monospace;
       font-size: 22px;
       font-weight: 700;
-      background: rgba(59,130,246,0.12);
-      border: 1px solid rgba(59,130,246,0.3);
+      background: rgba(59, 130, 246, 0.12);
+      border: 1px solid rgba(59, 130, 246, 0.3);
       padding: 8px 20px;
       border-radius: 40px;
       letter-spacing: 4px;
+    }
+
+    /* Animated Player Counter with bubble effect */
+    .player-counter-area {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(0, 0, 0, 0.6);
+      padding: 6px 20px;
+      border-radius: 80px;
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      transition: all 0.2s ease;
+    }
+
+    .counter-icon {
+      font-size: 22px;
+      animation: subtleFloat 2s infinite;
+    }
+
+    @keyframes subtleFloat {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-3px); }
+    }
+
+    .counter-number {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 32px;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--green), #34d399);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      line-height: 1;
+      transition: transform 0.3s cubic-bezier(0.34, 1.2, 0.64, 1);
+      display: inline-block;
+    }
+
+    .counter-pop {
+      transform: scale(1.25);
+      text-shadow: 0 0 8px var(--green);
+    }
+
+    .counter-label {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--muted);
     }
 
     .display-area {
@@ -92,7 +170,7 @@
       overflow: hidden;
     }
 
-    /* ── Screens ── */
+    /* Screens */
     .screen {
       position: absolute;
       inset: 0;
@@ -104,39 +182,45 @@
       transition: opacity 0.4s ease;
       z-index: 1;
     }
-    .screen.active { opacity: 1; pointer-events: auto; z-index: 10; }
 
-    /* ── Waiting ── */
+    .screen.active {
+      opacity: 1;
+      pointer-events: auto;
+      z-index: 10;
+    }
+
+    /* Waiting screen */
     .waiting-content { text-align: center; }
     .waiting-emoji {
       font-size: 100px;
       display: block;
       margin-bottom: 24px;
       animation: float 3s ease-in-out infinite;
-      filter: drop-shadow(0 0 40px rgba(59,130,246,0.4));
     }
-    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-20px)} }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-20px); }
+    }
     .waiting-title {
       font-family: 'Bebas Neue', sans-serif;
       font-size: 80px;
       letter-spacing: 6px;
       background: linear-gradient(135deg, #fff 40%, var(--accent));
       -webkit-background-clip: text;
+      background-clip: text;
       -webkit-text-fill-color: transparent;
-      line-height: 1;
-      margin-bottom: 16px;
     }
-    .waiting-sub { font-size: 20px; color: var(--muted); margin-bottom: 32px; }
     .big-room-code {
       font-family: 'JetBrains Mono', monospace;
       font-size: 56px;
       font-weight: 700;
       letter-spacing: 10px;
-      background: rgba(59,130,246,0.12);
-      border: 2px solid rgba(59,130,246,0.3);
+      background: rgba(59, 130, 246, 0.12);
+      border: 2px solid rgba(59, 130, 246, 0.3);
       padding: 20px 48px;
       border-radius: 24px;
       display: inline-block;
+      margin-top: 20px;
     }
     .player-count-bar {
       margin-top: 32px;
@@ -147,428 +231,343 @@
       justify-content: center;
       gap: 12px;
     }
-    .player-count-num { font-size: 48px; font-weight: 800; color: var(--green); }
-
-    /* ── Question Screen ── */
-    .q-wrapper {
-      width: min(90%, 1100px);
-      display: grid;
-      grid-template-rows: auto 1fr auto;
-      gap: 32px;
-      height: 90%;
-      padding: 20px 0;
-    }
-    .q-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 16px;
-    }
-    .q-meta-left { display: flex; gap: 12px; align-items: center; }
-    .q-num-badge {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 14px;
-      font-weight: 700;
-      background: rgba(255,255,255,0.08);
-      padding: 6px 16px;
-      border-radius: 20px;
-    }
-    .cat-badge {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: rgba(59,130,246,0.12);
-      border: 1px solid rgba(59,130,246,0.25);
-      padding: 6px 16px;
-      border-radius: 20px;
-      font-size: 15px;
-      font-weight: 700;
-    }
-
-    /* Timer */
-    .timer-container {
-      position: relative;
-      width: 100px;
-      height: 100px;
-      flex-shrink: 0;
-    }
-    .timer-svg { transform: rotate(-90deg); }
-    .timer-track { fill: none; stroke: rgba(255,255,255,0.1); stroke-width: 8; }
-    .timer-ring { fill: none; stroke: var(--accent); stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 0.95s linear, stroke 0.3s; }
-    .timer-num {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 32px;
-      font-weight: 700;
-    }
-    .timer-urgent { animation: timerPulse 0.5s infinite; }
-    @keyframes timerPulse { 0%,100%{opacity:1} 50%{opacity:.6} }
-
-    /* Question text */
-    .q-text-area {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .q-text {
-      font-size: clamp(24px, 4vw, 48px);
+    .player-count-num {
+      font-size: 48px;
       font-weight: 800;
-      text-align: center;
-      line-height: 1.3;
-      text-shadow: 0 2px 20px rgba(0,0,0,0.5);
+      color: var(--green);
     }
 
-    /* Options */
-    .options-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-    }
-    .opt-item {
-      display: flex;
-      align-items: center;
-      gap: 20px;
-      padding: 20px 28px;
-      background: rgba(255,255,255,0.05);
-      border: 2px solid rgba(255,255,255,0.1);
-      border-radius: 20px;
-      font-size: clamp(16px, 2vw, 22px);
-      font-weight: 600;
-      transition: all 0.3s;
-      backdrop-filter: blur(10px);
-    }
-    .opt-letter {
-      width: 48px;
-      height: 48px;
-      border-radius: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 800;
-      font-size: 20px;
-      flex-shrink: 0;
-    }
-    .opt-a .opt-letter { background: rgba(59,130,246,0.3); color: #93c5fd; }
-    .opt-b .opt-letter { background: rgba(139,92,246,0.3); color: #c4b5fd; }
-    .opt-c .opt-letter { background: rgba(245,158,11,0.3); color: #fcd34d; }
-    .opt-d .opt-letter { background: rgba(236,72,153,0.3); color: #f9a8d4; }
-    .opt-item.correct {
-      border-color: var(--green);
-      background: rgba(16,185,129,0.2);
-      box-shadow: 0 0 40px rgba(16,185,129,0.3);
-      animation: correctBounce 0.5s ease;
-    }
-    .opt-item.wrong { opacity: 0.35; filter: grayscale(0.6); }
-    @keyframes correctBounce { 0%{transform:scale(1)} 50%{transform:scale(1.03)} 100%{transform:scale(1)} }
-
-    /* ── Leaderboard ── */
-    .lb-wrapper { width: min(85%, 800px); }
-    .lb-title {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 72px;
-      letter-spacing: 6px;
-      text-align: center;
-      background: linear-gradient(135deg, var(--yellow), var(--pink));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin-bottom: 32px;
-    }
-    .lb-list { display: flex; flex-direction: column; gap: 12px; }
-    .lb-row {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      padding: 16px 24px;
-      background: var(--surface);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 20px;
-      animation: slideInRow 0.4s ease backwards;
-    }
-    .lb-rank-num { font-size: 28px; width: 52px; text-align: center; font-weight: 800; }
-    .lb-avatar { font-size: 32px; }
-    .lb-name { flex: 1; font-size: 22px; font-weight: 700; }
-    .lb-pts { font-family: 'JetBrains Mono', monospace; font-size: 28px; font-weight: 700; color: var(--yellow); }
-    .lb-correct { font-size: 14px; color: var(--muted); }
-    @keyframes slideInRow { from{opacity:0;transform:translateX(-30px)} to{opacity:1;transform:translateX(0)} }
-
-    /* ── Response Distribution ── */
-    .resp-wrapper { width: min(80%, 900px); }
-    .resp-title { font-size: 36px; font-weight: 800; text-align: center; margin-bottom: 32px; }
-    .resp-bar-row { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
-    .resp-ltr {
-      width: 52px; height: 52px; border-radius: 14px; display: flex;
-      align-items: center; justify-content: center; font-weight: 800; font-size: 22px; flex-shrink: 0;
-    }
-    .resp-track {
-      flex: 1; height: 52px; background: rgba(255,255,255,0.07);
-      border-radius: 14px; overflow: hidden; position: relative;
-    }
-    .resp-fill {
-      height: 100%; border-radius: 14px; display: flex; align-items: center;
-      padding: 0 16px; justify-content: flex-end; font-weight: 800; font-size: 18px;
-      transition: width 1s cubic-bezier(0.4,0,0.2,1); position: relative; overflow: hidden;
-    }
-    .resp-fill::after {
-      content: ''; position: absolute; inset: 0;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15));
-    }
-    .resp-votes { width: 80px; text-align: right; font-size: 18px; font-weight: 700; color: var(--muted); }
-
-    /* ── Category Overlay ── */
-    .cat-overlay {
+    /* Bubble burst animation container */
+    .bubble-canvas {
       position: fixed;
       inset: 0;
-      background: rgba(4,6,14,0.96);
-      backdrop-filter: blur(30px);
-      z-index: 200;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 0;
       pointer-events: none;
-      transition: opacity 0.5s;
-    }
-    .cat-overlay.show { opacity: 1; pointer-events: auto; }
-    .cat-content { text-align: center; }
-    .cat-icon-big {
-      font-size: 120px;
-      display: block;
-      animation: catBounce 0.6s cubic-bezier(0.34,1.56,0.64,1);
-      filter: drop-shadow(0 0 60px rgba(59,130,246,0.5));
-      margin-bottom: 24px;
-    }
-    @keyframes catBounce { from{transform:scale(0) rotate(-20deg)} to{transform:scale(1) rotate(0)} }
-    .cat-label { font-size: 16px; font-weight: 600; letter-spacing: 4px; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
-    .cat-name-big {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 100px;
-      letter-spacing: 6px;
-      background: linear-gradient(135deg, #fff, var(--accent));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      line-height: 1;
-    }
-    .cat-line { width: 200px; height: 4px; border-radius: 10px; background: linear-gradient(90deg, var(--accent), var(--purple)); margin: 24px auto 0; }
-
-    /* ── Reveal Overlay ── */
-    .reveal-banner {
-      position: fixed;
-      bottom: 60px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: var(--green);
-      color: #fff;
-      padding: 16px 48px;
-      border-radius: 60px;
-      font-size: 24px;
-      font-weight: 800;
-      box-shadow: 0 8px 40px rgba(16,185,129,0.5);
-      z-index: 150;
-      opacity: 0;
-      transform: translateX(-50%) translateY(20px);
-      transition: all 0.4s;
-      white-space: nowrap;
-    }
-    .reveal-banner.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-
-    /* ── Game End ── */
-    .end-content { text-align: center; }
-    .end-icon { font-size: 100px; margin-bottom: 24px; animation: float 2s infinite; }
-    .end-title {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 96px;
-      letter-spacing: 6px;
-      background: linear-gradient(135deg, var(--yellow), var(--pink));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      z-index: 999;
+      overflow: hidden;
     }
 
-    /* Confetti */
-    .confetti-piece {
-      position: fixed;
-      width: 10px;
-      height: 10px;
-      border-radius: 2px;
-      opacity: 0;
-      animation: confettiFall linear forwards;
-    }
-    @keyframes confettiFall {
-      0%{opacity:1;transform:translateY(-50px) rotate(0deg)}
-      100%{opacity:0;transform:translateY(100vh) rotate(720deg)}
-    }
-
-    .footer {
-      padding: 10px 32px;
+    .bubble {
+      position: absolute;
+      bottom: -80px;
+      background: radial-gradient(circle at 30% 30%, rgba(59, 130, 246, 0.9), rgba(139, 92, 246, 0.7));
+      border-radius: 50%;
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      border-top: 1px solid rgba(255,255,255,0.05);
-      font-size: 13px;
-      color: rgba(255,255,255,0.2);
-      flex-shrink: 0;
+      justify-content: center;
+      font-size: 28px;
+      font-weight: bold;
+      color: white;
+      text-shadow: 0 2px 8px black;
+      box-shadow: 0 0 20px rgba(59, 130, 246, 0.6), inset 0 -5px 0 rgba(0,0,0,0.1);
+      backdrop-filter: blur(2px);
+      animation: bubbleRise 1.8s cubic-bezier(0.2, 0.9, 0.4, 1.1) forwards;
+      white-space: nowrap;
+      padding: 0 12px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      letter-spacing: 1px;
+      border: 1px solid rgba(255,255,255,0.4);
     }
+
+    @keyframes bubbleRise {
+      0% {
+        bottom: -80px;
+        opacity: 0;
+        transform: scale(0.3) rotate(0deg);
+      }
+      15% {
+        opacity: 1;
+        transform: scale(1.1) rotate(2deg);
+      }
+      40% {
+        transform: scale(1.05) rotate(-1deg);
+      }
+      70% {
+        opacity: 1;
+        transform: scale(1) rotate(1deg);
+      }
+      100% {
+        bottom: 110%;
+        opacity: 0;
+        transform: scale(1.3) rotate(8deg);
+        filter: blur(6px);
+      }
+    }
+
+    .burst-particle {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      background: radial-gradient(circle, #ffd966, #f59e0b);
+      border-radius: 50%;
+      pointer-events: none;
+      animation: burstFly 0.8s ease-out forwards;
+      z-index: 1000;
+    }
+
+    @keyframes burstFly {
+      0% {
+        opacity: 1;
+        transform: scale(1) translate(0, 0);
+      }
+      100% {
+        opacity: 0;
+        transform: scale(0) translate(var(--tx, 40px), var(--ty, -60px));
+      }
+    }
+
+    /* rest of existing styles compact */
+    .q-wrapper, .lb-wrapper, .resp-wrapper, .end-content { width: min(90%, 1100px); }
+    .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .opt-item { display: flex; align-items: center; gap: 20px; padding: 20px 28px; background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.1); border-radius: 20px; backdrop-filter: blur(10px); font-weight: 600; transition: all 0.3s; }
+    .opt-letter { width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 20px; flex-shrink: 0; }
+    .opt-a .opt-letter { background: rgba(59,130,246,0.3); }
+    .opt-b .opt-letter { background: rgba(139,92,246,0.3); }
+    .opt-c .opt-letter { background: rgba(245,158,11,0.3); }
+    .opt-d .opt-letter { background: rgba(236,72,153,0.3); }
+    .opt-item.correct { border-color: var(--green); background: rgba(16,185,129,0.2); box-shadow: 0 0 40px rgba(16,185,129,0.3); }
+    .opt-item.wrong { opacity: 0.35; filter: grayscale(0.6); }
+    .timer-container { position: relative; width: 100px; height: 100px; }
+    .timer-svg { transform: rotate(-90deg); }
+    .timer-ring { fill: none; stroke: var(--accent); stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 0.95s linear; }
+    .reveal-banner { position: fixed; bottom: 60px; left: 50%; transform: translateX(-50%); background: var(--green); padding: 16px 48px; border-radius: 60px; font-weight: 800; opacity: 0; transition: all 0.4s; white-space: nowrap; z-index: 150; }
+    .reveal-banner.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .cat-overlay { position: fixed; inset: 0; background: rgba(4,6,14,0.96); backdrop-filter: blur(30px); z-index: 200; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.5s; }
+    .cat-overlay.show { opacity: 1; }
+    .footer { padding: 10px 32px; display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.05); font-size: 13px; color: rgba(255,255,255,0.2); flex-shrink: 0; }
     .q-progress-bar { height: 4px; background: rgba(255,255,255,0.08); position: relative; flex-shrink: 0; }
     .q-progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--purple)); transition: width .5s; }
+    @keyframes catBounce { from{transform:scale(0)} to{transform:scale(1)} }
   </style>
 </head>
 <body>
 <div class="foh">
-  <!-- TOP BAR -->
   <div class="top-bar">
     <div class="logo">PLAY<span>A</span>QUIZ</div>
     <div class="live-badge"><div class="live-dot"></div>LIVE</div>
-    <div class="room-badge" id="roomCode">——</div>
+    <div style="display: flex; gap: 20px; align-items: center;">
+      <div class="player-counter-area" id="playerCounterArea">
+        <span class="counter-icon">🧑‍🎤</span>
+        <span class="counter-number" id="animatedCounter">0</span>
+        <span class="counter-label">players</span>
+      </div>
+      <div class="room-badge" id="roomCode">——</div>
+    </div>
   </div>
-
-  <!-- PROGRESS BAR -->
   <div class="q-progress-bar"><div class="q-progress-fill" id="qProgressFill" style="width:0%"></div></div>
-
-  <!-- DISPLAY AREA -->
   <div class="display-area">
-
-    <!-- WAITING -->
     <div id="screen-waiting" class="screen active">
       <div class="waiting-content">
-        <span class="waiting-emoji">🎮</span>
-        <div class="waiting-title">GET READY!</div>
-        <div class="waiting-sub">Join the game and wait for the host</div>
+        <span class="waiting-emoji">🎈</span>
+        <div class="waiting-title">READY TO POP!</div>
+        <div class="waiting-sub">Players join and bubbles will rise ✨</div>
         <div class="big-room-code" id="waitingRoomCode">——</div>
-        <div class="player-count-bar">
-          Players online: <span class="player-count-num" id="playerCountDisplay">0</span>
-        </div>
+        <div class="player-count-bar">🔥 Players ready: <span class="player-count-num" id="playerCountDisplay">0</span></div>
       </div>
     </div>
-
-    <!-- QUESTION -->
-    <div id="screen-question" class="screen">
-      <div class="q-wrapper">
-        <div class="q-header">
-          <div class="q-meta-left">
-            <div class="q-num-badge" id="qNumBadge">Q1/1</div>
-            <div class="cat-badge" id="qCatBadge"><span>📋</span><span>Quiz</span></div>
-          </div>
-          <div class="timer-container">
-            <svg class="timer-svg" width="100" height="100" viewBox="0 0 100 100">
-              <circle class="timer-track" cx="50" cy="50" r="42"/>
-              <circle class="timer-ring" id="timerRing" cx="50" cy="50" r="42" stroke-dasharray="263.9" stroke-dashoffset="0"/>
-            </svg>
-            <div class="timer-num" id="timerNum">—</div>
-          </div>
-        </div>
-
-        <div class="q-text-area">
-          <div class="q-text" id="qText">Loading...</div>
-        </div>
-
-        <div class="options-grid" id="optionsGrid"></div>
-      </div>
-    </div>
-
-    <!-- LEADERBOARD -->
-    <div id="screen-leaderboard" class="screen">
-      <div class="lb-wrapper">
-        <div class="lb-title">🏆 LEADERBOARD</div>
-        <div class="lb-list" id="lbList"></div>
-      </div>
-    </div>
-
-    <!-- RESPONSE DISTRIBUTION -->
-    <div id="screen-responses" class="screen">
-      <div class="resp-wrapper">
-        <div class="resp-title">📊 Response Distribution</div>
-        <div id="respBarsContainer"></div>
-      </div>
-    </div>
-
-    <!-- GAME ENDED -->
-    <div id="screen-ended" class="screen">
-      <div class="end-content">
-        <div class="end-icon">🏁</div>
-        <div class="end-title">GAME OVER!</div>
-        <div style="font-size:24px;color:var(--muted);margin-top:16px">Thanks for playing!</div>
-      </div>
-    </div>
-
-  </div><!-- /display-area -->
-
-  <!-- FOOTER -->
-  <div class="footer">
-    <span>PlayAQuiz — FOH Display</span>
-    <span id="footerStatus">Waiting for host</span>
-    <span id="footerTime"></span>
+    <div id="screen-question" class="screen"> <div class="q-wrapper"> <div class="q-header"><div class="q-meta-left"><div class="q-num-badge" id="qNumBadge">Q1/1</div><div class="cat-badge" id="qCatBadge"><span>📋</span><span>Quiz</span></div></div><div class="timer-container"><svg class="timer-svg" width="100" height="100" viewBox="0 0 100 100"><circle class="timer-track" cx="50" cy="50" r="42"/><circle class="timer-ring" id="timerRing" cx="50" cy="50" r="42" stroke-dasharray="263.9" stroke-dashoffset="0"/></svg><div class="timer-num" id="timerNum">—</div></div></div><div class="q-text-area"><div class="q-text" id="qText">Loading...</div></div><div class="options-grid" id="optionsGrid"></div></div> </div>
+    <div id="screen-leaderboard" class="screen"><div class="lb-wrapper"><div class="lb-title">🏆 LEADERBOARD</div><div class="lb-list" id="lbList"></div></div></div>
+    <div id="screen-responses" class="screen"><div class="resp-wrapper"><div class="resp-title">📊 Response Distribution</div><div id="respBarsContainer"></div></div></div>
+    <div id="screen-ended" class="screen"><div class="end-content"><div class="end-icon">🏁</div><div class="end-title">GAME OVER!</div><div style="font-size:24px;color:var(--muted);margin-top:16px">Thanks for playing!</div></div></div>
   </div>
+  <div class="footer"><span>PlayAQuiz — Bubble Party</span><span id="footerStatus">Waiting for host</span><span id="footerTime"></span></div>
 </div>
-
-<!-- CATEGORY OVERLAY -->
-<div id="catOverlay" class="cat-overlay">
-  <div class="cat-content">
-    <span class="cat-icon-big" id="catIconBig">🎯</span>
-    <div class="cat-label">CATEGORY</div>
-    <div class="cat-name-big" id="catNameBig">General</div>
-    <div class="cat-line"></div>
-  </div>
-</div>
-
-<!-- REVEAL BANNER -->
+<div id="catOverlay" class="cat-overlay"><div class="cat-content"><span class="cat-icon-big" id="catIconBig">🎯</span><div class="cat-label">CATEGORY</div><div class="cat-name-big" id="catNameBig">General</div><div class="cat-line"></div></div></div>
 <div class="reveal-banner" id="revealBanner"></div>
+<div id="bubbleContainer" class="bubble-canvas"></div>
 
 <script>
-const SUPABASE_URL  = 'https://efgirqbaayfjwswnwbop.supabase.co';
+const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
 const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-// ─── Audio Engine ───
+// Audio engine
 const AC = window.AudioContext || window.webkitAudioContext;
 let ac;
-function getAC() { if (!ac) ac = new AC(); if (ac.state==='suspended') ac.resume(); return ac; }
-function tone(freq, dur, vol, type='sine', delay=0) {
-  try {
-    const ctx = getAC(), o = ctx.createOscillator(), g = ctx.createGain();
-    o.connect(g); g.connect(ctx.destination);
-    o.type = type; o.frequency.value = freq;
-    const t = ctx.currentTime + delay;
-    g.gain.setValueAtTime(vol, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-    o.start(t); o.stop(t + dur + 0.05);
+function getAC() { if (!ac) ac = new AC(); if (ac.state === 'suspended') ac.resume(); return ac; }
+function playPopSound() {
+  try { 
+    const ctx = getAC();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.value = 620 + Math.random() * 150;
+    gain.gain.value = 0.3;
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.25);
   } catch(e) {}
 }
-function tickSound()   { tone(1100, 0.06, 0.25, 'square'); }
-function alertSound()  { [0,0.12,0.24].forEach(d => tone(800, 0.1, 0.5, 'sawtooth', d)); }
-function revealFanfare() {
-  [[523,0],[659,.12],[784,.24],[1047,.4],[1319,.56]].forEach(([f,d]) => tone(f, 0.2, 0.5, 'sine', d));
-}
-function correctSound() {
-  [[659,0],[784,.1],[1047,.2]].forEach(([f,d]) => tone(f, 0.2, 0.45, 'sine', d));
-}
-function wrongBuzz() { tone(180, 0.5, 0.5, 'sawtooth'); }
-function timesUpBuzz() {
-  [0,0.2,0.4,0.6].forEach(d => tone(220+d*20, 0.15, 0.5, 'square', d));
-  tone(160, 0.8, 0.6, 'sawtooth', 0.8);
-}
-function drumRoll(duration) {
-  const interval = 100;
-  let t = 0;
-  const iid = setInterval(() => {
-    const freq = 80 + Math.random() * 30;
-    tone(freq, 0.05, 0.3 + Math.random()*0.2, 'sawtooth');
-    t += interval;
-    if (t >= duration) clearInterval(iid);
-  }, interval);
-}
-function startTimerAlert() {
-  tone(1200, 0.05, 0.4, 'square');
-}
 
-// ─── State ───
-let SESSION_ID = null, currentQuestion = null, timerInterval = null, timeLeft = 0, totalTime = 0;
+// State
+let SESSION_ID = null;
+let currentQuestion = null;
+let timerInterval = null;
+let timeLeft = 0, totalTime = 0;
 let playerCountInterval = null;
+let lastKnownPlayerCount = 0;
+let processedPlayerIds = new Set(); // to avoid duplicate bubble for same player per session
 
+// DOM elements
+const animatedCounterSpan = document.getElementById('animatedCounter');
+const playerCountDisplaySpan = document.getElementById('playerCountDisplay');
+
+// Helper: Animate counter number with pop effect
+function animateCounterNumber(newCount) {
+  const el = animatedCounterSpan;
+  if (!el) return;
+  el.classList.add('counter-pop');
+  el.innerText = newCount;
+  setTimeout(() => el.classList.remove('counter-pop'), 280);
+}
+
+// BUBBLE BURST SYSTEM with name & emoji
+function createBubbleWithBurst(playerName, avatarEmoji = '🎈') {
+  const container = document.getElementById('bubbleContainer');
+  if (!container) return;
+  
+  // Random position across screen width
+  const leftPos = 20 + Math.random() * 70; // vw units
+  const bubbleSize = 70 + Math.random() * 40;
+  const durationSec = 1.6 + Math.random() * 0.8;
+  
+  const bubbleDiv = document.createElement('div');
+  bubbleDiv.className = 'bubble';
+  bubbleDiv.style.left = `${leftPos}%`;
+  bubbleDiv.style.width = `${bubbleSize}px`;
+  bubbleDiv.style.height = `${bubbleSize}px`;
+  bubbleDiv.style.fontSize = `${Math.max(18, bubbleSize * 0.32)}px`;
+  bubbleDiv.style.animationDuration = `${durationSec}s`;
+  // content: emoji + short name
+  const displayName = playerName.length > 12 ? playerName.slice(0, 10) + '..' : playerName;
+  bubbleDiv.innerHTML = `${avatarEmoji} ${displayName}`;
+  container.appendChild(bubbleDiv);
+  
+  // Play pop sound on creation (bubble rise sound)
+  playPopSound();
+  
+  // Wait for bubble to finish rising, then burst effect & remove
+  setTimeout(() => {
+    if (bubbleDiv && bubbleDiv.parentNode) {
+      // Create burst particles at bubble position
+      const rect = bubbleDiv.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      for (let i = 0; i < 12; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'burst-particle';
+        const angle = (i / 12) * Math.PI * 2 + Math.random();
+        const speed = 50 + Math.random() * 70;
+        const tx = Math.cos(angle) * speed;
+        const ty = Math.sin(angle) * speed - 40;
+        particle.style.left = `${centerX}px`;
+        particle.style.top = `${centerY}px`;
+        particle.style.setProperty('--tx', `${tx}px`);
+        particle.style.setProperty('--ty', `${ty}px`);
+        particle.style.background = `radial-gradient(circle, ${['#fbbf24','#f59e0b','#34d399','#60a5fa'][Math.floor(Math.random()*4)]}, #ec4899)`;
+        document.body.appendChild(particle);
+        setTimeout(() => particle.remove(), 800);
+      }
+      bubbleDiv.remove();
+    }
+  }, durationSec * 950);
+  
+  // Also remove if not removed after timeout fallback
+  setTimeout(() => { if(bubbleDiv && bubbleDiv.parentNode) bubbleDiv.remove(); }, durationSec * 1100);
+}
+
+// Show welcome bubble for new player with avatar
+function onNewPlayerJoined(playerData) {
+  if (!playerData || !playerData.name) return;
+  const playerId = playerData.id || playerData.player_id;
+  if (playerId && processedPlayerIds.has(playerId)) return;
+  if (playerId) processedPlayerIds.add(playerId);
+  const emoji = playerData.avatar_emoji || playerData.avatar_color || '🎉';
+  const name = playerData.name || 'Mystery Player';
+  createBubbleWithBurst(name, emoji);
+}
+
+// Poll players and detect new ones (diff logic to show bubble on join)
+let previousPlayerList = new Map(); // id -> {name, emoji}
+
+async function fetchAndDetectNewPlayers() {
+  if (!SESSION_ID) return;
+  const { data: players, error } = await sb
+    .from('players')
+    .select('id, name, avatar_color, avatar_emoji, is_eliminated')
+    .eq('session_id', SESSION_ID)
+    .eq('is_eliminated', false);
+  if (error || !players) return;
+  
+  const currentCount = players.length;
+  // update UI count
+  if (playerCountDisplaySpan) playerCountDisplaySpan.innerText = currentCount;
+  
+  // Animate counter number if changed
+  if (currentCount !== lastKnownPlayerCount) {
+    animateCounterNumber(currentCount);
+    lastKnownPlayerCount = currentCount;
+  }
+  
+  // detect new players by ID
+  const newPlayers = [];
+  for (const p of players) {
+    if (!previousPlayerList.has(p.id)) {
+      newPlayers.push(p);
+    }
+  }
+  
+  // update map
+  for (const p of players) {
+    previousPlayerList.set(p.id, { name: p.name, emoji: p.avatar_emoji || p.avatar_color || '🧸' });
+  }
+  
+  // For each new player → trigger bubble animation
+  for (const np of newPlayers) {
+    onNewPlayerJoined({
+      id: np.id,
+      name: np.name || 'Player',
+      avatar_emoji: np.avatar_emoji || np.avatar_color || '🎈',
+      avatar_color: np.avatar_color
+    });
+  }
+}
+
+// Real-time subscription to players table INSERT for instant bubble!
+function setupRealtimePlayerInsert() {
+  if (!SESSION_ID) return;
+  const channel = sb.channel(`player-insert-${SESSION_ID}`);
+  channel
+    .on('postgres_changes', {
+      event: 'INSERT',
+      schema: 'public',
+      table: 'players',
+      filter: `session_id=eq.${SESSION_ID}`
+    }, async (payload) => {
+      const newPlayer = payload.new;
+      if (newPlayer && !newPlayer.is_eliminated) {
+        // fetch name if needed
+        let displayName = newPlayer.name || 'Explorer';
+        const avatarIcon = newPlayer.avatar_emoji || newPlayer.avatar_color || '🌟';
+        onNewPlayerJoined({ id: newPlayer.id, name: displayName, avatar_emoji: avatarIcon });
+        // update count will happen in polling, but also increment counter smoothly
+        if (playerCountDisplaySpan) {
+          const curr = parseInt(playerCountDisplaySpan.innerText) || 0;
+          playerCountDisplaySpan.innerText = curr + 1;
+          animateCounterNumber(curr + 1);
+          lastKnownPlayerCount = curr + 1;
+        }
+        // also refresh previous list to avoid duplication
+        previousPlayerList.set(newPlayer.id, { name: displayName, emoji: avatarIcon });
+      }
+    })
+    .subscribe();
+}
+
+// Init session
 async function init() {
-  setInterval(updateFooterTime, 1000); updateFooterTime();
+  setInterval(updateFooterTime, 1000);
   const params = new URLSearchParams(window.location.search);
   let sid = params.get('session') || localStorage.getItem('paq_session_id');
   if (!sid) {
@@ -579,266 +578,87 @@ async function init() {
   SESSION_ID = sid;
   localStorage.setItem('paq_session_id', sid);
   await loadSessionInfo();
-  setupRealtime();
-  startPlayerCountPolling();
+  await fetchAndDetectNewPlayers(); // initial sync
+  setupRealtimePlayerInsert();
+  startPlayerCountPolling(); // fallback polling for count consistency
+  setupGameEvents();
 }
 
 async function loadSessionInfo() {
   const { data } = await sb.from('game_sessions').select('*').eq('id', SESSION_ID).single();
   if (data) {
-    const code = data.room_code;
-    document.getElementById('roomCode').innerText = code;
-    document.getElementById('waitingRoomCode').innerText = code;
+    document.getElementById('roomCode').innerText = data.room_code;
+    document.getElementById('waitingRoomCode').innerText = data.room_code;
     document.getElementById('footerStatus').innerText = data.status;
   }
 }
 
-function setupRealtime() {
-  sb.channel('foh-events-v2')
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'game_events', filter: `session_id=eq.${SESSION_ID}` },
-      p => handleEvent(p.new))
+function setupGameEvents() {
+  sb.channel(`foh-events-${SESSION_ID}`)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'game_events', filter: `session_id=eq.${SESSION_ID}` }, p => handleEvent(p.new))
     .subscribe();
-  sb.channel('foh-session-v2')
-    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'game_sessions', filter: `id=eq.${SESSION_ID}` },
-      p => {
-        document.getElementById('footerStatus').innerText = p.new.status;
-        if (p.new.status === 'ended') showScreen('ended');
-        if (p.new.status === 'waiting') showScreen('waiting');
-      })
+  sb.channel(`foh-session-update-${SESSION_ID}`)
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'game_sessions', filter: `id=eq.${SESSION_ID}` }, p => {
+      document.getElementById('footerStatus').innerText = p.new.status;
+      if (p.new.status === 'ended') showScreen('ended');
+      if (p.new.status === 'waiting') showScreen('waiting');
+    })
     .subscribe();
 }
 
 function handleEvent(evt) {
-  console.log('FOH:', evt.event_type);
   switch(evt.event_type) {
-    case 'category_banner':
-      showCategoryOverlay(evt.payload.icon, evt.payload.name, evt.payload.color);
-      break;
-    case 'new_question':
-      currentQuestion = evt.payload.question;
-      totalTime = currentQuestion.time_limit || 20;
-      updateQProgress(evt.payload.qIdx, evt.payload.total);
-      break;
-    case 'show_question_view':
-      displayQuestion(evt.payload.question || currentQuestion);
-      showScreen('question');
-      startTimer(totalTime);
-      break;
-    case 'answer_reveal':
-      revealAnswer(evt.payload.correctOption, evt.payload.options, evt.payload.explanation);
-      break;
-    case 'show_leaderboard':
-      displayLeaderboard(evt.payload.leaders);
-      showScreen('leaderboard');
-      break;
-    case 'show_responses':
-      displayResponseDist(evt.payload.distribution, evt.payload.totalPlayers, evt.payload.correctIdx);
-      showScreen('responses');
-      break;
-    case 'show_waiting_screen':
-      showScreen('waiting');
-      break;
-    case 'player_eliminated':
-      flashEliminated();
-      break;
-    case 'game_ended':
-      stopTimer();
-      launchConfetti();
-      showScreen('ended');
-      break;
-    case 'game_reset':
-      stopTimer();
-      showScreen('waiting');
-      break;
+    case 'new_question': currentQuestion = evt.payload.question; totalTime = currentQuestion?.time_limit || 20; updateQProgress(evt.payload.qIdx, evt.payload.total); break;
+    case 'show_question_view': displayQuestion(evt.payload.question || currentQuestion); showScreen('question'); startTimer(totalTime); break;
+    case 'answer_reveal': revealAnswer(evt.payload.correctOption, evt.payload.options); break;
+    case 'show_leaderboard': displayLeaderboard(evt.payload.leaders); showScreen('leaderboard'); break;
+    case 'show_responses': displayResponseDist(evt.payload.distribution, evt.payload.totalPlayers); showScreen('responses'); break;
+    case 'show_waiting_screen': showScreen('waiting'); break;
+    case 'game_ended': stopTimer(); launchConfetti(); showScreen('ended'); break;
+    case 'category_banner': showCategoryOverlay(evt.payload.icon, evt.payload.name); break;
   }
 }
 
 function displayQuestion(q) {
   if (!q) return;
   document.getElementById('qText').innerText = q.question_text;
-  // Category
-  const catEl = document.getElementById('qCatBadge');
-  catEl.innerHTML = q.category_name
-    ? `<span>${q.category_icon||'📋'}</span><span>${q.category_name}</span>`
-    : `<span>📋</span><span>Quiz</span>`;
   const letters = ['A','B','C','D'];
-  const optColors = ['opt-a','opt-b','opt-c','opt-d'];
   const grid = document.getElementById('optionsGrid');
-  grid.innerHTML = [q.option_a, q.option_b, q.option_c, q.option_d].map((opt, i) => `
-    <div class="opt-item ${optColors[i]}" data-idx="${i}">
-      <div class="opt-letter">${letters[i]}</div>
-      <div>${opt}</div>
-    </div>`).join('');
+  grid.innerHTML = [q.option_a, q.option_b, q.option_c, q.option_d].map((opt, i) => `<div class="opt-item opt-${letters[i].toLowerCase()}"><div class="opt-letter">${letters[i]}</div><div>${opt}</div></div>`).join('');
 }
-
-function revealAnswer(correctIdx, options, explanation) {
+function revealAnswer(correctIdx) {
   stopTimer();
-  revealFanfare();
-  document.querySelectorAll('.opt-item').forEach((el, i) => {
-    if (i === correctIdx) el.classList.add('correct');
-    else el.classList.add('wrong');
-  });
-  const letters = ['A','B','C','D'];
+  document.querySelectorAll('.opt-item').forEach((el,i) => { if(i===correctIdx) el.classList.add('correct'); else el.classList.add('wrong'); });
   const banner = document.getElementById('revealBanner');
-  banner.innerHTML = `✅ Correct Answer: <strong>${letters[correctIdx]}</strong>${options ? ` — ${options[correctIdx]}` : ''}`;
-  if (explanation) banner.innerHTML += `<div style="font-size:16px;opacity:.8;margin-top:4px">${explanation}</div>`;
-  banner.classList.add('show');
-  setTimeout(() => banner.classList.remove('show'), 5000);
+  banner.innerHTML = `✅ Correct Answer: ${String.fromCharCode(65+correctIdx)}`;
+  banner.classList.add('show'); setTimeout(()=>banner.classList.remove('show'),4000);
 }
-
 function displayLeaderboard(leaders) {
-  drumRoll(1200);
   const medals = ['🥇','🥈','🥉'];
-  document.getElementById('lbList').innerHTML = (leaders||[]).slice(0,10).map((p,i) => `
-    <div class="lb-row" style="animation-delay:${i*0.08}s">
-      <div class="lb-rank-num">${medals[i]||`#${i+1}`}</div>
-      <div class="lb-avatar">${p.avatar_color||'👤'}</div>
-      <div class="lb-name">${p.name}</div>
-      <div style="flex:1"></div>
-      <div class="lb-correct">${p.correct_count||0} ✓</div>
-      <div class="lb-pts">${p.score} pts</div>
-    </div>`).join('');
+  document.getElementById('lbList').innerHTML = (leaders||[]).slice(0,10).map((p,i)=>`<div class="lb-row"><div class="lb-rank-num">${medals[i]||`#${i+1}`}</div><div class="lb-name">${p.name}</div><div class="lb-pts">${p.score} pts</div></div>`).join('');
 }
-
-function displayResponseDist(dist, total, correctIdx) {
+function displayResponseDist(dist, total) {
   if (!dist) dist = [0,0,0,0];
   const colors = ['#3b82f6','#8b5cf6','#f59e0b','#ec4899'];
   const letters = ['A','B','C','D'];
-  const max = Math.max(...dist, 1);
-  document.getElementById('respBarsContainer').innerHTML = dist.map((count, i) => {
-    const pct = Math.round((count / (total||1)) * 100);
-    const barPct = Math.round((count / max) * 100);
-    const isCorrect = i === correctIdx;
-    return `<div class="resp-bar-row">
-      <div class="resp-ltr" style="background:${colors[i]}30;color:${colors[i]}">${letters[i]}</div>
-      <div class="resp-track">
-        <div class="resp-fill" style="width:0%;background:${isCorrect?'var(--green)':colors[i]}" data-target="${barPct}">
-          ${pct > 8 ? `${pct}%${isCorrect?' ✓':''}` : ''}
-        </div>
-      </div>
-      <div class="resp-votes">${count}</div>
-    </div>`;
-  }).join('');
-  // Animate bars
-  setTimeout(() => {
-    document.querySelectorAll('.resp-fill').forEach(el => {
-      el.style.width = el.dataset.target + '%';
-    });
-  }, 100);
+  const max = Math.max(...dist,1);
+  document.getElementById('respBarsContainer').innerHTML = dist.map((c,i)=>`<div class="resp-bar-row"><div class="resp-ltr" style="background:${colors[i]}30">${letters[i]}</div><div class="resp-track"><div class="resp-fill" style="width:${(c/max)*100}%;background:${colors[i]}">${Math.round((c/(total||1))*100)}%</div></div><div class="resp-votes">${c}</div></div>`).join('');
 }
-
-// ─── Timer ───
-function startTimer(duration) {
-  stopTimer();
-  timeLeft = duration; totalTime = duration;
-  updateTimerUI();
-  timerInterval = setInterval(() => {
-    timeLeft--;
-    updateTimerUI();
-    if (timeLeft <= 5 && timeLeft > 0) {
-      alertSound();
-      document.getElementById('timerNum').classList.add('timer-urgent');
-    } else if (timeLeft <= 10 && timeLeft > 5) {
-      tickSound();
-    } else if (timeLeft > 10) {
-      if (timeLeft % 5 === 0) tickSound();
-    }
-    if (timeLeft <= 0) {
-      stopTimer();
-      timesUpBuzz();
-      document.getElementById('timerNum').innerText = '0';
-    }
-  }, 1000);
+function startTimer(dur) {
+  stopTimer(); timeLeft = dur; totalTime = dur; updateTimerUI();
+  timerInterval = setInterval(()=>{ timeLeft--; updateTimerUI(); if(timeLeft<=0) stopTimer(); },1000);
 }
-
-function stopTimer() {
-  clearInterval(timerInterval); timerInterval = null;
-  document.getElementById('timerNum').classList.remove('timer-urgent');
-}
-
+function stopTimer() { clearInterval(timerInterval); timerInterval=null; }
 function updateTimerUI() {
-  const ring = document.getElementById('timerRing');
-  const num = document.getElementById('timerNum');
-  const circum = 2 * Math.PI * 42; // ~263.9
-  const progress = timeLeft / totalTime;
-  const offset = circum * (1 - progress);
-  ring.style.strokeDashoffset = offset;
-  num.innerText = timeLeft;
-  if (timeLeft <= 5) { ring.style.stroke = 'var(--red)'; }
-  else if (timeLeft <= 10) { ring.style.stroke = 'var(--yellow)'; }
-  else { ring.style.stroke = 'var(--accent)'; }
+  const circum = 263.9; const progress = timeLeft/totalTime; document.getElementById('timerRing').style.strokeDashoffset = circum*(1-progress);
+  document.getElementById('timerNum').innerText = timeLeft;
 }
-
-// ─── Category Overlay ───
-function showCategoryOverlay(icon, name, color) {
-  document.getElementById('catIconBig').innerText = icon || '🎯';
-  document.getElementById('catNameBig').innerText = name || 'Category';
-  const overlay = document.getElementById('catOverlay');
-  overlay.classList.add('show');
-  setTimeout(() => overlay.classList.remove('show'), 3000);
-}
-
-// ─── Screens ───
-function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  const el = document.getElementById('screen-' + id);
-  if (el) el.classList.add('active');
-}
-
-function updateQProgress(idx, total) {
-  const pct = total > 0 ? ((idx+1)/total)*100 : 0;
-  document.getElementById('qProgressFill').style.width = pct + '%';
-  document.getElementById('qNumBadge').innerText = `Q${idx+1}/${total}`;
-}
-
-// ─── Player Count ───
-function startPlayerCountPolling() {
-  const refresh = async () => {
-    if (!SESSION_ID) return;
-    const { count } = await sb.from('players').select('*', {count:'exact',head:true}).eq('session_id', SESSION_ID).eq('is_eliminated', false);
-    document.getElementById('playerCountDisplay').innerText = count || 0;
-  };
-  refresh();
-  playerCountInterval = setInterval(refresh, 3000);
-}
-
-// ─── Confetti ───
-function launchConfetti() {
-  const colors = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899'];
-  for (let i = 0; i < 120; i++) {
-    const el = document.createElement('div');
-    el.className = 'confetti-piece';
-    el.style.cssText = `
-      left: ${Math.random()*100}vw;
-      top: -10px;
-      background: ${colors[Math.floor(Math.random()*colors.length)]};
-      width: ${6+Math.random()*10}px;
-      height: ${6+Math.random()*10}px;
-      animation-duration: ${2+Math.random()*3}s;
-      animation-delay: ${Math.random()*2}s;
-      border-radius: ${Math.random()>0.5?'50%':'2px'};
-    `;
-    document.body.appendChild(el);
-    setTimeout(() => el.remove(), 6000);
-  }
-}
-
-// ─── Eliminated Flash ───
-function flashEliminated() {
-  const el = document.createElement('div');
-  el.style.cssText = `position:fixed;inset:0;background:rgba(239,68,68,.25);z-index:999;animation:flashRed 0.8s ease forwards;display:flex;align-items:center;justify-content:center`;
-  el.innerHTML = '<div style="font-size:80px;animation:catBounce 0.5s ease">⚡</div>';
-  document.body.appendChild(el);
-  const style = document.createElement('style');
-  style.innerText = '@keyframes flashRed{0%{opacity:1}100%{opacity:0}}';
-  document.head.appendChild(style);
-  setTimeout(() => { el.remove(); style.remove(); }, 1000);
-}
-
-function updateFooterTime() {
-  document.getElementById('footerTime').innerText = new Date().toLocaleTimeString();
-}
-
+function showScreen(id) { document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); document.getElementById(`screen-${id}`)?.classList.add('active'); }
+function updateQProgress(idx,total) { document.getElementById('qProgressFill').style.width = `${((idx+1)/total)*100}%`; document.getElementById('qNumBadge').innerText = `Q${idx+1}/${total}`; }
+function showCategoryOverlay(icon,name) { const ov=document.getElementById('catOverlay'); document.getElementById('catIconBig').innerText=icon||'🎯'; document.getElementById('catNameBig').innerText=name||'Category'; ov.classList.add('show'); setTimeout(()=>ov.classList.remove('show'),2500); }
+function launchConfetti() { for(let i=0;i<80;i++){ const c=document.createElement('div'); c.style.cssText=`position:fixed;left:${Math.random()*100}vw;top:-10px;background:${['#3b82f6','#10b981','#f59e0b'][Math.floor(Math.random()*3)]};width:8px;height:8px;animation:confettiFall 2s linear forwards;z-index:1000;`; document.body.appendChild(c); setTimeout(()=>c.remove(),2000); } }
+function startPlayerCountPolling() { setInterval(fetchAndDetectNewPlayers, 4000); fetchAndDetectNewPlayers(); }
+function updateFooterTime() { document.getElementById('footerTime').innerText = new Date().toLocaleTimeString(); }
 init();
 </script>
 </body>
