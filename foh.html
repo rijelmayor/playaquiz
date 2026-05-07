@@ -927,6 +927,8 @@ function updateLiveLeaderboard() {
     .filter(p => !p.is_eliminated)
     .sort((a, b) => b.score - a.score);
   
+  console.log('Updating leaderboard with players:', players.map(p => ({ name: p.name, score: p.score })));
+  
   if (players.length === 0) {
     liveLeaderboardList.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);">👾 No players yet</div>';
     return;
@@ -936,13 +938,13 @@ function updateLiveLeaderboard() {
     const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}`;
     const crown = p.score > 0 && idx === 0 ? '<span class="crown-icon">👑</span>' : '';
     return `
-      <div class="live-lb-item">
+      <div class="live-lb-item" style="${p.name === (myPlayerName || '') ? 'border: 1px solid var(--accent);' : ''}">
         <div class="live-lb-rank">${medal}</div>
         <div class="live-lb-avatar">${p.avatar || '🎮'}</div>
         <div class="live-lb-info">
           <div class="live-lb-name">${escapeHtml(p.name)}</div>
           <div class="live-lb-stats">
-            <span>✅ ${p.correct_count || 0}</span>
+            <span>✅ ${p.correct_count || 0} correct</span>
           </div>
         </div>
         <div class="live-lb-score">${p.score} ${crown}</div>
@@ -1020,9 +1022,24 @@ async function syncPlayers() {
   }
   
   updateLiveLeaderboard();
+
+
+  // In foh.html, inside syncPlayers, update the query to ensure all fields are fetched:
+const { data: players, error } = await sb
+  .from('players')
+  .select('id, name, avatar_color, avatar_emoji, score, correct_count, is_eliminated')
+  .eq('session_id', SESSION_ID)
+  .order('score', { ascending: false });  // Add ordering
+
+// And after processing players, force a leaderboard update:
+console.log('Players synced:', players?.map(p => ({ name: p.name, score: p.score })));
+updateLiveLeaderboard();
+
+
 }
 
 // Set up real-time subscription for players table
+// In foh.html, replace setupRealtimePlayers with this improved version:
 function setupRealtimePlayers() {
   if (!SESSION_ID) return;
   
@@ -1033,81 +1050,39 @@ function setupRealtimePlayers() {
   });
   realtimeChannels = [];
   
-  const insertChannel = sb.channel(`players-insert-${SESSION_ID}`);
-  insertChannel
+  // Subscribe to ALL changes on players table for this session
+  const playersChannel = sb.channel(`players-all-${SESSION_ID}`);
+  playersChannel
+    .on('postgres_changes', {
+      event: '*',  // Listen to ALL events (INSERT, UPDATE, DELETE)
+      schema: 'public',
+      table: 'players',
+      filter: `session_id=eq.${SESSION_ID}`
+    }, (payload) => {
+      console.log('Player change detected:', payload.eventType, payload.new || payload.old);
+      // Immediately sync all players to refresh the leaderboard
+      syncPlayers();
+    })
+    .subscribe((status) => {
+      console.log('Players channel status:', status);
+    });
+  realtimeChannels.push(playersChannel);
+  
+  // Also subscribe to answers table to catch score updates
+  const answersChannel = sb.channel(`answers-${SESSION_ID}`);
+  answersChannel
     .on('postgres_changes', {
       event: 'INSERT',
       schema: 'public',
-      table: 'players',
+      table: 'answers',
       filter: `session_id=eq.${SESSION_ID}`
     }, (payload) => {
-      console.log('INSERT event received:', payload.new);
-      const newPlayer = payload.new;
-      if (newPlayer && !newPlayer.is_eliminated) {
-        const emoji = newPlayer.avatar_emoji || newPlayer.avatar_color || '🎮';
-        if (!currentPlayers.has(newPlayer.id)) {
-          if (!gameActive) {
-            addPersistentBubble(newPlayer.id, newPlayer.name, emoji, newPlayer.score || 0);
-          }
-          currentPlayers.set(newPlayer.id, {
-            name: newPlayer.name,
-            avatar: emoji,
-            score: newPlayer.score || 0,
-            correct_count: newPlayer.correct_count || 0,
-            is_eliminated: newPlayer.is_eliminated || false
-          });
-          animateCounterNumber(currentPlayers.size);
-          updateLiveLeaderboard();
-        }
-      }
+      console.log('New answer submitted, refreshing leaderboard');
+      // Delay slightly to allow player score update to complete
+      setTimeout(() => syncPlayers(), 500);
     })
     .subscribe();
-  realtimeChannels.push(insertChannel);
-  
-  const updateChannel = sb.channel(`players-update-${SESSION_ID}`);
-  updateChannel
-    .on('postgres_changes', {
-      event: 'UPDATE',
-      schema: 'public',
-      table: 'players',
-      filter: `session_id=eq.${SESSION_ID}`
-    }, (payload) => {
-      console.log('UPDATE event received:', payload.new);
-      const updatedPlayer = payload.new;
-      if (updatedPlayer) {
-        const existing = currentPlayers.get(updatedPlayer.id);
-        if (existing) {
-          existing.score = updatedPlayer.score || 0;
-          existing.correct_count = updatedPlayer.correct_count || 0;
-          existing.is_eliminated = updatedPlayer.is_eliminated || false;
-          updateBubbleScore(updatedPlayer.id, existing.score);
-          updateLiveLeaderboard();
-        }
-      }
-    })
-    .subscribe();
-  realtimeChannels.push(updateChannel);
-  
-  const deleteChannel = sb.channel(`players-delete-${SESSION_ID}`);
-  deleteChannel
-    .on('postgres_changes', {
-      event: 'DELETE',
-      schema: 'public',
-      table: 'players',
-      filter: `session_id=eq.${SESSION_ID}`
-    }, (payload) => {
-      console.log('DELETE event received:', payload.old);
-      const deletedId = payload.old?.id;
-      if (deletedId) {
-        currentPlayers.delete(deletedId);
-        const bubble = document.getElementById(`bubble-${deletedId}`);
-        if (bubble) bubble.remove();
-        animateCounterNumber(currentPlayers.size);
-        updateLiveLeaderboard();
-      }
-    })
-    .subscribe();
-  realtimeChannels.push(deleteChannel);
+  realtimeChannels.push(answersChannel);
 }
 
 function setupGameEvents() {
