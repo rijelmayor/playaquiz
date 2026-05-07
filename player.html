@@ -35,7 +35,6 @@
       padding: 0;
     }
 
-    /* Background orbs */
     body::before, body::after {
       content: '';
       position: fixed;
@@ -59,7 +58,6 @@
       padding: 16px;
     }
 
-    /* ── Card ── */
     .card {
       background: var(--card);
       border: 1px solid var(--border2);
@@ -68,7 +66,6 @@
       width: 100%;
     }
 
-    /* ── Logo ── */
     .logo {
       font-size: 28px;
       font-weight: 800;
@@ -79,7 +76,6 @@
     .logo-accent { color: var(--accent); }
     .tagline { text-align: center; font-size: 14px; color: var(--muted); margin-bottom: 24px; }
 
-    /* ── Form ── */
     .form-group { margin-bottom: 18px; }
     label { font-size: 11px; font-weight: 700; color: var(--muted); display: block; margin-bottom: 6px; text-transform: uppercase; letter-spacing: .8px; }
     input, select {
@@ -96,7 +92,6 @@
     }
     input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
 
-    /* ── Buttons ── */
     .btn {
       width: 100%;
       background: var(--accent);
@@ -116,8 +111,13 @@
     .btn:disabled { opacity: .5; cursor: not-allowed; transform: none; filter: none; }
     .btn-ghost { background: var(--surface); border: 1px solid var(--border2); color: var(--text); }
     .btn-green { background: var(--green); }
+    .btn-sm {
+      width: auto;
+      padding: 10px 18px;
+      font-size: 13px;
+      border-radius: 30px;
+    }
 
-    /* ── Avatar Grid ── */
     .avatar-grid {
       display: grid;
       grid-template-columns: repeat(6, 1fr);
@@ -143,13 +143,10 @@
     .avatar-opt:active { transform: scale(0.9); }
     .avatar-opt.selected { border-color: var(--accent); background: rgba(59,130,246,0.15); transform: scale(1.05); }
 
-    /* ── Verification Overlay (Login Animation) ── */
+    /* Verification Overlay */
     .verification-overlay {
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+      top: 0; left: 0; width: 100%; height: 100%;
       background: rgba(6,8,15,0.92);
       backdrop-filter: blur(12px);
       z-index: 1000;
@@ -194,51 +191,22 @@
       background-clip: text;
       color: transparent;
     }
-    .verify-status {
-      font-size: 14px;
-      color: var(--muted);
-      margin-top: 8px;
-      font-weight: 500;
-    }
+    .verify-status { font-size: 14px; color: var(--muted); margin-top: 8px; font-weight: 500; }
     .verify-loader {
-      width: 48px;
-      height: 48px;
-      margin: 12px auto;
+      width: 48px; height: 48px; margin: 12px auto;
       border: 3px solid rgba(59,130,246,0.2);
       border-top: 3px solid var(--accent);
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .verify-check {
-      color: var(--green);
-      font-size: 40px;
-      margin: 8px auto;
-      animation: bounceCheck 0.5s ease;
-    }
-    @keyframes bounceCheck {
-      0% { transform: scale(0); opacity: 0; }
-      80% { transform: scale(1.2); }
-      100% { transform: scale(1); opacity: 1; }
-    }
 
-    /* ── WAITING SCREEN (ENHANCED: GETTING READY ANIMATION) ── */
-    .waiting-card {
-      text-align: center;
-      padding: 40px 24px;
-      overflow: hidden;
-      position: relative;
-    }
-    .ready-animation {
-      position: relative;
-      margin-bottom: 28px;
-    }
+    /* Waiting Screen */
+    .waiting-card { text-align: center; padding: 40px 24px; overflow: hidden; position: relative; }
+    .ready-animation { position: relative; margin-bottom: 28px; }
     .pulse-ring {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 100px;
-      height: 100px;
+      position: absolute; top: 50%; left: 50%;
+      width: 100px; height: 100px;
       background: rgba(59,130,246,0.2);
       border-radius: 50%;
       transform: translate(-50%, -50%);
@@ -249,22 +217,13 @@
       0% { width: 70px; height: 70px; opacity: 0.6; }
       100% { width: 180px; height: 180px; opacity: 0; }
     }
-    .avatar-display {
-      font-size: 90px;
-      margin-bottom: 12px;
-      animation: float 3s ease-in-out infinite;
-      position: relative;
-      z-index: 2;
-    }
+    .avatar-display { font-size: 90px; margin-bottom: 12px; animation: float 3s ease-in-out infinite; position: relative; z-index: 2; }
     @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
     .player-name { font-size: 26px; font-weight: 800; margin-bottom: 8px; letter-spacing: -0.3px; }
     .excitement-text {
-      font-size: 16px;
-      font-weight: 700;
+      font-size: 16px; font-weight: 700;
       background: linear-gradient(120deg, var(--yellow), var(--accent));
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
+      -webkit-background-clip: text; background-clip: text; color: transparent;
       margin: 8px 0 6px;
       animation: shimmer 1.5s infinite;
     }
@@ -274,57 +233,49 @@
       100% { opacity: 0.6; letter-spacing: -0.3px; }
     }
     .motd {
-      background: rgba(59,130,246,0.1);
-      border-radius: 40px;
-      padding: 10px 16px;
-      display: inline-block;
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--muted);
-      margin-top: 12px;
+      background: rgba(59,130,246,0.1); border-radius: 40px;
+      padding: 10px 16px; display: inline-block;
+      font-size: 13px; font-weight: 600; color: var(--muted); margin-top: 12px;
     }
     .room-display {
       display: inline-block;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 36px;
-      font-weight: 700;
+      font-family: 'JetBrains Mono', monospace; font-size: 36px; font-weight: 700;
       letter-spacing: 6px;
-      background: rgba(59,130,246,0.1);
-      border: 2px solid rgba(59,130,246,0.25);
-      border-radius: 16px;
-      padding: 14px 32px;
-      margin-bottom: 24px;
+      background: rgba(59,130,246,0.1); border: 2px solid rgba(59,130,246,0.25);
+      border-radius: 16px; padding: 14px 32px; margin-bottom: 24px;
     }
     .player-count-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background: var(--surface);
-      border: 1px solid var(--border2);
-      border-radius: 40px;
-      padding: 8px 18px;
-      font-size: 14px;
-      font-weight: 600;
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--surface); border: 1px solid var(--border2);
+      border-radius: 40px; padding: 8px 18px; font-size: 14px; font-weight: 600;
     }
     .pc-num { font-size: 22px; font-weight: 800; color: var(--green); }
     .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); animation: blink 1.2s infinite; }
     @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
-    .waiting-tips {
-      display: flex;
-      justify-content: center;
-      gap: 20px;
-      margin-top: 28px;
-      color: var(--muted);
-      font-size: 12px;
-      font-weight: 500;
-    }
+    .waiting-tips { display: flex; justify-content: center; gap: 20px; margin-top: 28px; color: var(--muted); font-size: 12px; font-weight: 500; }
     .waiting-tips span { display: flex; align-items: center; gap: 6px; }
 
-    /* Quiz Screen, Result, Eliminated unchanged but keep consistency */
+    /* Quiz Screen */
     .quiz-card { display: flex; flex-direction: column; gap: 16px; }
     .quiz-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
     .q-counter { background: var(--surface); border: 1px solid var(--border2); padding: 6px 14px; border-radius: 40px; font-size: 13px; font-weight: 700; }
     .score-chip { background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3); padding: 6px 14px; border-radius: 40px; font-size: 13px; font-weight: 800; color: var(--yellow); font-family: 'JetBrains Mono', monospace; }
+    
+    /* Player info during question */
+    .player-info-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 40px;
+      padding: 6px 16px 6px 8px;
+      font-weight: 700;
+      font-size: 14px;
+    }
+    .player-info-avatar { font-size: 28px; }
+    .player-info-name { max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
     .p-timer { position: relative; width: 52px; height: 52px; flex-shrink: 0; }
     .p-timer svg { transform: rotate(-90deg); }
     .p-timer-text { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: 'JetBrains Mono', monospace; font-size: 17px; font-weight: 700; }
@@ -336,11 +287,132 @@
     .opt-btn.selected { border-color: var(--accent); background: rgba(59,130,246,0.12); }
     .opt-btn.correct { border-color: var(--green); background: rgba(16,185,129,0.12); }
     .opt-btn.wrong { border-color: var(--red); background: rgba(239,68,68,0.08); opacity: .65; }
+    .opt-btn:disabled { cursor: not-allowed; }
+    
     .feedback { border-radius: 16px; padding: 18px 20px; text-align: center; font-weight: 700; font-size: 16px; animation: popIn .3s cubic-bezier(0.34,1.56,0.64,1); }
     @keyframes popIn { from{transform:scale(0.8);opacity:0} to{transform:scale(1);opacity:1} }
     .feedback-correct { background: rgba(16,185,129,0.15); border: 2px solid rgba(16,185,129,0.4); }
     .feedback-wrong { background: rgba(239,68,68,0.1); border: 2px solid rgba(239,68,68,0.3); }
+    .feedback-timeout { background: var(--surface); border: 1px solid var(--border2); }
     .feedback-pending { background: var(--surface); border: 1px solid var(--border2); padding: 14px 20px; border-radius: 14px; text-align: center; font-size: 14px; color: var(--muted); font-weight: 600; }
+
+    /* Action buttons after timer hits 0 */
+    .action-buttons-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 8px;
+    }
+    .action-buttons-row .btn-sm {
+      flex: 1;
+      text-align: center;
+      font-family: 'Space Grotesk', sans-serif;
+    }
+
+    /* Fullscreen Overlay for Live Responses & Leaderboard */
+    .fullscreen-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(6, 8, 15, 0.96);
+      backdrop-filter: blur(16px);
+      z-index: 900;
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+      overflow-y: auto;
+      animation: fadeInOverlay 0.25s ease;
+    }
+    @keyframes fadeInOverlay {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    .overlay-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      flex-shrink: 0;
+    }
+    .overlay-title {
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+    }
+    .overlay-close-btn {
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.08);
+      border: 1.5px solid rgba(255,255,255,0.15);
+      color: var(--text);
+      font-size: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-family: 'Space Grotesk', sans-serif;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+    .overlay-close-btn:active {
+      background: rgba(239,68,68,0.3);
+      border-color: var(--red);
+      transform: scale(0.93);
+    }
+    
+    /* Response bars in overlay */
+    .overlay-resp-bar-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .overlay-resp-ltr {
+      width: 44px; height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+    .overlay-resp-track {
+      flex: 1; height: 44px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .overlay-resp-fill {
+      height: 100%; border-radius: 12px;
+      display: flex; align-items: center; padding: 0 14px;
+      font-weight: 700; transition: width 0.6s cubic-bezier(0.34,1,0.64,1);
+      min-width: 40px;
+    }
+    .overlay-resp-label {
+      flex: 1; overflow: hidden; text-overflow: ellipsis;
+      white-space: nowrap; font-size: 13px; font-weight: 600;
+    }
+    .overlay-resp-pct {
+      font-size: 15px; font-weight: 800; flex-shrink: 0;
+    }
+    .overlay-resp-count {
+      width: 40px; text-align: right; font-weight: 700; font-size: 15px; flex-shrink: 0;
+    }
+
+    /* Leaderboard rows in overlay */
+    .overlay-lb-row {
+      display: flex; align-items: center; gap: 14px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 18px;
+      margin-bottom: 10px;
+    }
+    .overlay-lb-rank { width: 36px; font-size: 22px; font-weight: 800; text-align: center; flex-shrink: 0; }
+    .overlay-lb-avatar { font-size: 36px; flex-shrink: 0; }
+    .overlay-lb-info { flex: 1; overflow: hidden; }
+    .overlay-lb-name { font-weight: 700; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .overlay-lb-score { font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 20px; color: var(--yellow); flex-shrink: 0; }
+
     .result-card { text-align: center; padding: 32px 24px; }
     .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
     .stat-box { background: var(--surface); border: 1px solid var(--border2); border-radius: 16px; padding: 16px; }
@@ -353,7 +425,7 @@
 <body>
 <div class="app">
 
-  <!-- Verification overlay (login animation) -->
+  <!-- Verification overlay -->
   <div id="verificationOverlay" class="verification-overlay hidden">
     <div class="verification-card">
       <div id="verifyIcon" class="verify-icon">🔍</div>
@@ -363,13 +435,12 @@
     </div>
   </div>
 
-  <!-- ═══ JOIN SCREEN ═══ -->
+  <!-- JOIN SCREEN -->
   <div id="joinScreen">
     <br>
     <div class="card">
       <div class="logo">PLAY<span class="logo-accent">A</span>QUIZ</div>
       <div class="tagline">Enter the room to start playing</div>
-
       <div class="form-group">
         <label>🎮 Room Code</label>
         <input id="roomCodeInput" type="text" placeholder="e.g. A7B3F2" maxlength="10" autocomplete="off" autocapitalize="characters">
@@ -382,13 +453,12 @@
         <label>🎭 Choose Avatar</label>
         <div class="avatar-grid" id="avatarGrid"></div>
       </div>
-
       <button class="btn" id="joinBtn" onclick="joinGame()">🚀 Join Game</button>
       <div class="error-msg" id="joinError"></div>
     </div>
   </div>
 
-  <!-- ═══ ENHANCED WAITING SCREEN (with excitement and getting ready) ═══ -->
+  <!-- WAITING SCREEN -->
   <div id="waitingScreen" class="hidden">
     <br>
     <div class="card waiting-card">
@@ -413,12 +483,16 @@
     </div>
   </div>
 
-  <!-- QUIZ, RESULT, ELIMINATED screens (preserved) -->
+  <!-- QUIZ SCREEN (with player info and action buttons) -->
   <div id="quizScreen" class="hidden">
     <br>
     <div class="card quiz-card">
       <div class="quiz-header">
         <div class="q-counter" id="qCounter">Q1</div>
+        <div class="player-info-row" id="playerInfoRow">
+          <span class="player-info-avatar" id="playerInfoAvatar">😎</span>
+          <span class="player-info-name" id="playerInfoName">Player</span>
+        </div>
         <div class="score-chip" id="scoreChip">0 pts</div>
         <div class="p-timer"><svg width="52" height="52" viewBox="0 0 52 52"><circle cx="26" cy="26" r="22" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4"/><circle id="pTimerRing" cx="26" cy="26" r="22" fill="none" stroke="var(--accent)" stroke-width="4" stroke-linecap="round" stroke-dasharray="138.2" stroke-dashoffset="0"/></svg><div class="p-timer-text" id="pTimerNum">—</div></div>
       </div>
@@ -426,13 +500,38 @@
       <div class="options-list" id="optList"></div>
       <div id="pendingBox" class="feedback-pending hidden">⏳ Locked in! Waiting for answer reveal...</div>
       <div id="feedbackBox" class="hidden"></div>
+      <!-- Action buttons: only visible after timer hits 0 -->
+      <div class="action-buttons-row hidden" id="actionButtonsRow">
+        <button class="btn btn-sm btn-ghost" onclick="openLiveResponses()">📊 Live Responses</button>
+        <button class="btn btn-sm btn-ghost" onclick="openLeaderboard()">🏆 Leaderboard</button>
+      </div>
     </div>
   </div>
 
+  <!-- FULLSCREEN LIVE RESPONSES OVERLAY -->
+  <div id="liveResponsesOverlay" class="fullscreen-overlay hidden">
+    <div class="overlay-header">
+      <span class="overlay-title">📊 Live Responses</span>
+      <button class="overlay-close-btn" onclick="closeLiveResponses()">✕</button>
+    </div>
+    <div id="liveResponsesContent"></div>
+  </div>
+
+  <!-- FULLSCREEN LEADERBOARD OVERLAY -->
+  <div id="leaderboardOverlay" class="fullscreen-overlay hidden">
+    <div class="overlay-header">
+      <span class="overlay-title">🏆 Leaderboard</span>
+      <button class="overlay-close-btn" onclick="closeLeaderboard()">✕</button>
+    </div>
+    <div id="leaderboardContent"></div>
+  </div>
+
+  <!-- RESULT SCREEN -->
   <div id="resultScreen" class="hidden">
     <br><div class="card result-card"><div class="result-icon" id="resultIcon">🏆</div><div class="result-title">Quiz Over!</div><div class="stats-grid"><div class="stat-box"><div class="stat-num" id="rScore">0</div><div class="stat-lbl">Total Points</div></div><div class="stat-box"><div class="stat-num" id="rRank">—</div><div class="stat-lbl">Your Rank</div></div><div class="stat-box"><div class="stat-num" id="rCorrect">0</div><div class="stat-lbl">Correct</div></div><div class="stat-box"><div class="stat-num" id="rAccuracy">0%</div><div class="stat-lbl">Accuracy</div></div></div><div id="rankMessage" style="font-size:18px;font-weight:700;margin-bottom:20px;color:var(--yellow)"></div><button class="btn btn-ghost" onclick="playAgain()">🔄 Play Again</button></div>
   </div>
 
+  <!-- ELIMINATED SCREEN -->
   <div id="eliminatedScreen" class="hidden">
     <br><div class="eliminated-card"><div style="font-size:72px;margin-bottom:16px">⚡</div><div style="font-size:28px;font-weight:800;margin-bottom:8px">You've been eliminated</div><div style="color:var(--muted);margin-bottom:24px">The host removed you from this game</div><button class="btn btn-ghost" onclick="playAgain()">← Back to Lobby</button></div>
   </div>
@@ -444,7 +543,6 @@ const SUPABASE_URL  = 'https://efgirqbaayfjwswnwbop.supabase.co';
 const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-// Audio, state
 const AC = window.AudioContext || window.webkitAudioContext;
 let ac;
 function getAC() { if (!ac) ac = new AC(); if (ac.state==='suspended') ac.resume(); return ac; }
@@ -463,6 +561,7 @@ let myScore = 0, myCorrect = 0, myQCount = 0;
 let timerIv = null, timeLeft = 0, totalTime = 0;
 let playerCountIv = null;
 let realtimeChannel = null;
+let timerEnded = false; // track if timer hit 0
 
 function buildAvatarGrid() {
   const grid = document.getElementById('avatarGrid');
@@ -470,7 +569,6 @@ function buildAvatarGrid() {
 }
 function pickAvatar(e) { selEmoji = e; document.querySelectorAll('.avatar-opt').forEach(el => { el.classList.toggle('selected', el.innerText.trim() === e); }); }
 
-// Show verification animation (login style)
 async function showVerificationAndJoin(roomCode, playerName) {
   const overlay = document.getElementById('verificationOverlay');
   const verifyIcon = document.getElementById('verifyIcon');
@@ -484,56 +582,37 @@ async function showVerificationAndJoin(roomCode, playerName) {
   verifyLoader.classList.remove('hidden');
   verifyStatus.innerText = 'Connecting to game server...';
   
-  // Simulate small delay + animation steps for excitement
   await new Promise(r => setTimeout(r, 800));
   verifyStatus.innerText = 'Verifying room existence...';
   await new Promise(r => setTimeout(r, 600));
   
-  // Real DB check for room
   const { data: session } = await sb.from('game_sessions').select('*').eq('room_code', roomCode).maybeSingle();
   if (!session) {
-    verifyIcon.innerHTML = '❌';
-    verifyTitle.innerText = 'Room Not Found';
-    verifyLoader.classList.add('hidden');
-    verifyStatus.innerText = 'Invalid code, please try again.';
-    await new Promise(r => setTimeout(r, 1000));
-    overlay.classList.add('hidden');
-    showErr('Room not found. Check the code.');
-    return null;
+    verifyIcon.innerHTML = '❌'; verifyTitle.innerText = 'Room Not Found';
+    verifyLoader.classList.add('hidden'); verifyStatus.innerText = 'Invalid code, please try again.';
+    await new Promise(r => setTimeout(r, 1000)); overlay.classList.add('hidden');
+    showErr('Room not found. Check the code.'); return null;
   }
   if (session.status === 'ended') {
-    verifyIcon.innerHTML = '🚫';
-    verifyTitle.innerText = 'Game Ended';
-    verifyLoader.classList.add('hidden');
-    verifyStatus.innerText = 'This game session has ended.';
-    await new Promise(r => setTimeout(r, 1000));
-    overlay.classList.add('hidden');
-    showErr('This game has ended.');
-    return null;
+    verifyIcon.innerHTML = '🚫'; verifyTitle.innerText = 'Game Ended';
+    verifyLoader.classList.add('hidden'); verifyStatus.innerText = 'This game session has ended.';
+    await new Promise(r => setTimeout(r, 1000)); overlay.classList.add('hidden');
+    showErr('This game has ended.'); return null;
   }
   
-  // Success animation step
-  verifyIcon.innerHTML = '✅';
-  verifyTitle.innerText = 'Room Valid!';
-  verifyLoader.classList.add('hidden');
-  verifyStatus.innerText = 'Now checking player availability...';
+  verifyIcon.innerHTML = '✅'; verifyTitle.innerText = 'Room Valid!';
+  verifyLoader.classList.add('hidden'); verifyStatus.innerText = 'Now checking player availability...';
   await new Promise(r => setTimeout(r, 500));
   
-  // check name uniqueness
   const { data: existing } = await sb.from('players').select('id').eq('session_id', session.id).eq('name', playerName).maybeSingle();
   if (existing) {
-    verifyIcon.innerHTML = '⚠️';
-    verifyTitle.innerText = 'Name Taken';
+    verifyIcon.innerHTML = '⚠️'; verifyTitle.innerText = 'Name Taken';
     verifyStatus.innerText = 'Please choose a different nickname.';
-    await new Promise(r => setTimeout(r, 1000));
-    overlay.classList.add('hidden');
-    showErr('Name taken. Try another.');
-    return null;
+    await new Promise(r => setTimeout(r, 1000)); overlay.classList.add('hidden');
+    showErr('Name taken. Try another.'); return null;
   }
   
-  // final success
-  verifyIcon.innerHTML = '🎉';
-  verifyTitle.innerText = 'Access Granted!';
+  verifyIcon.innerHTML = '🎉'; verifyTitle.innerText = 'Access Granted!';
   verifyStatus.innerText = 'Teleporting to game lobby...';
   await new Promise(r => setTimeout(r, 500));
   overlay.classList.add('hidden');
@@ -549,12 +628,10 @@ async function joinGame() {
   const btn = document.getElementById('joinBtn');
   btn.disabled = true; btn.innerText = 'Joining...';
   
-  // Show verification animation (login effect)
   const sessionObj = await showVerificationAndJoin(roomCode, name);
   if (!sessionObj) { resetJoinBtn(); return; }
   
   SESSION_ID = sessionObj.id;
-  // Create player
   const { data: player, error } = await sb.from('players').insert({ session_id: SESSION_ID, name, avatar_color: selEmoji, score: 0, correct_count: 0 }).select().single();
   if (error || !player) { showErr('Could not join. Try again.'); resetJoinBtn(); return; }
   myPlayer = player;
@@ -579,7 +656,7 @@ function setupRealtime() {
 
 function handleEvent(evt) {
   switch(evt.event_type) {
-    case 'new_question': curQuestion = evt.payload.question; curQIdx = evt.payload.qIdx; totalQ = evt.payload.total; answered = false; selOption = -1; break;
+    case 'new_question': curQuestion = evt.payload.question; curQIdx = evt.payload.qIdx; totalQ = evt.payload.total; answered = false; selOption = -1; timerEnded = false; break;
     case 'show_question_view': displayQuestion(evt.payload.question || curQuestion, curQIdx); showScreen('quiz'); break;
     case 'answer_reveal': revealAndScore(evt.payload.correctOption); break;
     case 'game_ended': stopTimer(); showResult(); break;
@@ -588,7 +665,6 @@ function handleEvent(evt) {
   }
 }
 
-// Enhanced waiting with rotating excitement messages
 let excitementInterval;
 function showWaitingWithExcitement() {
   if (myPlayer) {
@@ -602,7 +678,6 @@ function showWaitingWithExcitement() {
   let idx = 0;
   if (excitementInterval) clearInterval(excitementInterval);
   const excitementEl = document.getElementById('excitementMessage');
-  const subMsgEl = document.getElementById('waitSubMsg');
   const motdEl = document.getElementById('motdMessage');
   const tipLines = ["🏅 First to answer wins!", "⏱️ Speed = Bonus points", "🧠 Knowledge is power", "🎉 Host might start any second"];
   let tipIdx = 0;
@@ -619,6 +694,15 @@ function displayQuestion(q, idx) {
   if (!q) return;
   curQuestion = q;
   myQCount++;
+  timerEnded = false;
+  
+  // Update player info in quiz header
+  if (myPlayer) {
+    document.getElementById('playerInfoAvatar').innerText = myPlayer.avatar_color || '😎';
+    document.getElementById('playerInfoName').innerText = myPlayer.name || 'Player';
+    document.getElementById('playerInfoRow').classList.remove('hidden');
+  }
+  
   document.getElementById('qCounter').innerText = `Q${(idx??0)+1}${totalQ>0?' / '+totalQ:''}`;
   document.getElementById('scoreChip').innerText = myScore + ' pts';
   document.getElementById('quizQText').innerText = q.question_text;
@@ -626,6 +710,7 @@ function displayQuestion(q, idx) {
   const opts = [q.option_a, q.option_b, q.option_c, q.option_d];
   document.getElementById('optList').innerHTML = opts.map((o,i) => `<button class="opt-btn" data-idx="${i}" onclick="submitAnswer(${i})"><div class="opt-letter">${letters[i]}</div><span>${o}</span></button>`).join('');
   hide('pendingBox'); hide('feedbackBox');
+  hide('actionButtonsRow'); // Hide action buttons until timer ends
   answered = false; selOption = -1;
   totalTime = q.time_limit || 20;
   timeLeft = totalTime;
@@ -638,7 +723,7 @@ function startTimer() {
   timerIv = setInterval(() => {
     timeLeft--;
     updateTimerUI();
-    if (timeLeft <= 0) { stopTimer(); if (!answered) { timesUpSound(); answered = true; submitAnswer(-1, true); } }
+    if (timeLeft <= 0) { stopTimer(); if (!answered) { timesUpSound(); answered = true; submitAnswer(-1, true); } onTimerEnd(); }
   }, 1000);
 }
 function stopTimer() { clearInterval(timerIv); timerIv = null; }
@@ -649,41 +734,149 @@ function updateTimerUI() {
   if (timeLeft <= 5) ring.style.stroke = '#ef4444'; else if (timeLeft <= 10) ring.style.stroke = '#f59e0b'; else ring.style.stroke = '#3b82f6';
 }
 function timesUpSound() { tone(160,.6,.5,'sawtooth'); }
+
+// Called when timer hits 0 - show action buttons
+function onTimerEnd() {
+  timerEnded = true;
+  document.getElementById('actionButtonsRow').classList.remove('hidden');
+}
+
+// Also show buttons when answer is revealed (in case timer hasn't hit 0 yet)
+function revealAndScore(correctOption) {
+  if (!curQuestion) return; stopTimer(); hide('pendingBox');
+  if (!timerEnded) {
+    timerEnded = true;
+    document.getElementById('actionButtonsRow').classList.remove('hidden');
+  }
+  document.querySelectorAll('.opt-btn').forEach((btn, i) => { btn.disabled = true; if(i===correctOption) btn.classList.add('correct'); else if(i===selOption && selOption!==correctOption) btn.classList.add('wrong'); });
+  sb.from('answers').select('is_correct,points_earned').eq('question_id', curQuestion.id).eq('player_id', myPlayer.id).maybeSingle().then(({ data: myAns }) => {
+    const correct = myAns?.is_correct || false; const earned = myAns?.points_earned || 0;
+    if(correct){ myScore += earned; myCorrect++; correctSound(); } else wrongSound();
+    if(correct) sb.from('players').update({ score: myScore, correct_count: myCorrect }).eq('id', myPlayer.id);
+    document.getElementById('scoreChip').innerText = myScore + ' pts';
+    const fb = document.getElementById('feedbackBox'); fb.className = 'feedback';
+    if(selOption === -1) { fb.classList.add('feedback-timeout'); fb.innerHTML = `<div>⏰ Time's up! Correct: ${['A','B','C','D'][correctOption]}</div>`; }
+    else if(correct) { fb.classList.add('feedback-correct'); fb.innerHTML = `<div class="points-pop">+${earned}</div><div>🎉 Correct!</div>`; }
+    else { fb.classList.add('feedback-wrong'); fb.innerHTML = `<div>❌ Wrong</div><div>Correct: ${['A','B','C','D'][correctOption]}</div>`; }
+    show('feedbackBox');
+  });
+}
+
 async function submitAnswer(optIdx, isTimeout=false) {
   if (answered && optIdx !== -1) return;
   answered = true; stopTimer(); selOption = optIdx; lockedSound();
   document.querySelectorAll('.opt-btn').forEach((btn, i) => { btn.disabled = true; if (i === optIdx) btn.classList.add('selected'); if (isTimeout) btn.classList.add('timeout'); });
   show('pendingBox'); hide('feedbackBox');
+  if (!timerEnded) { timerEnded = true; document.getElementById('actionButtonsRow').classList.remove('hidden'); }
   const isCorrect = !isTimeout && optIdx === curQuestion?.correct_option;
   const pts = isCorrect ? Math.round((curQuestion?.points || 100) * Math.max(0.1, timeLeft / totalTime)) : 0;
   saveAnswer(optIdx, isCorrect, pts);
 }
 async function saveAnswer(optIdx, isCorrect, pts) { if(!curQuestion||!myPlayer)return; await sb.from('answers').upsert({ session_id: SESSION_ID, question_id: curQuestion.id, player_id: myPlayer.id, chosen_option: optIdx, is_correct: isCorrect, points_earned: pts, time_taken_ms: (totalTime - timeLeft) * 1000 }, { onConflict: 'question_id,player_id' }); }
-async function revealAndScore(correctOption) {
-  if (!curQuestion) return; stopTimer(); hide('pendingBox');
-  document.querySelectorAll('.opt-btn').forEach((btn, i) => { btn.disabled = true; if(i===correctOption) btn.classList.add('correct'); else if(i===selOption && selOption!==correctOption) btn.classList.add('wrong'); });
-  const { data: myAns } = await sb.from('answers').select('is_correct,points_earned').eq('question_id', curQuestion.id).eq('player_id', myPlayer.id).maybeSingle();
-  const correct = myAns?.is_correct || false; const earned = myAns?.points_earned || 0;
-  if(correct){ myScore += earned; myCorrect++; correctSound(); } else wrongSound();
-  if(correct) await sb.from('players').update({ score: myScore, correct_count: myCorrect }).eq('id', myPlayer.id);
-  document.getElementById('scoreChip').innerText = myScore + ' pts';
-  const fb = document.getElementById('feedbackBox'); fb.className = 'feedback';
-  if(selOption === -1) { fb.classList.add('feedback-timeout'); fb.innerHTML = `<div>⏰ Time's up! Correct: ${['A','B','C','D'][correctOption]}</div>`; }
-  else if(correct) { fb.classList.add('feedback-correct'); fb.innerHTML = `<div class="points-pop">+${earned}</div><div>🎉 Correct!</div>`; }
-  else { fb.classList.add('feedback-wrong'); fb.innerHTML = `<div>❌ Wrong</div><div>Correct: ${['A','B','C','D'][correctOption]}</div>`; }
-  show('feedbackBox');
+
+// ── Live Responses Overlay ──
+async function openLiveResponses() {
+  if (!curQuestion || !SESSION_ID) return;
+  const overlay = document.getElementById('liveResponsesOverlay');
+  overlay.classList.remove('hidden');
+  
+  const { data: answers } = await sb.from('answers').select('chosen_option').eq('session_id', SESSION_ID).eq('question_id', curQuestion.id);
+  const dist = [0, 0, 0, 0];
+  answers?.forEach(a => { if (a.chosen_option >= 0 && a.chosen_option < 4) dist[a.chosen_option]++; });
+  const total = dist.reduce((a, b) => a + b, 0);
+  const maxCount = Math.max(...dist, 1);
+  const colors = ['#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899'];
+  const letters = ['A', 'B', 'C', 'D'];
+  const opts = [curQuestion.option_a, curQuestion.option_b, curQuestion.option_c, curQuestion.option_d];
+  
+  document.getElementById('liveResponsesContent').innerHTML = `
+    <div style="color:var(--muted);margin-bottom:16px;font-weight:600;">${total} total responses</div>
+    ${dist.map((count, i) => {
+      const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+      const barWidth = (count / maxCount) * 100;
+      return `
+        <div class="overlay-resp-bar-row">
+          <div class="overlay-resp-ltr" style="background:${colors[i]}30;color:${colors[i]}">${letters[i]}</div>
+          <div class="overlay-resp-track">
+            <div class="overlay-resp-fill" style="width:0%;background:${colors[i]}" data-target="${barWidth}">
+              <span class="overlay-resp-label">${opts[i] || ''}</span>
+              <span class="overlay-resp-pct">${pct}%</span>
+            </div>
+          </div>
+          <div class="overlay-resp-count">${count}</div>
+        </div>
+      `;
+    }).join('')}
+  `;
+  
+  setTimeout(() => {
+    document.querySelectorAll('#liveResponsesContent .overlay-resp-fill').forEach(el => {
+      el.style.width = el.dataset.target + '%';
+    });
+  }, 100);
 }
 
-async function showResult() { stopTimer(); let rank='—'; try { const {data:all}=await sb.from('players').select('id,score').eq('session_id',SESSION_ID).order('score',{ascending:false}); const idx=(all||[]).findIndex(p=>p.id===myPlayer.id); if(idx>=0)rank=`#${idx+1}`; }catch(e){} const accuracy=myQCount>0?Math.round((myCorrect/myQCount)*100):0; document.getElementById('rScore').innerText=myScore; document.getElementById('rRank').innerText=rank; document.getElementById('rCorrect').innerText=`${myCorrect}/${myQCount}`; document.getElementById('rAccuracy').innerText=accuracy+'%'; const rankNum=parseInt(rank.replace('#','')); let icon='🏆',msg=''; if(rankNum===1){icon='🥇';msg='You won! Incredible!';}else if(rankNum===2){icon='🥈';msg='Runner up! So close!';}else if(rankNum===3){icon='🥉';msg='Top 3! Amazing!';}else if(accuracy>=80){icon='🌟';msg='Excellent accuracy!';}else{icon='💪';msg='Great effort!';} document.getElementById('resultIcon').innerText=icon; document.getElementById('rankMessage').innerText=msg; showScreen('result'); }
+function closeLiveResponses() {
+  document.getElementById('liveResponsesOverlay').classList.add('hidden');
+}
+
+// ── Leaderboard Overlay ──
+async function openLeaderboard() {
+  if (!SESSION_ID) return;
+  const overlay = document.getElementById('leaderboardOverlay');
+  overlay.classList.remove('hidden');
+  
+  const { data: players } = await sb.from('players').select('id, name, avatar_color, score').eq('session_id', SESSION_ID).order('score', { ascending: false });
+  
+  if (!players || players.length === 0) {
+    document.getElementById('leaderboardContent').innerHTML = '<div style="text-align:center;color:var(--muted);padding:40px;">No players yet</div>';
+    return;
+  }
+  
+  document.getElementById('leaderboardContent').innerHTML = players.map((p, i) => {
+    const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`;
+    return `
+      <div class="overlay-lb-row">
+        <div class="overlay-lb-rank">${medal}</div>
+        <div class="overlay-lb-avatar">${p.avatar_color || '👤'}</div>
+        <div class="overlay-lb-info">
+          <div class="overlay-lb-name">${p.name}</div>
+        </div>
+        <div class="overlay-lb-score">${p.score}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function closeLeaderboard() {
+  document.getElementById('leaderboardOverlay').classList.add('hidden');
+}
+
+async function showResult() { 
+  stopTimer(); 
+  let rank='—'; 
+  try { const {data:all}=await sb.from('players').select('id,score').eq('session_id',SESSION_ID).order('score',{ascending:false}); const idx=(all||[]).findIndex(p=>p.id===myPlayer.id); if(idx>=0)rank=`#${idx+1}`; }catch(e){} 
+  const accuracy=myQCount>0?Math.round((myCorrect/myQCount)*100):0; 
+  document.getElementById('rScore').innerText=myScore; document.getElementById('rRank').innerText=rank; 
+  document.getElementById('rCorrect').innerText=`${myCorrect}/${myQCount}`; 
+  document.getElementById('rAccuracy').innerText=accuracy+'%'; 
+  const rankNum=parseInt(rank.replace('#','')); 
+  let icon='🏆',msg=''; 
+  if(rankNum===1){icon='🥇';msg='You won! Incredible!';}else if(rankNum===2){icon='🥈';msg='Runner up! So close!';}else if(rankNum===3){icon='🥉';msg='Top 3! Amazing!';}else if(accuracy>=80){icon='🌟';msg='Excellent accuracy!';}else{icon='💪';msg='Great effort!';} 
+  document.getElementById('resultIcon').innerText=icon; document.getElementById('rankMessage').innerText=msg; 
+  showScreen('result'); 
+}
 function showEliminated() { if(excitementInterval) clearInterval(excitementInterval); showScreen('eliminated'); }
 function startPlayerCountPoll() { const refresh=async()=>{ if(!SESSION_ID)return; const{count}=await sb.from('players').select('*',{count:'exact',head:true}).eq('session_id',SESSION_ID); document.getElementById('waitPlayerCount').innerText=count||0; }; refresh(); playerCountIv=setInterval(refresh,4000); }
 function showScreen(id) { ['join','waiting','quiz','result','eliminated'].forEach(s=>document.getElementById(s+'Screen').classList.add('hidden')); document.getElementById(id+'Screen').classList.remove('hidden'); if(id !== 'waiting' && excitementInterval) clearInterval(excitementInterval); }
 function hide(id) { document.getElementById(id)?.classList.add('hidden'); } function show(id) { document.getElementById(id)?.classList.remove('hidden'); }
-function playAgain() { if(excitementInterval) clearInterval(excitementInterval); localStorage.removeItem('paq_pid'); localStorage.removeItem('paq_sid'); if(realtimeChannel) sb.removeChannel(realtimeChannel); clearInterval(playerCountIv); stopTimer(); SESSION_ID=null; myPlayer=null; myScore=0; myCorrect=0; myQCount=0; answered=false; selOption=-1; document.getElementById('roomCodeInput').value=''; document.getElementById('playerNameInput').value=''; showScreen('join'); resetJoinBtn(); document.getElementById('joinError').innerText=''; }
+function playAgain() { if(excitementInterval) clearInterval(excitementInterval); localStorage.removeItem('paq_pid'); localStorage.removeItem('paq_sid'); if(realtimeChannel) sb.removeChannel(realtimeChannel); clearInterval(playerCountIv); stopTimer(); SESSION_ID=null; myPlayer=null; myScore=0; myCorrect=0; myQCount=0; answered=false; selOption=-1; timerEnded=false; document.getElementById('roomCodeInput').value=''; document.getElementById('playerNameInput').value=''; showScreen('join'); resetJoinBtn(); document.getElementById('joinError').innerText=''; closeLiveResponses(); closeLeaderboard(); }
 async function checkExisting() { const pid=localStorage.getItem('paq_pid'); const sid=localStorage.getItem('paq_sid'); if(!pid||!sid) return false; const [{data:player},{data:session}]=await Promise.all([sb.from('players').select('*').eq('id',pid).maybeSingle(), sb.from('game_sessions').select('*').eq('id',sid).maybeSingle()]); if(!player||!session||session.status==='ended') return false; myPlayer=player; SESSION_ID=sid; myScore=player.score; myCorrect=player.correct_count; if(player.is_eliminated){showEliminated();return true;} setupRealtime(); startPlayerCountPoll(); if(session.status==='active'||session.status==='reveal') showScreen('quiz'); else showWaitingWithExcitement(); return true; }
 
 buildAvatarGrid(); pickAvatar('😎'); checkExisting().then(found=>{ if(!found) showScreen('join'); });
 window.joinGame=joinGame; window.pickAvatar=pickAvatar; window.submitAnswer=submitAnswer; window.playAgain=playAgain;
+window.openLiveResponses=openLiveResponses; window.closeLiveResponses=closeLiveResponses;
+window.openLeaderboard=openLeaderboard; window.closeLeaderboard=closeLeaderboard;
 </script>
 </body>
 </html>
