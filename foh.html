@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>PlayAQuiz — Live Display | Persistent Player Bubbles & Live Leaderboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>PlayAQuiz · Live Display | Persistent Bubbles & Live Leaderboard</title>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -16,33 +16,54 @@
 
     :root {
       --bg: #0a0c15;
-      --surface: rgba(18, 22, 40, 0.96);
+      --surface: rgba(16, 20, 38, 0.96);
       --accent: #3b82f6;
+      --accent-glow: rgba(59, 130, 246, 0.5);
       --green: #10b981;
       --yellow: #fbbf24;
       --red: #ef4444;
       --purple: #a855f7;
       --pink: #ec4899;
       --text: #ffffff;
-      --muted: rgba(255, 255, 255, 0.5);
+      --muted: rgba(255, 255, 255, 0.55);
+      --border-subtle: rgba(255, 255, 255, 0.08);
     }
 
     html, body {
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: radial-gradient(circle at 20% 30%, #0f1222, #03050b);
+      background: radial-gradient(circle at 30% 40%, #1a1f35 0%, #070a14 90%);
       font-family: 'Space Grotesk', sans-serif;
       color: var(--text);
     }
 
+    /* animated background mesh */
     body::before {
       content: '';
       position: fixed;
       inset: 0;
-      background: repeating-linear-gradient(0deg, rgba(0,0,0,0.1) 0px, rgba(0,0,0,0.1) 2px, transparent 2px, transparent 6px);
+      background-image: 
+        radial-gradient(circle at 20% 20%, rgba(59,130,246,0.08) 0%, transparent 40%),
+        radial-gradient(circle at 80% 70%, rgba(168,85,247,0.07) 0%, transparent 45%),
+        repeating-linear-gradient(45deg, rgba(255,255,255,0.01) 0px, rgba(255,255,255,0.01) 2px, transparent 2px, transparent 12px);
       pointer-events: none;
-      z-index: 2;
+      z-index: 0;
+      animation: slowDrift 25s infinite alternate ease-in-out;
+    }
+
+    @keyframes slowDrift {
+      0% { opacity: 0.7; transform: scale(1) translate(0, 0); }
+      100% { opacity: 1; transform: scale(1.05) translate(-2%, 1%); }
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(ellipse at 50% 50%, rgba(0,0,0,0.2) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 1;
     }
 
     .foh {
@@ -51,7 +72,8 @@
       height: 100vh;
       display: flex;
       flex-direction: column;
-      z-index: 3;
+      z-index: 5;
+      backdrop-filter: blur(2px);
     }
 
     /* TOP BAR */
@@ -59,75 +81,79 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 12px 28px;
-      background: rgba(6, 8, 18, 0.85);
-      backdrop-filter: blur(16px);
-      border-bottom: 2px solid rgba(59, 130, 246, 0.3);
-      z-index: 20;
+      padding: 12px 32px;
+      background: rgba(6, 8, 18, 0.8);
+      backdrop-filter: blur(20px);
+      border-bottom: 2px solid rgba(59, 130, 246, 0.25);
+      z-index: 30;
       flex-shrink: 0;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.5);
     }
 
     .logo {
       font-family: 'Bebas Neue', sans-serif;
-      font-size: 32px;
-      letter-spacing: 4px;
-      background: linear-gradient(135deg, #fff, #60a5fa);
+      font-size: 34px;
+      letter-spacing: 5px;
+      background: linear-gradient(135deg, #ffffff, #8bb5fe);
       -webkit-background-clip: text;
       background-clip: text;
       -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 2px 4px rgba(59,130,246,0.5));
     }
 
     .live-badge {
       display: flex;
       align-items: center;
-      gap: 8px;
-      background: rgba(16, 185, 129, 0.2);
-      border: 1px solid rgba(16, 185, 129, 0.5);
-      padding: 5px 16px;
+      gap: 10px;
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.45);
+      padding: 6px 20px;
       border-radius: 40px;
       font-weight: 700;
       font-size: 13px;
-      color: var(--green);
+      color: #10b981;
+      letter-spacing: 0.5px;
     }
 
     .live-dot {
-      width: 8px;
-      height: 8px;
+      width: 10px;
+      height: 10px;
       background: #10b981;
       border-radius: 50%;
       animation: pulse 1.2s infinite;
-      box-shadow: 0 0 5px #10b981;
+      box-shadow: 0 0 12px #10b981;
     }
 
-    @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.5;} }
+    @keyframes pulse { 0%,100%{opacity:1; transform:scale(1);} 50%{opacity:0.6; transform:scale(0.9);} }
 
     .room-badge {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 20px;
-      background: rgba(59,130,246,0.15);
-      border: 1px solid #3b82f680;
-      padding: 6px 18px;
+      font-size: 22px;
+      background: rgba(59,130,246,0.12);
+      border: 1px solid rgba(59,130,246,0.7);
+      padding: 6px 22px;
       border-radius: 32px;
-      letter-spacing: 2px;
+      letter-spacing: 3px;
       font-weight: 700;
+      backdrop-filter: blur(8px);
     }
 
     .player-counter-area {
       display: flex;
       align-items: center;
-      gap: 12px;
-      background: rgba(0, 0, 0, 0.7);
-      padding: 5px 20px;
+      gap: 14px;
+      background: rgba(0, 0, 0, 0.55);
+      padding: 5px 22px;
       border-radius: 60px;
       border: 1px solid #3b82f6;
-      box-shadow: 0 0 12px rgba(59,130,246,0.3);
+      box-shadow: 0 0 18px rgba(59,130,246,0.3);
     }
 
-    .counter-icon { font-size: 24px; filter: drop-shadow(0 0 4px #3b82f6); }
+    .counter-icon { font-size: 24px; filter: drop-shadow(0 0 5px #3b82f6); }
     
     .counter-number {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 34px;
+      font-size: 36px;
       font-weight: 800;
       background: linear-gradient(135deg, #facc15, #10b981);
       -webkit-background-clip: text;
@@ -138,9 +164,8 @@
       display: inline-block;
     }
 
-    .counter-pop { transform: scale(1.3); text-shadow: 0 0 8px #facc15; }
+    .counter-pop { transform: scale(1.25); text-shadow: 0 0 12px #facc15; }
 
-    /* MAIN LAYOUT: Center screen + Right Leaderboard */
     .main-layout {
       display: flex;
       flex: 1;
@@ -152,487 +177,256 @@
       flex: 1;
       position: relative;
       overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     /* RIGHT LIVE LEADERBOARD PANEL */
     .live-leaderboard-panel {
-      width: 320px;
-      background: rgba(6, 8, 18, 0.85);
-      backdrop-filter: blur(20px);
-      border-left: 2px solid rgba(59, 130, 246, 0.3);
+      width: 330px;
+      background: rgba(6, 8, 18, 0.8);
+      backdrop-filter: blur(24px);
+      border-left: 2px solid rgba(59, 130, 246, 0.25);
       display: flex;
       flex-direction: column;
-      z-index: 15;
+      z-index: 20;
       flex-shrink: 0;
     }
 
     .live-lb-header {
-      padding: 16px 20px;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-      background: linear-gradient(135deg, rgba(59,130,246,0.1), rgba(139,92,246,0.05));
+      padding: 18px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      background: linear-gradient(135deg, rgba(59,130,246,0.08), rgba(139,92,246,0.05));
     }
 
     .live-lb-title {
       font-family: 'Bebas Neue', sans-serif;
-      font-size: 28px;
+      font-size: 30px;
       letter-spacing: 2px;
       display: flex;
       align-items: center;
       gap: 10px;
     }
 
-    .live-lb-title span:first-child { font-size: 32px; }
-    .live-lb-sub {
-      font-size: 11px;
-      color: var(--muted);
-      margin-top: 5px;
-      letter-spacing: 1px;
-    }
+    .live-lb-sub { font-size: 11px; color: var(--muted); margin-top: 6px; }
 
     .live-lb-list {
       flex: 1;
       overflow-y: auto;
-      padding: 12px;
+      padding: 14px;
       scrollbar-width: thin;
     }
-
-    .live-lb-list::-webkit-scrollbar { width: 4px; }
-    .live-lb-list::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 10px; }
-    .live-lb-list::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
 
     .live-lb-item {
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 10px 12px;
+      padding: 10px 14px;
       margin-bottom: 8px;
-      background: rgba(255,255,255,0.03);
-      border-radius: 16px;
+      background: rgba(255,255,255,0.02);
+      border-radius: 18px;
       transition: all 0.2s;
-      border: 1px solid rgba(255,255,255,0.05);
-      animation: slideInItem 0.3s ease;
+      border: 1px solid rgba(255,255,255,0.04);
     }
 
-    @keyframes slideInItem {
-      from { opacity: 0; transform: translateX(20px); }
-      to { opacity: 1; transform: translateX(0); }
-    }
+    .live-lb-item:hover { background: rgba(59,130,246,0.12); transform: translateX(-3px); }
 
-    .live-lb-item:hover { background: rgba(59,130,246,0.1); transform: translateX(-4px); }
+    .live-lb-rank { width: 34px; font-size: 22px; font-weight: 800; text-align: center; }
+    .live-lb-avatar { font-size: 34px; }
+    .live-lb-info { flex: 1; overflow: hidden; }
+    .live-lb-name { font-weight: 700; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .live-lb-score { font-family: 'JetBrains Mono', monospace; font-weight: 800; font-size: 20px; color: var(--yellow); }
 
-    .live-lb-rank {
-      width: 36px;
-      font-size: 20px;
-      font-weight: 800;
-      text-align: center;
-    }
-
-    .live-lb-avatar { font-size: 32px; }
-
-    .live-lb-info {
-      flex: 1;
-      overflow: hidden;
-    }
-
-    .live-lb-name {
-      font-weight: 700;
-      font-size: 14px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .live-lb-stats {
-      display: flex;
-      gap: 12px;
-      font-size: 11px;
-      color: var(--muted);
-      margin-top: 2px;
-    }
-
-    .live-lb-score {
-      font-family: 'JetBrains Mono', monospace;
-      font-weight: 800;
-      font-size: 18px;
-      color: var(--yellow);
-    }
-
-    .crown-icon { font-size: 18px; margin-left: 4px; }
-
-    /* PERSISTENT FLOATING BUBBLES CONTAINER */
+    /* FLOATING BUBBLES */
     .floating-bubbles {
       position: fixed;
-      bottom: 20px;
-      left: 20px;
-      right: 340px;
+      bottom: 24px;
+      left: 24px;
+      right: 360px;
       display: flex;
       flex-wrap: wrap;
       gap: 12px;
-      z-index: 100;
+      z-index: 120;
       pointer-events: none;
-      max-height: 200px;
+      max-height: 180px;
       overflow-y: auto;
-      justify-content: flex-start;
-      align-items: flex-end;
-      scrollbar-width: none;
     }
 
-    .floating-bubbles::-webkit-scrollbar { display: none; }
-
     .persistent-bubble {
-      background: linear-gradient(135deg, rgba(59, 130, 246, 0.9), rgba(139, 92, 246, 0.8));
-      backdrop-filter: blur(8px);
-      border-radius: 60px;
-      padding: 6px 16px 6px 12px;
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.85), rgba(139, 92, 246, 0.75));
+      backdrop-filter: blur(12px);
+      border-radius: 50px;
+      padding: 6px 18px 6px 10px;
       display: inline-flex;
       align-items: center;
       gap: 10px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.2);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.4);
       animation: bubbleFloatIn 0.4s cubic-bezier(0.34, 1.2, 0.64, 1);
-      transition: all 0.2s;
       pointer-events: auto;
     }
 
     @keyframes bubbleFloatIn {
-      from { opacity: 0; transform: scale(0) translateY(30px); }
+      from { opacity: 0; transform: scale(0.7) translateY(25px); }
       to { opacity: 1; transform: scale(1) translateY(0); }
     }
 
-    .persistent-bubble .bubble-avatar { font-size: 28px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); }
-    .persistent-bubble .bubble-name { font-weight: 700; font-size: 14px; max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .persistent-bubble .bubble-score { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 800; color: #facc15; background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 20px; }
-    .persistent-bubble.new-player { animation: bubblePopIn 0.5s cubic-bezier(0.34, 1.3, 0.64, 1); }
-    @keyframes bubblePopIn { 0% { transform: scale(0) rotate(-10deg); opacity: 0; } 50% { transform: scale(1.1); } 100% { transform: scale(1) rotate(0); opacity: 1; } }
-
-    /* Floating notification that appears briefly */
-    .floating-notification {
-      position: fixed;
-      right: 340px;
-      top: 100px;
-      background: linear-gradient(135deg, #3b82f6, #a855f7);
-      border-radius: 50px;
-      padding: 8px 20px;
+    /* ── SPLIT SCREEN (question + responses side by side) ── */
+    .split-view {
       display: flex;
+      width: 100%;
+      height: 100%;
+      gap: 24px;
+      padding: 24px;
       align-items: center;
-      gap: 12px;
-      z-index: 101;
-      animation: notifySlide 3s ease forwards;
-      box-shadow: 0 5px 20px rgba(0,0,0,0.3);
-      pointer-events: none;
+      justify-content: center;
     }
 
-    @keyframes notifySlide {
-      0% { opacity: 0; transform: translateX(50px); }
-      15% { opacity: 1; transform: translateX(0); }
-      85% { opacity: 1; transform: translateX(0); }
-      100% { opacity: 0; transform: translateX(50px); }
-    }
-
-    .floating-notification .notify-avatar { font-size: 28px; }
-    .floating-notification .notify-text { font-weight: 700; font-size: 14px; }
-
-    /* Game screens */
-    .display-area { position: relative; width: 100%; height: 100%; }
-    .screen { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.4s ease; z-index: 1; }
-    .screen.active { opacity: 1; pointer-events: auto; z-index: 10; }
-    /* Responses screen sits on top of the question screen without hiding it */
-    #screen-responses { z-index: 12; background: transparent; }
-    #screen-responses.active { pointer-events: none; }
-
-    /* Response overlay panel — docked to bottom of screen */
-    .resp-overlay-panel {
-      width: min(92%, 900px);
-      background: rgba(6, 8, 22, 0.92);
-      backdrop-filter: blur(24px);
-      border: 2px solid rgba(59, 130, 246, 0.35);
-      border-radius: 28px;
-      padding: 22px 28px 20px;
-      box-shadow: 0 -8px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
-      animation: slideUpPanel 0.45s cubic-bezier(0.34, 1.2, 0.64, 1);
-    }
-    @keyframes slideUpPanel {
-      from { opacity: 0; transform: translateY(60px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-    .resp-overlay-header {
+    .question-panel {
+      flex: 1 1 50%;
+      background: rgba(12, 16, 30, 0.75);
+      backdrop-filter: blur(20px);
+      border-radius: 36px;
+      border: 1px solid rgba(255,255,255,0.1);
+      padding: 28px 24px;
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 16px;
+      flex-direction: column;
+      gap: 20px;
+      box-shadow: 0 25px 50px -10px rgba(0,0,0,0.6);
+      height: fit-content;
+      max-height: 90%;
+      overflow-y: auto;
     }
-    .resp-overlay-title {
+
+    .responses-panel {
+      flex: 1 1 50%;
+      background: rgba(6, 8, 20, 0.8);
+      backdrop-filter: blur(22px);
+      border-radius: 36px;
+      border: 1px solid rgba(59,130,246,0.25);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      box-shadow: 0 20px 45px rgba(0,0,0,0.5);
+      animation: slideInRight 0.45s cubic-bezier(0.23, 1, 0.32, 1);
+      height: fit-content;
+      max-height: 90%;
+      overflow-y: auto;
+    }
+
+    @keyframes slideInRight {
+      from { opacity: 0; transform: translateX(40px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+
+    .responses-title {
       font-family: 'Bebas Neue', sans-serif;
-      font-size: 28px;
+      font-size: 32px;
       letter-spacing: 2px;
-      background: linear-gradient(135deg, #fff, #60a5fa);
+      background: linear-gradient(135deg, #fff, #93c5fd);
       -webkit-background-clip: text;
       background-clip: text;
       -webkit-text-fill-color: transparent;
-    }
-    .resp-overlay-count {
-      font-size: 13px;
-      font-weight: 700;
-      color: var(--muted);
-      background: rgba(255,255,255,0.07);
-      padding: 4px 14px;
-      border-radius: 20px;
-      border: 1px solid rgba(255,255,255,0.1);
-    }
-    /* Overlay bars — slightly taller so choice text is readable */
-    .resp-overlay-panel .resp-bar-row { margin-bottom: 10px; }
-    .resp-overlay-panel .resp-track { height: 46px; }
-    .resp-overlay-panel .resp-fill { font-size: 14px; padding: 0 14px; gap: 10px; }
-    .resp-overlay-panel .resp-fill-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; color: rgba(255,255,255,0.9); }
-    .resp-overlay-panel .resp-fill-pct { font-size: 15px; font-weight: 800; color: #fff; flex-shrink: 0; }
-    
-    .waiting-content { text-align: center; }
-    .waiting-emoji { font-size: 90px; filter: drop-shadow(0 0 20px #3b82f6); animation: float 2.5s infinite; }
-    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-18px)} }
-    .waiting-title { font-family: 'Bebas Neue', sans-serif; font-size: 70px; background: linear-gradient(135deg,#fff,#60a5fa); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
-    .big-room-code { font-family: 'JetBrains Mono', monospace; font-size: 48px; background: rgba(59,130,246,0.15); border: 2px solid #3b82f6; border-radius: 28px; padding: 16px 48px; display: inline-block; margin-top: 24px; letter-spacing: 8px; }
-
-    /* ── QUESTION SCREEN ── */
-    .q-wrapper {
-      width: min(96%, 1100px);
-      height: 90%;
-      padding: 16px 20px;
       display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    /* Top row: num/cat badge + timer */
-    .q-top-row {
-      display: flex;
-      justify-content: space-between;
       align-items: center;
-      flex-shrink: 0;
+      gap: 10px;
     }
 
-    /* Main content area — switches between single-col and split */
-    .q-body {
-      flex: 1;
-      display: grid;
-      grid-template-columns: 1fr;
-      gap: 20px;
-      min-height: 0;
-      transition: grid-template-columns 0.5s ease;
-    }
-    .q-body.with-responses {
-      grid-template-columns: 1fr 1fr;
-    }
-
-    /* Left column: question text + options */
-    .q-left {
+    .resp-bar-row {
       display: flex;
-      flex-direction: column;
-      gap: 14px;
-      min-width: 0;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .resp-ltr {
+      width: 44px;
+      height: 44px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 18px;
+      background: rgba(255,255,255,0.08);
+    }
+    .resp-track {
+      flex: 1;
+      height: 44px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    .resp-fill {
+      height: 100%;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      font-weight: 700;
+      transition: width 0.7s cubic-bezier(0.2, 0.9, 0.3, 1);
     }
 
-    .q-text-block {
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 20px;
-      padding: 20px 26px;
-      flex-shrink: 0;
-    }
+    .timer-container { width: 100px; height: 100px; }
+    .timer-ring { fill: none; stroke: var(--accent); stroke-width: 7; }
+    .timer-num { font-family: 'JetBrains Mono', monospace; font-size: 32px; }
 
     .q-text {
-      font-size: 26px;
+      font-size: 28px;
       font-weight: 800;
-      line-height: 1.35;
+      line-height: 1.4;
       text-align: center;
     }
 
     .options-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      flex: 1;
+      gap: 14px;
     }
 
     .opt-item {
-      background: rgba(255,255,255,0.05);
+      background: rgba(255,255,255,0.04);
       border: 2px solid rgba(255,255,255,0.1);
       border-radius: 20px;
-      padding: 16px 20px;
-      backdrop-filter: blur(8px);
-      transition: all 0.3s;
+      padding: 14px 18px;
       display: flex;
-      gap: 16px;
+      gap: 14px;
       font-weight: 600;
-      font-size: 15px;
-      cursor: default;
       align-items: center;
     }
+
     .opt-letter {
-      width: 42px;
-      height: 42px;
+      width: 45px;
+      height: 45px;
       border-radius: 14px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 800;
-      font-size: 20px;
       background: rgba(59,130,246,0.2);
-      flex-shrink: 0;
-    }
-    .opt-item.correct { border-color: #10b981; background: rgba(16,185,129,0.15); box-shadow: 0 0 28px rgba(16,185,129,0.4); }
-    .opt-item.wrong   { opacity: 0.28; filter: grayscale(0.7); }
-
-    /* Right column: response bars panel */
-    .q-right {
-      display: flex;
-      flex-direction: column;
-      gap: 0;
-      min-width: 0;
-      opacity: 0;
-      transform: translateX(30px);
-      transition: opacity 0.45s ease, transform 0.45s cubic-bezier(0.34,1.1,0.64,1);
-      pointer-events: none;
-    }
-    .q-right.visible {
-      opacity: 1;
-      transform: translateX(0);
-      pointer-events: auto;
-    }
-
-    .resp-panel {
-      background: rgba(6, 8, 22, 0.85);
-      border: 2px solid rgba(59,130,246,0.3);
-      border-radius: 24px;
-      padding: 18px 22px;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .resp-panel-header {
       display: flex;
       align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 24px;
+    }
+
+    .opt-item.correct { border-color: #10b981; background: rgba(16,185,129,0.2); }
+    .opt-item.wrong { opacity: 0.35; }
+
+    .footer {
+      padding: 8px 28px;
+      display: flex;
       justify-content: space-between;
-      flex-shrink: 0;
-    }
-    .resp-panel-title {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 22px;
-      letter-spacing: 2px;
-      background: linear-gradient(135deg, #fff, #60a5fa);
-      -webkit-background-clip: text;
-      background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    .resp-panel-count {
       font-size: 12px;
-      font-weight: 700;
-      color: var(--muted);
-      background: rgba(255,255,255,0.07);
-      padding: 3px 12px;
-      border-radius: 20px;
-      border: 1px solid rgba(255,255,255,0.1);
+      border-top: 1px solid #1e293b;
+      background: rgba(0,0,0,0.6);
+      z-index: 25;
     }
-
-    .resp-bars-list {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      flex: 1;
-      justify-content: center;
-    }
-
-    .resp-bar-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .resp-ltr {
-      width: 38px;
-      height: 38px;
-      border-radius: 11px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 800;
-      font-size: 16px;
-      flex-shrink: 0;
-    }
-    .resp-track {
-      flex: 1;
-      height: 38px;
-      background: rgba(255,255,255,0.08);
-      border-radius: 10px;
-      overflow: hidden;
-      position: relative;
-    }
-    .resp-fill {
-      height: 100%;
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      padding: 0 12px;
-      gap: 8px;
-      font-weight: 700;
-      transition: width 0.6s cubic-bezier(0.34,1,0.64,1);
-      min-width: 36px;
-    }
-    .resp-fill-label {
-      flex: 1;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      font-size: 13px;
-      font-weight: 600;
-      color: rgba(255,255,255,0.88);
-    }
-    .resp-fill-pct {
-      font-size: 14px;
-      font-weight: 800;
-      color: #fff;
-      flex-shrink: 0;
-    }
-    .resp-count-lbl {
-      width: 36px;
-      text-align: right;
-      font-size: 14px;
-      font-weight: 700;
-      color: var(--muted);
-      flex-shrink: 0;
-    }
-
-    .timer-container { width: 88px; height: 88px; position: relative; flex-shrink: 0; }
-    .timer-ring { fill: none; stroke: var(--accent); stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 0.95s linear; }
-    .timer-num { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: 'JetBrains Mono', monospace; font-size: 28px; font-weight: 700; }
-    .reveal-banner { position: fixed; bottom: 70px; left: 50%; transform: translateX(-50%); background: #10b981; padding: 14px 42px; border-radius: 60px; font-weight: 800; opacity: 0; transition: all 0.3s; white-space: nowrap; z-index: 150; box-shadow: 0 0 30px #10b981; }
-    .reveal-banner.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-    .footer { padding: 8px 28px; display: flex; justify-content: space-between; font-size: 12px; color: rgba(255,255,255,0.3); border-top: 1px solid #1e293b; flex-shrink: 0; }
-    .q-progress-bar { height: 4px; background: #1e293b; flex-shrink: 0; }
-    .q-progress-fill { height: 100%; background: linear-gradient(90deg, #3b82f6, #a855f7); transition: width 0.4s; }
-    .cat-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); backdrop-filter: blur(20px); display: flex; align-items: center; justify-content: center; z-index: 200; opacity: 0; transition: 0.4s; pointer-events: none; }
-    .cat-overlay.show { opacity: 1; }
-    .cat-name-big { font-family: 'Bebas Neue', sans-serif; font-size: 80px; background: linear-gradient(135deg, #fff, var(--accent)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
-    .lb-wrapper, .resp-wrapper { background: rgba(0,0,0,0.6); border-radius: 40px; padding: 30px; backdrop-filter: blur(12px); width: 80%; max-width: 800px; }
-    .lb-title { font-family: 'Bebas Neue', sans-serif; font-size: 60px; text-align: center; background: linear-gradient(135deg, var(--yellow), var(--pink)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
-    .lb-list { display: flex; flex-direction: column; gap: 12px; }
-    .lb-row { display: flex; align-items: center; gap: 16px; padding: 12px 20px; background: rgba(0,0,0,0.4); border-radius: 16px; }
-    .resp-bar-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
-    .resp-ltr { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: 800; }
-    .resp-track { flex: 1; height: 40px; background: rgba(255,255,255,0.1); border-radius: 12px; overflow: hidden; }
-    .resp-fill { height: 100%; border-radius: 12px; display: flex; align-items: center; padding: 0 12px; font-weight: 700; transition: width 0.5s ease; }
-    .confetti-piece { position: fixed; width: 10px; height: 10px; border-radius: 2px; opacity: 0; animation: confettiFall linear forwards; z-index: 1000; pointer-events: none; }
-    @keyframes confettiFall { 0%{opacity:1;transform:translateY(-50px) rotate(0deg)} 100%{opacity:0;transform:translateY(100vh) rotate(720deg)} }
-    .end-content { text-align: center; }
-    .end-icon { font-size: 100px; margin-bottom: 24px; }
-    .end-title { font-family: 'Bebas Neue', sans-serif; font-size: 96px; background: linear-gradient(135deg, var(--yellow), var(--pink)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
   </style>
 </head>
 <body>
 <div class="foh">
   <div class="top-bar">
     <div class="logo">PLAY<span style="color:var(--accent)">A</span>QUIZ</div>
-    <div class="live-badge"><div class="live-dot"></div> LIVE SESSION</div>
-    <div style="display: flex; gap: 20px; align-items: center;">
+    <div class="live-badge"><div class="live-dot"></div> LIVE</div>
+    <div style="display: flex; gap: 24px; align-items: center;">
       <div class="player-counter-area">
         <span class="counter-icon">🎮</span>
         <span class="counter-number" id="animatedCounter">0</span>
@@ -641,66 +435,31 @@
       <div class="room-badge" id="roomCode">——</div>
     </div>
   </div>
-  <div class="q-progress-bar"><div class="q-progress-fill" id="qProgressFill" style="width:0%"></div></div>
-  
+  <div class="q-progress-bar" style="height:4px; background:#1e293b;"><div id="qProgressFill" style="height:100%; width:0%; background:linear-gradient(90deg,#3b82f6,#a855f7);"></div></div>
+
   <div class="main-layout">
-    <div class="center-stage">
-      <div class="display-area">
-        <div id="screen-waiting" class="screen active">
-          <div class="waiting-content">
-            <div class="waiting-emoji">🎮</div>
-            <div class="waiting-title">READY TO PLAY!</div>
-            <div class="waiting-sub">Players are joining the arena</div>
-            <div class="big-room-code" id="waitingRoomCode">——</div>
-          </div>
-        </div>
-        <div id="screen-question" class="screen">
-          <div class="q-wrapper">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <div><div class="q-num-badge" id="qNumBadge" style="background:rgba(255,255,255,0.1);padding:6px 16px;border-radius:20px;">Q1/1</div><div class="cat-badge" id="qCatBadge" style="margin-top:8px;display:flex;align-items:center;gap:8px;"><span>📋</span><span>Quiz</span></div></div>
-              <div class="timer-container"><svg width="100" height="100" viewBox="0 0 100 100"><circle class="timer-track" cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="8"/><circle class="timer-ring" id="timerRing" cx="50" cy="50" r="42" fill="none" stroke="var(--accent)" stroke-width="8" stroke-linecap="round" stroke-dasharray="263.9" stroke-dashoffset="0"/></svg><div class="timer-num" id="timerNum">—</div></div>
-            </div>
-            <div style="text-align:center; padding:20px 0;"><div class="q-text" id="qText" style="font-size:32px; font-weight:800;">Loading...</div></div>
-            <div class="options-grid" id="optionsGrid"></div>
-          </div>
-        </div>
-        <div id="screen-leaderboard" class="screen"><div class="lb-wrapper"><div class="lb-title">🏆 LEADERBOARD</div><div class="lb-list" id="lbList"></div></div></div>
-        <div id="screen-responses" class="screen" style="align-items:flex-end;justify-content:center;padding-bottom:32px;pointer-events:none;"><div class="resp-overlay-panel"><div class="resp-overlay-header"><span class="resp-overlay-title">📊 LIVE RESPONSES</span><span id="respOverlayCount" class="resp-overlay-count"></span></div><div id="respBarsContainer"></div></div></div>
-        <div id="screen-ended" class="screen"><div class="end-content"><div class="end-icon">🏁</div><div class="end-title">GAME OVER!</div><div style="font-size:24px;color:var(--muted);margin-top:16px">Thanks for playing!</div></div></div>
-      </div>
+    <div class="center-stage" id="centerStage">
+      <!-- Dynamic split view injected here -->
     </div>
 
     <div class="live-leaderboard-panel">
       <div class="live-lb-header">
-        <div class="live-lb-title"><span>🏆</span> LIVE RANKINGS</div>
-        <div class="live-lb-sub">Real-time player scores & status</div>
+        <div class="live-lb-title"><span>🏆</span> RANKINGS</div>
+        <div class="live-lb-sub">Real-time leaderboard</div>
       </div>
-      <div class="live-lb-list" id="liveLeaderboardList">
-        <div style="text-align:center;padding:40px;color:var(--muted);">Waiting for players...</div>
-      </div>
+      <div class="live-lb-list" id="liveLeaderboardList"></div>
     </div>
   </div>
 
   <div class="floating-bubbles" id="floatingBubbles"></div>
-
-  <div class="footer"><span>PlayAQuiz — ARCADE MODE</span><span id="footerStatus">waiting</span><span id="footerTime"></span></div>
+  <div class="footer"><span>PlayAQuiz ARCADE</span><span id="footerStatus">waiting</span><span id="footerTime"></span></div>
 </div>
-<div id="catOverlay" class="cat-overlay"><div class="cat-content" style="text-align:center;"><span id="catIconBig" style="font-size:80px;">🎯</span><div class="cat-name-big" id="catNameBig">CATEGORY</div><div style="height:3px;width:100px;background:linear-gradient(90deg,var(--accent),var(--purple));margin:20px auto 0;"></div></div></div>
-<div class="reveal-banner" id="revealBanner"></div>
 
 <script>
 const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
 const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-// Audio
-const AC = window.AudioContext || window.webkitAudioContext;
-let ac;
-function getAC() { if (!ac) ac = new AC(); if (ac.state === 'suspended') ac.resume(); return ac; }
-function playPopSound() { try { const ctx = getAC(); const o = ctx.createOscillator(), g = ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.type = 'sine'; o.frequency.value = 600 + Math.random() * 150; g.gain.value = 0.2; g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3); o.start(); o.stop(ctx.currentTime + 0.25); } catch(e) {} }
-function playJoinChime() { try { const ctx = getAC(); [[523,0],[659,0.08],[784,0.16]].forEach(([f,d]) => { const o = ctx.createOscillator(), g = ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.frequency.value = f; o.type = 'sine'; g.gain.value = 0.2; g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + d + 0.2); o.start(ctx.currentTime + d); o.stop(ctx.currentTime + d + 0.2); }); } catch(e) {} }
-
-// State
 let SESSION_ID = null;
 let currentQuestion = null;
 let timerInterval = null;
@@ -708,599 +467,140 @@ let timeLeft = 0, totalTime = 0;
 let lastKnownPlayerCount = 0;
 let gameActive = false;
 let realtimeChannels = [];
-
-// Store players
 let currentPlayers = new Map();
 
-const animatedCounterSpan = document.getElementById('animatedCounter');
-const floatingBubblesContainer = document.getElementById('floatingBubbles');
+const centerStage = document.getElementById('centerStage');
+const animatedCounter = document.getElementById('animatedCounter');
+const floatingBubbles = document.getElementById('floatingBubbles');
 const liveLeaderboardList = document.getElementById('liveLeaderboardList');
 
-function animateCounterNumber(newCount) {
-  if (!animatedCounterSpan) return;
-  animatedCounterSpan.classList.add('counter-pop');
-  animatedCounterSpan.innerText = newCount;
-  setTimeout(() => animatedCounterSpan.classList.remove('counter-pop'), 250);
+function animateCounterNumber(count) {
+  if (!animatedCounter) return;
+  animatedCounter.classList.add('counter-pop');
+  animatedCounter.innerText = count;
+  setTimeout(() => animatedCounter.classList.remove('counter-pop'), 250);
 }
 
-function escapeHtml(str) { return String(str || '').replace(/[&<>]/g, function(m){if(m==='&')return '&amp;';if(m==='<')return '&lt;';if(m==='>')return '&gt;';return m;}); }
+function escapeHtml(str) { return String(str || '').replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]||m); }
 
-// Show floating notification
-function showFloatingNotification(playerName, avatarEmoji) {
-  const container = document.querySelector('.main-layout');
-  const notif = document.createElement('div');
-  notif.className = 'floating-notification';
-  notif.innerHTML = `
-    <div class="notify-avatar">${avatarEmoji || '🎮'}</div>
-    <div class="notify-text">${escapeHtml(playerName)} joined the game!</div>
-    <div>🎯</div>
-  `;
-  container.appendChild(notif);
-  setTimeout(() => notif.remove(), 3000);
-}
-
-// Add persistent bubble
-function addPersistentBubble(playerId, playerName, avatarEmoji, score = 0) {
-  if (!floatingBubblesContainer) return;
-  if (document.getElementById(`bubble-${playerId}`)) return;
-  if (gameActive) return; // Don't add bubbles after game starts
-  
+function addPersistentBubble(id, name, avatar, score=0) {
+  if (!floatingBubbles || document.getElementById(`bubble-${id}`) || gameActive) return;
   const bubble = document.createElement('div');
   bubble.className = 'persistent-bubble new-player';
-  bubble.id = `bubble-${playerId}`;
-  bubble.innerHTML = `
-    <div class="bubble-avatar">${avatarEmoji || '🎮'}</div>
-    <div class="bubble-name">${escapeHtml(playerName)}</div>
-    <div class="bubble-score" id="bubble-score-${playerId}">${score} pts</div>
-  `;
-  floatingBubblesContainer.appendChild(bubble);
-  playJoinChime();
-  playPopSound();
-  showFloatingNotification(playerName, avatarEmoji);
-  
-  floatingBubblesContainer.scrollTop = floatingBubblesContainer.scrollHeight;
-}
-
-function updateBubbleScore(playerId, score) {
-  const scoreSpan = document.getElementById(`bubble-score-${playerId}`);
-  if (scoreSpan) scoreSpan.innerText = `${score} pts`;
-}
-
-function clearAllBubbles() {
-  if (floatingBubblesContainer) {
-    floatingBubblesContainer.innerHTML = '';
-  }
+  bubble.id = `bubble-${id}`;
+  bubble.innerHTML = `<span style="font-size:30px;">${avatar||'🎮'}</span><span style="font-weight:700;">${escapeHtml(name)}</span><span style="background:#00000040;padding:2px 10px;border-radius:20px;">${score}pts</span>`;
+  floatingBubbles.appendChild(bubble);
 }
 
 function updateLiveLeaderboard() {
   if (!liveLeaderboardList) return;
-  
-  const players = Array.from(currentPlayers.values())
-    .filter(p => !p.is_eliminated)
-    .sort((a, b) => b.score - a.score);
-  
-  if (players.length === 0) {
-    liveLeaderboardList.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);">👾 No players yet</div>';
-    return;
-  }
-  
-  liveLeaderboardList.innerHTML = players.map((p, idx) => {
-    const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}`;
-    const crown = p.score > 0 && idx === 0 ? '<span class="crown-icon">👑</span>' : '';
-    return `
-      <div class="live-lb-item">
-        <div class="live-lb-rank">${medal}</div>
-        <div class="live-lb-avatar">${p.avatar || '🎮'}</div>
-        <div class="live-lb-info">
-          <div class="live-lb-name">${escapeHtml(p.name)}</div>
-          <div class="live-lb-stats">
-            <span>✅ ${p.correct_count || 0}</span>
-          </div>
-        </div>
-        <div class="live-lb-score">${p.score} ${crown}</div>
-      </div>
-    `;
-  }).join('');
+  const players = Array.from(currentPlayers.values()).filter(p => !p.is_eliminated).sort((a,b) => b.score - a.score);
+  liveLeaderboardList.innerHTML = players.length ? players.map((p,i) => `
+    <div class="live-lb-item">
+      <div class="live-lb-rank">${i===0?'🥇':i===1?'🥈':i===2?'🥉':i+1}</div>
+      <div class="live-lb-avatar">${p.avatar||'🎮'}</div>
+      <div class="live-lb-info"><div class="live-lb-name">${escapeHtml(p.name)}</div></div>
+      <div class="live-lb-score">${p.score}</div>
+    </div>`).join('') : '<div style="padding:30px;color:var(--muted);">Waiting...</div>';
 }
 
-// Main sync function - fetches all players and updates UI
 async function syncPlayers() {
   if (!SESSION_ID) return;
-  
-  console.log('Syncing players for session:', SESSION_ID);
-  
-  const { data: players, error } = await sb
-    .from('players')
-    .select('id, name, avatar_color, avatar_emoji, score, correct_count, is_eliminated')
-    .eq('session_id', SESSION_ID);
-  
-  if (error) {
-    console.error('Error fetching players:', error);
-    return;
-  }
-  
+  const { data: players } = await sb.from('players').select('id,name,avatar_emoji,score,correct_count,is_eliminated').eq('session_id', SESSION_ID);
   if (!players) return;
-  
-  console.log(`Found ${players.length} players`);
-  
-  const currentPlayerIds = new Set();
-  const newCount = players.length;
-  
-  if (newCount !== lastKnownPlayerCount) {
-    animateCounterNumber(newCount);
-    lastKnownPlayerCount = newCount;
-  }
-  
-  // Process each player
-  for (const p of players) {
-    currentPlayerIds.add(p.id);
-    const emoji = p.avatar_emoji || p.avatar_color || '🎮';
-    
-    if (!currentPlayers.has(p.id)) {
-      // New player detected!
-      console.log('New player detected:', p.name, p.id);
-      if (!gameActive) {
-        addPersistentBubble(p.id, p.name, emoji, p.score || 0);
-      }
-      currentPlayers.set(p.id, {
-        name: p.name,
-        avatar: emoji,
-        score: p.score || 0,
-        correct_count: p.correct_count || 0,
-        is_eliminated: p.is_eliminated || false
-      });
-    } else {
-      // Update existing player
-      const existing = currentPlayers.get(p.id);
-      const newScore = p.score || 0;
-      if (existing.score !== newScore) {
-        updateBubbleScore(p.id, newScore);
-      }
-      currentPlayers.set(p.id, {
-        name: p.name,
-        avatar: emoji,
-        score: newScore,
-        correct_count: p.correct_count || 0,
-        is_eliminated: p.is_eliminated || false
-      });
-    }
-  }
-  
-  // Remove players that are no longer in the session
-  for (const id of currentPlayers.keys()) {
-    if (!currentPlayerIds.has(id)) {
-      currentPlayers.delete(id);
-      const bubble = document.getElementById(`bubble-${id}`);
-      if (bubble) bubble.remove();
-    }
-  }
-  
+  players.forEach(p => {
+    const emoji = p.avatar_emoji || '🎮';
+    if (!currentPlayers.has(p.id)) { if(!gameActive) addPersistentBubble(p.id, p.name, emoji, p.score); }
+    currentPlayers.set(p.id, { name: p.name, avatar: emoji, score: p.score||0, correct_count: p.correct_count||0, is_eliminated: p.is_eliminated||false });
+  });
+  animateCounterNumber(currentPlayers.size);
   updateLiveLeaderboard();
 }
 
-// Set up real-time subscription for players table
 function setupRealtimePlayers() {
   if (!SESSION_ID) return;
-  
-  console.log('Setting up real-time player subscription for session:', SESSION_ID);
-  
-  // Clean up existing channels
-  realtimeChannels.forEach(ch => {
-    try { sb.removeChannel(ch); } catch(e) {}
-  });
+  realtimeChannels.forEach(c => { try { sb.removeChannel(c); } catch(e) {} });
   realtimeChannels = [];
-  
-  // Subscribe to INSERT events on players table
-  const insertChannel = sb.channel(`players-insert-${SESSION_ID}`);
-  insertChannel
-    .on('postgres_changes', {
-      event: 'INSERT',
-      schema: 'public',
-      table: 'players',
-      filter: `session_id=eq.${SESSION_ID}`
-    }, (payload) => {
-      console.log('INSERT event received:', payload.new);
-      const newPlayer = payload.new;
-      if (newPlayer && !newPlayer.is_eliminated) {
-        const emoji = newPlayer.avatar_emoji || newPlayer.avatar_color || '🎮';
-        if (!currentPlayers.has(newPlayer.id)) {
-          if (!gameActive) {
-            addPersistentBubble(newPlayer.id, newPlayer.name, emoji, newPlayer.score || 0);
-          }
-          currentPlayers.set(newPlayer.id, {
-            name: newPlayer.name,
-            avatar: emoji,
-            score: newPlayer.score || 0,
-            correct_count: newPlayer.correct_count || 0,
-            is_eliminated: newPlayer.is_eliminated || false
-          });
-          animateCounterNumber(currentPlayers.size);
-          updateLiveLeaderboard();
-        }
-      }
-    })
-    .subscribe();
-  realtimeChannels.push(insertChannel);
-  
-  // Subscribe to UPDATE events for score changes
-  const updateChannel = sb.channel(`players-update-${SESSION_ID}`);
-  updateChannel
-    .on('postgres_changes', {
-      event: 'UPDATE',
-      schema: 'public',
-      table: 'players',
-      filter: `session_id=eq.${SESSION_ID}`
-    }, (payload) => {
-      console.log('UPDATE event received:', payload.new);
-      const updatedPlayer = payload.new;
-      if (updatedPlayer) {
-        const existing = currentPlayers.get(updatedPlayer.id);
-        if (existing) {
-          existing.score = updatedPlayer.score || 0;
-          existing.correct_count = updatedPlayer.correct_count || 0;
-          existing.is_eliminated = updatedPlayer.is_eliminated || false;
-          updateBubbleScore(updatedPlayer.id, existing.score);
-          updateLiveLeaderboard();
-        }
-      }
-    })
-    .subscribe();
-  realtimeChannels.push(updateChannel);
-  
-  // Subscribe to DELETE events
-  const deleteChannel = sb.channel(`players-delete-${SESSION_ID}`);
-  deleteChannel
-    .on('postgres_changes', {
-      event: 'DELETE',
-      schema: 'public',
-      table: 'players',
-      filter: `session_id=eq.${SESSION_ID}`
-    }, (payload) => {
-      console.log('DELETE event received:', payload.old);
-      const deletedId = payload.old?.id;
-      if (deletedId) {
-        currentPlayers.delete(deletedId);
-        const bubble = document.getElementById(`bubble-${deletedId}`);
-        if (bubble) bubble.remove();
-        animateCounterNumber(currentPlayers.size);
-        updateLiveLeaderboard();
-      }
-    })
-    .subscribe();
-  realtimeChannels.push(deleteChannel);
+  const insertCh = sb.channel(`pl-insert-${SESSION_ID}`).on('postgres_changes', {event:'INSERT', schema:'public', table:'players', filter:`session_id=eq.${SESSION_ID}`}, payload => {
+    if (payload.new && !payload.new.is_eliminated) { syncPlayers(); }
+  }).subscribe();
+  realtimeChannels.push(insertCh);
+  const updateCh = sb.channel(`pl-update-${SESSION_ID}`).on('postgres_changes', {event:'UPDATE', schema:'public', table:'players', filter:`session_id=eq.${SESSION_ID}`}, payload => {
+    if (payload.new) { const p = payload.new; currentPlayers.set(p.id, {...currentPlayers.get(p.id), score:p.score, is_eliminated:p.is_eliminated}); updateLiveLeaderboard(); }
+  }).subscribe();
+  realtimeChannels.push(updateCh);
 }
 
-function setupGameEvents() {
-  const channel = sb.channel(`foh-events-${SESSION_ID}`);
-  channel
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'game_events', filter: `session_id=eq.${SESSION_ID}` }, p => handleEvent(p.new))
-    .subscribe();
-  realtimeChannels.push(channel);
+function renderSplitView(questionData, distribution, totalPlayers, correctIdx, options) {
+  if (!centerStage) return;
+  const dist = distribution || [0,0,0,0];
+  const letters = ['A','B','C','D'];
+  const colors = ['#3b82f6','#8b5cf6','#f59e0b','#ec4899'];
+  const maxCount = Math.max(...dist, 1);
   
-  const sessionChannel = sb.channel(`foh-session-${SESSION_ID}`);
-  sessionChannel
-    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'game_sessions', filter: `id=eq.${SESSION_ID}` }, p => {
-      document.getElementById('footerStatus').innerText = p.new.status;
-      if (p.new.status === 'active') {
-        gameActive = true;
-        clearAllBubbles();
-      }
-      if (p.new.status === 'ended') { stopTimer(); launchConfetti(); showScreen('ended'); }
-      if (p.new.status === 'waiting') { 
-        gameActive = false;
-        showScreen('waiting'); 
-        syncPlayers();
-      }
-    })
-    .subscribe();
-  realtimeChannels.push(sessionChannel);
+  centerStage.innerHTML = `
+    <div class="split-view">
+      <div class="question-panel">
+        <div style="display:flex; justify-content:space-between;">
+          <span style="background:rgba(255,255,255,0.1); padding:6px 18px; border-radius:20px;">Q${questionData?.index||''}</span>
+          <div class="timer-container"><svg width="100" height="100"><circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="7"/><circle id="timerRing" cx="50" cy="50" r="42" fill="none" stroke="var(--accent)" stroke-width="7" stroke-dasharray="263.9" stroke-dashoffset="0"/></svg><div class="timer-num" id="timerNum">0</div></div>
+        </div>
+        <div class="q-text">${escapeHtml(questionData?.question_text||'')}</div>
+        <div class="options-grid">${(options||['','','','']).map((opt,i) => `
+          <div class="opt-item ${correctIdx===i?'correct':(correctIdx!==null&&correctIdx!==undefined?'wrong':'')}">
+            <div class="opt-letter">${letters[i]}</div><div>${escapeHtml(opt)}</div>
+          </div>`).join('')}</div>
+      </div>
+      <div class="responses-panel">
+        <div class="responses-title"><span>📊</span> LIVE RESPONSES</div>
+        ${dist.map((count,i) => {
+          const pct = totalPlayers>0 ? Math.round((count/totalPlayers)*100) : 0;
+          return `<div class="resp-bar-row">
+            <div class="resp-ltr" style="color:${colors[i]}">${letters[i]}</div>
+            <div class="resp-track"><div class="resp-fill" style="width:${(count/maxCount)*100}%; background:${correctIdx===i?'var(--green)':colors[i]}"><span style="margin-right:8px;">${pct}%</span></div></div>
+            <span style="font-weight:700;">${count}</span>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+  `;
 }
 
 function handleEvent(evt) {
-  console.log('Game event:', evt.event_type, evt.payload);
-  
-  switch(evt.event_type) {
-    case 'category_banner':
-      if (evt.payload) showCategoryOverlay(evt.payload.icon, evt.payload.name);
-      break;
-    case 'new_question':
-      if (evt.payload && evt.payload.question) {
-        currentQuestion = evt.payload.question;
-        totalTime = currentQuestion.time_limit || 20;
-        updateQProgress(evt.payload.qIdx, evt.payload.total);
-      }
-      break;
-    case 'show_question_view':
-      if (evt.payload && evt.payload.question) {
-        document.getElementById('screen-responses')?.classList.remove('active');
-        displayQuestion(evt.payload.question);
-        showScreen('question');
-        startTimer(totalTime);
-      }
-      break;
-    case 'answer_reveal':
-      if (evt.payload) revealAnswer(evt.payload.correctOption, evt.payload.options, evt.payload.explanation);
-      break;
-    case 'show_leaderboard':
-      if (evt.payload && evt.payload.leaders) {
-        displayLeaderboard(evt.payload.leaders);
-        showScreen('leaderboard');
-      }
-      break;
-    case 'show_responses':
-      if (evt.payload) {
-        displayResponseDist(evt.payload.distribution, evt.payload.totalPlayers, evt.payload.correctIdx, evt.payload.options);
-        showScreen('responses');
-      }
-      break;
-    case 'show_waiting_screen':
-      showScreen('waiting');
-      break;
-    case 'player_eliminated':
-      flashEliminated();
-      syncPlayers();
-      break;
-    case 'game_ended':
-      stopTimer();
-      launchConfetti();
-      showScreen('ended');
-      break;
-    case 'game_reset':
-      stopTimer();
-      gameActive = false;
-      showScreen('waiting');
-      syncPlayers();
-      break;
+  if (evt.event_type === 'show_question_view' && evt.payload?.question) {
+    currentQuestion = evt.payload.question;
+    totalTime = currentQuestion.time_limit || 20;
+    renderSplitView(currentQuestion, [0,0,0,0], 0, null, [currentQuestion.option_a,currentQuestion.option_b,currentQuestion.option_c,currentQuestion.option_d]);
   }
-}
-
-function displayQuestion(q) {
-  if (!q) return;
-  document.getElementById('qText').innerText = q.question_text;
-  const catEl = document.getElementById('qCatBadge');
-  catEl.innerHTML = `<span>${q.category_icon || '📋'}</span><span>${q.category_name || 'Quiz'}</span>`;
-  
-  const letters = ['A', 'B', 'C', 'D'];
-  const grid = document.getElementById('optionsGrid');
-  const opts = [q.option_a, q.option_b, q.option_c, q.option_d];
-  grid.innerHTML = opts.map((opt, i) => `
-    <div class="opt-item" data-idx="${i}">
-      <div class="opt-letter">${letters[i]}</div>
-      <div>${opt || ''}</div>
-    </div>
-  `).join('');
-}
-
-function startTimer(duration) {
-  stopTimer();
-  timeLeft = duration;
-  totalTime = duration;
-  updateTimerUI();
-  timerInterval = setInterval(() => {
-    timeLeft--;
-    updateTimerUI();
-    if (timeLeft <= 0) {
-      stopTimer();
-      autoShowResponses();
-    }
-  }, 1000);
-}
-
-function stopTimer() { if (timerInterval) clearInterval(timerInterval); timerInterval = null; }
-
-async function autoShowResponses() {
-  if (!currentQuestion || !SESSION_ID) return;
-  try {
-    const { data: ans } = await sb.from('answers')
-      .select('chosen_option')
-      .eq('session_id', SESSION_ID)
-      .eq('question_id', currentQuestion.id);
-    const dist = [0, 0, 0, 0];
-    ans?.forEach(a => { if (a.chosen_option >= 0 && a.chosen_option < 4) dist[a.chosen_option]++; });
-    const players = Array.from(currentPlayers.values());
-    const opts = [currentQuestion.option_a, currentQuestion.option_b, currentQuestion.option_c, currentQuestion.option_d];
-    displayResponseDist(dist, players.length, null, opts); // null correctIdx — not revealed yet
-    showScreen('responses');
-  } catch(e) { console.error('autoShowResponses error', e); }
-}
-
-function updateTimerUI() {
-  const ring = document.getElementById('timerRing');
-  const num = document.getElementById('timerNum');
-  const circum = 2 * Math.PI * 42;
-  const progress = Math.max(0, timeLeft) / totalTime;
-  ring.style.strokeDashoffset = circum * (1 - progress);
-  num.innerText = timeLeft >= 0 ? timeLeft : 0;
-  if (timeLeft <= 5) ring.style.stroke = 'var(--red)';
-  else if (timeLeft <= 10) ring.style.stroke = 'var(--yellow)';
-  else ring.style.stroke = 'var(--accent)';
-}
-
-function revealAnswer(correctIdx, options, explanation) {
-  stopTimer();
-  const letters = ['A', 'B', 'C', 'D'];
-  document.querySelectorAll('.opt-item').forEach((el, i) => {
-    if (i === correctIdx) el.classList.add('correct');
-    else el.classList.add('wrong');
-  });
-  // If response overlay is already open, re-render bars with correct answer highlighted
-  const respScreen = document.getElementById('screen-responses');
-  if (respScreen && respScreen.classList.contains('active') && currentQuestion) {
-    sb.from('answers').select('chosen_option')
-      .eq('session_id', SESSION_ID).eq('question_id', currentQuestion.id)
-      .then(({ data: ans }) => {
-        const dist = [0, 0, 0, 0];
-        ans?.forEach(a => { if (a.chosen_option >= 0 && a.chosen_option < 4) dist[a.chosen_option]++; });
-        const opts = options || [currentQuestion.option_a, currentQuestion.option_b, currentQuestion.option_c, currentQuestion.option_d];
-        displayResponseDist(dist, Array.from(currentPlayers.values()).length, correctIdx, opts);
+  else if (evt.event_type === 'answer_reveal' || evt.event_type === 'show_responses') {
+    if (currentQuestion) {
+      sb.from('answers').select('chosen_option').eq('session_id',SESSION_ID).eq('question_id',currentQuestion.id).then(({data:ans})=>{
+        const dist=[0,0,0,0]; ans?.forEach(a=>{if(a.chosen_option>=0&&a.chosen_option<4)dist[a.chosen_option]++;});
+        const correctIdx = evt.payload?.correctOption ?? evt.payload?.correctIdx;
+        renderSplitView(currentQuestion, dist, currentPlayers.size, correctIdx, [currentQuestion.option_a,currentQuestion.option_b,currentQuestion.option_c,currentQuestion.option_d]);
       });
-  }
-  const banner = document.getElementById('revealBanner');
-  banner.innerHTML = `✅ Correct Answer: <strong>${letters[correctIdx]}</strong>${options && options[correctIdx] ? ` — ${options[correctIdx]}` : ''}`;
-  if (explanation) banner.innerHTML += `<div style="font-size:14px;opacity:.8;margin-top:4px">${explanation}</div>`;
-  banner.classList.add('show');
-  setTimeout(() => banner.classList.remove('show'), 5000);
-}
-
-function displayLeaderboard(leaders) {
-  const medals = ['🥇', '🥈', '🥉'];
-  const listEl = document.getElementById('lbList');
-  if (!leaders || leaders.length === 0) {
-    listEl.innerHTML = '<div style="text-align:center;color:var(--muted);padding:40px;">No players yet</div>';
-    return;
-  }
-  listEl.innerHTML = leaders.slice(0, 10).map((p, i) => `
-    <div class="lb-row">
-      <div style="font-size:28px;width:52px;text-align:center;">${medals[i] || `#${i + 1}`}</div>
-      <div style="font-size:32px;">${p.avatar_color || '👤'}</div>
-      <div style="flex:1;font-size:18px;font-weight:700;">${escapeHtml(p.name)}</div>
-      <div style="font-family:monospace;font-size:24px;font-weight:800;color:var(--yellow);">${p.score}</div>
-    </div>
-  `).join('');
-}
-
-function displayResponseDist(dist, totalPlayers, correctIdx, options) {
-  if (!dist) dist = [0, 0, 0, 0];
-  const colors = ['#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899'];
-  const letters = ['A', 'B', 'C', 'D'];
-  const total = dist.reduce((a, b) => a + b, 0);
-  const maxCount = Math.max(...dist, 1);
-  const container = document.getElementById('respBarsContainer');
-  // Update count badge
-  const countBadge = document.getElementById('respOverlayCount');
-  if (countBadge) countBadge.innerText = `${total} / ${totalPlayers} answered`;
-
-  container.innerHTML = dist.map((count, i) => {
-    const percentage = totalPlayers > 0 ? Math.round((count / totalPlayers) * 100) : 0;
-    const barWidth = maxCount > 0 ? (count / maxCount) * 100 : 0;
-    const isCorrect = correctIdx !== null && correctIdx !== undefined && i === correctIdx;
-    const choiceText = options && options[i] ? options[i] : '';
-    return `
-      <div class="resp-bar-row">
-        <div class="resp-ltr" style="background:${colors[i]}30;color:${colors[i]}">${letters[i]}</div>
-        <div class="resp-track">
-          <div class="resp-fill" style="width:0%;background:${isCorrect ? 'var(--green)' : colors[i]}" data-target="${barWidth}">
-            <span class="resp-fill-label">${escapeHtml(choiceText)}</span>
-            <span class="resp-fill-pct">${percentage}%</span>
-          </div>
-        </div>
-        <div style="width:52px;text-align:right;font-weight:700;font-size:16px;">${count}</div>
-      </div>
-    `;
-  }).join('');
-  setTimeout(() => {
-    document.querySelectorAll('.resp-fill').forEach(el => { el.style.width = el.dataset.target + '%'; });
-  }, 100);
-}
-
-function showCategoryOverlay(icon, name) {
-  const overlay = document.getElementById('catOverlay');
-  document.getElementById('catIconBig').innerText = icon || '🎯';
-  document.getElementById('catNameBig').innerText = name || 'Category';
-  overlay.classList.add('show');
-  setTimeout(() => overlay.classList.remove('show'), 3000);
-}
-
-function showScreen(screenId) {
-  // Responses overlay sits ON TOP of question — don't hide question when showing responses
-  if (screenId === 'responses') {
-    const el = document.getElementById('screen-responses');
-    if (el) el.classList.add('active');
-    return;
-  }
-  // For any other screen, hide the responses overlay first
-  const respEl = document.getElementById('screen-responses');
-  if (respEl) respEl.classList.remove('active');
-
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  const el = document.getElementById(`screen-${screenId}`);
-  if (el) el.classList.add('active');
-}
-
-function updateQProgress(idx, total) {
-  const pct = total > 0 ? ((idx + 1) / total) * 100 : 0;
-  document.getElementById('qProgressFill').style.width = pct + '%';
-  document.getElementById('qNumBadge').innerHTML = `Q${idx + 1}/${total}`;
-}
-
-function flashEliminated() {
-  const flash = document.createElement('div');
-  flash.style.cssText = 'position:fixed;inset:0;background:rgba(239,68,68,0.3);z-index:999;animation:fadeOut 1s forwards;pointer-events:none;';
-  const style = document.createElement('style');
-  style.innerText = '@keyframes fadeOut{0%{opacity:1}100%{opacity:0}}';
-  document.head.appendChild(style);
-  document.body.appendChild(flash);
-  setTimeout(() => { flash.remove(); style.remove(); }, 1000);
-}
-
-function launchConfetti() {
-  const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
-  for (let i = 0; i < 100; i++) {
-    const conf = document.createElement('div');
-    conf.className = 'confetti-piece';
-    conf.style.left = Math.random() * 100 + 'vw';
-    conf.style.top = '-10px';
-    conf.style.background = colors[Math.floor(Math.random() * colors.length)];
-    conf.style.width = 6 + Math.random() * 10 + 'px';
-    conf.style.height = 6 + Math.random() * 10 + 'px';
-    conf.style.animationDuration = 2 + Math.random() * 3 + 's';
-    conf.style.animationDelay = Math.random() * 2 + 's';
-    document.body.appendChild(conf);
-    setTimeout(() => conf.remove(), 6000);
+    }
   }
 }
 
-function updateFooterTime() {
-  document.getElementById('footerTime').innerText = new Date().toLocaleTimeString();
-}
-
-// Aggressive polling as fallback to ensure real-time updates
-let pollingInterval = null;
-function startPolling() {
-  if (pollingInterval) clearInterval(pollingInterval);
-  pollingInterval = setInterval(() => {
-    syncPlayers();
-  }, 3000); // Poll every 3 seconds as fallback
+function setupGameEvents() {
+  const ch = sb.channel(`foh-events-${SESSION_ID}`).on('postgres_changes',{event:'INSERT',schema:'public',table:'game_events',filter:`session_id=eq.${SESSION_ID}`},p=>handleEvent(p.new)).subscribe();
+  realtimeChannels.push(ch);
 }
 
 async function init() {
-  setInterval(updateFooterTime, 1000);
-  
+  setInterval(()=>{ document.getElementById('footerTime').innerText = new Date().toLocaleTimeString(); },1000);
   const params = new URLSearchParams(window.location.search);
   let sid = params.get('session') || localStorage.getItem('paq_session_id');
-  
-  if (!sid) {
-    const { data } = await sb.from('game_sessions').select('id,room_code').eq('status','waiting').order('created_at',{ascending:false}).limit(1);
-    if (data?.[0]) sid = data[0].id;
-  }
-  
-  if (!sid) { 
-    document.getElementById('roomCode').innerText = 'NO SESSION'; 
-    return; 
-  }
-  
-  SESSION_ID = sid;
-  localStorage.setItem('paq_session_id', sid);
-  
-  const { data: session } = await sb.from('game_sessions').select('*').eq('id', SESSION_ID).single();
-  if (session) {
-    document.getElementById('roomCode').innerText = session.room_code;
-    document.getElementById('waitingRoomCode').innerText = session.room_code;
-    document.getElementById('footerStatus').innerText = session.status;
-    if (session.status === 'active') gameActive = true;
-  }
-  
-  // Initial sync
+  if(!sid) { const {data}=await sb.from('game_sessions').select('id').eq('status','waiting').limit(1); if(data?.[0]) sid=data[0].id; }
+  if(!sid) return;
+  SESSION_ID=sid; localStorage.setItem('paq_session_id',sid);
+  const {data:session}=await sb.from('game_sessions').select('*').eq('id',SESSION_ID).single();
+  if(session){ document.getElementById('roomCode').innerText=session.room_code; document.getElementById('footerStatus').innerText=session.status; }
   await syncPlayers();
-  
-  // Set up real-time subscriptions
   setupRealtimePlayers();
   setupGameEvents();
-  
-  // Start polling as fallback
-  startPolling();
-  
-  console.log('FOH initialized for session:', SESSION_ID);
+  setInterval(syncPlayers, 4000);
 }
 
 init();
