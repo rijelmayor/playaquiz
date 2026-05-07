@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>PlayAQuiz — Live Display | Console Style Player Join Animations</title>
+  <title>PlayAQuiz — Live Display | Persistent Player Bubbles & Live Leaderboard</title>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -54,11 +54,12 @@
       z-index: 3;
     }
 
+    /* TOP BAR */
     .top-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 14px 32px;
+      padding: 12px 28px;
       background: rgba(6, 8, 18, 0.85);
       backdrop-filter: blur(16px);
       border-bottom: 2px solid rgba(59, 130, 246, 0.3);
@@ -139,60 +140,167 @@
 
     .counter-pop { transform: scale(1.3); text-shadow: 0 0 8px #facc15; }
 
-    /* Console-style notification cards */
-    .notification-area {
-      position: fixed;
-      right: 24px;
-      top: 100px;
-      z-index: 1000;
+    /* MAIN LAYOUT: Center screen + Right Leaderboard */
+    .main-layout {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .center-stage {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* RIGHT LIVE LEADERBOARD PANEL */
+    .live-leaderboard-panel {
+      width: 320px;
+      background: rgba(6, 8, 18, 0.75);
+      backdrop-filter: blur(20px);
+      border-left: 2px solid rgba(59, 130, 246, 0.3);
       display: flex;
       flex-direction: column;
+      z-index: 15;
+      flex-shrink: 0;
+      transition: all 0.3s ease;
+    }
+
+    .live-lb-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      background: linear-gradient(135deg, rgba(59,130,246,0.1), rgba(139,92,246,0.05));
+    }
+
+    .live-lb-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 28px;
+      letter-spacing: 2px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .live-lb-title span:first-child { font-size: 32px; }
+    .live-lb-sub {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 5px;
+      letter-spacing: 1px;
+    }
+
+    .live-lb-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      scrollbar-width: thin;
+    }
+
+    .live-lb-list::-webkit-scrollbar { width: 4px; }
+    .live-lb-list::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 10px; }
+    .live-lb-list::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 10px; }
+
+    .live-lb-item {
+      display: flex;
+      align-items: center;
       gap: 12px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+      background: rgba(255,255,255,0.03);
+      border-radius: 16px;
+      transition: all 0.2s;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .live-lb-item:hover { background: rgba(59,130,246,0.1); transform: translateX(-4px); }
+
+    .live-lb-rank {
+      width: 36px;
+      font-size: 20px;
+      font-weight: 800;
+      text-align: center;
+    }
+
+    .live-lb-avatar { font-size: 32px; }
+
+    .live-lb-info {
+      flex: 1;
+      overflow: hidden;
+    }
+
+    .live-lb-name {
+      font-weight: 700;
+      font-size: 14px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .live-lb-stats {
+      display: flex;
+      gap: 12px;
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .live-lb-score {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 800;
+      font-size: 18px;
+      color: var(--yellow);
+    }
+
+    .crown-icon { font-size: 18px; margin-left: 4px; }
+
+    /* PERSISTENT FLOATING BUBBLES CONTAINER */
+    .floating-bubbles {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      right: 340px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      z-index: 100;
       pointer-events: none;
-      max-width: 320px;
+      max-height: 180px;
+      overflow-y: auto;
+      justify-content: flex-start;
+      align-items: flex-end;
+      scrollbar-width: none;
     }
 
-    .player-join-card {
-      background: linear-gradient(135deg, rgba(18, 25, 45, 0.98), rgba(10, 14, 30, 0.98));
-      backdrop-filter: blur(12px);
-      border-left: 6px solid #3b82f6;
-      border-radius: 20px;
-      padding: 12px 20px;
-      display: flex;
+    .floating-bubbles::-webkit-scrollbar { display: none; }
+
+    .persistent-bubble {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.85), rgba(139, 92, 246, 0.75));
+      backdrop-filter: blur(8px);
+      border-radius: 60px;
+      padding: 6px 16px 6px 12px;
+      display: inline-flex;
       align-items: center;
-      gap: 14px;
-      box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5), 0 0 0 1px rgba(59,130,246,0.3);
-      transform: translateX(100%);
-      animation: slideInConsole 0.45s cubic-bezier(0.2, 0.9, 0.4, 1.1) forwards, fadeOutConsole 0.5s ease 3s forwards;
+      gap: 10px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.2);
+      animation: bubbleFloatIn 0.4s cubic-bezier(0.34, 1.2, 0.64, 1);
+      transition: all 0.2s;
+      pointer-events: auto;
     }
 
-    @keyframes slideInConsole {
-      0% { transform: translateX(100%); opacity: 0; }
-      80% { transform: translateX(-8px); }
-      100% { transform: translateX(0); opacity: 1; }
+    @keyframes bubbleFloatIn {
+      from { opacity: 0; transform: scale(0) translateY(30px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
     }
 
-    @keyframes fadeOutConsole {
-      to { opacity: 0; transform: translateX(20px); visibility: hidden; }
-    }
+    .persistent-bubble .bubble-avatar { font-size: 28px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); }
+    .persistent-bubble .bubble-name { font-weight: 700; font-size: 14px; max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .persistent-bubble .bubble-score { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 800; color: #facc15; background: rgba(0,0,0,0.3); padding: 2px 8px; border-radius: 20px; }
+    .persistent-bubble.new-player { animation: bubblePopIn 0.5s cubic-bezier(0.34, 1.3, 0.64, 1); }
+    @keyframes bubblePopIn { 0% { transform: scale(0) rotate(-10deg); opacity: 0; } 50% { transform: scale(1.1); } 100% { transform: scale(1) rotate(0); opacity: 1; } }
 
-    .console-avatar {
-      font-size: 38px;
-      filter: drop-shadow(0 0 6px #3b82f6);
-      background: rgba(59,130,246,0.2);
-      border-radius: 50%;
-      width: 52px;
-      height: 52px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .console-info { flex: 1; }
-    .console-name { font-weight: 800; font-size: 18px; color: white; }
-    .console-badge { font-size: 12px; color: #a5f3c3; background: rgba(16,185,129,0.2); display: inline-block; padding: 2px 10px; border-radius: 20px; margin-top: 4px; }
-
-    .display-area { flex: 1; position: relative; overflow: hidden; }
+    /* Game screens */
+    .display-area { position: relative; width: 100%; height: 100%; }
     .screen { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.4s ease; z-index: 1; }
     .screen.active { opacity: 1; pointer-events: auto; z-index: 10; }
     
@@ -201,10 +309,8 @@
     @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-18px)} }
     .waiting-title { font-family: 'Bebas Neue', sans-serif; font-size: 70px; background: linear-gradient(135deg,#fff,#60a5fa); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
     .big-room-code { font-family: 'JetBrains Mono', monospace; font-size: 48px; background: rgba(59,130,246,0.15); border: 2px solid #3b82f6; border-radius: 28px; padding: 16px 40px; display: inline-block; margin-top: 24px; letter-spacing: 8px; }
-    .player-count-bar { margin-top: 28px; font-size: 22px; display: flex; gap: 12px; justify-content: center; }
-    .player-count-num { font-size: 48px; font-weight: 800; color: #facc15; }
 
-    .q-wrapper { width: min(90%, 1100px); display: grid; gap: 24px; height: 85%; padding: 16px; }
+    .q-wrapper { width: min(90%, 1000px); display: grid; gap: 24px; height: 85%; padding: 16px; }
     .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
     .opt-item { background: rgba(255,255,255,0.05); border: 2px solid rgba(255,255,255,0.1); border-radius: 24px; padding: 20px 26px; backdrop-filter: blur(8px); transition: all 0.2s; display: flex; gap: 20px; font-weight: 600; cursor: default; }
     .opt-letter { width: 48px; height: 48px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 22px; background: #3b82f630; }
@@ -215,7 +321,7 @@
     .timer-num { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: 'JetBrains Mono', monospace; font-size: 32px; font-weight: 700; }
     .reveal-banner { position: fixed; bottom: 70px; left: 50%; transform: translateX(-50%); background: #10b981; padding: 14px 42px; border-radius: 60px; font-weight: 800; opacity: 0; transition: all 0.3s; white-space: nowrap; z-index: 150; box-shadow: 0 0 30px #10b981; }
     .reveal-banner.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-    .footer { padding: 8px 30px; display: flex; justify-content: space-between; font-size: 12px; color: rgba(255,255,255,0.3); border-top: 1px solid #1e293b; flex-shrink: 0; }
+    .footer { padding: 8px 28px; display: flex; justify-content: space-between; font-size: 12px; color: rgba(255,255,255,0.3); border-top: 1px solid #1e293b; flex-shrink: 0; }
     .q-progress-bar { height: 4px; background: #1e293b; flex-shrink: 0; }
     .q-progress-fill { height: 100%; background: linear-gradient(90deg, #3b82f6, #a855f7); transition: width 0.4s; }
     .cat-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); backdrop-filter: blur(20px); display: flex; align-items: center; justify-content: center; z-index: 200; opacity: 0; transition: 0.4s; pointer-events: none; }
@@ -251,35 +357,54 @@
     </div>
   </div>
   <div class="q-progress-bar"><div class="q-progress-fill" id="qProgressFill" style="width:0%"></div></div>
-  <div class="display-area">
-    <div id="screen-waiting" class="screen active">
-      <div class="waiting-content">
-        <div class="waiting-emoji">🎮</div>
-        <div class="waiting-title">READY TO PLAY!</div>
-        <div class="waiting-sub">Players are joining the arena</div>
-        <div class="big-room-code" id="waitingRoomCode">——</div>
-        <div class="player-count-bar">👾 ACTIVE PLAYERS <span class="player-count-num" id="playerCountDisplay">0</span></div>
-      </div>
-    </div>
-    <div id="screen-question" class="screen">
-      <div class="q-wrapper">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <div><div class="q-num-badge" id="qNumBadge" style="background:rgba(255,255,255,0.1);padding:6px 16px;border-radius:20px;">Q1/1</div><div class="cat-badge" id="qCatBadge" style="margin-top:8px;display:flex;align-items:center;gap:8px;"><span>📋</span><span>Quiz</span></div></div>
-          <div class="timer-container"><svg width="100" height="100" viewBox="0 0 100 100"><circle class="timer-track" cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="8"/><circle class="timer-ring" id="timerRing" cx="50" cy="50" r="42" fill="none" stroke="var(--accent)" stroke-width="8" stroke-linecap="round" stroke-dasharray="263.9" stroke-dashoffset="0"/></svg><div class="timer-num" id="timerNum">—</div></div>
+  
+  <div class="main-layout">
+    <!-- Center Stage for Game Screens -->
+    <div class="center-stage">
+      <div class="display-area">
+        <div id="screen-waiting" class="screen active">
+          <div class="waiting-content">
+            <div class="waiting-emoji">🎮</div>
+            <div class="waiting-title">READY TO PLAY!</div>
+            <div class="waiting-sub">Players are joining the arena</div>
+            <div class="big-room-code" id="waitingRoomCode">——</div>
+          </div>
         </div>
-        <div style="text-align:center; padding:20px 0;"><div class="q-text" id="qText" style="font-size:32px; font-weight:800;">Loading...</div></div>
-        <div class="options-grid" id="optionsGrid"></div>
+        <div id="screen-question" class="screen">
+          <div class="q-wrapper">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div><div class="q-num-badge" id="qNumBadge" style="background:rgba(255,255,255,0.1);padding:6px 16px;border-radius:20px;">Q1/1</div><div class="cat-badge" id="qCatBadge" style="margin-top:8px;display:flex;align-items:center;gap:8px;"><span>📋</span><span>Quiz</span></div></div>
+              <div class="timer-container"><svg width="100" height="100" viewBox="0 0 100 100"><circle class="timer-track" cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="8"/><circle class="timer-ring" id="timerRing" cx="50" cy="50" r="42" fill="none" stroke="var(--accent)" stroke-width="8" stroke-linecap="round" stroke-dasharray="263.9" stroke-dashoffset="0"/></svg><div class="timer-num" id="timerNum">—</div></div>
+            </div>
+            <div style="text-align:center; padding:20px 0;"><div class="q-text" id="qText" style="font-size:32px; font-weight:800;">Loading...</div></div>
+            <div class="options-grid" id="optionsGrid"></div>
+          </div>
+        </div>
+        <div id="screen-leaderboard" class="screen"><div class="lb-wrapper"><div class="lb-title">🏆 LEADERBOARD</div><div class="lb-list" id="lbList"></div></div></div>
+        <div id="screen-responses" class="screen"><div class="resp-wrapper"><div class="lb-title">📊 RESPONSE DISTRIBUTION</div><div id="respBarsContainer"></div></div></div>
+        <div id="screen-ended" class="screen"><div class="end-content"><div class="end-icon">🏁</div><div class="end-title">GAME OVER!</div><div style="font-size:24px;color:var(--muted);margin-top:16px">Thanks for playing!</div></div></div>
       </div>
     </div>
-    <div id="screen-leaderboard" class="screen"><div class="lb-wrapper"><div class="lb-title">🏆 LEADERBOARD</div><div class="lb-list" id="lbList"></div></div></div>
-    <div id="screen-responses" class="screen"><div class="resp-wrapper"><div class="lb-title">📊 RESPONSE DISTRIBUTION</div><div id="respBarsContainer"></div></div></div>
-    <div id="screen-ended" class="screen"><div class="end-content"><div class="end-icon">🏁</div><div class="end-title">GAME OVER!</div><div style="font-size:24px;color:var(--muted);margin-top:16px">Thanks for playing!</div></div></div>
+
+    <!-- RIGHT: LIVE LEADERBOARD PANEL -->
+    <div class="live-leaderboard-panel">
+      <div class="live-lb-header">
+        <div class="live-lb-title"><span>🏆</span> LIVE RANKINGS</div>
+        <div class="live-lb-sub">Real-time player scores & status</div>
+      </div>
+      <div class="live-lb-list" id="liveLeaderboardList">
+        <div style="text-align:center;padding:40px;color:var(--muted);">Waiting for players...</div>
+      </div>
+    </div>
   </div>
+
+  <!-- PERSISTENT FLOATING BUBBLES (players stay until game starts) -->
+  <div class="floating-bubbles" id="floatingBubbles"></div>
+
   <div class="footer"><span>PlayAQuiz — ARCADE MODE</span><span id="footerStatus">waiting</span><span id="footerTime"></span></div>
 </div>
 <div id="catOverlay" class="cat-overlay"><div class="cat-content" style="text-align:center;"><span id="catIconBig" style="font-size:80px;">🎯</span><div class="cat-name-big" id="catNameBig">CATEGORY</div><div style="height:3px;width:100px;background:linear-gradient(90deg,var(--accent),var(--purple));margin:20px auto 0;"></div></div></div>
 <div class="reveal-banner" id="revealBanner"></div>
-<div id="notificationArea" class="notification-area"></div>
 
 <script>
 const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
@@ -290,7 +415,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 const AC = window.AudioContext || window.webkitAudioContext;
 let ac;
 function getAC() { if (!ac) ac = new AC(); if (ac.state === 'suspended') ac.resume(); return ac; }
-function playPopSound() { try { const ctx = getAC(); const o = ctx.createOscillator(), g = ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.type = 'sine'; o.frequency.value = 600 + Math.random() * 150; g.gain.value = 0.25; g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3); o.start(); o.stop(ctx.currentTime + 0.25); } catch(e) {} }
+function playPopSound() { try { const ctx = getAC(); const o = ctx.createOscillator(), g = ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.type = 'sine'; o.frequency.value = 600 + Math.random() * 150; g.gain.value = 0.2; g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3); o.start(); o.stop(ctx.currentTime + 0.25); } catch(e) {} }
 function playJoinChime() { try { const ctx = getAC(); [[523,0],[659,0.08],[784,0.16]].forEach(([f,d]) => { const o = ctx.createOscillator(), g = ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.frequency.value = f; o.type = 'sine'; g.gain.value = 0.2; g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + d + 0.2); o.start(ctx.currentTime + d); o.stop(ctx.currentTime + d + 0.2); }); } catch(e) {} }
 
 // State
@@ -299,12 +424,15 @@ let currentQuestion = null;
 let timerInterval = null;
 let timeLeft = 0, totalTime = 0;
 let lastKnownPlayerCount = 0;
-let processedPlayerIds = new Set();
+let gameActive = false; // Track if game has started (hide bubbles when game starts)
 
 // DOM
 const animatedCounterSpan = document.getElementById('animatedCounter');
-const playerCountDisplaySpan = document.getElementById('playerCountDisplay');
-const notificationContainer = document.getElementById('notificationArea');
+const floatingBubblesContainer = document.getElementById('floatingBubbles');
+const liveLeaderboardList = document.getElementById('liveLeaderboardList');
+
+// Store players for both displays
+let currentPlayers = new Map(); // id -> {name, avatar, score, correct_count, is_eliminated}
 
 function animateCounterNumber(newCount) {
   if (!animatedCounterSpan) return;
@@ -313,131 +441,183 @@ function animateCounterNumber(newCount) {
   setTimeout(() => animatedCounterSpan.classList.remove('counter-pop'), 250);
 }
 
-// Console-style join notification (game controller style)
-function showPlayerJoinNotification(name, avatarEmoji = '🎮') {
-  if (!notificationContainer) return;
-  const card = document.createElement('div');
-  card.className = 'player-join-card';
-  card.innerHTML = `
-    <div class="console-avatar">${avatarEmoji}</div>
-    <div class="console-info">
-      <div class="console-name">${escapeHtml(name)}</div>
-      <div class="console-badge">🎮 joined the game</div>
-    </div>
-    <div style="font-size:28px;">🎯</div>
-  `;
-  notificationContainer.appendChild(card);
-  playJoinChime();
-  playPopSound();
-  setTimeout(() => { if (card && card.parentNode) card.remove(); }, 3800);
-}
-
 function escapeHtml(str) { return str.replace(/[&<>]/g, function(m){if(m==='&')return '&amp;';if(m==='<')return '&lt;';if(m==='>')return '&gt;';return m;}); }
 
-// Fetch players and detect new joins
-let previousPlayerMap = new Map();
+// Add persistent bubble for a player (floating at bottom left)
+function addPersistentBubble(playerId, playerName, avatarEmoji, score = 0) {
+  if (!floatingBubblesContainer) return;
+  // Don't add if already exists
+  if (document.getElementById(`bubble-${playerId}`)) return;
+  
+  const bubble = document.createElement('div');
+  bubble.className = 'persistent-bubble new-player';
+  bubble.id = `bubble-${playerId}`;
+  bubble.innerHTML = `
+    <div class="bubble-avatar">${avatarEmoji || '🎮'}</div>
+    <div class="bubble-name">${escapeHtml(playerName)}</div>
+    <div class="bubble-score" id="bubble-score-${playerId}">${score} pts</div>
+  `;
+  floatingBubblesContainer.appendChild(bubble);
+  playJoinChime();
+  playPopSound();
+  
+  // Auto-scroll to show new bubble
+  floatingBubblesContainer.scrollTop = floatingBubblesContainer.scrollHeight;
+}
 
-async function fetchAndDetectNewPlayers() {
-  if (!SESSION_ID) return;
-  const { data: players, error } = await sb
-    .from('players')
-    .select('id, name, avatar_color, avatar_emoji, is_eliminated')
-    .eq('session_id', SESSION_ID)
-    .eq('is_eliminated', false);
-  if (error || !players) return;
-  
-  const currentCount = players.length;
-  if (playerCountDisplaySpan) playerCountDisplaySpan.innerText = currentCount;
-  
-  if (currentCount !== lastKnownPlayerCount) {
-    animateCounterNumber(currentCount);
-    lastKnownPlayerCount = currentCount;
-  }
-  
-  // Detect new players
-  for (const p of players) {
-    if (!previousPlayerMap.has(p.id)) {
-      const emoji = p.avatar_emoji || p.avatar_color || '🎮';
-      showPlayerJoinNotification(p.name || 'Player', emoji);
-    }
-    previousPlayerMap.set(p.id, { name: p.name, emoji: p.avatar_emoji || p.avatar_color || '🎮' });
+// Update persistent bubble score
+function updateBubbleScore(playerId, score) {
+  const scoreSpan = document.getElementById(`bubble-score-${playerId}`);
+  if (scoreSpan) scoreSpan.innerText = `${score} pts`;
+}
+
+// Remove all persistent bubbles (when game starts)
+function clearAllBubbles() {
+  if (floatingBubblesContainer) {
+    floatingBubblesContainer.innerHTML = '';
   }
 }
 
-// Real-time player insert subscription
-function setupRealtimePlayerInsert() {
+// Update right-side live leaderboard
+function updateLiveLeaderboard() {
+  if (!liveLeaderboardList) return;
+  
+  const players = Array.from(currentPlayers.values())
+    .filter(p => !p.is_eliminated)
+    .sort((a, b) => b.score - a.score);
+  
+  if (players.length === 0) {
+    liveLeaderboardList.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);">👾 No players yet</div>';
+    return;
+  }
+  
+  liveLeaderboardList.innerHTML = players.map((p, idx) => {
+    const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}`;
+    const crown = p.score > 0 && idx === 0 ? '<span class="crown-icon">👑</span>' : '';
+    return `
+      <div class="live-lb-item">
+        <div class="live-lb-rank">${medal}</div>
+        <div class="live-lb-avatar">${p.avatar || '🎮'}</div>
+        <div class="live-lb-info">
+          <div class="live-lb-name">${escapeHtml(p.name)}</div>
+          <div class="live-lb-stats">
+            <span>✅ ${p.correct_count || 0}</span>
+          </div>
+        </div>
+        <div class="live-lb-score">${p.score} ${crown}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+// Fetch and sync all players
+async function syncPlayers() {
   if (!SESSION_ID) return;
-  const channel = sb.channel(`foh-player-insert-${SESSION_ID}`);
-  channel
-    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'players', filter: `session_id=eq.${SESSION_ID}` }, async (payload) => {
-      const newPlayer = payload.new;
-      if (newPlayer && !newPlayer.is_eliminated) {
-        const displayName = newPlayer.name || 'Explorer';
-        const avatarIcon = newPlayer.avatar_emoji || newPlayer.avatar_color || '🎮';
-        showPlayerJoinNotification(displayName, avatarIcon);
-        if (playerCountDisplaySpan) {
-          const curr = parseInt(playerCountDisplaySpan.innerText) || 0;
-          playerCountDisplaySpan.innerText = curr + 1;
-          animateCounterNumber(curr + 1);
-          lastKnownPlayerCount = curr + 1;
-        }
-        previousPlayerMap.set(newPlayer.id, { name: displayName, emoji: avatarIcon });
+  
+  const { data: players, error } = await sb
+    .from('players')
+    .select('id, name, avatar_color, avatar_emoji, score, correct_count, is_eliminated')
+    .eq('session_id', SESSION_ID);
+  
+  if (error || !players) return;
+  
+  const currentPlayerIds = new Set();
+  const newCount = players.length;
+  
+  // Update counter animation
+  if (newCount !== lastKnownPlayerCount) {
+    animateCounterNumber(newCount);
+    lastKnownPlayerCount = newCount;
+  }
+  
+  // Process each player
+  for (const p of players) {
+    currentPlayerIds.add(p.id);
+    const emoji = p.avatar_emoji || p.avatar_color || '🎮';
+    
+    if (!currentPlayers.has(p.id)) {
+      // New player - add bubble and notification (only if game not active)
+      if (!gameActive) {
+        addPersistentBubble(p.id, p.name, emoji, p.score || 0);
       }
+      currentPlayers.set(p.id, {
+        name: p.name,
+        avatar: emoji,
+        score: p.score || 0,
+        correct_count: p.correct_count || 0,
+        is_eliminated: p.is_eliminated || false
+      });
+    } else {
+      // Update existing player
+      const existing = currentPlayers.get(p.id);
+      const newScore = p.score || 0;
+      if (existing.score !== newScore) {
+        updateBubbleScore(p.id, newScore);
+      }
+      currentPlayers.set(p.id, {
+        name: p.name,
+        avatar: emoji,
+        score: newScore,
+        correct_count: p.correct_count || 0,
+        is_eliminated: p.is_eliminated || false
+      });
+    }
+  }
+  
+  // Remove players that left
+  for (const id of currentPlayers.keys()) {
+    if (!currentPlayerIds.has(id)) {
+      currentPlayers.delete(id);
+      const bubble = document.getElementById(`bubble-${id}`);
+      if (bubble) bubble.remove();
+    }
+  }
+  
+  // Update live leaderboard
+  updateLiveLeaderboard();
+}
+
+// Real-time player subscription
+function setupRealtimePlayers() {
+  if (!SESSION_ID) return;
+  
+  sb.channel(`foh-players-${SESSION_ID}`)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'players', filter: `session_id=eq.${SESSION_ID}` }, () => {
+      syncPlayers();
     })
     .subscribe();
 }
 
-// Main initialization
-async function init() {
-  setInterval(updateFooterTime, 1000);
-  const params = new URLSearchParams(window.location.search);
-  let sid = params.get('session') || localStorage.getItem('paq_session_id');
-  if (!sid) {
-    const { data } = await sb.from('game_sessions').select('id,room_code').eq('status','waiting').order('created_at',{ascending:false}).limit(1);
-    if (data?.[0]) sid = data[0].id;
-  }
-  if (!sid) { document.getElementById('roomCode').innerText = 'NO SESSION'; return; }
-  SESSION_ID = sid;
-  localStorage.setItem('paq_session_id', sid);
-  await loadSessionInfo();
-  await fetchAndDetectNewPlayers();
-  setupRealtimePlayerInsert();
-  startPlayerCountPolling();
-  setupGameEvents();
-}
-
-async function loadSessionInfo() {
-  const { data } = await sb.from('game_sessions').select('*').eq('id', SESSION_ID).single();
-  if (data) {
-    document.getElementById('roomCode').innerText = data.room_code;
-    document.getElementById('waitingRoomCode').innerText = data.room_code;
-    document.getElementById('footerStatus').innerText = data.status;
-  }
-}
-
+// Game events
 function setupGameEvents() {
-  // Listen for game_events
   sb.channel(`foh-events-${SESSION_ID}`)
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'game_events', filter: `session_id=eq.${SESSION_ID}` }, p => handleEvent(p.new))
     .subscribe();
-  // Listen for session updates
+  
   sb.channel(`foh-session-${SESSION_ID}`)
     .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'game_sessions', filter: `id=eq.${SESSION_ID}` }, p => {
       document.getElementById('footerStatus').innerText = p.new.status;
+      if (p.new.status === 'active') {
+        // Game started - clear all floating bubbles
+        gameActive = true;
+        clearAllBubbles();
+      }
       if (p.new.status === 'ended') { stopTimer(); launchConfetti(); showScreen('ended'); }
-      if (p.new.status === 'waiting') showScreen('waiting');
+      if (p.new.status === 'waiting') { 
+        gameActive = false;
+        showScreen('waiting'); 
+        syncPlayers(); // Refresh bubbles when back to waiting
+      }
     })
     .subscribe();
 }
 
 function handleEvent(evt) {
-  console.log('FOH event:', evt.event_type, evt.payload);
+  console.log('FOH event:', evt.event_type);
   
   switch(evt.event_type) {
     case 'category_banner':
-      if (evt.payload) {
-        showCategoryOverlay(evt.payload.icon, evt.payload.name);
-      }
+      if (evt.payload) showCategoryOverlay(evt.payload.icon, evt.payload.name);
       break;
     case 'new_question':
       if (evt.payload && evt.payload.question) {
@@ -454,9 +634,7 @@ function handleEvent(evt) {
       }
       break;
     case 'answer_reveal':
-      if (evt.payload) {
-        revealAnswer(evt.payload.correctOption, evt.payload.options, evt.payload.explanation);
-      }
+      if (evt.payload) revealAnswer(evt.payload.correctOption, evt.payload.options, evt.payload.explanation);
       break;
     case 'show_leaderboard':
       if (evt.payload && evt.payload.leaders) {
@@ -475,6 +653,7 @@ function handleEvent(evt) {
       break;
     case 'player_eliminated':
       flashEliminated();
+      syncPlayers();
       break;
     case 'game_ended':
       stopTimer();
@@ -483,7 +662,9 @@ function handleEvent(evt) {
       break;
     case 'game_reset':
       stopTimer();
+      gameActive = false;
       showScreen('waiting');
+      syncPlayers();
       break;
   }
 }
@@ -491,21 +672,14 @@ function handleEvent(evt) {
 function displayQuestion(q) {
   if (!q) return;
   document.getElementById('qText').innerText = q.question_text;
-  
-  // Category display
   const catEl = document.getElementById('qCatBadge');
-  if (q.category_name || q.category_id) {
-    catEl.innerHTML = `<span>${q.category_icon || '📋'}</span><span>${q.category_name || 'Quiz'}</span>`;
-  } else {
-    catEl.innerHTML = `<span>📋</span><span>Quiz</span>`;
-  }
+  catEl.innerHTML = `<span>${q.category_icon || '📋'}</span><span>${q.category_name || 'Quiz'}</span>`;
   
   const letters = ['A', 'B', 'C', 'D'];
-  const optColors = ['opt-a', 'opt-b', 'opt-c', 'opt-d'];
   const grid = document.getElementById('optionsGrid');
   const opts = [q.option_a, q.option_b, q.option_c, q.option_d];
   grid.innerHTML = opts.map((opt, i) => `
-    <div class="opt-item ${optColors[i]}" data-idx="${i}">
+    <div class="opt-item" data-idx="${i}">
       <div class="opt-letter">${letters[i]}</div>
       <div>${opt || ''}</div>
     </div>
@@ -520,26 +694,19 @@ function startTimer(duration) {
   timerInterval = setInterval(() => {
     timeLeft--;
     updateTimerUI();
-    if (timeLeft <= 0) {
-      stopTimer();
-    }
+    if (timeLeft <= 0) stopTimer();
   }, 1000);
 }
 
-function stopTimer() {
-  if (timerInterval) clearInterval(timerInterval);
-  timerInterval = null;
-}
+function stopTimer() { if (timerInterval) clearInterval(timerInterval); timerInterval = null; }
 
 function updateTimerUI() {
   const ring = document.getElementById('timerRing');
   const num = document.getElementById('timerNum');
   const circum = 2 * Math.PI * 42;
   const progress = Math.max(0, timeLeft) / totalTime;
-  const offset = circum * (1 - progress);
-  ring.style.strokeDashoffset = offset;
+  ring.style.strokeDashoffset = circum * (1 - progress);
   num.innerText = timeLeft >= 0 ? timeLeft : 0;
-  
   if (timeLeft <= 5) ring.style.stroke = 'var(--red)';
   else if (timeLeft <= 10) ring.style.stroke = 'var(--yellow)';
   else ring.style.stroke = 'var(--accent)';
@@ -547,27 +714,11 @@ function updateTimerUI() {
 
 function revealAnswer(correctIdx, options, explanation) {
   stopTimer();
-  
-  // Play fanfare
-  try {
-    const ctx = getAC();
-    [[523,0],[659,0.12],[784,0.24],[1047,0.4]].forEach(([f,d]) => {
-      const o = ctx.createOscillator(), g = ctx.createGain();
-      o.connect(g); g.connect(ctx.destination);
-      o.frequency.value = f; o.type = 'sine';
-      g.gain.value = 0.3;
-      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + d + 0.2);
-      o.start(ctx.currentTime + d);
-      o.stop(ctx.currentTime + d + 0.2);
-    });
-  } catch(e) {}
-  
   const letters = ['A', 'B', 'C', 'D'];
   document.querySelectorAll('.opt-item').forEach((el, i) => {
     if (i === correctIdx) el.classList.add('correct');
     else el.classList.add('wrong');
   });
-  
   const banner = document.getElementById('revealBanner');
   banner.innerHTML = `✅ Correct Answer: <strong>${letters[correctIdx]}</strong>${options && options[correctIdx] ? ` — ${options[correctIdx]}` : ''}`;
   if (explanation) banner.innerHTML += `<div style="font-size:14px;opacity:.8;margin-top:4px">${explanation}</div>`;
@@ -583,7 +734,7 @@ function displayLeaderboard(leaders) {
     return;
   }
   listEl.innerHTML = leaders.slice(0, 10).map((p, i) => `
-    <div class="lb-row" style="animation-delay:${i * 0.08}s">
+    <div class="lb-row">
       <div style="font-size:28px;width:52px;text-align:center;">${medals[i] || `#${i + 1}`}</div>
       <div style="font-size:32px;">${p.avatar_color || '👤'}</div>
       <div style="flex:1;font-size:18px;font-weight:700;">${escapeHtml(p.name)}</div>
@@ -598,31 +749,19 @@ function displayResponseDist(dist, totalPlayers, correctIdx, options) {
   const letters = ['A', 'B', 'C', 'D'];
   const maxCount = Math.max(...dist, 1);
   const container = document.getElementById('respBarsContainer');
-  
   container.innerHTML = dist.map((count, i) => {
     const percentage = totalPlayers > 0 ? Math.round((count / totalPlayers) * 100) : 0;
     const barWidth = maxCount > 0 ? (count / maxCount) * 100 : 0;
     const isCorrect = i === correctIdx;
-    const optionText = options && options[i] ? options[i].substring(0, 40) : '';
     return `
       <div class="resp-bar-row">
         <div class="resp-ltr" style="background:${colors[i]}30;color:${colors[i]}">${letters[i]}</div>
-        <div class="resp-track">
-          <div class="resp-fill" style="width:0%;background:${isCorrect ? 'var(--green)' : colors[i]}" data-target="${barWidth}">
-            <span style="margin-right:auto;">${optionText.length > 25 ? optionText.substring(0, 22) + '...' : optionText}</span>
-            <span style="margin-left:auto;font-weight:800;">${percentage}%</span>
-          </div>
-        </div>
+        <div class="resp-track"><div class="resp-fill" style="width:0%;background:${isCorrect ? 'var(--green)' : colors[i]}" data-target="${barWidth}"><span style="margin-left:auto;font-weight:800;">${percentage}%</span></div></div>
         <div style="width:60px;text-align:right;font-weight:600;">${count}</div>
       </div>
     `;
   }).join('');
-  
-  setTimeout(() => {
-    document.querySelectorAll('.resp-fill').forEach(el => {
-      el.style.width = el.dataset.target + '%';
-    });
-  }, 100);
+  setTimeout(() => { document.querySelectorAll('.resp-fill').forEach(el => { el.style.width = el.dataset.target + '%'; }); }, 100);
 }
 
 function showCategoryOverlay(icon, name) {
@@ -667,24 +806,38 @@ function launchConfetti() {
     conf.style.height = 6 + Math.random() * 10 + 'px';
     conf.style.animationDuration = 2 + Math.random() * 3 + 's';
     conf.style.animationDelay = Math.random() * 2 + 's';
-    conf.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
     document.body.appendChild(conf);
     setTimeout(() => conf.remove(), 6000);
   }
 }
 
-function startPlayerCountPolling() {
-  const refresh = async () => {
-    if (!SESSION_ID) return;
-    const { count } = await sb.from('players').select('*', { count: 'exact', head: true }).eq('session_id', SESSION_ID).eq('is_eliminated', false);
-    if (playerCountDisplaySpan) playerCountDisplaySpan.innerText = count || 0;
-  };
-  refresh();
-  setInterval(refresh, 3000);
-}
-
 function updateFooterTime() {
   document.getElementById('footerTime').innerText = new Date().toLocaleTimeString();
+}
+
+async function init() {
+  setInterval(updateFooterTime, 1000);
+  const params = new URLSearchParams(window.location.search);
+  let sid = params.get('session') || localStorage.getItem('paq_session_id');
+  if (!sid) {
+    const { data } = await sb.from('game_sessions').select('id,room_code').eq('status','waiting').order('created_at',{ascending:false}).limit(1);
+    if (data?.[0]) sid = data[0].id;
+  }
+  if (!sid) { document.getElementById('roomCode').innerText = 'NO SESSION'; return; }
+  SESSION_ID = sid;
+  localStorage.setItem('paq_session_id', sid);
+  
+  const { data: session } = await sb.from('game_sessions').select('*').eq('id', SESSION_ID).single();
+  if (session) {
+    document.getElementById('roomCode').innerText = session.room_code;
+    document.getElementById('waitingRoomCode').innerText = session.room_code;
+    document.getElementById('footerStatus').innerText = session.status;
+    if (session.status === 'active') gameActive = true;
+  }
+  
+  await syncPlayers();
+  setupRealtimePlayers();
+  setupGameEvents();
 }
 
 init();
