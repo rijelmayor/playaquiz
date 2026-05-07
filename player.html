@@ -742,63 +742,24 @@ function onTimerEnd() {
 }
 
 // Also show buttons when answer is revealed (in case timer hasn't hit 0 yet)
-async function revealAndScore(correctOption) {
-  if (!curQuestion) return; 
-  stopTimer(); 
-  hide('pendingBox');
-  
+function revealAndScore(correctOption) {
+  if (!curQuestion) return; stopTimer(); hide('pendingBox');
   if (!timerEnded) {
     timerEnded = true;
     document.getElementById('actionButtonsRow').classList.remove('hidden');
   }
-  
-  // Mark options as correct/wrong
-  document.querySelectorAll('.opt-btn').forEach((btn, i) => { 
-    btn.disabled = true; 
-    if(i === correctOption) btn.classList.add('correct'); 
-    else if(i === selOption && selOption !== correctOption) btn.classList.add('wrong'); 
+  document.querySelectorAll('.opt-btn').forEach((btn, i) => { btn.disabled = true; if(i===correctOption) btn.classList.add('correct'); else if(i===selOption && selOption!==correctOption) btn.classList.add('wrong'); });
+  sb.from('answers').select('is_correct,points_earned').eq('question_id', curQuestion.id).eq('player_id', myPlayer.id).maybeSingle().then(({ data: myAns }) => {
+    const correct = myAns?.is_correct || false; const earned = myAns?.points_earned || 0;
+    if(correct){ myScore += earned; myCorrect++; correctSound(); } else wrongSound();
+    if(correct) sb.from('players').update({ score: myScore, correct_count: myCorrect }).eq('id', myPlayer.id);
+    document.getElementById('scoreChip').innerText = myScore + ' pts';
+    const fb = document.getElementById('feedbackBox'); fb.className = 'feedback';
+    if(selOption === -1) { fb.classList.add('feedback-timeout'); fb.innerHTML = `<div>⏰ Time's up! Correct: ${['A','B','C','D'][correctOption]}</div>`; }
+    else if(correct) { fb.classList.add('feedback-correct'); fb.innerHTML = `<div class="points-pop">+${earned}</div><div>🎉 Correct!</div>`; }
+    else { fb.classList.add('feedback-wrong'); fb.innerHTML = `<div>❌ Wrong</div><div>Correct: ${['A','B','C','D'][correctOption]}</div>`; }
+    show('feedbackBox');
   });
-  
-  // Fetch the saved answer to get actual points
-  const { data: myAns, error } = await sb.from('answers')
-    .select('is_correct, points_earned')
-    .eq('question_id', curQuestion.id)
-    .eq('player_id', myPlayer.id)
-    .maybeSingle();
-  
-  if (error) {
-    console.error('Error fetching answer:', error);
-  }
-  
-  const correct = myAns?.is_correct || false; 
-  const earned = myAns?.points_earned || 0;
-  
-  console.log('Answer result:', { correct, earned, myAns });
-  
-  if(correct) { 
-    // Score already updated in saveAnswer, just update UI
-    correctSound(); 
-  } else {
-    wrongSound();
-  }
-  
-  document.getElementById('scoreChip').innerText = myScore + ' pts';
-  
-  const fb = document.getElementById('feedbackBox'); 
-  fb.className = 'feedback';
-  
-  if(selOption === -1) { 
-    fb.classList.add('feedback-timeout'); 
-    fb.innerHTML = `<div>⏰ Time's up! Correct: ${['A','B','C','D'][correctOption]}</div>`; 
-  } else if(correct) { 
-    fb.classList.add('feedback-correct'); 
-    fb.innerHTML = `<div class="points-pop">+${earned}</div><div>🎉 Correct!</div>`; 
-  } else { 
-    fb.classList.add('feedback-wrong'); 
-    fb.innerHTML = `<div>❌ Wrong</div><div>Correct: ${['A','B','C','D'][correctOption]}</div>`; 
-  }
-  
-  show('feedbackBox');
 }
 
 async function submitAnswer(optIdx, isTimeout=false) {
@@ -811,46 +772,48 @@ async function submitAnswer(optIdx, isTimeout=false) {
   const pts = isCorrect ? Math.round((curQuestion?.points || 100) * Math.max(0.1, timeLeft / totalTime)) : 0;
   saveAnswer(optIdx, isCorrect, pts);
 }
-async function saveAnswer(optIdx, isCorrect, pts) {
-  if(!curQuestion||!myPlayer) return;
+async function saveAnswer(optIdx, isCorrect, pts) { if(!curQuestion||!myPlayer)return; await sb.from('answers').upsert({ session_id: SESSION_ID, question_id: curQuestion.id, player_id: myPlayer.id, chosen_option: optIdx, is_correct: isCorrect, points_earned: pts, time_taken_ms: (totalTime - timeLeft) * 1000 }, { onConflict: 'question_id,player_id' }); }
+
+// ── Live Responses Overlay ──
+async function openLiveResponses() {
+  if (!curQuestion || !SESSION_ID) return;
+  const overlay = document.getElementById('liveResponsesOverlay');
+  overlay.classList.remove('hidden');
   
-  const answerData = {
-    session_id: SESSION_ID, 
-    question_id: curQuestion.id, 
-    player_id: myPlayer.id, 
-    chosen_option: optIdx, 
-    is_correct: isCorrect, 
-    points_earned: pts, 
-    time_taken_ms: (totalTime - timeLeft) * 1000
-  };
+  const { data: answers } = await sb.from('answers').select('chosen_option').eq('session_id', SESSION_ID).eq('question_id', curQuestion.id);
+  const dist = [0, 0, 0, 0];
+  answers?.forEach(a => { if (a.chosen_option >= 0 && a.chosen_option < 4) dist[a.chosen_option]++; });
+  const total = dist.reduce((a, b) => a + b, 0);
+  const maxCount = Math.max(...dist, 1);
+  const colors = ['#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899'];
+  const letters = ['A', 'B', 'C', 'D'];
+  const opts = [curQuestion.option_a, curQuestion.option_b, curQuestion.option_c, curQuestion.option_d];
   
-  console.log('Saving answer:', answerData);
+  document.getElementById('liveResponsesContent').innerHTML = `
+    <div style="color:var(--muted);margin-bottom:16px;font-weight:600;">${total} total responses</div>
+    ${dist.map((count, i) => {
+      const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+      const barWidth = (count / maxCount) * 100;
+      return `
+        <div class="overlay-resp-bar-row">
+          <div class="overlay-resp-ltr" style="background:${colors[i]}30;color:${colors[i]}">${letters[i]}</div>
+          <div class="overlay-resp-track">
+            <div class="overlay-resp-fill" style="width:0%;background:${colors[i]}" data-target="${barWidth}">
+              <span class="overlay-resp-label">${opts[i] || ''}</span>
+              <span class="overlay-resp-pct">${pct}%</span>
+            </div>
+          </div>
+          <div class="overlay-resp-count">${count}</div>
+        </div>
+      `;
+    }).join('')}
+  `;
   
-  const { error } = await sb.from('answers').upsert(
-    answerData, 
-    { onConflict: 'question_id,player_id' }
-  );
-  
-  if (error) {
-    console.error('Error saving answer:', error);
-  } else {
-    console.log('Answer saved successfully');
-    // If correct, update player score immediately
-    if (isCorrect && pts > 0) {
-      myScore += pts;
-      myCorrect++;
-      const { error: updateError } = await sb.from('players')
-        .update({ score: myScore, correct_count: myCorrect })
-        .eq('id', myPlayer.id);
-      
-      if (updateError) {
-        console.error('Error updating player score:', updateError);
-      } else {
-        console.log('Player score updated to:', myScore);
-        document.getElementById('scoreChip').innerText = myScore + ' pts';
-      }
-    }
-  }
+  setTimeout(() => {
+    document.querySelectorAll('#liveResponsesContent .overlay-resp-fill').forEach(el => {
+      el.style.width = el.dataset.target + '%';
+    });
+  }, 100);
 }
 
 function closeLiveResponses() {
@@ -858,27 +821,12 @@ function closeLiveResponses() {
 }
 
 // ── Leaderboard Overlay ──
-// In player.html, update openLeaderboard:
 async function openLeaderboard() {
   if (!SESSION_ID) return;
   const overlay = document.getElementById('leaderboardOverlay');
   overlay.classList.remove('hidden');
   
-  // Show loading state
-  document.getElementById('leaderboardContent').innerHTML = '<div style="text-align:center;color:var(--muted);padding:40px;">Loading leaderboard...</div>';
-  
-  const { data: players, error } = await sb.from('players')
-    .select('id, name, avatar_color, score, correct_count')
-    .eq('session_id', SESSION_ID)
-    .order('score', { ascending: false });
-  
-  if (error) {
-    console.error('Error fetching leaderboard:', error);
-    document.getElementById('leaderboardContent').innerHTML = '<div style="text-align:center;color:var(--red);padding:40px;">Error loading leaderboard</div>';
-    return;
-  }
-  
-  console.log('Leaderboard data:', players);
+  const { data: players } = await sb.from('players').select('id, name, avatar_color, score').eq('session_id', SESSION_ID).order('score', { ascending: false });
   
   if (!players || players.length === 0) {
     document.getElementById('leaderboardContent').innerHTML = '<div style="text-align:center;color:var(--muted);padding:40px;">No players yet</div>';
@@ -887,16 +835,14 @@ async function openLeaderboard() {
   
   document.getElementById('leaderboardContent').innerHTML = players.map((p, i) => {
     const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`;
-    const isMe = p.id === myPlayer?.id;
     return `
-      <div class="overlay-lb-row" style="${isMe ? 'border: 1px solid var(--accent); background: rgba(59,130,246,0.1);' : ''}">
+      <div class="overlay-lb-row">
         <div class="overlay-lb-rank">${medal}</div>
         <div class="overlay-lb-avatar">${p.avatar_color || '👤'}</div>
         <div class="overlay-lb-info">
-          <div class="overlay-lb-name">${p.name} ${isMe ? '(You)' : ''}</div>
-          <div style="font-size:11px;color:var(--muted);">✅ ${p.correct_count || 0} correct</div>
+          <div class="overlay-lb-name">${p.name}</div>
         </div>
-        <div class="overlay-lb-score">${p.score || 0}</div>
+        <div class="overlay-lb-score">${p.score}</div>
       </div>
     `;
   }).join('');

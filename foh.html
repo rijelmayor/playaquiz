@@ -927,8 +927,6 @@ function updateLiveLeaderboard() {
     .filter(p => !p.is_eliminated)
     .sort((a, b) => b.score - a.score);
   
-  console.log('Updating leaderboard with players:', players.map(p => ({ name: p.name, score: p.score })));
-  
   if (players.length === 0) {
     liveLeaderboardList.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);">👾 No players yet</div>';
     return;
@@ -938,13 +936,13 @@ function updateLiveLeaderboard() {
     const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}`;
     const crown = p.score > 0 && idx === 0 ? '<span class="crown-icon">👑</span>' : '';
     return `
-      <div class="live-lb-item" style="${p.name === (myPlayerName || '') ? 'border: 1px solid var(--accent);' : ''}">
+      <div class="live-lb-item">
         <div class="live-lb-rank">${medal}</div>
         <div class="live-lb-avatar">${p.avatar || '🎮'}</div>
         <div class="live-lb-info">
           <div class="live-lb-name">${escapeHtml(p.name)}</div>
           <div class="live-lb-stats">
-            <span>✅ ${p.correct_count || 0} correct</span>
+            <span>✅ ${p.correct_count || 0}</span>
           </div>
         </div>
         <div class="live-lb-score">${p.score} ${crown}</div>
@@ -1022,20 +1020,6 @@ async function syncPlayers() {
   }
   
   updateLiveLeaderboard();
-
-
-  // In foh.html, inside syncPlayers, update the query to ensure all fields are fetched:
-const { data: players, error } = await sb
-  .from('players')
-  .select('id, name, avatar_color, avatar_emoji, score, correct_count, is_eliminated')
-  .eq('session_id', SESSION_ID)
-  .order('score', { ascending: false });  // Add ordering
-
-// And after processing players, force a leaderboard update:
-console.log('Players synced:', players?.map(p => ({ name: p.name, score: p.score })));
-updateLiveLeaderboard();
-
-
 }
 
 // Set up real-time subscription for players table
