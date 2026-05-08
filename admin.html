@@ -241,47 +241,17 @@
     <div id="panel-dashboard" class="panel active">
       <div class="page-title">Dashboard</div>
       <div class="announcement-bar" id="alertBar"></div>
+
+      <!-- Stat cards -->
       <div class="grid-4 mb-4">
         <div class="stat-card"><div class="stat-num" id="statPlayers">0</div><div class="stat-lbl">Players Joined</div></div>
         <div class="stat-card"><div class="stat-num" id="statQuestions">0</div><div class="stat-lbl">Questions Loaded</div></div>
         <div class="stat-card"><div class="stat-num" id="statAnswered">0%</div><div class="stat-lbl">Response Rate</div></div>
         <div class="stat-card"><div class="stat-num" id="statStatus">-</div><div class="stat-lbl">Game Status</div></div>
       </div>
-      <div class="grid-2">
-        <div class="card">
-          <div class="card-title">Quick Actions</div>
-          <div style="display:flex;flex-direction:column;gap:10px">
-            <button class="btn btn-green btn-lg" style="width:100%" id="dashBtnStart" onclick="gameStart()">Start Game</button>
-            <button class="btn btn-ghost" style="width:100%" onclick="revealAnswerAndBroadcast()">Reveal Answer</button>
-            <button class="btn btn-outline" style="width:100%" onclick="gameNext()">Next Question</button>
-            <button class="btn" style="width:100%;background:var(--yellow);color:#111" onclick="fohCommand('leaderboard')">Show Leaderboard</button>
-            <div class="divider"></div>
-            <button class="btn btn-ghost" style="width:100%;color:var(--red);border-color:var(--red)" onclick="resetGameSession()">Reset Game</button>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-title">Global Timer</div>
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-            <span style="font-size:13px;color:var(--muted)">All questions use this timer</span>
-            <span style="font-size:28px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--accent)" id="globalTimerVal">20</span>
-          </div>
-          <input type="range" id="globalTimerSlider" min="5" max="60" value="20" step="5" style="width:100%;margin-bottom:12px" oninput="onGlobalTimerSlide()">
-          <button class="btn btn-ghost" style="width:100%;margin-bottom:16px" onclick="applyGlobalTimer()">Apply to All Questions</button>
-          <div class="divider"></div>
-          <div class="card-title" style="margin-bottom:12px">Loaded Questions</div>
-          <div id="dashQueueList" style="max-height:180px;overflow-y:auto"><div class="empty-state" style="padding:20px"><div class="empty-icon">📋</div>No questions in queue</div></div>
-        </div>
-      </div>
-      <!-- Live Response Status + Mini FOH Mirror -->
-      <div class="grid-2">
-        <div class="dash-resp-card">
-          <div class="dash-resp-header">
-            <div class="card-title" style="margin:0">📊 Live Response Status</div>
-            <div id="dashCatBadge" class="dash-cat-badge" style="display:none">🎯 <span id="dashCatName">-</span></div>
-          </div>
-          <div id="dashResponseStats"><div class="empty-state" style="padding:16px"><div class="empty-icon">⏳</div>Waiting for question...</div></div>
-          <div id="dashRespBars" style="margin-top:10px"></div>
-        </div>
+
+      <!-- FOH Mirror + Quick Actions -->
+      <div class="grid-2" style="margin-bottom:20px">
         <div class="card" style="margin-bottom:0">
           <div class="card-title" style="margin-bottom:10px">📺 FOH Mirror <span style="font-size:11px;color:var(--muted);font-weight:400">live preview</span></div>
           <div class="mini-foh" id="miniFohWrap">
@@ -295,6 +265,44 @@
             </div>
           </div>
         </div>
+        <div class="card" style="margin-bottom:0">
+          <div class="card-title">⚡ Quick Actions</div>
+          <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px">
+            <button class="btn btn-ghost" style="width:100%" onclick="revealAnswerAndBroadcast()">🔓 Reveal Answer</button>
+            <button class="btn btn-outline" style="width:100%" onclick="gameNext()">⏩ Next Question</button>
+            <button class="btn" style="width:100%;background:var(--yellow);color:#111" onclick="fohCommand('leaderboard')">🏆 Show Leaderboard</button>
+            <div class="divider"></div>
+            <button class="btn btn-ghost" style="width:100%;color:var(--red);border-color:var(--red)" onclick="resetGameSession()">🔄 Reset Game</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Next Question Picker -->
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <span>🎯 Next Question Picker</span>
+          <div class="flex" style="gap:8px">
+            <button class="btn btn-sm btn-purple" onclick="pickRandomNextQuestion()">🎲 Random</button>
+            <button class="btn btn-sm btn-ghost" id="clearDashNextBtn" onclick="clearDashNextPick()" style="display:none;color:var(--red)">✕ Clear</button>
+          </div>
+        </div>
+        <div id="dashNextPickBanner" style="display:none;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.3);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--purple);font-weight:600;margin-bottom:12px;align-items:center;gap:8px">
+          <span>⭐</span><span id="dashNextPickText">—</span>
+        </div>
+        <div id="dashQueueList" style="max-height:260px;overflow-y:auto;border-radius:10px;border:1px solid var(--border)">
+          <div class="empty-state" style="padding:20px"><div class="empty-icon">📋</div>No questions loaded</div>
+        </div>
+      </div>
+
+      <!-- Global Timer -->
+      <div class="card">
+        <div class="card-title">⏱️ Global Timer</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <span style="font-size:13px;color:var(--muted)">All questions use this timer</span>
+          <span style="font-size:28px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--accent)" id="globalTimerVal">20</span>
+        </div>
+        <input type="range" id="globalTimerSlider" min="5" max="60" value="20" step="5" style="width:100%;margin-bottom:12px" oninput="onGlobalTimerSlide()">
+        <button class="btn btn-ghost" style="width:100%" onclick="applyGlobalTimer()">Apply to All Questions</button>
       </div>
     </div>
 
