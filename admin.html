@@ -220,7 +220,6 @@
     <button class="nav-item active" data-panel="dashboard" onclick="switchPanel(this,'dashboard')">📊 Dashboard</button>
     <button class="nav-item" data-panel="categories" onclick="switchPanel(this,'categories')">🏷️ Categories</button>
     <button class="nav-item" data-panel="questions" onclick="switchPanel(this,'questions')">📋 Questions</button>
-    <button class="nav-item" data-panel="game" onclick="switchPanel(this,'game')">🎮 Game Control</button>
     <button class="nav-item" data-panel="players" onclick="switchPanel(this,'players')">👥 Players</button>
     <button class="nav-item" data-panel="catsel" onclick="switchPanel(this,'catsel')">🎡 Category Selection</button>
     <button class="nav-item" data-panel="foh" onclick="switchPanel(this,'foh')">📺 FOH Display</button>
@@ -237,7 +236,7 @@
   <div class="main">
     <div class="toast-container" id="toastContainer"></div>
 
-    <!-- DASHBOARD -->
+    <!-- DASHBOARD (merged with Game Control) -->
     <div id="panel-dashboard" class="panel active">
       <div class="page-title">Dashboard</div>
       <div class="announcement-bar" id="alertBar"></div>
@@ -250,47 +249,116 @@
         <div class="stat-card"><div class="stat-num" id="statStatus">-</div><div class="stat-lbl">Game Status</div></div>
       </div>
 
-      <!-- FOH Mirror + Quick Actions -->
+      <!-- Game Control Bar -->
+      <div class="game-control-bar">
+        <div>
+          <div style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:4px">GAME STATUS</div>
+          <div class="game-status-badge status-waiting" id="gameStatusBadge">WAITING</div>
+        </div>
+        <div style="flex:1">
+          <div style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:4px">CURRENT QUESTION</div>
+          <div style="font-size:15px;font-weight:600" id="currentQPreview">—</div>
+          <div class="progress-bar mt-3"><div class="progress-fill" id="gameProgressFill" style="width:0%"></div></div>
+          <div style="font-size:12px;color:var(--muted);margin-top:4px" id="progressText">Not started</div>
+        </div>
+        <div class="flex">
+          <button id="btnStart" class="btn btn-green btn-lg" onclick="gameStart()">▶ Start Game</button>
+          <button id="btnReveal" class="btn btn-yellow btn-lg" onclick="revealAnswerAndBroadcast()" disabled>🔓 Reveal</button>
+          <button id="btnNext" class="btn btn-lg" onclick="gameNext()" disabled>⏩ Next</button>
+          <button class="btn btn-ghost btn-lg" style="color:var(--red);border-color:rgba(239,68,68,.3)" onclick="resetGameSession()">🔄 Reset</button>
+        </div>
+      </div>
+
+      <!-- Live Response + Leaderboard + FOH Mirror -->
       <div class="grid-2" style="margin-bottom:20px">
         <div class="card" style="margin-bottom:0">
-          <div class="card-title" style="margin-bottom:10px">📺 FOH Mirror <span style="font-size:11px;color:var(--muted);font-weight:400">live preview</span></div>
-          <div class="mini-foh" id="miniFohWrap">
-            <div class="mini-foh-inner">
-              <div class="mini-foh-label">FOH SCREEN</div>
-              <div class="mini-foh-live"><span class="status-dot" style="margin:0"></span>LIVE</div>
-              <div class="mini-foh-content" id="miniFohContent">
-                <div class="mini-foh-waiting">⏳</div>
-                <div class="mini-foh-state-label">Waiting for game to start</div>
+          <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+            <span>📊 Live Response Snapshot</span>
+            <div style="display:flex;gap:8px;align-items:center">
+              <div id="dashCatBadge" class="dash-cat-badge" style="display:none">🎯 <span id="dashCatName">-</span></div>
+              <button class="btn btn-sm btn-purple" onclick="pushResponsesLive()">📡 Push to FOH</button>
+            </div>
+          </div>
+          <div id="responseStats" style="margin-top:10px"><div class="empty-state" style="padding:16px"><div class="empty-icon">⏳</div>Waiting for question...</div></div>
+          <div id="respBars" style="margin-top:10px"></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div class="card" style="margin-bottom:0">
+            <div class="card-title">🏆 Live Leaderboard</div>
+            <div id="liveLeaderboard" style="margin-top:8px"><div class="empty-state" style="padding:16px"><div class="empty-icon">🏆</div>No scores yet</div></div>
+          </div>
+          <div class="card" style="margin-bottom:0">
+            <div class="card-title" style="margin-bottom:10px">📺 FOH Mirror <span style="font-size:11px;color:var(--muted);font-weight:400">live preview</span></div>
+            <div class="mini-foh" id="miniFohWrap">
+              <div class="mini-foh-inner">
+                <div class="mini-foh-label">FOH SCREEN</div>
+                <div class="mini-foh-live"><span class="status-dot" style="margin:0"></span>LIVE</div>
+                <div class="mini-foh-content" id="miniFohContent">
+                  <div class="mini-foh-waiting">⏳</div>
+                  <div class="mini-foh-state-label">Waiting for game to start</div>
+                </div>
               </div>
             </div>
           </div>
         </div>
-        <div class="card" style="margin-bottom:0">
-          <div class="card-title">⚡ Quick Actions</div>
-          <div style="display:flex;flex-direction:column;gap:10px;margin-top:4px">
-            <button class="btn btn-ghost" style="width:100%" onclick="revealAnswerAndBroadcast()">🔓 Reveal Answer</button>
-            <button class="btn btn-outline" style="width:100%" onclick="gameNext()">⏩ Next Question</button>
-            <button class="btn" style="width:100%;background:var(--yellow);color:#111" onclick="fohCommand('leaderboard')">🏆 Show Leaderboard</button>
-            <div class="divider"></div>
-            <button class="btn btn-ghost" style="width:100%;color:var(--red);border-color:var(--red)" onclick="resetGameSession()">🔄 Reset Game</button>
-          </div>
-        </div>
       </div>
 
-      <!-- Next Question Picker -->
-      <div class="card" style="margin-bottom:20px">
-        <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-          <span>🎯 Next Question Picker</span>
-          <div class="flex" style="gap:8px">
-            <button class="btn btn-sm btn-purple" onclick="pickRandomNextQuestion()">🎲 Random</button>
-            <button class="btn btn-sm btn-ghost" id="clearDashNextBtn" onclick="clearDashNextPick()" style="display:none;color:var(--red)">✕ Clear</button>
+      <!-- Question Queue + Next Picker + Emergency -->
+      <div class="grid-2" style="margin-bottom:20px">
+
+        <!-- Question Queue -->
+        <div class="card" style="margin-bottom:0">
+          <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <span>🎯 Question Queue</span>
+            <div class="flex" style="gap:8px">
+              <span class="tag green-tag" id="queueCountTag">0 queued</span>
+              <button class="btn btn-sm btn-ghost" onclick="switchPanel(document.querySelector('[data-panel=questions]'),'questions')">+ Add More</button>
+            </div>
           </div>
+          <div id="adminNextQBanner" class="next-q-banner" style="display:none;margin-bottom:10px">
+            <span>⭐</span><span>Override next: <strong id="adminNextQPreview">—</strong></span>
+            <button class="btn btn-sm btn-ghost" style="margin-left:auto" onclick="clearAdminNextPick()">✕ Clear</button>
+          </div>
+          <div class="scrollable" id="gameQueueList"><div class="empty-state" style="padding:20px"><div class="empty-icon">📋</div>Load questions from Categories or Question Bank</div></div>
         </div>
-        <div id="dashNextPickBanner" style="display:none;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.3);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--purple);font-weight:600;margin-bottom:12px;align-items:center;gap:8px">
-          <span>⭐</span><span id="dashNextPickText">—</span>
-        </div>
-        <div id="dashQueueList" style="max-height:260px;overflow-y:auto;border-radius:10px;border:1px solid var(--border)">
-          <div class="empty-state" style="padding:20px"><div class="empty-icon">📋</div>No questions loaded</div>
+
+        <!-- Next Question Picker + Emergency -->
+        <div style="display:flex;flex-direction:column;gap:14px">
+
+          <!-- Next Question Picker -->
+          <div class="card" style="margin-bottom:0">
+            <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+              <span>🎲 Next Question Picker</span>
+              <div class="flex" style="gap:8px">
+                <button class="btn btn-sm btn-purple" onclick="pickRandomNextQuestion()">🎲 Random</button>
+                <button class="btn btn-sm btn-ghost" id="clearDashNextBtn" onclick="clearDashNextPick()" style="display:none;color:var(--red)">✕ Clear</button>
+              </div>
+            </div>
+            <div id="dashNextPickBanner" style="display:none;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.3);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--purple);font-weight:600;margin-bottom:10px;align-items:center;gap:8px">
+              <span>⭐</span><span id="dashNextPickText">—</span>
+            </div>
+            <div id="dashQueueList" style="max-height:200px;overflow-y:auto;border-radius:10px;border:1px solid var(--border)">
+              <div class="empty-state" style="padding:16px"><div class="empty-icon">📋</div>No questions loaded</div>
+            </div>
+          </div>
+
+          <!-- Emergency Question -->
+          <div class="card" style="margin-bottom:0;border-color:rgba(239,68,68,0.25);background:rgba(239,68,68,0.03)">
+            <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+              <span style="display:flex;align-items:center;gap:8px">🚨 Emergency Question <span style="font-size:11px;font-weight:400;color:var(--muted)">bypasses queue</span></span>
+              <div class="flex" style="gap:8px">
+                <button class="btn btn-sm btn-ghost" id="clearEmergencyBtn" onclick="clearEmergencyQuestion()" style="display:none;color:var(--red)">✕ Clear</button>
+              </div>
+            </div>
+            <p style="font-size:12px;color:var(--muted);margin-bottom:12px">Set a standby question that fires immediately as the next question when needed — not included in Random or manual picks.</p>
+            <div id="emergencyPickedBanner" style="display:none;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:10px;padding:10px 14px;font-size:13px;color:var(--red);font-weight:600;margin-bottom:10px;align-items:center;gap:8px">
+              <span>🚨</span><span id="emergencyPickedText">—</span>
+            </div>
+            <div id="emergencyQueueList" style="max-height:160px;overflow-y:auto;border-radius:10px;border:1px solid rgba(239,68,68,0.2)">
+              <div class="empty-state" style="padding:14px;font-size:13px"><div class="empty-icon" style="font-size:28px">🚨</div>No emergency question set</div>
+            </div>
+            <button class="btn btn-red" style="width:100%;margin-top:10px" id="fireEmergencyBtn" onclick="fireEmergencyQuestion()" disabled>🚨 Fire Emergency Question Now</button>
+          </div>
         </div>
       </div>
 
@@ -381,55 +449,7 @@
       </div>
     </div>
 
-    <!-- GAME CONTROL -->
-    <div id="panel-game" class="panel">
-      <div class="page-title">Game Control</div>
-      <div class="game-control-bar">
-        <div>
-          <div style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:4px">GAME STATUS</div>
-          <div class="game-status-badge status-waiting" id="gameStatusBadge">WAITING</div>
-        </div>
-        <div style="flex:1">
-          <div style="font-size:12px;color:var(--muted);font-weight:600;margin-bottom:4px">CURRENT QUESTION</div>
-          <div style="font-size:15px;font-weight:600" id="currentQPreview">—</div>
-          <div class="progress-bar mt-3"><div class="progress-fill" id="gameProgressFill" style="width:0%"></div></div>
-          <div style="font-size:12px;color:var(--muted);margin-top:4px" id="progressText">Not started</div>
-        </div>
-        <div class="flex">
-          <button id="btnStart" class="btn btn-green btn-lg" onclick="gameStart()">▶ Start Game</button>
-          <button id="btnReveal" class="btn btn-yellow btn-lg" onclick="revealAnswerAndBroadcast()" disabled>🔓 Reveal</button>
-          <button id="btnNext" class="btn btn-lg" onclick="gameNext()" disabled>⏩ Next</button>
-        </div>
-      </div>
-      <div class="grid-2">
-        <div class="card">
-          <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
-            <span>📊 Live Response Snapshot</span>
-            <button class="btn btn-sm btn-purple" onclick="pushResponsesLive()" title="Push response snapshot to FOH screen">📡 Push to FOH</button>
-          </div>
-          <div id="responseStats"><div class="empty-state" style="padding:20px"><div class="empty-icon">⏳</div>Waiting for question...</div></div>
-          <div id="respBars" style="margin-top:12px"></div>
-        </div>
-        <div class="card">
-          <div class="card-title">🏆 Live Leaderboard</div>
-          <div id="liveLeaderboard"><div class="empty-state" style="padding:20px"><div class="empty-icon">🏆</div>No scores yet</div></div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
-          <span>🎯 Question Queue</span>
-          <div class="flex" style="gap:8px">
-            <span class="tag green-tag" id="queueCountTag">0 questions queued</span>
-            <button class="btn btn-sm btn-ghost" onclick="switchPanel(document.querySelector('[data-panel=questions]'),'questions')">+ Add More</button>
-          </div>
-        </div>
-        <div id="adminNextQBanner" class="next-q-banner" style="display:none;margin-bottom:10px">
-          <span>⭐</span><span>Admin override next: <strong id="adminNextQPreview">—</strong></span>
-          <button class="btn btn-sm btn-ghost" style="margin-left:auto" onclick="clearAdminNextPick()">✕ Clear</button>
-        </div>
-        <div class="scrollable" id="gameQueueList"><div class="empty-state" style="padding:20px"><div class="empty-icon">📋</div>Load questions from Categories or Question Bank</div></div>
-      </div>
-    </div>
+
 
     <!-- PLAYERS -->
     <div id="panel-players" class="panel">
@@ -547,6 +567,7 @@ let currentQuestionIndex=-1, answerRevealed=false, currentQuestionObj=null;
 let respPollingInterval=null, activeCatId=null, catQuestionsCache={}, selectedCatQIds=new Set();
 let pendingNextQuestion=null;
 let adminNextPickQuestion=null;
+let emergencyQuestion=null;
 let usedQuestionIds=new Set();
 let lastFohState={type:'waiting',data:{}};
 let GLOBAL_TIMER=20;
@@ -705,7 +726,6 @@ async function startQuestion(idx) {
   await broadcastFOH('show_question_view',{question:currentQuestionObj});
   // Update mini-FOH and dash category
   updateMiniFoh('question',currentQuestionObj);
-  updateDashCatBadge(currentQuestionObj.category_id);
   lastFohState={type:'question',data:currentQuestionObj};
   updateGameControlUI(); startResponsePolling();
 }
@@ -732,7 +752,6 @@ async function revealAnswerAndBroadcast() {
   lastFohState={type:'reveal',data:{q:currentQuestionObj}};
   updateGameControlUI();
   renderRespBars(stats,currentQuestionObj.correct_option,currentQuestionObj);
-  renderDashRespBars(stats,currentQuestionObj.correct_option,currentQuestionObj);
   toast('Answer revealed!','success');
 }
 async function endGame() {
@@ -751,11 +770,11 @@ async function resetGameSession() {
   currentQuestionObj=null;answerRevealed=false;currentQuestionIndex=-1;
   pendingNextQuestion=null;updateNextQBanner();
   adminNextPickQuestion=null;updateAdminNextPickBanner();
+  emergencyQuestion=null;renderEmergencyQueue();
   usedQuestionIds=new Set();
   updateMiniFoh('waiting',{});
-  document.getElementById('dashRespBars').innerHTML='';
-  document.getElementById('dashResponseStats').innerHTML='<div class="empty-state" style="padding:16px"><div class="empty-icon">⏳</div>Waiting for question...</div>';
-  document.getElementById('dashCatBadge').style.display='none';
+  document.getElementById('responseStats').innerHTML='<div class="empty-state" style="padding:16px"><div class="empty-icon">⏳</div>Waiting for question...</div>';
+  document.getElementById('respBars').innerHTML='';
   await loadPlayers();await loadSession();
   await broadcastFOH('game_reset',{}); toast('Game reset!','success');
 }
@@ -766,35 +785,14 @@ async function updateResponseStats() {
   const count=ans?.length||0; const pct=players.length>0?Math.round((count/players.length)*100):0;
   const statsHtml=`<div style="margin-bottom:10px"><div style="font-size:28px;font-weight:800;font-family:'JetBrains Mono',monospace;color:var(--green)">${count}<span style="font-size:16px;color:var(--muted)">/${players.length}</span></div><div style="font-size:13px;color:var(--muted)">Players answered (${pct}%)</div></div><div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>`;
   document.getElementById('responseStats').innerHTML=statsHtml;
-  document.getElementById('dashResponseStats').innerHTML=statsHtml;
   document.getElementById('statAnswered').innerText=pct+'%';
   if(ans){const d=[0,0,0,0];ans.forEach(a=>{if(a.chosen_option>=0&&a.chosen_option<4)d[a.chosen_option]++;});
-    if(answerRevealed){renderRespBars(d,currentQuestionObj.correct_option,currentQuestionObj);renderDashRespBars(d,currentQuestionObj.correct_option,currentQuestionObj);}
-    else{renderDashRespBars(d,null,currentQuestionObj);}
+    if(answerRevealed){renderRespBars(d,currentQuestionObj.correct_option,currentQuestionObj);}
   }
 }
 
-function renderDashRespBars(stats,correctIdx,question){
-  const colors=['#3b82f6','#8b5cf6','#f59e0b','#ec4899'];
-  const letters=['A','B','C','D'];
-  const total=stats.reduce((a,b)=>a+b,0)||1;
-  const opts=question?[question.option_a,question.option_b,question.option_c,question.option_d]:['','','',''];
-  document.getElementById('dashRespBars').innerHTML=stats.map((count,i)=>{
-    const pct=Math.round((count/total)*100);
-    const isCorrect=correctIdx!==null&&i===correctIdx;
-    const label=opts[i]?opts[i].slice(0,28)+(opts[i].length>28?'...':''):'';
-    return `<div class="resp-bar"><div class="resp-letter" style="background:${colors[i]}30;color:${colors[i]}">${letters[i]}</div><div class="resp-track"><div class="resp-fill" style="width:${Math.max(pct,4)}%;background:${isCorrect?'var(--green)':colors[i]}"><span class="resp-fill-label">${label}</span><span class="resp-fill-pct">${pct}%</span></div></div><div class="resp-count">${count}${isCorrect?' ✓':''}</div></div>`;
-  }).join('');
-}
 
-function updateDashCatBadge(catId){
-  const badge=document.getElementById('dashCatBadge');
-  const nameEl=document.getElementById('dashCatName');
-  if(!catId){badge.style.display='none';return;}
-  const cat=categories.find(c=>c.id===catId);
-  if(cat){nameEl.innerText=`${cat.icon} ${cat.name}`;badge.style.display='inline-flex';}
-  else badge.style.display='none';
-}
+
 
 function updateMiniFoh(type,data){
   const el=document.getElementById('miniFohContent');
@@ -834,6 +832,7 @@ function updateAdminNextPickBanner(){
   const b=document.getElementById('adminNextQBanner'),p=document.getElementById('adminNextQPreview');
   if(adminNextPickQuestion){b.style.display='flex';p.innerText=adminNextPickQuestion.question_text.slice(0,55)+(adminNextPickQuestion.question_text.length>55?'...':'');}
   else b.style.display='none';
+  updateAdminNextPickBannerDash();
 }
 async function pushResponsesLive(){await fohCommand('responses');toast('📡 Response snapshot pushed to FOH!','success');}
 
@@ -1196,7 +1195,22 @@ function renderGameQueue(){
 function renderDashQueue(){
   const el=document.getElementById('dashQueueList');
   if(!gameQueue.length){el.innerHTML='<div class="empty-state" style="padding:16px"><div class="empty-icon">📋</div>No questions loaded</div>';return;}
-  el.innerHTML=gameQueue.map((q,i)=>`<div style="padding:8px 12px;border-bottom:1px solid var(--border);font-size:13px;display:flex;gap:8px;align-items:center"><span style="color:var(--muted);font-size:11px;width:20px">${i+1}</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${q.question_text}</span><span style="color:var(--muted);font-size:11px">${GLOBAL_TIMER}s</span></div>`).join('');
+  const letters=['A','B','C','D'];
+  el.innerHTML=gameQueue.map((q,i)=>{
+    const isCurrent=currentQuestionIndex===i;
+    const isNextPick=adminNextPickQuestion?.id===q.id;
+    const isUsed=usedQuestionIds.has(q.id)&&!isCurrent;
+    const isEmergency=emergencyQuestion?.id===q.id;
+    return `<div style="padding:9px 12px;border-bottom:1px solid var(--border);font-size:13px;display:flex;gap:8px;align-items:center;background:${isCurrent?'rgba(16,185,129,0.06)':isNextPick?'rgba(139,92,246,0.06)':isEmergency?'rgba(239,68,68,0.06)':'transparent'};opacity:${isUsed?0.45:1}">
+      <span style="color:${isCurrent?'var(--green)':isNextPick?'var(--purple)':isEmergency?'var(--red)':'var(--muted)'};font-size:11px;width:22px;flex-shrink:0;text-align:center">${isCurrent?'▶':isNextPick?'⭐':isEmergency?'🚨':`${i+1}`}</span>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:${isCurrent||isNextPick?'700':'400'}">${q.question_text}</span>
+      ${!isUsed?`<div style="display:flex;gap:4px;flex-shrink:0">
+        <button onclick="setAdminNextPick('${q.id}')" style="font-size:10px;padding:2px 7px;border-radius:6px;border:1px solid ${isNextPick?'var(--purple)':'var(--border2)'};background:${isNextPick?'rgba(139,92,246,0.2)':'transparent'};color:${isNextPick?'var(--purple)':'var(--muted)'};cursor:pointer;font-family:inherit;font-weight:700">${isNextPick?'⭐':'Set Next'}</button>
+        <button onclick="setEmergencyQuestion('${q.id}')" style="font-size:10px;padding:2px 7px;border-radius:6px;border:1px solid ${isEmergency?'var(--red)':'var(--border2)'};background:${isEmergency?'rgba(239,68,68,0.15)':'transparent'};color:${isEmergency?'var(--red)':'var(--muted)'};cursor:pointer;font-family:inherit;font-weight:700">${isEmergency?'🚨':'Emergency'}</button>
+      </div>`:'<span style="font-size:10px;color:var(--green);font-weight:700">✓ Used</span>'}
+    </div>`;
+  }).join('');
+  renderEmergencyQueue();
 }
 function renderPlayersTable(){
   const container=document.getElementById('playersTable');
@@ -1248,6 +1262,94 @@ function populateCatSelects(){
 }
 function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 
+// ─── Next Question Picker (Dashboard) ───
+function pickRandomNextQuestion() {
+  const available = gameQueue.filter(q => !usedQuestionIds.has(q.id) && q.id !== emergencyQuestion?.id);
+  if (!available.length) { toast('No unused questions left in queue', 'error'); return; }
+  const q = available[Math.floor(Math.random() * available.length)];
+  adminNextPickQuestion = q;
+  updateAdminNextPickBanner();
+  renderDashQueue();
+  renderGameQueue();
+  toast(`🎲 Random pick: "${q.question_text.slice(0, 45)}..."`, 'success');
+}
+function clearDashNextPick() {
+  adminNextPickQuestion = null;
+  updateAdminNextPickBanner();
+  renderDashQueue();
+  renderGameQueue();
+}
+function updateAdminNextPickBannerDash() {
+  const banner = document.getElementById('dashNextPickBanner');
+  const txt = document.getElementById('dashNextPickText');
+  const clearBtn = document.getElementById('clearDashNextBtn');
+  if (adminNextPickQuestion) {
+    banner.style.display = 'flex';
+    txt.innerText = adminNextPickQuestion.question_text.slice(0, 60) + (adminNextPickQuestion.question_text.length > 60 ? '...' : '');
+    clearBtn.style.display = 'inline-flex';
+  } else {
+    banner.style.display = 'none';
+    clearBtn.style.display = 'none';
+  }
+}
+
+// ─── Emergency Question ───
+function setEmergencyQuestion(qId) {
+  const q = gameQueue.find(x => x.id === qId);
+  if (!q) return;
+  if (emergencyQuestion?.id === qId) {
+    emergencyQuestion = null;
+    toast('Emergency question cleared', 'info');
+  } else {
+    emergencyQuestion = q;
+    toast(`🚨 Emergency set: "${q.question_text.slice(0, 45)}..."`, 'info');
+  }
+  renderEmergencyQueue();
+  renderDashQueue();
+  renderGameQueue();
+}
+function clearEmergencyQuestion() {
+  emergencyQuestion = null;
+  renderEmergencyQueue();
+  renderDashQueue();
+  renderGameQueue();
+  toast('Emergency question cleared', 'info');
+}
+function renderEmergencyQueue() {
+  const el = document.getElementById('emergencyQueueList');
+  const fireBtn = document.getElementById('fireEmergencyBtn');
+  const clearBtn = document.getElementById('clearEmergencyBtn');
+  if (!emergencyQuestion) {
+    el.innerHTML = '<div class="empty-state" style="padding:14px;font-size:13px"><div class="empty-icon" style="font-size:28px">🚨</div>No emergency question set</div>';
+    if (fireBtn) fireBtn.disabled = true;
+    if (clearBtn) clearBtn.style.display = 'none';
+    return;
+  }
+  const letters = ['A','B','C','D'];
+  const q = emergencyQuestion;
+  const opts = [q.option_a, q.option_b, q.option_c, q.option_d];
+  el.innerHTML = `<div style="padding:10px 14px">
+    <div style="font-size:13px;font-weight:700;margin-bottom:6px;color:var(--text)">${q.question_text}</div>
+    <div style="display:flex;gap:4px;flex-wrap:wrap">
+      ${opts.map((o,i)=>`<span style="font-size:11px;padding:2px 8px;border-radius:6px;background:${i===q.correct_option?'rgba(16,185,129,0.15)':'var(--border)'};color:${i===q.correct_option?'var(--green)':'var(--muted)'};font-weight:${i===q.correct_option?'700':'400'}">${letters[i]}: ${o.slice(0,22)}${o.length>22?'…':''}</span>`).join('')}
+    </div>
+  </div>`;
+  if (fireBtn) fireBtn.disabled = false;
+  if (clearBtn) clearBtn.style.display = 'inline-flex';
+}
+async function fireEmergencyQuestion() {
+  if (!emergencyQuestion) { toast('No emergency question set', 'error'); return; }
+  if (!confirm(`Fire emergency question now?\n"${emergencyQuestion.question_text.slice(0, 80)}"`)) return;
+  // Temporarily set as the override and trigger next
+  adminNextPickQuestion = emergencyQuestion;
+  const prevEmergency = emergencyQuestion;
+  emergencyQuestion = null;
+  renderEmergencyQueue();
+  renderDashQueue();
+  await gameNext();
+  toast('🚨 Emergency question fired!', 'success');
+}
+
 // Expose
 window.switchPanel=switchPanel; window.openCatDetail=openCatDetail; window.closeCatDetail=closeCatDetail;
 window.selectAllCatQuestions=selectAllCatQuestions; window.deselectAllCatQuestions=deselectAllCatQuestions;
@@ -1261,6 +1363,8 @@ window.addAllToGame=addAllToGame; window.addSingleToGame=addSingleToGame;
 window.removeFromBank=removeFromBank; window.removeFromQueue=removeFromQueue; window.filterQBank=filterQBank;
 window.gameStart=gameStart; window.gameNext=gameNext; window.resetGameSession=resetGameSession;
 window.revealAnswerAndBroadcast=revealAnswerAndBroadcast; window.fohCommand=fohCommand;
+window.pickRandomNextQuestion=pickRandomNextQuestion; window.clearDashNextPick=clearDashNextPick;
+window.setEmergencyQuestion=setEmergencyQuestion; window.clearEmergencyQuestion=clearEmergencyQuestion; window.fireEmergencyQuestion=fireEmergencyQuestion;
 window.applyGlobalTimer=applyGlobalTimer; window.onGlobalTimerSlide=onGlobalTimerSlide;
 window.eliminatePlayer=eliminatePlayer; window.clearAllPlayers=clearAllPlayers; window.exportPlayerData=exportPlayerData;
 window.playTickSound=playTickSound; window.playAlertSound=playAlertSound; window.playSuccessSound=playSuccessSound; window.playWrongSound=playWrongSound; window.playTimesUpSound=playTimesUpSound;
