@@ -675,44 +675,90 @@ async function submitAnswer(optIdx, isTimeout=false) {
 async function saveAnswer(optIdx, isCorrect, pts) {
   if(!curQuestion||!myPlayer) return;
   const answerData = {
-    session_id: SESSION_ID, question_id: curQuestion.id, player_id: myPlayer.id,
-    chosen_option: optIdx, is_correct: isCorrect, points_earned: pts,
+    session_id: SESSION_ID, 
+    question_id: curQuestion.id, 
+    player_id: myPlayer.id,
+    chosen_option: optIdx, 
+    is_correct: isCorrect, 
+    points_earned: pts,
     time_taken_ms: (totalTime - timeLeft) * 1000
   };
   
-  const { error } = await sb.from('answers').upsert(answerData, { onConflict: 'question_id,player_id' });
+  // Save the answer but DON'T update player score yet
+  const { error } = await sb.from('answers').upsert(
+    answerData, 
+    { onConflict: 'question_id,player_id' }
+  );
   
-  if (!error && isCorrect && pts > 0) {
-    myScore += pts;
-    myCorrect++;
-    await sb.from('players').update({ score: myScore, correct_count: myCorrect }).eq('id', myPlayer.id);
-    document.getElementById('scoreChip').innerText = myScore + ' pts';
+  if (error) {
+    console.error('Error saving answer:', error);
+  } else {
+    console.log('Answer saved (score not updated yet)');
   }
 }
 
 async function revealAndScore(correctOption) {
   if (!curQuestion) return; 
-  stopTimer(); hide('pendingBox');
+  stopTimer(); 
+  hide('pendingBox');
   
-  if (!timerEnded) { timerEnded = true; document.getElementById('actionButtonsRow').classList.remove('hidden'); }
+  if (!timerEnded) {
+    timerEnded = true;
+    document.getElementById('actionButtonsRow').classList.remove('hidden');
+  }
   
+  // Mark options as correct/wrong
   document.querySelectorAll('.opt-btn').forEach((btn, i) => { 
     btn.disabled = true; 
     if(i === correctOption) btn.classList.add('correct'); 
     else if(i === selOption && selOption !== correctOption) btn.classList.add('wrong'); 
   });
   
-  const { data: myAns } = await sb.from('answers').select('is_correct, points_earned').eq('question_id', curQuestion.id).eq('player_id', myPlayer.id).maybeSingle();
+  // Fetch the saved answer
+  const { data: myAns } = await sb.from('answers')
+    .select('is_correct, points_earned')
+    .eq('question_id', curQuestion.id)
+    .eq('player_id', myPlayer.id)
+    .maybeSingle();
+  
   const correct = myAns?.is_correct || false; 
   const earned = myAns?.points_earned || 0;
   
-  if(correct) correctSound(); else wrongSound();
+  // NOW update the player score in the database
+  if (correct && earned > 0) {
+    myScore += earned;
+    myCorrect++;
+    
+    const { error: updateError } = await sb.from('players')
+      .update({ score: myScore, correct_count: myCorrect })
+      .eq('id', myPlayer.id);
+    
+    if (updateError) {
+      console.error('Error updating score:', updateError);
+    } else {
+      console.log('Score updated after reveal:', myScore);
+      correctSound();
+    }
+  } else {
+    wrongSound();
+  }
+  
   document.getElementById('scoreChip').innerText = myScore + ' pts';
   
-  const fb = document.getElementById('feedbackBox'); fb.className = 'feedback';
-  if(selOption === -1) { fb.classList.add('feedback-timeout'); fb.innerHTML = `<div>⏰ Time's up! Correct: ${['A','B','C','D'][correctOption]}</div>`; }
-  else if(correct) { fb.classList.add('feedback-correct'); fb.innerHTML = `<div>+${earned} 🎉 Correct!</div>`; }
-  else { fb.classList.add('feedback-wrong'); fb.innerHTML = `<div>❌ Wrong — Correct: ${['A','B','C','D'][correctOption]}</div>`; }
+  const fb = document.getElementById('feedbackBox'); 
+  fb.className = 'feedback';
+  
+  if(selOption === -1) { 
+    fb.classList.add('feedback-timeout'); 
+    fb.innerHTML = `<div>⏰ Time's up! Correct: ${['A','B','C','D'][correctOption]}</div>`; 
+  } else if(correct) { 
+    fb.classList.add('feedback-correct'); 
+    fb.innerHTML = `<div>+${earned} 🎉 Correct!</div>`; 
+  } else { 
+    fb.classList.add('feedback-wrong'); 
+    fb.innerHTML = `<div>❌ Wrong — Correct: ${['A','B','C','D'][correctOption]}</div>`; 
+  }
+  
   show('feedbackBox');
 }
 

@@ -1286,6 +1286,9 @@ function revealAnswer(correctIdx, options, explanation) {
   if (explanation) banner.innerHTML += `<div style="font-size:14px;opacity:.8;margin-top:4px">${explanation}</div>`;
   banner.classList.add('show');
   setTimeout(() => banner.classList.remove('show'), 5000);
+  
+  // 🔄 Refresh leaderboard after answer reveal (scores are now updated in DB)
+  setTimeout(() => syncPlayers(), 500);
 }
 
 function displayLeaderboard(leaders) {
