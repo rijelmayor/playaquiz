@@ -841,12 +841,78 @@ const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
 const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-// Audio
+// Audio System
 const AC = window.AudioContext || window.webkitAudioContext;
 let ac;
-function getAC() { if (!ac) ac = new AC(); if (ac.state === 'suspended') ac.resume(); return ac; }
-function playPopSound() { try { const ctx = getAC(); const o = ctx.createOscillator(), g = ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.type = 'sine'; o.frequency.value = 600 + Math.random() * 150; g.gain.value = 0.2; g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3); o.start(); o.stop(ctx.currentTime + 0.25); } catch(e) {} }
-function playJoinChime() { try { const ctx = getAC(); [[523,0],[659,0.08],[784,0.16]].forEach(([f,d]) => { const o = ctx.createOscillator(), g = ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.frequency.value = f; o.type = 'sine'; g.gain.value = 0.2; g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + d + 0.2); o.start(ctx.currentTime + d); o.stop(ctx.currentTime + d + 0.2); }); } catch(e) {} }
+function getAC() { 
+  if (!ac) ac = new AC(); 
+  if (ac.state === 'suspended') ac.resume(); 
+  return ac; 
+}
+
+function playPopSound() { 
+  try { 
+    const ctx = getAC(); 
+    const o = ctx.createOscillator(), g = ctx.createGain(); 
+    o.connect(g); 
+    g.connect(ctx.destination); 
+    o.type = 'sine'; 
+    o.frequency.value = 600 + Math.random() * 150; 
+    g.gain.value = 0.2; 
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3); 
+    o.start(); 
+    o.stop(ctx.currentTime + 0.25); 
+  } catch(e) {} 
+}
+
+function playJoinChime() { 
+  try { 
+    const ctx = getAC(); 
+    [[523,0],[659,0.08],[784,0.16]].forEach(([f,d]) => { 
+      const o = ctx.createOscillator(), g = ctx.createGain(); 
+      o.connect(g); 
+      g.connect(ctx.destination); 
+      o.frequency.value = f; 
+      o.type = 'sine'; 
+      g.gain.value = 0.2; 
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + d + 0.2); 
+      o.start(ctx.currentTime + d); 
+      o.stop(ctx.currentTime + d + 0.2); 
+    }); 
+  } catch(e) {} 
+}
+
+function playTickSound() {
+  try {
+    const ctx = getAC();
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.connect(g);
+    g.connect(ctx.destination);
+    o.frequency.value = 880;
+    o.type = 'sine';
+    g.gain.value = 0.3;
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+    o.start();
+    o.stop(ctx.currentTime + 0.1);
+  } catch(e) {}
+}
+
+function playTimesUpSound() {
+  try {
+    const ctx = getAC();
+    for(let i = 0; i < 3; i++) {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.connect(g);
+      g.connect(ctx.destination);
+      o.frequency.value = 440 - (i * 50);
+      o.type = 'sawtooth';
+      g.gain.value = 0.3;
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+      o.start(ctx.currentTime + (i * 0.15));
+      o.stop(ctx.currentTime + (i * 0.15) + 0.3);
+    }
+  } catch(e) {}
+}
 
 // State
 let SESSION_ID = null;
@@ -873,7 +939,6 @@ function animateCounterNumber(newCount) {
 
 function escapeHtml(str) { return String(str || '').replace(/[&<>]/g, function(m){if(m==='&')return '&amp;';if(m==='<')return '&lt;';if(m==='>')return '&gt;';return m;}); }
 
-// Show floating notification
 function showFloatingNotification(playerName, avatarEmoji) {
   const container = document.querySelector('.main-layout');
   const notif = document.createElement('div');
@@ -887,7 +952,6 @@ function showFloatingNotification(playerName, avatarEmoji) {
   setTimeout(() => notif.remove(), 3000);
 }
 
-// Add persistent bubble
 function addPersistentBubble(playerId, playerName, avatarEmoji, score = 0) {
   if (!floatingBubblesContainer) return;
   if (document.getElementById(`bubble-${playerId}`)) return;
@@ -951,7 +1015,6 @@ function updateLiveLeaderboard() {
   }).join('');
 }
 
-// Main sync function
 async function syncPlayers() {
   if (!SESSION_ID) return;
   
@@ -1022,7 +1085,6 @@ async function syncPlayers() {
   updateLiveLeaderboard();
 }
 
-// Set up real-time subscription for players table
 function setupRealtimePlayers() {
   if (!SESSION_ID) return;
   
@@ -1128,6 +1190,15 @@ function setupGameEvents() {
       if (p.new.status === 'ended') { stopTimer(); launchConfetti(); showScreen('ended'); }
       if (p.new.status === 'waiting') { 
         gameActive = false;
+        currentQuestion = null;
+        currentPlayers.clear();
+        lastKnownPlayerCount = 0;
+        clearAllBubbles();
+        animateCounterNumber(0);
+        if (liveLeaderboardList) {
+          liveLeaderboardList.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);">Waiting for players...</div>';
+        }
+        document.getElementById('qProgressFill').style.width = '0%';
         showScreen('waiting'); 
         syncPlayers();
       }
@@ -1148,11 +1219,11 @@ function handleEvent(evt) {
         currentQuestion = evt.payload.question;
         totalTime = currentQuestion.time_limit || 20;
         updateQProgress(evt.payload.qIdx, evt.payload.total);
+        playTickSound();
       }
       break;
     case 'show_question_view':
       if (evt.payload && evt.payload.question) {
-        // Hide responses overlay and reset split view
         document.getElementById('screen-responses')?.classList.remove('active');
         document.getElementById('qRight')?.classList.remove('visible');
         document.getElementById('qBody')?.classList.remove('with-responses');
@@ -1173,7 +1244,6 @@ function handleEvent(evt) {
       break;
     case 'show_responses':
       if (evt.payload) {
-        // Use inline side-by-side display instead of overlay
         displayResponseInline(evt.payload.distribution, evt.payload.totalPlayers, evt.payload.correctIdx, evt.payload.options);
       }
       break;
@@ -1192,6 +1262,17 @@ function handleEvent(evt) {
     case 'game_reset':
       stopTimer();
       gameActive = false;
+      currentQuestion = null;
+      currentPlayers.clear();
+      lastKnownPlayerCount = 0;
+      clearAllBubbles();
+      animateCounterNumber(0);
+      // Clear live leaderboard panel
+      if (liveLeaderboardList) {
+        liveLeaderboardList.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted);">Waiting for players...</div>';
+      }
+      // Reset progress bar
+      document.getElementById('qProgressFill').style.width = '0%';
       showScreen('waiting');
       syncPlayers();
       break;
@@ -1225,14 +1306,17 @@ function startTimer(duration) {
     updateTimerUI();
     if (timeLeft <= 0) {
       stopTimer();
+      playTimesUpSound();
       autoShowResponsesInline();
+    }
+    if (timeLeft <= 5 && timeLeft > 0) {
+      playTickSound();
     }
   }, 1000);
 }
 
 function stopTimer() { if (timerInterval) clearInterval(timerInterval); timerInterval = null; }
 
-// When timer hits zero, show responses inline side-by-side
 async function autoShowResponsesInline() {
   if (!currentQuestion || !SESSION_ID) return;
   try {
@@ -1244,7 +1328,7 @@ async function autoShowResponsesInline() {
     ans?.forEach(a => { if (a.chosen_option >= 0 && a.chosen_option < 4) dist[a.chosen_option]++; });
     const players = Array.from(currentPlayers.values());
     const opts = [currentQuestion.option_a, currentQuestion.option_b, currentQuestion.option_c, currentQuestion.option_d];
-    displayResponseInline(dist, players.length, null, opts); // null correctIdx — not revealed yet
+    displayResponseInline(dist, players.length, null, opts);
   } catch(e) { console.error('autoShowResponsesInline error', e); }
 }
 
@@ -1268,9 +1352,7 @@ function revealAnswer(correctIdx, options, explanation) {
     else el.classList.add('wrong');
   });
   
-  // If responses are already displayed inline, re-render with correct answer highlighted
-  const qRight = document.getElementById('qRight');
-  if (qRight && qRight.classList.contains('visible') && currentQuestion) {
+  if (currentQuestion) {
     sb.from('answers').select('chosen_option')
       .eq('session_id', SESSION_ID).eq('question_id', currentQuestion.id)
       .then(({ data: ans }) => {
@@ -1287,7 +1369,6 @@ function revealAnswer(correctIdx, options, explanation) {
   banner.classList.add('show');
   setTimeout(() => banner.classList.remove('show'), 5000);
   
-  // 🔄 Refresh leaderboard after answer reveal (scores are now updated in DB)
   setTimeout(() => syncPlayers(), 500);
 }
 
@@ -1308,7 +1389,6 @@ function displayLeaderboard(leaders) {
   `).join('');
 }
 
-// NEW: Display responses inline in the q-right panel (side-by-side with question)
 function displayResponseInline(dist, totalPlayers, correctIdx, options) {
   if (!dist) dist = [0, 0, 0, 0];
   const colors = ['#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899'];
@@ -1316,11 +1396,9 @@ function displayResponseInline(dist, totalPlayers, correctIdx, options) {
   const total = dist.reduce((a, b) => a + b, 0);
   const maxCount = Math.max(...dist, 1);
   
-  // Update the inline panel count
   const countBadge = document.getElementById('respPanelCount');
   if (countBadge) countBadge.innerText = `${total} / ${totalPlayers} answered`;
   
-  // Show the right panel and switch to two-column layout
   const qRight = document.getElementById('qRight');
   const qBody = document.getElementById('qBody');
   if (qRight) qRight.classList.add('visible');
@@ -1346,46 +1424,8 @@ function displayResponseInline(dist, totalPlayers, correctIdx, options) {
     `;
   }).join('');
   
-  // Animate bars
   setTimeout(() => {
     document.querySelectorAll('#respBarsInline .resp-fill').forEach(el => {
-      el.style.width = el.dataset.target + '%';
-    });
-  }, 100);
-}
-
-// Keep old displayResponseDist for backward compatibility (standalone overlay)
-function displayResponseDist(dist, totalPlayers, correctIdx, options) {
-  if (!dist) dist = [0, 0, 0, 0];
-  const colors = ['#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899'];
-  const letters = ['A', 'B', 'C', 'D'];
-  const total = dist.reduce((a, b) => a + b, 0);
-  const maxCount = Math.max(...dist, 1);
-  const container = document.getElementById('respBarsContainer');
-  const countBadge = document.getElementById('respOverlayCount');
-  if (countBadge) countBadge.innerText = `${total} / ${totalPlayers} answered`;
-
-  container.innerHTML = dist.map((count, i) => {
-    const percentage = totalPlayers > 0 ? Math.round((count / totalPlayers) * 100) : 0;
-    const barWidth = maxCount > 0 ? (count / maxCount) * 100 : 0;
-    const isCorrect = correctIdx !== null && correctIdx !== undefined && i === correctIdx;
-    const choiceText = options && options[i] ? options[i] : '';
-    return `
-      <div class="resp-bar-row">
-        <div class="resp-ltr" style="background:${colors[i]}30;color:${colors[i]}">${letters[i]}</div>
-        <div class="resp-track">
-          <div class="resp-fill" style="width:0%;background:${isCorrect ? 'var(--green)' : colors[i]}" data-target="${barWidth}">
-            <span class="resp-fill-label">${escapeHtml(choiceText)}</span>
-            <span class="resp-fill-pct">${percentage}%</span>
-          </div>
-        </div>
-        <div style="width:52px;text-align:right;font-weight:700;font-size:16px;">${count}</div>
-      </div>
-    `;
-  }).join('');
-  
-  setTimeout(() => {
-    document.querySelectorAll('#respBarsContainer .resp-fill').forEach(el => {
       el.style.width = el.dataset.target + '%';
     });
   }, 100);
@@ -1400,14 +1440,12 @@ function showCategoryOverlay(icon, name) {
 }
 
 function showScreen(screenId) {
-  // If showing responses via old overlay method, just show overlay on top
   if (screenId === 'responses') {
     const el = document.getElementById('screen-responses');
     if (el) el.classList.add('active');
     return;
   }
   
-  // Hide responses overlay
   const respEl = document.getElementById('screen-responses');
   if (respEl) respEl.classList.remove('active');
 
@@ -1453,7 +1491,6 @@ function updateFooterTime() {
   document.getElementById('footerTime').innerText = new Date().toLocaleTimeString();
 }
 
-// Aggressive polling as fallback
 let pollingInterval = null;
 function startPolling() {
   if (pollingInterval) clearInterval(pollingInterval);
