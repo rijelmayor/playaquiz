@@ -531,12 +531,27 @@
       </div>
       <div class="card">
         <div class="card-title">🔔 Sound Preview</div>
-        <div class="flex">
-          <button class="btn btn-ghost" onclick="playTickSound()">🔔 Tick</button>
-          <button class="btn btn-ghost" onclick="playAlertSound()">⚠️ Alert</button>
-          <button class="btn btn-ghost" onclick="playSuccessSound()">🎉 Correct</button>
-          <button class="btn btn-ghost" onclick="playWrongSound()">❌ Wrong</button>
-          <button class="btn btn-ghost" onclick="playTimesUpSound()">⏰ Times Up</button>
+        <div style="margin-bottom:14px">
+          <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">🎮 Game Sounds</div>
+          <div class="flex">
+            <button class="btn btn-ghost" onclick="playTickSound()">🔔 Tick</button>
+            <button class="btn btn-ghost" onclick="playAlertSound()">⚠️ Alert</button>
+            <button class="btn btn-ghost" onclick="playSuccessSound()">🎉 Correct</button>
+            <button class="btn btn-ghost" onclick="playWrongSound()">❌ Wrong</button>
+            <button class="btn btn-ghost" onclick="playTimesUpSound()">⏰ Times Up</button>
+            <button class="btn btn-ghost" onclick="previewCountdownBg()">⏱️ Countdown BG</button>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">🎵 Background Music</div>
+          <div class="flex" style="flex-wrap:wrap;gap:8px">
+            <button class="btn btn-ghost" id="bgBtn1" onclick="previewBgMusic(1)">🎵 BG Music 1</button>
+            <button class="btn btn-ghost" id="bgBtn2" onclick="previewBgMusic(2)">🎵 BG Music 2</button>
+            <button class="btn btn-ghost" id="bgBtn3" onclick="previewBgMusic(3)">🎵 BG Music 3</button>
+            <button class="btn btn-ghost" id="bgBtn4" onclick="previewBgMusic(4)">🎵 BG Music 4</button>
+            <button class="btn btn-ghost" onclick="stopBgMusicPreview()" style="color:var(--red);border-color:rgba(239,68,68,.3)">⏹ Stop</button>
+          </div>
+          <div id="bgMusicStatus" style="font-size:12px;color:var(--muted);margin-top:8px;font-style:italic;display:none"></div>
         </div>
       </div>
     </div>
@@ -575,7 +590,7 @@ let GLOBAL_TIMER=20;
 // Category Selection state
 let catSelMode='random', spinInterval=null, spinRunning=false, selectedCatForBroadcast=null;
 
-// ─── Audio (LOUD ticks) ───
+// ─── Audio Engine ───────────────────────────────────────────────────────
 const AudioCtx = window.AudioContext || window.webkitAudioContext;
 let audioCtx;
 function getAudioCtx() { if (!audioCtx) audioCtx = new AudioCtx(); if (audioCtx.state==='suspended') audioCtx.resume(); return audioCtx; }
@@ -593,15 +608,133 @@ function beep(freq=880, dur=0.08, vol=0.8, type='sine', delay=0) {
     osc.start(s); osc.stop(s+dur+0.02);
   } catch(e){}
 }
+
+// ─── Countdown BG Music (countdownbg.mp3) ───────────────────────────
+// Phase logic tied to question timer:
+//   > 10 sec  →  countdownbg.mp3 plays at full volume (0.55), no tick beeps
+//   ≤ 10 sec  →  music ducks to 0.18 + audible tick beep every second
+//               (beep pitch rises progressively as timer nears 0)
+//   = 0 sec   →  music fades out + times-up sound fires
+//               (caller must call stopCountdownBg(true) at 0)
+let countdownAudio    = null;   // active Audio element during a question
+let countdownBgPhase  = null;   // 'normal' | 'tick' | null
+
+function _loadCountdownAudio() {
+  if (countdownAudio) { try { countdownAudio.pause(); } catch(e){} countdownAudio = null; }
+  const a = new Audio('countdownbg.mp3');
+  a.loop = true;
+  a.volume = 0.55;
+  countdownAudio = a;
+  return a;
+}
+
+// ── Call this every second from the question timer ──
+// timeLeft = integer seconds remaining (counts down from question time limit)
+function handleTimerTick(timeLeft) {
+  if (timeLeft > 10) {
+    // ── NORMAL phase: background music only ──
+    if (!countdownAudio || countdownAudio.paused) {
+      _loadCountdownAudio().play().catch(() => {});
+      countdownBgPhase = 'normal';
+    }
+    if (countdownBgPhase === 'tick') {
+      // Restore volume if somehow we went back above 10 (edge case)
+      _fadeBgVol(countdownAudio, 0.55, 300);
+      countdownBgPhase = 'normal';
+    }
+  } else if (timeLeft > 0) {
+    // ── TICK phase: duck music + beep every second ──
+    if (!countdownAudio || countdownAudio.paused) {
+      _loadCountdownAudio().play().catch(() => {});
+    }
+    if (countdownBgPhase !== 'tick') {
+      _fadeBgVol(countdownAudio, 0.18, 400);
+      countdownBgPhase = 'tick';
+    }
+    // Tick beep — pitch rises from 1200 Hz toward 1500 Hz as urgency increases
+    const urgency = (10 - timeLeft) / 10; // 0.0 at 10s, 0.9 at 1s
+    beep(1200 + urgency * 300, 0.07, 0.9, 'square');
+    beep(800, 0.05, 0.45, 'sine', 0.01);
+  }
+  // timeLeft === 0 is handled by stopCountdownBg(true) — do NOT call handleTimerTick(0)
+}
+
+// ── Call when timer expires (playTimesUp=true) or question force-stopped (false) ──
+function stopCountdownBg(playTimesUp = false) {
+  if (countdownAudio) {
+    _fadeBgVol(countdownAudio, 0, 500, () => {
+      try { countdownAudio.pause(); countdownAudio.currentTime = 0; } catch(e){}
+      countdownAudio = null;
+    });
+  }
+  countdownBgPhase = null;
+  if (playTimesUp) playTimesUpSound();
+}
+
+// ── Volume fader utility ──
+function _fadeBgVol(audio, target, ms, cb) {
+  if (!audio) { if (cb) cb(); return; }
+  const steps = 20, iv = ms / steps;
+  const start = audio.volume, delta = (target - start) / steps;
+  let n = 0;
+  const t = setInterval(() => {
+    n++;
+    audio.volume = Math.min(1, Math.max(0, start + delta * n));
+    if (n >= steps) { clearInterval(t); audio.volume = target; if (cb) cb(); }
+  }, iv);
+}
+
+// ─── Game Sound FX ──────────────────────────────────────────────────
 function playTickSound() {
-  // Double-layer for loudness
   beep(1200, 0.07, 0.9, 'square');
-  beep(800, 0.05, 0.5, 'sine', 0.01);
+  beep(800,  0.05, 0.5, 'sine', 0.01);
 }
 function playAlertSound()   { [0,0.1,0.2].forEach(d => beep(880,0.1,0.9,'sawtooth',d)); }
 function playSuccessSound() { [[523,0],[659,.1],[784,.2],[1047,.3]].forEach(([f,d]) => beep(f,.18,.8,'sine',d)); }
 function playWrongSound()   { beep(200,.45,.9,'sawtooth'); }
 function playTimesUpSound() { for(let i=0;i<4;i++) beep(440+i*20,.14,.9,'square',i*.15); beep(200,.7,.9,'sawtooth',.65); }
+
+// ─── BG Music Preview — bgmusic01.mp3 … bgmusic04.mp3 ───────────────
+let bgMusicPreview = null;
+
+function previewBgMusic(num) {
+  stopBgMusicPreview();
+  bgMusicPreview = new Audio('bgmusic0' + num + '.mp3');
+  bgMusicPreview.loop   = true;
+  bgMusicPreview.volume = 0.65;
+  bgMusicPreview.play().catch(() => {});
+  [1,2,3,4].forEach(i => {
+    const b = document.getElementById('bgBtn' + i);
+    if (!b) return;
+    b.style.borderColor = (i === num) ? 'var(--green)' : '';
+    b.style.color       = (i === num) ? 'var(--green)' : '';
+  });
+  const s = document.getElementById('bgMusicStatus');
+  if (s) { s.style.display = 'block'; s.textContent = '▶ Playing: BG Music ' + num + ' (looping)'; }
+}
+
+function stopBgMusicPreview() {
+  if (bgMusicPreview) {
+    try { bgMusicPreview.pause(); bgMusicPreview.currentTime = 0; } catch(e){}
+    bgMusicPreview = null;
+  }
+  [1,2,3,4].forEach(i => {
+    const b = document.getElementById('bgBtn' + i);
+    if (b) { b.style.borderColor = ''; b.style.color = ''; }
+  });
+  const s = document.getElementById('bgMusicStatus');
+  if (s) { s.style.display = 'none'; s.textContent = ''; }
+}
+
+function previewCountdownBg() {
+  stopBgMusicPreview();
+  bgMusicPreview = new Audio('countdownbg.mp3');
+  bgMusicPreview.loop   = true;
+  bgMusicPreview.volume = 0.55;
+  bgMusicPreview.play().catch(() => {});
+  const s = document.getElementById('bgMusicStatus');
+  if (s) { s.style.display = 'block'; s.textContent = '▶ Countdown BG (looping) — press ⏹ Stop to end preview'; }
+}
 
 // ─── Helpers ───
 function toast(msg,type='info') {
@@ -1368,6 +1501,8 @@ window.setEmergencyQuestion=setEmergencyQuestion; window.clearEmergencyQuestion=
 window.applyGlobalTimer=applyGlobalTimer; window.onGlobalTimerSlide=onGlobalTimerSlide;
 window.eliminatePlayer=eliminatePlayer; window.clearAllPlayers=clearAllPlayers; window.exportPlayerData=exportPlayerData;
 window.playTickSound=playTickSound; window.playAlertSound=playAlertSound; window.playSuccessSound=playSuccessSound; window.playWrongSound=playWrongSound; window.playTimesUpSound=playTimesUpSound;
+window.handleTimerTick=handleTimerTick; window.stopCountdownBg=stopCountdownBg;
+window.previewBgMusic=previewBgMusic; window.stopBgMusicPreview=stopBgMusicPreview; window.previewCountdownBg=previewCountdownBg;
 window.closeModal=closeModal; window.setCatSelMode=setCatSelMode;
 window.startSpin=startSpin; window.stopSpin=stopSpin;
 window.selectManualCat=selectManualCat; window.broadcastSelectedCategory=broadcastSelectedCategory;
