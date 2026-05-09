@@ -674,7 +674,6 @@ function startTimer() {
   timerIv = setInterval(() => {
     timeLeft--;
     updateTimerUI();
-
     if (timeLeft <= 0) {
       stopTimer();
       if (!answered) {
@@ -684,8 +683,7 @@ function startTimer() {
       }
       onTimerEnd();
     } else if (timeLeft <= 10 && !answered) {
-      // Tick beep only in last 10 sec, only before player locks in answer
-      playerTick(timeLeft);
+      playerTick(timeLeft);      // tick beep only ≤10 sec, only if not yet answered
     }
   }, 1000);
 }
@@ -946,20 +944,16 @@ async function checkExisting() {
   return true;
 }
 
-// ─── Player Timer Sounds ─────────────────────────────────────────────
-// Player hears: tick beep (≤10 sec, only before answering) + times-up buzz
-// NO background music — that plays on FOH/Admin only
-
-// Called each second when timeLeft ≤ 10 and player hasn't answered yet
+// Add these timer sound functions
+// ─── Player tick — heard only in last 10 sec before answering ────────
+// No background music on player. FOH owns countdownbg.mp3.
 function playerTick(timeLeft) {
   try {
     const ctx = getAC();
-    // Pitch rises from 900 Hz toward 1400 Hz as urgency increases
     const urgency = (10 - timeLeft) / 10;
-    const freq = 900 + urgency * 500;
     const o = ctx.createOscillator(), g = ctx.createGain();
     o.connect(g); g.connect(ctx.destination);
-    o.type = 'square'; o.frequency.value = freq;
+    o.type = 'square'; o.frequency.value = 900 + urgency * 500;
     g.gain.setValueAtTime(0.35, ctx.currentTime);
     g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.07);
     o.start(); o.stop(ctx.currentTime + 0.09);
