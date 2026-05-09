@@ -882,133 +882,6 @@ function playJoinChime() {
   } catch(e) {} 
 }
 
-// ─── Countdown BG Engine (FOH audio master) ──────────────────────────
-// >10 sec  : countdownbg.mp3 at full volume (0.55), no beeps
-// ≤10 sec  : music ducks to 0.18 + tick beep every second (pitch rises)
-// =0       : music fades out + times-up sound fires
-// early stop: clean fade, no blast
-let _cdAudio = null, _cdPhase = null;
-
-function _cdLoad() {
-  if (_cdAudio) { try { _cdAudio.pause(); } catch(e){} _cdAudio = null; }
-  const a = new Audio('countdownbg.mp3');
-  a.loop = true; a.volume = 0.55;
-  _cdAudio = a; return a;
-}
-function _cdFade(audio, target, ms, cb) {
-  if (!audio) { if (cb) cb(); return; }
-  const steps = 20, iv = ms / steps;
-  const start = audio.volume, delta = (target - start) / steps;
-  let n = 0;
-  const t = setInterval(() => {
-    n++; audio.volume = Math.min(1, Math.max(0, start + delta * n));
-    if (n >= steps) { clearInterval(t); audio.volume = target; if (cb) cb(); }
-  }, iv);
-}
-function _cdTick(timeLeft) {
-  if (timeLeft > 10) {
-    // Full-volume bg music, no beeps
-    if (!_cdAudio || _cdAudio.paused) { _cdLoad().play().catch(() => {}); _cdPhase = 'normal'; }
-    if (_cdPhase === 'tick') { _cdFade(_cdAudio, 0.55, 300); _cdPhase = 'normal'; }
-  } else if (timeLeft > 0) {
-    // Duck music + tick beep
-    if (!_cdAudio || _cdAudio.paused) { _cdLoad().play().catch(() => {}); }
-    if (_cdPhase !== 'tick') { _cdFade(_cdAudio, 0.18, 400); _cdPhase = 'tick'; }
-    try {
-      const ctx = getAC();
-      const urgency = (10 - timeLeft) / 10;
-      const o1 = ctx.createOscillator(), g1 = ctx.createGain();
-      o1.connect(g1); g1.connect(ctx.destination);
-      o1.type = 'square'; o1.frequency.value = 1200 + urgency * 300;
-      g1.gain.setValueAtTime(0.9, ctx.currentTime);
-      g1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.07);
-      o1.start(); o1.stop(ctx.currentTime + 0.09);
-      const o2 = ctx.createOscillator(), g2 = ctx.createGain();
-      o2.connect(g2); g2.connect(ctx.destination);
-      o2.type = 'sine'; o2.frequency.value = 800;
-      g2.gain.setValueAtTime(0.45, ctx.currentTime + 0.01);
-      g2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
-      o2.start(ctx.currentTime + 0.01); o2.stop(ctx.currentTime + 0.08);
-    } catch(e) {}
-  }
-}
-function _cdStop(blast = false) {
-  if (_cdAudio) {
-    _cdFade(_cdAudio, 0, 500, () => {
-      try { _cdAudio.pause(); _cdAudio.currentTime = 0; } catch(e) {}
-      _cdAudio = null;
-    });
-  }
-  _cdPhase = null;
-  if (blast) playTimesUpSound();
-}
-
-// ─── Countdown BG Audio Engine (FOH is master) ───────────────────────
-// countdownbg.mp3 plays from the FOH screen when a question starts.
-//  > 10 sec : full volume (0.55), no beeps
-//  ≤ 10 sec : ducks to 0.18 + audible tick beep each second (pitch rises)
-//  = 0      : fades out + fires times-up sound
-//  early stop (answer reveal / skip) : clean fade, no blast
-let _cdAudio = null, _cdPhase = null;
-
-function _cdLoad() {
-  if (_cdAudio) { try { _cdAudio.pause(); } catch(e){} _cdAudio = null; }
-  const a = new Audio('countdownbg.mp3');
-  a.loop = true; a.volume = 0.55;
-  _cdAudio = a; return a;
-}
-
-function _cdFade(audio, target, ms, cb) {
-  if (!audio) { if (cb) cb(); return; }
-  const steps = 20, iv = ms / steps;
-  const start = audio.volume, delta = (target - start) / steps;
-  let n = 0;
-  const t = setInterval(() => {
-    n++; audio.volume = Math.min(1, Math.max(0, start + delta * n));
-    if (n >= steps) { clearInterval(t); audio.volume = target; if (cb) cb(); }
-  }, iv);
-}
-
-function _cdTick(timeLeft) {
-  if (timeLeft > 10) {
-    if (!_cdAudio || _cdAudio.paused) {
-      _cdLoad().play().catch(() => {});
-      _cdPhase = 'normal';
-    }
-    if (_cdPhase === 'tick') { _cdFade(_cdAudio, 0.55, 300); _cdPhase = 'normal'; }
-  } else if (timeLeft > 0) {
-    if (!_cdAudio || _cdAudio.paused) { _cdLoad().play().catch(() => {}); }
-    if (_cdPhase !== 'tick') { _cdFade(_cdAudio, 0.18, 400); _cdPhase = 'tick'; }
-    try {
-      const ctx = getAC();
-      const urgency = (10 - timeLeft) / 10;
-      const o1 = ctx.createOscillator(), g1 = ctx.createGain();
-      o1.connect(g1); g1.connect(ctx.destination);
-      o1.type = 'square'; o1.frequency.value = 1200 + urgency * 300;
-      g1.gain.setValueAtTime(0.9, ctx.currentTime);
-      g1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.07);
-      o1.start(); o1.stop(ctx.currentTime + 0.09);
-      const o2 = ctx.createOscillator(), g2 = ctx.createGain();
-      o2.connect(g2); g2.connect(ctx.destination);
-      o2.type = 'sine'; o2.frequency.value = 800;
-      g2.gain.setValueAtTime(0.45, ctx.currentTime + 0.01);
-      g2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
-      o2.start(ctx.currentTime + 0.01); o2.stop(ctx.currentTime + 0.08);
-    } catch(e) {}
-  }
-}
-
-function _cdStop(blast = false) {
-  if (_cdAudio) {
-    _cdFade(_cdAudio, 0, 500, () => {
-      try { _cdAudio.pause(); _cdAudio.currentTime = 0; } catch(e) {}
-      _cdAudio = null;
-    });
-  }
-  _cdPhase = null;
-  if (blast) playTimesUpSound();
-}
-
 function playTickSound() {
   try {
     const ctx = getAC();
@@ -1346,6 +1219,7 @@ function handleEvent(evt) {
         currentQuestion = evt.payload.question;
         totalTime = currentQuestion.time_limit || 20;
         updateQProgress(evt.payload.qIdx, evt.payload.total);
+        // audio starts when show_question_view fires startTimer
       }
       break;
     case 'show_question_view':
@@ -1422,12 +1296,79 @@ function displayQuestion(q) {
   `).join('');
 }
 
+// ─── Countdown BG Engine ─────────────────────────────────────────────
+// FOH is the audio master for the question timer.
+//  > 10 sec  countdownbg.mp3 plays at full volume (0.55), no beeps
+//  <= 10 sec  music ducks to 0.18 + tick beep every second (pitch rises)
+//  = 0        music fades out then times-up sound fires
+//  early stop (answer reveal / game end)  clean fade, no blast
+let _cdAudio = null, _cdPhase = null;
+
+function _cdLoad() {
+  if (_cdAudio) { try { _cdAudio.pause(); } catch(e){} _cdAudio = null; }
+  const a = new Audio('countdownbg.mp3');
+  a.loop = true; a.volume = 0.55;
+  _cdAudio = a; return a;
+}
+
+function _cdFade(audio, target, ms, cb) {
+  if (!audio) { if (cb) cb(); return; }
+  const steps = 20, iv = ms / steps;
+  const start = audio.volume, delta = (target - start) / steps;
+  let n = 0;
+  const t = setInterval(() => {
+    n++;
+    audio.volume = Math.min(1, Math.max(0, start + delta * n));
+    if (n >= steps) { clearInterval(t); audio.volume = target; if (cb) cb(); }
+  }, iv);
+}
+
+function _cdTick(timeLeft) {
+  if (timeLeft > 10) {
+    if (!_cdAudio || _cdAudio.paused) {
+      _cdLoad().play().catch(() => {});
+      _cdPhase = 'normal';
+    }
+    if (_cdPhase === 'tick') { _cdFade(_cdAudio, 0.55, 300); _cdPhase = 'normal'; }
+  } else if (timeLeft > 0) {
+    if (!_cdAudio || _cdAudio.paused) { _cdLoad().play().catch(() => {}); }
+    if (_cdPhase !== 'tick') { _cdFade(_cdAudio, 0.18, 400); _cdPhase = 'tick'; }
+    try {
+      const ctx = getAC();
+      const urgency = (10 - timeLeft) / 10;
+      const o1 = ctx.createOscillator(), g1 = ctx.createGain();
+      o1.connect(g1); g1.connect(ctx.destination);
+      o1.type = 'square'; o1.frequency.value = 1200 + urgency * 300;
+      g1.gain.setValueAtTime(0.9, ctx.currentTime);
+      g1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.07);
+      o1.start(); o1.stop(ctx.currentTime + 0.09);
+      const o2 = ctx.createOscillator(), g2 = ctx.createGain();
+      o2.connect(g2); g2.connect(ctx.destination);
+      o2.type = 'sine'; o2.frequency.value = 800;
+      g2.gain.setValueAtTime(0.45, ctx.currentTime + 0.01);
+      g2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
+      o2.start(ctx.currentTime + 0.01); o2.stop(ctx.currentTime + 0.08);
+    } catch(e) {}
+  }
+}
+
+function _cdStop(blast) {
+  if (_cdAudio) {
+    _cdFade(_cdAudio, 0, 500, () => {
+      try { _cdAudio.pause(); _cdAudio.currentTime = 0; } catch(e) {}
+      _cdAudio = null;
+    });
+  }
+  _cdPhase = null;
+  if (blast) playTimesUpSound();
+}
+
 function startTimer(duration) {
   stopTimer();
   timeLeft = duration;
   totalTime = duration;
   updateTimerUI();
-  _cdTick(timeLeft);                // start countdownbg.mp3 immediately
+  _cdTick(timeLeft);                // start countdownbg.mp3 immediately on question show
   timerInterval = setInterval(() => {
     timeLeft--;
     updateTimerUI();
@@ -1437,7 +1378,7 @@ function startTimer(duration) {
       _cdStop(true);                // fade music out + fire times-up sound
       autoShowResponsesInline();
     } else {
-      _cdTick(timeLeft);            // drives music phase + tick beeps (≤10 sec)
+      _cdTick(timeLeft);            // drives music phase + tick beeps when <=10 sec
     }
   }, 1000);
 }
@@ -1445,7 +1386,7 @@ function startTimer(duration) {
 function stopTimer() {
   if (timerInterval) clearInterval(timerInterval);
   timerInterval = null;
-  _cdStop(false);                   // clean stop — no blast (called on reveal/reset)
+  _cdStop(false);                   // clean stop when answer revealed or game ends
 }
 
 async function autoShowResponsesInline() {
