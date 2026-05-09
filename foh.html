@@ -882,67 +882,47 @@ function playJoinChime() {
   } catch(e) {} 
 }
 
+// ─── Countdown BG Engine (FOH is the audio master) ──────────────────
+// >10 sec : countdownbg.mp3 at full vol (0.55), no beeps
+// ≤10 sec : music ducks to 0.18 + tick beep per second (pitch rises)
+// =0      : music fades out + times-up blast
+// early stop (answer reveal / game end) : clean fade, no blast
+let _cdAudio = null, _cdPhase = null;
 
-// ─── Countdown BG Music (countdownbg.mp3) ───────────────────────────
-// Driven by startTimer each tick:
-//   > 10 sec  → full volume bg music, no beeps
-//   ≤ 10 sec  → music ducks to 18% + tick beep (pitch rises with urgency)
-//   = 0 sec   → stopCountdownBg(true) → fade + times-up
-let countdownAudio   = null;
-let countdownBgPhase = null; // 'normal' | 'tick' | null
-
-function _loadCountdownAudio() {
-  if (countdownAudio) { try { countdownAudio.pause(); } catch(e){} countdownAudio = null; }
+function _cdLoad() {
+  if (_cdAudio) { try { _cdAudio.pause(); } catch(e){} _cdAudio = null; }
   const a = new Audio('countdownbg.mp3');
-  a.loop = true; a.volume = 0.55;
-  countdownAudio = a;
-  return a;
+  a.loop = true; a.volume = 0.55; _cdAudio = a; return a;
 }
-
-function handleTimerTick(timeLeft) {
+function _cdFade(audio, target, ms, cb) {
+  if (!audio) { if(cb) cb(); return; }
+  const steps=20, iv=ms/steps, start=audio.volume, delta=(target-start)/steps;
+  let n=0;
+  const t=setInterval(()=>{
+    n++; audio.volume=Math.min(1,Math.max(0,start+delta*n));
+    if(n>=steps){clearInterval(t); audio.volume=target; if(cb)cb();}
+  },iv);
+}
+function _cdTick(timeLeft) {
   if (timeLeft > 10) {
-    if (!countdownAudio || countdownAudio.paused) {
-      _loadCountdownAudio().play().catch(() => {});
-      countdownBgPhase = 'normal';
-    }
-    if (countdownBgPhase === 'tick') {
-      _fadeBgVol(countdownAudio, 0.55, 300);
-      countdownBgPhase = 'normal';
-    }
+    if (!_cdAudio || _cdAudio.paused) { _cdLoad().play().catch(()=>{}); _cdPhase='normal'; }
+    if (_cdPhase==='tick') { _cdFade(_cdAudio,0.55,300); _cdPhase='normal'; }
   } else if (timeLeft > 0) {
-    if (!countdownAudio || countdownAudio.paused) {
-      _loadCountdownAudio().play().catch(() => {});
-    }
-    if (countdownBgPhase !== 'tick') {
-      _fadeBgVol(countdownAudio, 0.18, 400);
-      countdownBgPhase = 'tick';
-    }
-    const urgency = (10 - timeLeft) / 10;
-    beep(1200 + urgency * 300, 0.07, 0.9, 'square');
+    if (!_cdAudio || _cdAudio.paused) { _cdLoad().play().catch(()=>{}); }
+    if (_cdPhase!=='tick') { _cdFade(_cdAudio,0.18,400); _cdPhase='tick'; }
+    const u=(10-timeLeft)/10;
+    beep(1200+u*300, 0.07, 0.9, 'square');
     beep(800, 0.05, 0.45, 'sine', 0.01);
   }
 }
-
-function stopCountdownBg(playTimesUp = false) {
-  if (countdownAudio) {
-    _fadeBgVol(countdownAudio, 0, 500, () => {
-      try { countdownAudio.pause(); countdownAudio.currentTime = 0; } catch(e){}
-      countdownAudio = null;
+function _cdStop(blast=false) {
+  if (_cdAudio) {
+    _cdFade(_cdAudio,0,500,()=>{
+      try{_cdAudio.pause();_cdAudio.currentTime=0;}catch(e){} _cdAudio=null;
     });
   }
-  countdownBgPhase = null;
-  if (playTimesUp) playTimesUpSound();
-}
-
-function _fadeBgVol(audio, target, ms, cb) {
-  if (!audio) { if (cb) cb(); return; }
-  const steps = 20, iv = ms / steps;
-  const start = audio.volume, delta = (target - start) / steps;
-  let n = 0;
-  const t = setInterval(() => {
-    n++; audio.volume = Math.min(1, Math.max(0, start + delta * n));
-    if (n >= steps) { clearInterval(t); audio.volume = target; if (cb) cb(); }
-  }, iv);
+  _cdPhase=null;
+  if (blast) playTimesUpSound();
 }
 
 function playTickSound() {
@@ -1282,7 +1262,7 @@ function handleEvent(evt) {
         currentQuestion = evt.payload.question;
         totalTime = currentQuestion.time_limit || 20;
         updateQProgress(evt.payload.qIdx, evt.payload.total);
-        playTickSound();
+        // Audio is driven by startTimer on show_question_view — no sound here
       }
       break;
     case 'show_question_view':
@@ -1364,25 +1344,24 @@ function startTimer(duration) {
   timeLeft = duration;
   totalTime = duration;
   updateTimerUI();
-  // Kick off countdown background music immediately
-  handleTimerTick(timeLeft);
+  _cdTick(timeLeft);           // start bg music immediately
   timerInterval = setInterval(() => {
     timeLeft--;
     updateTimerUI();
     if (timeLeft <= 0) {
-      stopTimer();
-      stopCountdownBg(true);   // fade music out + fire times-up sound
+      stopTimer(false);          // clear interval only, no blast yet
+      _cdStop(true);             // fade music + times-up sound
       autoShowResponsesInline();
     } else {
-      handleTimerTick(timeLeft); // drives music phase + tick beeps (≤10 sec)
+      _cdTick(timeLeft);         // drive music phase + tick beeps
     }
   }, 1000);
 }
 
-function stopTimer() {
+function stopTimer(clean=true) {
   if (timerInterval) clearInterval(timerInterval);
   timerInterval = null;
-  stopCountdownBg(false);  // clean stop if admin skips/reveals early
+  if (clean) _cdStop(false);   // early stop (reveal/reset) — no blast
 }
 
 async function autoShowResponsesInline() {
