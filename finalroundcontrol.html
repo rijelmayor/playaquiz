@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>PlayAQuiz — Final Round Control</title>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Bebas+Neue&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -13,49 +13,38 @@
       --border: #1f2a3c; --border2: #2d3b52;
       --text: #e8edf7; --muted: #6b7a99;
       --accent: #3b82f6; --green: #10b981; --gold: #fbbf24;
-      --red: #ef4444; --purple: #8b5cf6; --pink: #ec4899;
+      --red: #ef4444; --purple: #8b5cf6;
     }
-    body { background: var(--bg); font-family: 'Space Grotesk', sans-serif; color: var(--text); min-height: 100vh; }
-    .app { display: flex; height: 100vh; overflow: hidden; }
-
+    body { background: var(--bg); font-family: 'Space Grotesk', sans-serif; color: var(--text); height: 100vh; overflow: hidden; }
+    .app { display: flex; height: 100%; }
+    
     /* Sidebar */
-    .sidebar { width: 280px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow-y: auto; flex-shrink: 0; }
+    .sidebar { width: 280px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow-y: auto; }
     .sidebar-header { padding: 24px 20px; border-bottom: 1px solid var(--border); }
     .logo { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 3px; background: linear-gradient(135deg, #fff, var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .logo-sub { font-size: 10px; color: var(--gold); letter-spacing: 2px; margin-top: -8px; }
     .room-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin: 20px; text-align: center; }
-    .room-label { font-size: 10px; color: var(--muted); letter-spacing: 1px; }
     .room-code { font-family: 'JetBrains Mono', monospace; font-size: 28px; font-weight: 700; color: var(--gold); letter-spacing: 4px; }
-    .info-row { display: flex; justify-content: space-between; padding: 8px 16px; margin: 4px 12px; background: var(--surface2); border-radius: 10px; font-size: 13px; }
+    .info-row { display: flex; justify-content: space-between; padding: 10px 16px; margin: 4px 12px; background: var(--surface2); border-radius: 10px; }
     .info-val { font-weight: 700; color: var(--accent); }
-    .status-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; }
-    .status-active { background: rgba(16,185,129,0.2); color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
-    .status-waiting { background: rgba(107,122,153,0.2); color: var(--muted); border: 1px solid rgba(107,122,153,0.3); }
-    .dot { width: 8px; height: 8px; border-radius: 50%; animation: pulse 1.5s infinite; }
-    .dot-green { background: var(--green); }
-    @keyframes pulse { 0%,100%{ opacity: 1; } 50%{ opacity: 0.4; } }
-    .sidebar-section { padding: 12px 16px; }
+    .sidebar-section { padding: 16px; }
     .section-title { font-size: 10px; font-weight: 700; color: var(--muted); letter-spacing: 1.5px; margin-bottom: 12px; }
     .lb-list { display: flex; flex-direction: column; gap: 6px; }
     .lb-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: var(--surface2); border-radius: 10px; font-size: 13px; }
-    .lb-rank { font-size: 16px; width: 28px; }
     .lb-name { flex: 1; font-weight: 600; }
-    .lb-score { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--gold); }
-
-    /* Main Content */
-    .main { flex: 1; overflow-y: auto; padding: 28px 32px; }
+    .lb-score { font-family: monospace; font-weight: 700; color: var(--gold); }
+    
+    /* Main */
+    .main { flex: 1; overflow-y: auto; padding: 24px 32px; }
     .page-title { font-family: 'Bebas Neue', sans-serif; font-size: 36px; letter-spacing: 2px; margin-bottom: 8px; }
-    .page-sub { font-size: 14px; color: var(--muted); margin-bottom: 28px; }
+    .page-sub { font-size: 14px; color: var(--muted); margin-bottom: 24px; }
     .card { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 24px; margin-bottom: 20px; }
-    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-    .card-title { font-weight: 700; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+    .card-title { font-weight: 700; font-size: 16px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-
-    /* Buttons */
-    .btn { border: none; padding: 12px 20px; border-radius: 12px; font-weight: 700; font-family: 'Space Grotesk', sans-serif; cursor: pointer; font-size: 14px; transition: all 0.15s; display: inline-flex; align-items: center; gap: 8px; }
+    
+    .btn { border: none; padding: 10px 18px; border-radius: 10px; font-weight: 700; font-family: 'Space Grotesk', sans-serif; cursor: pointer; font-size: 14px; transition: all 0.15s; display: inline-flex; align-items: center; gap: 6px; }
     .btn:hover { transform: translateY(-1px); filter: brightness(1.1); }
     .btn:active { transform: scale(0.97); }
-    .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
     .btn-green { background: var(--green); color: white; }
     .btn-red { background: var(--red); color: white; }
     .btn-gold { background: var(--gold); color: #111; }
@@ -64,52 +53,32 @@
     .btn-lg { padding: 14px 28px; font-size: 16px; }
     input, select { background: var(--bg); border: 1px solid var(--border2); border-radius: 10px; padding: 12px 14px; color: var(--text); font-size: 14px; width: 100%; outline: none; }
     input:focus { border-color: var(--accent); }
-
-    /* Player Selection */
-    .player-pick-list { max-height: 350px; overflow-y: auto; border: 1px solid var(--border); border-radius: 12px; }
-    .player-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-bottom: 1px solid var(--border); cursor: pointer; transition: 0.1s; }
-    .player-item:hover { background: rgba(255,255,255,0.03); }
-    .player-item.selected { background: rgba(59,130,246,0.1); border-left: 3px solid var(--accent); }
-    .player-avatar { font-size: 28px; }
-    .player-info { flex: 1; }
-    .player-name { font-weight: 600; font-size: 14px; }
-    .player-score { font-size: 12px; color: var(--gold); font-family: monospace; }
-    .check-icon { width: 22px; height: 22px; border: 2px solid var(--border2); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; }
-    .player-item.selected .check-icon { background: var(--accent); border-color: var(--accent); }
-
-    /* Question Area */
-    .question-preview { background: linear-gradient(135deg, rgba(59,130,246,0.08), rgba(139,92,246,0.05)); border: 1px solid rgba(59,130,246,0.2); border-radius: 16px; padding: 24px; margin-bottom: 20px; }
-    .question-text { font-size: 20px; font-weight: 700; line-height: 1.4; }
-    .buzzer-state-card { border-color: var(--gold); background: rgba(251,191,36,0.05); animation: glow 1s infinite; }
-    @keyframes glow { 0%,100%{ border-color: rgba(251,191,36,0.3); } 50%{ border-color: var(--gold); } }
-    .buzzed-player-name { font-family: 'Bebas Neue', sans-serif; font-size: 48px; color: var(--gold); text-align: center; }
-    .action-buttons { display: flex; gap: 16px; justify-content: center; margin-top: 20px; }
-
-    /* Players Grid */
-    .players-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
-    .player-card { background: var(--surface2); border: 2px solid var(--border); border-radius: 14px; padding: 12px; text-align: center; transition: 0.2s; position: relative; }
+    
+    .players-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin-top: 16px; }
+    .player-card { background: var(--surface2); border: 2px solid var(--border); border-radius: 14px; padding: 12px; text-align: center; transition: 0.2s; }
     .player-card.buzzed { border-color: var(--gold); background: rgba(251,191,36,0.1); animation: buzzFlash 0.3s ease; }
     .player-card.correct { border-color: var(--green); background: rgba(16,185,129,0.1); }
-    .player-card.wrong { border-color: var(--red); background: rgba(239,68,68,0.08); opacity: 0.7; }
     .player-card.eliminated { opacity: 0.3; filter: grayscale(1); }
-    .player-card.locked { border-color: rgba(239,68,68,0.4); opacity: 0.6; }
-    @keyframes buzzFlash { 0%{ transform: scale(1); } 50%{ transform: scale(1.05); border-color: var(--gold); } 100%{ transform: scale(1); } }
-    .player-avatar-lg { font-size: 40px; margin-bottom: 6px; }
-    .player-name-lg { font-weight: 700; font-size: 13px; margin-bottom: 4px; }
-    .player-score-lg { font-family: monospace; font-size: 18px; font-weight: 700; color: var(--gold); }
-    .player-status-badge { font-size: 10px; padding: 2px 8px; border-radius: 20px; margin-top: 6px; display: inline-block; }
+    @keyframes buzzFlash { 0%,100%{ transform: scale(1); } 50%{ transform: scale(1.05); border-color: var(--gold); } }
+    .player-avatar { font-size: 40px; margin-bottom: 6px; }
+    .player-name { font-weight: 700; font-size: 13px; }
+    .player-score { font-family: monospace; font-size: 18px; font-weight: 700; color: var(--gold); }
     .eliminate-btn { margin-top: 8px; font-size: 10px; padding: 4px 10px; background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); border-radius: 8px; color: var(--red); cursor: pointer; }
-
+    
+    .question-area { background: linear-gradient(135deg, rgba(59,130,246,0.08), rgba(139,92,246,0.05)); border: 1px solid rgba(59,130,246,0.2); border-radius: 16px; padding: 20px; margin-bottom: 20px; }
+    .question-text { font-size: 18px; font-weight: 700; line-height: 1.4; }
+    .buzzer-state { border-color: var(--gold); background: rgba(251,191,36,0.05); animation: glow 1s infinite; }
+    @keyframes glow { 0%,100%{ border-color: rgba(251,191,36,0.3); } 50%{ border-color: var(--gold); } }
+    .buzzed-name { font-family: 'Bebas Neue', sans-serif; font-size: 48px; color: var(--gold); text-align: center; }
+    .action-buttons { display: flex; gap: 16px; justify-content: center; margin-top: 20px; }
+    
     .stat-row { display: flex; gap: 16px; margin-bottom: 20px; }
     .stat-box { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 14px; padding: 16px; text-align: center; }
     .stat-number { font-family: 'Bebas Neue', sans-serif; font-size: 42px; }
-    .stat-label { font-size: 11px; color: var(--muted); margin-top: 4px; }
-
+    .stat-label { font-size: 11px; color: var(--muted); }
+    
     .hidden { display: none !important; }
-    .toast-container { position: fixed; top: 20px; right: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; }
-    .toast { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 20px; animation: slideIn 0.3s ease; }
-    .toast.success { border-left: 4px solid var(--green); }
-    .toast.error { border-left: 4px solid var(--red); }
+    .toast { position: fixed; bottom: 20px; right: 20px; background: var(--surface); border: 1px solid var(--border2); border-radius: 12px; padding: 12px 20px; animation: slideIn 0.3s ease; z-index: 1000; }
     @keyframes slideIn { from { opacity: 0; transform: translateX(50px); } to { opacity: 1; transform: translateX(0); } }
   </style>
 </head>
@@ -118,15 +87,15 @@
   <div class="sidebar">
     <div class="sidebar-header">
       <div class="logo">PLAYAQUIZ</div>
-      <div class="logo-sub">⚡ FINAL ROUND CONTROL</div>
+      <div style="font-size: 10px; color: var(--gold); letter-spacing: 2px;">⚡ FINAL ROUND</div>
     </div>
     <div class="room-box">
-      <div class="room-label">ROOM CODE</div>
+      <div class="room-label" style="font-size:10px;color:var(--muted)">ROOM CODE</div>
       <div class="room-code" id="roomCodeDisplay">——</div>
     </div>
-    <div class="info-row"><span>Status</span><span class="status-chip status-waiting" id="statusChip"><span class="dot dot-green"></span>Waiting</span></div>
+    <div class="info-row"><span>Status</span><span id="statusText" class="status-chip">Waiting</span></div>
     <div class="info-row"><span>Players</span><span class="info-val" id="playerCount">0</span></div>
-    <div class="info-row"><span>Question</span><span class="info-val" id="questionNumber">—</span></div>
+    <div class="info-row"><span>Question</span><span class="info-val" id="questionNum">—</span></div>
     <div class="sidebar-section">
       <div class="section-title">🏆 LIVE STANDINGS</div>
       <div class="lb-list" id="sidebarLeaderboard"><div style="color:var(--muted);text-align:center;padding:20px">No players yet</div></div>
@@ -134,82 +103,73 @@
   </div>
 
   <div class="main">
-    <div class="toast-container" id="toastContainer"></div>
-
-    <!-- Setup Screen -->
-    <div id="setupScreen">
-      <div class="page-title">⚡ FINAL ROUND SETUP</div>
-      <div class="page-sub">Select finalists from your main game session</div>
+    <!-- Setup Panel -->
+    <div id="setupPanel">
+      <div class="page-title">🎯 FINAL ROUND SETUP</div>
+      <div class="page-sub">Create a new Final Round session - players join with room code</div>
+      
       <div class="grid-2">
         <div>
           <div class="card">
-            <div class="card-header"><span class="card-title">🔗 MAIN SESSION</span></div>
-            <input id="sessionIdInput" placeholder="Paste Session ID from main game" style="margin-bottom:12px">
-            <div style="display:flex;gap:10px">
-              <button class="btn btn-accent" style="flex:1" onclick="loadSession()">📥 Load Players</button>
-              <button class="btn btn-ghost" onclick="autoDetect()">🔍 Auto</button>
-            </div>
-            <div id="sessionStatus" style="margin-top:10px;font-size:12px;color:var(--muted)"></div>
-          </div>
-          <div class="card">
-            <div class="card-header"><span class="card-title">⚙️ ROUND SETTINGS</span></div>
-            <label style="font-size:11px;color:var(--muted)">Number of Finalists</label>
-            <input type="number" id="finalistCount" value="5" min="2" max="20" style="margin-bottom:12px">
-            <label style="font-size:11px;color:var(--muted)">Points per Correct Answer</label>
-            <input type="number" id="pointsPerBuzz" value="100" min="10" step="10" style="margin-bottom:12px">
-            <label style="font-size:11px;color:var(--muted)">Final Round Room Code</label>
-            <input id="roomCodeInput" readonly style="font-family:monospace;font-size:20px;letter-spacing:3px;color:var(--gold)">
-            <button class="btn btn-ghost btn-sm" style="margin-top:8px" onclick="generateRoomCode()">🔄 Generate New Code</button>
+            <div class="card-title">⚙️ ROUND SETTINGS</div>
+            <label style="font-size:11px;color:var(--muted);margin-bottom:5px;display:block">Points per Correct Answer</label>
+            <input type="number" id="pointsPerBuzz" value="100" min="10" step="10" style="margin-bottom:15px">
+            <label style="font-size:11px;color:var(--muted);margin-bottom:5px;display:block">Final Round Room Code</label>
+            <input id="roomCodeInput" readonly style="font-family:monospace;font-size:24px;letter-spacing:4px;color:var(--gold);margin-bottom:10px">
+            <button class="btn btn-ghost btn-sm" onclick="generateRoomCode()">🔄 Generate New Code</button>
           </div>
         </div>
+        
         <div class="card">
-          <div class="card-header"><span class="card-title">👥 SELECT FINALISTS</span><span id="selectedCount" style="font-size:12px;color:var(--muted)">0 selected</span></div>
-          <div id="playerList" class="player-pick-list"><div style="padding:40px;text-align:center;color:var(--muted)">Load a session first</div></div>
-          <button class="btn btn-green btn-lg" style="width:100%;margin-top:16px" onclick="launchFinalRound()" id="launchBtn" disabled>🚀 LAUNCH FINAL ROUND</button>
+          <div class="card-title">👥 PLAYERS</div>
+          <div id="playerSetupList" style="min-height:200px">
+            <div style="text-align:center;padding:40px;color:var(--muted)">Players will appear here after joining</div>
+          </div>
+          <button class="btn btn-green btn-lg" style="width:100%;margin-top:16px" onclick="startFinalRound()" id="startBtn" disabled>🚀 START FINAL ROUND</button>
         </div>
       </div>
     </div>
 
-    <!-- Control Screen -->
-    <div id="controlScreen" class="hidden">
+    <!-- Game Control Panel -->
+    <div id="gamePanel" class="hidden">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
         <div><div class="page-title" style="margin-bottom:0">⚡ LIVE FINAL ROUND</div><div style="font-size:13px;color:var(--muted)">Room: <span id="liveRoomCode" style="color:var(--gold);font-family:monospace">——</span></div></div>
-        <div class="status-chip" id="liveStatusChip"><span class="dot dot-green"></span><span id="liveStatusText">Active</span></div>
+        <div class="status-chip" id="gameStatusChip">Active</div>
       </div>
 
       <div class="stat-row">
         <div class="stat-box"><div class="stat-number" id="statPlayers">0</div><div class="stat-label">Active Players</div></div>
-        <div class="stat-box"><div class="stat-number" id="statQuestionNum">—</div><div class="stat-label">Current Q</div></div>
+        <div class="stat-box"><div class="stat-number" id="statQuestion">—</div><div class="stat-label">Current Q</div></div>
         <div class="stat-box"><div class="stat-number" id="statBuzzed">—</div><div class="stat-label">Buzzed By</div></div>
         <div class="stat-box"><div class="stat-number" id="statEliminated">0</div><div class="stat-label">Eliminated</div></div>
       </div>
 
       <!-- Question Area -->
       <div class="card">
-        <div class="card-header"><span class="card-title">📋 CURRENT QUESTION</span><span id="questionStateBadge" style="background:rgba(107,122,153,0.15);padding:4px 12px;border-radius:20px;font-size:12px">STANDBY</span></div>
-        <div id="questionDisplayArea" class="question-preview"><div style="text-align:center;color:var(--muted);padding:20px">No active question</div></div>
+        <div class="card-title">📋 QUESTION</div>
+        <div id="questionDisplay" class="question-area">
+          <div style="text-align:center;color:var(--muted);padding:20px">No active question</div>
+        </div>
         <div style="margin-top:16px">
-          <label style="font-size:11px;color:var(--muted)">Enter Question Text</label>
-          <input id="questionInput" placeholder="Type the question here..." style="margin:8px 0;font-size:16px">
+          <input id="questionInput" placeholder="Type the question here..." style="margin-bottom:10px">
           <div style="display:flex;gap:10px">
-            <button class="btn btn-accent" style="flex:1" onclick="openQuestion()" id="openQuestionBtn">🔔 OPEN BUZZERS</button>
-            <button class="btn btn-ghost" onclick="resetQuestion()" id="resetQuestionBtn" disabled>↺ Reset Buzzer</button>
-            <button class="btn btn-ghost" onclick="clearQuestionInput()">✕ Clear</button>
+            <button class="btn btn-accent" style="flex:1" onclick="openQuestion()" id="openBtn">🔔 OPEN BUZZERS</button>
+            <button class="btn btn-ghost" onclick="resetBuzzers()" id="resetBtn" disabled>↺ Reset</button>
           </div>
         </div>
       </div>
 
       <!-- Buzzer Action Card -->
-      <div class="card buzzer-state-card" id="buzzerActionCard" style="display:none">
+      <div class="card buzzer-state" id="buzzerCard" style="display:none">
         <div style="text-align:center">
           <div style="font-size:14px;color:var(--gold);letter-spacing:2px">🔔 BUZZED IN</div>
-          <div class="buzzed-player-name" id="buzzedPlayerName">—</div>
-          <div style="font-size:14px;color:var(--muted);margin-bottom:20px">is answering...</div>
+          <div class="buzzed-name" id="buzzedName">—</div>
+          <div style="margin-bottom:20px">is answering...</div>
           <div class="action-buttons">
             <button class="btn btn-green btn-lg" onclick="markCorrect()">✅ CORRECT</button>
             <button class="btn btn-red btn-lg" onclick="markWrong()">❌ WRONG</button>
           </div>
-          <button class="btn btn-ghost" style="margin-top:16px" onclick="forceNextQuestion()">⏭ Skip to Next Question</button>
+          <button class="btn btn-ghost" style="margin-top:16px" onclick="nextQuestion()">⏭ Skip to Next</button>
         </div>
       </div>
 
@@ -218,20 +178,19 @@
         <div style="text-align:center;padding:12px">
           <div style="font-size:48px;margin-bottom:8px">✅</div>
           <div style="font-size:20px;font-weight:700;color:var(--green);margin-bottom:16px">Question Complete!</div>
-          <button class="btn btn-green btn-lg" onclick="nextQuestion()">⏭ NEXT QUESTION</button>
+          <button class="btn btn-green btn-lg" onclick="advanceToNext()">⏭ NEXT QUESTION</button>
         </div>
       </div>
 
       <!-- Players Grid -->
       <div class="card">
-        <div class="card-header"><span class="card-title">👥 FINALISTS</span><button class="btn btn-ghost btn-sm" onclick="resetAllBuzzers()">↺ Reset All</button></div>
+        <div class="card-title">👥 FINALISTS</div>
         <div id="playersGrid" class="players-grid"></div>
       </div>
 
-      <!-- Danger Zone -->
+      <!-- End Round -->
       <div class="card" style="border-color:rgba(239,68,68,0.3)">
-        <div class="card-header"><span class="card-title" style="color:var(--red)">⚠️ SESSION CONTROLS</span></div>
-        <button class="btn btn-ghost" onclick="endFinalRound()" style="color:var(--red);border-color:rgba(239,68,68,0.3)">🏁 END FINAL ROUND</button>
+        <button class="btn btn-ghost" onclick="endFinalRound()" style="color:var(--red);border-color:rgba(239,68,68,0.3);width:100%">🏁 END FINAL ROUND</button>
       </div>
     </div>
   </div>
@@ -243,129 +202,41 @@ const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
 // State
-let mainSessionPlayers = [];
-let selectedPlayerIds = new Set();
-let frPlayers = [];
 let roomCode = '';
-let pointsPerBuzz = 100;
-let currentQuestionText = '';
+let frPlayers = new Map(); // id -> { name, avatar, score, status }
+let currentQuestion = null;
 let currentQuestionNumber = 0;
 let buzzedPlayerId = null;
 let lockedPlayers = new Set();
 let eliminatedPlayers = new Set();
-let realtimeChannel = null;
 let isQuestionOpen = false;
+let realtimeChannel = null;
+let pointsPerBuzz = 100;
 
-// ────────────────────────────────────────────────────────────
-// Room Code Management
-// ────────────────────────────────────────────────────────────
 function generateRoomCode() {
   roomCode = 'FR' + Math.random().toString(36).substring(2, 6).toUpperCase();
   document.getElementById('roomCodeInput').value = roomCode;
   document.getElementById('roomCodeDisplay').innerText = roomCode;
-  localStorage.setItem('fr_room_code', roomCode);
+  localStorage.setItem('fr_room', roomCode);
 }
 
-function autoDetect() {
-  const saved = localStorage.getItem('paq_session_id');
-  if (saved) {
-    document.getElementById('sessionIdInput').value = saved;
-    loadSession();
-  }
-}
-
-// ────────────────────────────────────────────────────────────
-// Load Main Session Players
-// ────────────────────────────────────────────────────────────
-async function loadSession() {
-  const sessionId = document.getElementById('sessionIdInput').value.trim();
-  if (!sessionId) { toast('Enter a session ID', 'error'); return; }
+async function startFinalRound() {
+  if (frPlayers.size < 2) { toast('Need at least 2 players to start!', 'error'); return; }
   
-  const { data: players, error } = await sb.from('players')
-    .select('id, name, avatar_color, score, correct_count, is_eliminated')
-    .eq('session_id', sessionId)
-    .order('score', { ascending: false });
-    
-  if (error || !players || players.length === 0) {
-    toast('Session not found or no players', 'error');
-    document.getElementById('sessionStatus').innerText = '❌ Session not found';
-    return;
-  }
-  
-  mainSessionPlayers = players;
-  document.getElementById('sessionStatus').innerHTML = `✅ Loaded ${players.length} players | Top: ${players[0]?.name}`;
-  renderPlayerList();
-  autoSelectTop();
-}
-
-function renderPlayerList() {
-  const container = document.getElementById('playerList');
-  const medals = ['🥇', '🥈', '🥉'];
-  container.innerHTML = mainSessionPlayers.map((p, i) => {
-    const isSelected = selectedPlayerIds.has(p.id);
-    return `<div class="player-item ${isSelected ? 'selected' : ''}" onclick="togglePlayer('${p.id}')">
-      <div class="player-avatar">${p.avatar_color || '🎮'}</div>
-      <div class="player-info">
-        <div class="player-name">${p.name}</div>
-        <div class="player-score">${medals[i] || '#' + (i+1)} · ${p.score} pts</div>
-      </div>
-      <div class="check-icon">${isSelected ? '✓' : ''}</div>
-    </div>`;
-  }).join('');
-}
-
-function togglePlayer(id) {
-  if (selectedPlayerIds.has(id)) selectedPlayerIds.delete(id);
-  else selectedPlayerIds.add(id);
-  renderPlayerList();
-  updateSelectedCount();
-}
-
-function autoSelectTop() {
-  const n = parseInt(document.getElementById('finalistCount').value) || 5;
-  selectedPlayerIds.clear();
-  mainSessionPlayers.slice(0, n).forEach(p => selectedPlayerIds.add(p.id));
-  renderPlayerList();
-  updateSelectedCount();
-}
-
-function updateSelectedCount() {
-  const count = selectedPlayerIds.size;
-  document.getElementById('selectedCount').innerText = `${count} selected`;
-  document.getElementById('launchBtn').disabled = count < 2;
-}
-
-// ────────────────────────────────────────────────────────────
-// Launch Final Round
-// ────────────────────────────────────────────────────────────
-function launchFinalRound() {
-  if (selectedPlayerIds.size < 2) { toast('Select at least 2 players', 'error'); return; }
-  
-  roomCode = document.getElementById('roomCodeInput').value || generateRoomCode() || 'FR' + Math.random().toString(36).substring(2, 6).toUpperCase();
   pointsPerBuzz = parseInt(document.getElementById('pointsPerBuzz').value) || 100;
   
-  // Build FR Players
-  frPlayers = mainSessionPlayers
-    .filter(p => selectedPlayerIds.has(p.id))
-    .map(p => ({
-      id: p.id,
-      name: p.name,
-      avatar: p.avatar_color || '🎮',
-      score: 0,
-      status: 'waiting',
-      buzzTime: null
-    }));
-  
-  // Save to localStorage for persistence
-  localStorage.setItem('fr_players', JSON.stringify(frPlayers));
-  localStorage.setItem('fr_room', roomCode);
-  
+  // Setup realtime channel for this room
   setupRealtimeChannel();
-  showControlScreen();
-  toast(`🚀 Final Round launched! Room code: ${roomCode}`, 'success');
   
-  // Broadcast to FOH
-  broadcast('round_started', { roomCode, players: frPlayers });
+  // Switch to game panel
+  document.getElementById('setupPanel').classList.add('hidden');
+  document.getElementById('gamePanel').classList.remove('hidden');
+  document.getElementById('liveRoomCode').innerText = roomCode;
+  
+  // Broadcast round started
+  broadcast('round_started', { roomCode, pointsPerBuzz });
+  
+  toast('🎮 Final Round started! Players can now buzz in!', 'success');
 }
 
 function setupRealtimeChannel() {
@@ -373,8 +244,8 @@ function setupRealtimeChannel() {
   
   realtimeChannel = sb.channel(`fr-${roomCode}`, { config: { broadcast: { self: false } } });
   realtimeChannel
-    .on('broadcast', { event: 'buzz' }, ({ payload }) => handleBuzz(payload))
     .on('broadcast', { event: 'player_join' }, ({ payload }) => handlePlayerJoin(payload))
+    .on('broadcast', { event: 'buzz' }, ({ payload }) => handleBuzz(payload))
     .subscribe();
 }
 
@@ -385,9 +256,8 @@ function broadcast(event, payload) {
 }
 
 function handlePlayerJoin(payload) {
-  const existing = frPlayers.find(p => p.id === payload.id);
-  if (!existing && !eliminatedPlayers.has(payload.id)) {
-    frPlayers.push({
+  if (!frPlayers.has(payload.id)) {
+    frPlayers.set(payload.id, {
       id: payload.id,
       name: payload.name,
       avatar: payload.avatar,
@@ -397,6 +267,9 @@ function handlePlayerJoin(payload) {
     renderPlayersGrid();
     updateSidebar();
     toast(`${payload.avatar} ${payload.name} joined!`, 'success');
+    
+    // Enable start button if we have at least 2 players
+    document.getElementById('startBtn').disabled = frPlayers.size < 2;
   }
 }
 
@@ -404,62 +277,54 @@ function handleBuzz(payload) {
   if (!isQuestionOpen || buzzedPlayerId) return;
   if (lockedPlayers.has(payload.id) || eliminatedPlayers.has(payload.id)) return;
   
-  const player = frPlayers.find(p => p.id === payload.id);
+  const player = frPlayers.get(payload.id);
   if (!player) return;
   
   buzzedPlayerId = payload.id;
   isQuestionOpen = false;
   
   player.status = 'buzzed';
-  player.buzzTime = Date.now();
   
   // Lock all other players
-  frPlayers.forEach(p => {
-    if (p.id !== payload.id && !eliminatedPlayers.has(p.id)) {
+  frPlayers.forEach((p, id) => {
+    if (id !== payload.id && !eliminatedPlayers.has(id)) {
       p.status = 'locked';
     }
   });
   
   // Update UI
-  document.getElementById('buzzerActionCard').style.display = 'block';
+  document.getElementById('buzzerCard').style.display = 'block';
   document.getElementById('nextCard').style.display = 'none';
-  document.getElementById('buzzedPlayerName').innerHTML = `${player.avatar} ${player.name}`;
-  document.getElementById('questionStateBadge').innerHTML = '🔔 BUZZED';
-  document.getElementById('questionStateBadge').style.background = 'rgba(251,191,36,0.2)';
-  document.getElementById('questionStateBadge').style.color = 'var(--gold)';
+  document.getElementById('buzzedName').innerHTML = `${player.avatar} ${player.name}`;
+  document.getElementById('openBtn').disabled = true;
+  document.getElementById('resetBtn').disabled = false;
   document.getElementById('statBuzzed').innerText = player.name;
-  document.getElementById('openQuestionBtn').disabled = true;
-  document.getElementById('resetQuestionBtn').disabled = false;
   
   renderPlayersGrid();
   updateSidebar();
   
   broadcast('buzz_confirmed', { playerId: payload.id, playerName: player.name, playerAvatar: player.avatar });
-  playBuzzSound();
   toast(`🔔 ${player.name} buzzed in!`, 'info');
 }
 
 function markCorrect() {
   if (!buzzedPlayerId) return;
   
-  const player = frPlayers.find(p => p.id === buzzedPlayerId);
-  if (!player) return;
+  const player = frPlayers.get(buzzedPlayerId);
+  if (player) {
+    player.score += pointsPerBuzz;
+    player.status = 'correct';
+    lockedPlayers.add(buzzedPlayerId);
+  }
   
-  player.score += pointsPerBuzz;
-  player.status = 'correct';
-  lockedPlayers.add(buzzedPlayerId);
-  
-  document.getElementById('buzzerActionCard').style.display = 'none';
+  document.getElementById('buzzerCard').style.display = 'none';
   document.getElementById('nextCard').style.display = 'block';
-  document.getElementById('questionStateBadge').innerHTML = '✅ CORRECT';
-  document.getElementById('questionStateBadge').style.background = 'rgba(16,185,129,0.2)';
-  document.getElementById('questionStateBadge').style.color = 'var(--green)';
+  document.getElementById('statBuzzed').innerText = '—';
   
-  broadcast('correct', { playerId: buzzedPlayerId, newScore: player.score, playerName: player.name });
+  broadcast('correct', { playerId: buzzedPlayerId, newScore: player?.score, playerName: player?.name });
   renderPlayersGrid();
   updateSidebar();
-  playCorrectSound();
-  toast(`✅ Correct! +${pointsPerBuzz} pts for ${player.name}`, 'success');
+  toast(`✅ Correct! +${pointsPerBuzz} pts for ${player?.name}`, 'success');
   
   buzzedPlayerId = null;
 }
@@ -467,271 +332,232 @@ function markCorrect() {
 function markWrong() {
   if (!buzzedPlayerId) return;
   
-  const player = frPlayers.find(p => p.id === buzzedPlayerId);
+  const player = frPlayers.get(buzzedPlayerId);
   if (player) {
     player.status = 'wrong';
     lockedPlayers.add(buzzedPlayerId);
   }
   
   // Re-open for remaining players
-  const remaining = frPlayers.filter(p => !lockedPlayers.has(p.id) && !eliminatedPlayers.has(p.id));
+  const remaining = Array.from(frPlayers.keys()).filter(id => !lockedPlayers.has(id) && !eliminatedPlayers.has(id));
   if (remaining.length > 0) {
     isQuestionOpen = true;
-    frPlayers.forEach(p => {
-      if (!lockedPlayers.has(p.id) && !eliminatedPlayers.has(p.id)) {
+    frPlayers.forEach((p, id) => {
+      if (!lockedPlayers.has(id) && !eliminatedPlayers.has(id)) {
         p.status = 'waiting';
       }
     });
-    document.getElementById('buzzerActionCard').style.display = 'none';
-    document.getElementById('questionStateBadge').innerHTML = '🔔 OPEN';
+    document.getElementById('buzzerCard').style.display = 'none';
   } else {
     document.getElementById('nextCard').style.display = 'block';
-    document.getElementById('questionStateBadge').innerHTML = '⏸️ COMPLETE';
   }
   
   broadcast('wrong', { playerId: buzzedPlayerId, playerName: player?.name });
   renderPlayersGrid();
   updateSidebar();
-  playWrongSound();
-  toast(`❌ Wrong - ${player?.name} is locked out this question`, 'error');
+  toast(`❌ Wrong - ${player?.name} is locked out`, 'error');
   
   buzzedPlayerId = null;
   document.getElementById('statBuzzed').innerText = '—';
 }
 
-function nextQuestion() {
+function advanceToNext() {
   buzzedPlayerId = null;
   isQuestionOpen = false;
-  currentQuestionText = '';
+  currentQuestion = null;
   currentQuestionNumber++;
   
-  document.getElementById('buzzerActionCard').style.display = 'none';
+  document.getElementById('buzzerCard').style.display = 'none';
   document.getElementById('nextCard').style.display = 'none';
-  document.getElementById('openQuestionBtn').disabled = false;
-  document.getElementById('resetQuestionBtn').disabled = true;
-  document.getElementById('questionStateBadge').innerHTML = 'STANDBY';
-  document.getElementById('questionStateBadge').style.background = 'rgba(107,122,153,0.15)';
-  document.getElementById('questionDisplayArea').innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px">Type next question and open buzzers</div>';
+  document.getElementById('openBtn').disabled = false;
+  document.getElementById('resetBtn').disabled = true;
+  document.getElementById('questionDisplay').innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px">Type next question and open buzzers</div>';
   document.getElementById('questionInput').value = '';
-  document.getElementById('statQuestionNum').innerText = currentQuestionNumber;
-  document.getElementById('questionNumber').innerText = `Q${currentQuestionNumber}`;
+  document.getElementById('statQuestion').innerText = `Q${currentQuestionNumber}`;
+  document.getElementById('questionNum').innerText = `Q${currentQuestionNumber}`;
   
   broadcast('next_question', { questionNumber: currentQuestionNumber });
+  
+  // Reset player statuses (except eliminated)
+  frPlayers.forEach((p, id) => {
+    if (!eliminatedPlayers.has(id)) p.status = 'waiting';
+  });
+  lockedPlayers.clear();
+  renderPlayersGrid();
 }
 
 function openQuestion() {
   const qText = document.getElementById('questionInput').value.trim();
   if (!qText) { toast('Enter a question first', 'error'); return; }
   
-  currentQuestionText = qText;
+  currentQuestion = qText;
   isQuestionOpen = true;
   buzzedPlayerId = null;
   lockedPlayers.clear();
   
   // Reset non-eliminated players to waiting
-  frPlayers.forEach(p => {
-    if (!eliminatedPlayers.has(p.id)) p.status = 'waiting';
+  frPlayers.forEach((p, id) => {
+    if (!eliminatedPlayers.has(id)) p.status = 'waiting';
   });
   
-  document.getElementById('questionDisplayArea').innerHTML = `<div class="question-text">📢 ${qText}</div>`;
-  document.getElementById('questionStateBadge').innerHTML = '🔔 OPEN';
-  document.getElementById('questionStateBadge').style.background = 'rgba(16,185,129,0.2)';
-  document.getElementById('questionStateBadge').style.color = 'var(--green)';
-  document.getElementById('openQuestionBtn').disabled = true;
-  document.getElementById('resetQuestionBtn').disabled = false;
-  document.getElementById('statBuzzed').innerText = '—';
+  document.getElementById('questionDisplay').innerHTML = `<div class="question-text">📢 ${qText}</div>`;
+  document.getElementById('openBtn').disabled = true;
+  document.getElementById('resetBtn').disabled = false;
+  document.getElementById('buzzerCard').style.display = 'none';
   document.getElementById('nextCard').style.display = 'none';
+  document.getElementById('statBuzzed').innerText = '—';
   
   renderPlayersGrid();
   
   broadcast('question_open', { question: qText, questionNumber: currentQuestionNumber });
   toast('🔔 Buzzers are OPEN! Players can buzz in.', 'success');
-  playOpenSound();
 }
 
-function resetQuestion() {
-  if (!currentQuestionText) return;
+function resetBuzzers() {
+  if (!currentQuestion) return;
   
   buzzedPlayerId = null;
   lockedPlayers.clear();
   isQuestionOpen = true;
   
-  frPlayers.forEach(p => {
-    if (!eliminatedPlayers.has(p.id)) p.status = 'waiting';
+  frPlayers.forEach((p, id) => {
+    if (!eliminatedPlayers.has(id)) p.status = 'waiting';
   });
   
-  document.getElementById('buzzerActionCard').style.display = 'none';
-  document.getElementById('questionStateBadge').innerHTML = '🔔 OPEN';
+  document.getElementById('buzzerCard').style.display = 'none';
   document.getElementById('statBuzzed').innerText = '—';
   renderPlayersGrid();
   
   broadcast('reset_buzzers', {});
-  toast('↺ Buzzers reset - players can buzz again!', 'info');
+  toast('↺ Buzzers reset!', 'info');
 }
 
-function resetAllBuzzers() {
-  resetQuestion();
-}
-
-function clearQuestionInput() {
-  document.getElementById('questionInput').value = '';
-}
-
-function forceNextQuestion() {
-  nextQuestion();
+function nextQuestion() {
+  advanceToNext();
 }
 
 function eliminatePlayer(id) {
-  const player = frPlayers.find(p => p.id === id);
+  const player = frPlayers.get(id);
   if (!player) return;
-  if (!confirm(`Eliminate ${player.name}? They will be removed from the game.`)) return;
+  if (!confirm(`Eliminate ${player.name}?`)) return;
   
   eliminatedPlayers.add(id);
   player.status = 'eliminated';
-  
-  const eliminatedCount = eliminatedPlayers.size;
-  document.getElementById('statEliminated').innerText = eliminatedCount;
+  document.getElementById('statEliminated').innerText = eliminatedPlayers.size;
   
   renderPlayersGrid();
   updateSidebar();
   
   broadcast('eliminated', { playerId: id, playerName: player.name });
-  toast(`⚡ ${player.name} has been ELIMINATED!`, 'error');
-  playEliminateSound();
+  toast(`⚡ ${player.name} eliminated!`, 'error');
 }
 
 function endFinalRound() {
-  if (!confirm('End the Final Round? The winner will be announced.')) return;
+  if (!confirm('End the Final Round?')) return;
   
-  const sorted = frPlayers.filter(p => !eliminatedPlayers.has(p.id)).sort((a, b) => b.score - a.score);
+  const sorted = Array.from(frPlayers.values())
+    .filter(p => !eliminatedPlayers.has(p.id))
+    .sort((a, b) => b.score - a.score);
   const winner = sorted[0];
   
-  broadcast('round_ended', { winner, players: frPlayers });
+  broadcast('round_ended', { winner, players: Array.from(frPlayers.values()) });
   toast(`🏆 FINAL ROUND ENDED! Winner: ${winner?.name || 'N/A'}`, 'success');
-  playWinnerSound();
 }
 
-// ────────────────────────────────────────────────────────────
 // UI Rendering
-// ────────────────────────────────────────────────────────────
-function showControlScreen() {
-  document.getElementById('setupScreen').classList.add('hidden');
-  document.getElementById('controlScreen').classList.remove('hidden');
-  document.getElementById('liveRoomCode').innerText = roomCode;
-  document.getElementById('roomCodeDisplay').innerText = roomCode;
-  renderPlayersGrid();
-  updateSidebar();
-}
-
 function renderPlayersGrid() {
-  const sorted = [...frPlayers].sort((a, b) => b.score - a.score);
+  const sorted = Array.from(frPlayers.values()).sort((a, b) => b.score - a.score);
   const grid = document.getElementById('playersGrid');
-  const activeCount = frPlayers.filter(p => !eliminatedPlayers.has(p.id)).length;
+  const activeCount = sorted.filter(p => !eliminatedPlayers.has(p.id)).length;
   document.getElementById('statPlayers').innerText = activeCount;
-  document.getElementById('statEliminated').innerText = eliminatedPlayers.size;
+  document.getElementById('playerCount').innerText = activeCount;
+  
+  if (sorted.length === 0) {
+    grid.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted)">Waiting for players...</div>';
+    return;
+  }
   
   grid.innerHTML = sorted.map((p, i) => {
     const medal = i === 0 ? '👑' : i === 1 ? '🥈' : i === 2 ? '🥉' : '';
-    let statusText = '';
-    if (p.status === 'buzzed') statusText = '<span class="player-status-badge" style="background:rgba(251,191,36,0.2);color:var(--gold)">🔔 BUZZED</span>';
-    else if (p.status === 'correct') statusText = '<span class="player-status-badge" style="background:rgba(16,185,129,0.2);color:var(--green)">✅ CORRECT</span>';
-    else if (p.status === 'wrong') statusText = '<span class="player-status-badge" style="background:rgba(239,68,68,0.2);color:var(--red)">❌ WRONG</span>';
-    else if (p.status === 'locked') statusText = '<span class="player-status-badge" style="background:rgba(239,68,68,0.15);color:var(--red)">🔒 LOCKED</span>';
-    else if (eliminatedPlayers.has(p.id)) statusText = '<span class="player-status-badge" style="background:rgba(107,122,153,0.2);color:var(--muted)">⚡ OUT</span>';
-    else statusText = '<span class="player-status-badge" style="background:rgba(16,185,129,0.1);color:var(--green)">○ READY</span>';
+    let statusBadge = '';
+    if (p.status === 'buzzed') statusBadge = '<span style="font-size:10px;color:var(--gold)">🔔 BUZZED</span>';
+    else if (p.status === 'correct') statusBadge = '<span style="font-size:10px;color:var(--green)">✅ CORRECT</span>';
+    else if (p.status === 'wrong') statusBadge = '<span style="font-size:10px;color:var(--red)">❌ WRONG</span>';
+    else if (eliminatedPlayers.has(p.id)) statusBadge = '<span style="font-size:10px;color:var(--muted)">⚡ OUT</span>';
+    else statusBadge = '<span style="font-size:10px;color:var(--green)">○ READY</span>';
     
-    return `<div class="player-card ${p.status} ${eliminatedPlayers.has(p.id) ? 'eliminated' : ''}">
-      <div style="position:absolute;top:-5px;left:5px;font-size:20px">${medal}</div>
-      <div class="player-avatar-lg">${p.avatar}</div>
-      <div class="player-name-lg">${p.name}</div>
-      <div class="player-score-lg">${p.score}</div>
-      ${statusText}
-      ${!eliminatedPlayers.has(p.id) ? `<div><button class="eliminate-btn" onclick="eliminatePlayer('${p.id}')">⚡ Eliminate</button></div>` : ''}
-    </div>`;
+    return `
+      <div class="player-card ${p.status} ${eliminatedPlayers.has(p.id) ? 'eliminated' : ''}">
+        <div style="position:absolute;margin-top:-20px;font-size:20px">${medal}</div>
+        <div class="player-avatar">${p.avatar}</div>
+        <div class="player-name">${p.name}</div>
+        <div class="player-score">${p.score}</div>
+        ${statusBadge}
+        ${!eliminatedPlayers.has(p.id) ? `<div><button class="eliminate-btn" onclick="eliminatePlayer('${p.id}')">⚡ Eliminate</button></div>` : ''}
+      </div>
+    `;
   }).join('');
+  
+  // Also render setup list
+  const setupList = document.getElementById('playerSetupList');
+  if (setupList && sorted.length === 0) {
+    setupList.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted)">Players will appear here after joining<br><br>Share this room code: <strong style="color:var(--gold);font-size:20px">' + roomCode + '</strong></div>';
+  } else if (setupList) {
+    setupList.innerHTML = sorted.map(p => `
+      <div style="display:flex;align-items:center;gap:12px;padding:10px;background:var(--surface2);border-radius:10px;margin-bottom:8px">
+        <span style="font-size:28px">${p.avatar}</span>
+        <span style="flex:1;font-weight:600">${p.name}</span>
+        <span style="color:var(--gold)">${p.score} pts</span>
+      </div>
+    `).join('');
+  }
 }
 
 function updateSidebar() {
-  const sorted = [...frPlayers].filter(p => !eliminatedPlayers.has(p.id)).sort((a, b) => b.score - a.score);
+  const sorted = Array.from(frPlayers.values())
+    .filter(p => !eliminatedPlayers.has(p.id))
+    .sort((a, b) => b.score - a.score);
+  
   const lb = document.getElementById('sidebarLeaderboard');
   const medals = ['🥇', '🥈', '🥉'];
-  lb.innerHTML = sorted.length ? sorted.map((p, i) => `
+  
+  if (sorted.length === 0) {
+    lb.innerHTML = '<div style="color:var(--muted);text-align:center;padding:20px">No players yet</div>';
+    return;
+  }
+  
+  lb.innerHTML = sorted.slice(0, 5).map((p, i) => `
     <div class="lb-item">
-      <span class="lb-rank">${medals[i] || i+1}</span>
+      <span>${medals[i] || i+1}</span>
       <span class="lb-name">${p.name}</span>
       <span class="lb-score">${p.score}</span>
     </div>
-  `).join('') : '<div style="color:var(--muted);text-align:center;padding:20px">No players</div>';
-  document.getElementById('playerCount').innerText = sorted.length;
+  `).join('');
 }
 
-// ────────────────────────────────────────────────────────────
-// Sound Effects
-// ────────────────────────────────────────────────────────────
-let audioCtx = null;
-function getAudioContext() {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  if (audioCtx.state === 'suspended') audioCtx.resume();
-  return audioCtx;
-}
-
-function playSound(freq, duration, type = 'sine', delay = 0) {
-  try {
-    const ctx = getAudioContext();
-    const now = ctx.currentTime + delay;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.type = type;
-    osc.frequency.value = freq;
-    gain.gain.setValueAtTime(0.5, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
-    osc.start(now);
-    osc.stop(now + duration);
-  } catch(e) { console.warn(e); }
-}
-
-function playBuzzSound() { playSound(880, 0.1, 'square'); setTimeout(() => playSound(440, 0.15, 'sine'), 0.05); }
-function playCorrectSound() { [523, 659, 784, 1047].forEach((f, i) => setTimeout(() => playSound(f, 0.15, 'sine'), i * 0.08)); }
-function playWrongSound() { playSound(200, 0.4, 'sawtooth'); setTimeout(() => playSound(180, 0.3, 'sawtooth'), 0.2); }
-function playOpenSound() { playSound(698, 0.15, 'sine'); setTimeout(() => playSound(523, 0.2, 'sine'), 0.1); }
-function playEliminateSound() { playSound(160, 0.5, 'sawtooth'); setTimeout(() => playSound(140, 0.4, 'sawtooth'), 0.3); }
-function playWinnerSound() { [523, 659, 784, 1047, 1319, 1568].forEach((f, i) => setTimeout(() => playSound(f, 0.2, 'sine'), i * 0.1)); }
-
-// ────────────────────────────────────────────────────────────
-// Toast Notification
-// ────────────────────────────────────────────────────────────
-function toast(message, type = 'info') {
-  const container = document.getElementById('toastContainer');
+function toast(msg, type = 'info') {
   const toast = document.createElement('div');
-  toast.className = `toast ${type}`;
-  toast.innerHTML = message;
-  container.appendChild(toast);
+  toast.className = 'toast';
+  toast.innerHTML = msg;
+  document.body.appendChild(toast);
   setTimeout(() => toast.remove(), 3000);
 }
 
 // Initialize
 generateRoomCode();
-autoDetect();
 
-// Expose globals
-window.loadSession = loadSession;
-window.autoDetect = autoDetect;
-window.togglePlayer = togglePlayer;
-window.autoSelectTop = autoSelectTop;
-window.launchFinalRound = launchFinalRound;
-window.generateRoomCode = generateRoomCode;
-window.openQuestion = openQuestion;
+// Listen for player joins via the setup list (players join via player.html)
+// The player page will broadcast join events to this channel
+window.eliminatePlayer = eliminatePlayer;
 window.markCorrect = markCorrect;
 window.markWrong = markWrong;
+window.openQuestion = openQuestion;
+window.resetBuzzers = resetBuzzers;
 window.nextQuestion = nextQuestion;
-window.resetQuestion = resetQuestion;
-window.resetAllBuzzers = resetAllBuzzers;
-window.eliminatePlayer = eliminatePlayer;
-window.clearQuestionInput = clearQuestionInput;
-window.forceNextQuestion = forceNextQuestion;
+window.advanceToNext = advanceToNext;
 window.endFinalRound = endFinalRound;
+window.startFinalRound = startFinalRound;
+window.generateRoomCode = generateRoomCode;
 </script>
 </body>
 </html>

@@ -13,145 +13,85 @@
       --red: #ef4444; --accent: #3b82f6; --purple: #a855f7;
       --text: #ffffff; --muted: rgba(255,255,255,0.5);
     }
-    body { background: var(--bg); font-family: 'Space Grotesk', sans-serif; color: var(--text); min-height: 100vh; overflow: hidden; }
-    body::before {
-      content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
-      background: radial-gradient(ellipse at 20% 50%, rgba(251,191,36,0.06) 0%, transparent 50%),
-                  radial-gradient(ellipse at 80% 50%, rgba(239,68,68,0.06) 0%, transparent 50%);
-    }
-    .app { position: relative; z-index: 2; height: 100vh; display: flex; flex-direction: column; }
+    body { background: var(--bg); font-family: 'Space Grotesk', sans-serif; color: var(--text); height: 100vh; overflow: hidden; }
+    .app { height: 100vh; display: flex; flex-direction: column; }
     
-    /* Top Bar */
     .top-bar { display: flex; justify-content: space-between; align-items: center; padding: 16px 32px; background: rgba(3,5,11,0.9); backdrop-filter: blur(16px); border-bottom: 2px solid rgba(251,191,36,0.4); }
     .logo { font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: 4px; background: linear-gradient(135deg, #fff, var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .fr-badge { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: var(--gold); background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.4); padding: 6px 20px; border-radius: 30px; }
-    .room-display { font-family: 'JetBrains Mono', monospace; font-size: 24px; font-weight: 700; background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.3); padding: 6px 24px; border-radius: 30px; color: var(--gold); letter-spacing: 3px; }
-
-    /* Main Layout */
-    .main-layout { display: flex; flex: 1; overflow: hidden; }
-    .center-stage { flex: 1; display: flex; align-items: center; justify-content: center; padding: 40px; position: relative; }
-    .scoreboard { width: 320px; background: rgba(3,5,11,0.85); backdrop-filter: blur(20px); border-left: 2px solid rgba(251,191,36,0.25); display: flex; flex-direction: column; }
-    .sb-header { padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.08); }
-    .sb-title { font-family: 'Bebas Neue', sans-serif; font-size: 28px; color: var(--gold); }
-    .sb-list { flex: 1; overflow-y: auto; padding: 16px; }
-    .sb-item { display: flex; align-items: center; gap: 14px; padding: 12px 16px; margin-bottom: 8px; border-radius: 14px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); transition: all 0.3s; }
-    .sb-item.buzzed { background: rgba(251,191,36,0.12); border-color: rgba(251,191,36,0.5); animation: pulseBg 0.5s ease; }
-    .sb-item.correct { background: rgba(16,185,129,0.12); border-color: rgba(16,185,129,0.5); }
-    .sb-rank { font-size: 24px; width: 40px; }
-    .sb-avatar { font-size: 32px; }
-    .sb-info { flex: 1; }
-    .sb-name { font-weight: 700; font-size: 15px; }
-    .sb-score { font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 700; color: var(--gold); }
-    @keyframes pulseBg { 0%,100%{ opacity: 1; } 50%{ background: rgba(251,191,36,0.25); } }
-
-    /* Screens */
-    .screen { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.4s; }
-    .screen.active { opacity: 1; pointer-events: auto; }
-
-    /* Waiting Screen */
-    .waiting-content { text-align: center; }
-    .waiting-icon { font-size: 80px; animation: float 3s ease-in-out infinite; }
-    @keyframes float { 0%,100%{ transform: translateY(0); } 50%{ transform: translateY(-16px); } }
-    .waiting-title { font-family: 'Bebas Neue', sans-serif; font-size: 80px; letter-spacing: 4px; background: linear-gradient(135deg, var(--gold), var(--red)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .big-room { font-family: 'JetBrains Mono', monospace; font-size: 72px; font-weight: 700; color: var(--gold); letter-spacing: 12px; margin-top: 20px; text-shadow: 0 0 40px rgba(251,191,36,0.5); }
-
-    /* Question Screen */
-    .question-content { width: min(90%, 1000px); text-align: center; }
-    .q-number { font-size: 20px; color: var(--muted); letter-spacing: 2px; margin-bottom: 20px; }
-    .question-text { font-size: clamp(28px, 4vw, 52px); font-weight: 800; line-height: 1.4; background: rgba(255,255,255,0.04); border: 2px solid rgba(255,255,255,0.08); border-radius: 32px; padding: 40px 48px; }
-    .buzzer-open-badge { margin-top: 30px; display: inline-flex; align-items: center; gap: 12px; background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.4); padding: 12px 28px; border-radius: 60px; font-size: 18px; font-weight: 700; color: var(--green); }
-    .buzzer-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--green); animation: pulse 1s infinite; }
-    @keyframes pulse { 0%,100%{ opacity: 1; } 50%{ opacity: 0.4; } }
-
-    /* Buzzed Screen */
-    .buzzed-content { text-align: center; }
-    .buzz-flash { position: fixed; inset: 0; background: rgba(251,191,36,0.2); pointer-events: none; animation: flashFade 0.6s ease forwards; z-index: 100; }
-    @keyframes flashFade { 0%{ opacity: 1; } 100%{ opacity: 0; } }
-    .buzzed-icon { font-size: 100px; animation: pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
-    @keyframes pop { from{ transform: scale(0); opacity: 0; } to{ transform: scale(1); opacity: 1; } }
-    .buzzed-label { font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: 4px; color: var(--gold); margin-top: 16px; }
-    .buzzed-name { font-family: 'Bebas Neue', sans-serif; font-size: clamp(60px, 8vw, 120px); background: linear-gradient(135deg, #fff, var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .buzzed-sub { font-size: 20px; color: var(--muted); margin-top: 12px; }
-
-    /* End Screen */
-    .end-content { text-align: center; }
-    .winner-crown { font-size: 100px; animation: bounce 1s ease infinite; }
-    @keyframes bounce { 0%,100%{ transform: translateY(0); } 50%{ transform: translateY(-20px); } }
-    .winner-label { font-family: 'Bebas Neue', sans-serif; font-size: 36px; color: var(--gold); margin-top: 16px; }
-    .winner-name { font-family: 'Bebas Neue', sans-serif; font-size: clamp(64px, 10vw, 140px); background: linear-gradient(135deg, var(--gold), var(--red)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-
-    /* Overlays */
-    .result-overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 200; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
-    .result-overlay.show { opacity: 1; }
-    .result-overlay.correct { background: rgba(16,185,129,0.25); }
-    .result-overlay.wrong { background: rgba(239,68,68,0.25); }
-    .result-text { font-family: 'Bebas Neue', sans-serif; font-size: clamp(80px, 15vw, 200px); letter-spacing: 8px; }
-    .correct .result-text { color: var(--green); text-shadow: 0 0 60px rgba(16,185,129,0.8); }
-    .wrong .result-text { color: var(--red); text-shadow: 0 0 60px rgba(239,68,68,0.8); }
-
-    .footer { padding: 12px 32px; display: flex; justify-content: space-between; font-size: 12px; color: rgba(255,255,255,0.25); border-top: 1px solid #0f1420; background: rgba(3,5,11,0.8); }
+    .room-display { font-family: 'JetBrains Mono', monospace; font-size: 24px; background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.3); padding: 6px 24px; border-radius: 30px; color: var(--gold); letter-spacing: 3px; }
+    
+    .main { flex: 1; display: flex; align-items: center; justify-content: center; padding: 40px; }
+    .question-screen { text-align: center; max-width: 1000px; width: 100%; }
+    .question-text { font-size: clamp(32px, 5vw, 64px); font-weight: 800; line-height: 1.4; background: rgba(255,255,255,0.04); border: 2px solid rgba(255,255,255,0.08); border-radius: 32px; padding: 40px; margin-bottom: 40px; }
+    .buzzer-open { margin-top: 20px; display: inline-flex; align-items: center; gap: 12px; background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.4); padding: 12px 28px; border-radius: 60px; font-size: 18px; font-weight: 700; color: var(--green); }
+    .buzzed-screen { text-align: center; }
+    .buzzed-name { font-family: 'Bebas Neue', sans-serif; font-size: 80px; background: linear-gradient(135deg, #fff, var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .waiting-screen { text-align: center; }
+    .waiting-room { font-family: 'JetBrains Mono', monospace; font-size: 72px; color: var(--gold); letter-spacing: 8px; margin-top: 20px; }
+    
+    .screen { display: none; animation: fadeIn 0.4s ease; }
+    .screen.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    
+    .footer { padding: 12px 32px; text-align: center; font-size: 12px; color: rgba(255,255,255,0.25); border-top: 1px solid #0f1420; }
   </style>
 </head>
 <body>
 <div class="app">
   <div class="top-bar">
     <div class="logo">PLAY<span style="color:var(--gold)">A</span>QUIZ</div>
-    <div class="fr-badge">⚡ FINAL ROUND</div>
+    <div>⚡ FINAL ROUND</div>
     <div class="room-display" id="roomDisplay">——</div>
   </div>
 
-  <div class="main-layout">
-    <div class="center-stage" id="centerStage">
-      <!-- Waiting -->
-      <div class="screen active" id="screenWaiting">
-        <div class="waiting-content">
-          <div class="waiting-icon">⚡</div>
-          <div class="waiting-title">FINAL ROUND</div>
-          <div class="waiting-title" style="font-size:40px">PREPARING...</div>
-          <div class="big-room" id="waitingRoomCode">——</div>
-        </div>
-      </div>
-
-      <!-- Question -->
-      <div class="screen" id="screenQuestion">
-        <div class="question-content">
-          <div class="q-number" id="qNumber">QUESTION 1</div>
-          <div class="question-text" id="questionText">Loading...</div>
-          <div class="buzzer-open-badge"><div class="buzzer-dot"></div>BUZZERS ARE OPEN</div>
-        </div>
-      </div>
-
-      <!-- Buzzed -->
-      <div class="screen" id="screenBuzzed">
-        <div class="buzzed-content">
-          <div class="buzzed-icon" id="buzzedIcon">🎮</div>
-          <div class="buzzed-label">🔔 BUZZED IN</div>
-          <div class="buzzed-name" id="buzzedName">—</div>
-          <div class="buzzed-sub">is answering the question...</div>
-        </div>
-      </div>
-
-      <!-- Ended -->
-      <div class="screen" id="screenEnded">
-        <div class="end-content">
-          <div class="winner-crown">👑</div>
-          <div class="winner-label">🏆 FINAL ROUND WINNER</div>
-          <div class="winner-name" id="winnerName">—</div>
-        </div>
+  <div class="main">
+    <div id="waitingScreen" class="screen active">
+      <div class="waiting-screen">
+        <div style="font-size: 80px; margin-bottom: 20px;">⚡</div>
+        <div style="font-family: 'Bebas Neue', sans-serif; font-size: 48px;">FINAL ROUND</div>
+        <div class="waiting-room" id="waitingRoomCode">——</div>
+        <div style="margin-top: 30px; color: var(--muted);">Get ready for the ultimate battle!</div>
       </div>
     </div>
 
-    <div class="scoreboard">
-      <div class="sb-header"><div class="sb-title">🏆 STANDINGS</div></div>
-      <div class="sb-list" id="scoreboardList"><div style="padding:40px;text-align:center;color:var(--muted)">Waiting for players...</div></div>
+    <div id="questionScreen" class="screen">
+      <div class="question-screen">
+        <div class="question-text" id="questionText">Loading...</div>
+        <div class="buzzer-open">🔴 BUZZERS ARE OPEN</div>
+      </div>
+    </div>
+
+    <div id="buzzedScreen" class="screen">
+      <div class="buzzed-screen">
+        <div style="font-size: 60px; margin-bottom: 20px;">🔔</div>
+        <div style="font-size: 24px; color: var(--gold); letter-spacing: 2px;">BUZZED IN</div>
+        <div class="buzzed-name" id="buzzedName">—</div>
+        <div style="font-size: 18px; color: var(--muted); margin-top: 20px;">is answering...</div>
+      </div>
+    </div>
+
+    <div id="correctScreen" class="screen">
+      <div class="question-screen">
+        <div style="font-size: 100px; margin-bottom: 20px;">✅</div>
+        <div style="font-size: 48px; font-weight: 800; color: var(--green);">CORRECT!</div>
+        <div style="font-size: 24px; margin-top: 20px;" id="correctName">—</div>
+      </div>
+    </div>
+
+    <div id="endedScreen" class="screen">
+      <div class="question-screen">
+        <div style="font-size: 80px; margin-bottom: 20px;">🏆</div>
+        <div style="font-size: 48px; font-weight: 800;">GAME OVER</div>
+        <div style="font-size: 24px; margin-top: 20px; color: var(--gold);" id="winnerName">—</div>
+      </div>
     </div>
   </div>
 
-  <div class="footer"><span>PlayAQuiz — Final Round</span><span id="footerStatus">waiting</span><span id="footerTime"></span></div>
+  <div class="footer">
+    <span>PlayAQuiz — Final Round</span>
+    <span id="footerTime"></span>
+  </div>
 </div>
-
-<div class="result-overlay correct" id="correctOverlay"><div class="result-text">CORRECT!</div></div>
-<div class="result-overlay wrong" id="wrongOverlay"><div class="result-text">WRONG!</div></div>
 
 <script>
 const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
@@ -159,125 +99,37 @@ const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
 let roomCode = null;
-let frPlayers = [];
 let realtimeChannel = null;
 
 function showScreen(screenId) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(`screen${screenId}`).classList.add('active');
-  document.getElementById('footerStatus').innerText = screenId.toLowerCase();
-}
-
-function updateScoreboard() {
-  const sorted = [...frPlayers].sort((a, b) => b.score - a.score);
-  const medals = ['🥇', '🥈', '🥉'];
-  const container = document.getElementById('scoreboardList');
-  container.innerHTML = sorted.map((p, i) => `
-    <div class="sb-item ${p.status || ''}">
-      <div class="sb-rank">${medals[i] || `#${i+1}`}</div>
-      <div class="sb-avatar">${p.avatar || '🎮'}</div>
-      <div class="sb-info"><div class="sb-name">${p.name}</div></div>
-      <div class="sb-score">${p.score}</div>
-    </div>
-  `).join('');
-}
-
-function playBuzzSound() {
-  const ctx = new (window.AudioContext || window.webkitAudioContext)();
-  if (ctx.state === 'suspended') ctx.resume();
-  const now = ctx.currentTime;
-  const osc1 = ctx.createOscillator();
-  const gain1 = ctx.createGain();
-  osc1.connect(gain1); gain1.connect(ctx.destination);
-  osc1.type = 'square'; osc1.frequency.value = 880;
-  gain1.gain.setValueAtTime(0.6, now);
-  gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
-  osc1.start(now); osc1.stop(now + 0.1);
-  
-  const osc2 = ctx.createOscillator();
-  const gain2 = ctx.createGain();
-  osc2.connect(gain2); gain2.connect(ctx.destination);
-  osc2.type = 'sine'; osc2.frequency.value = 1200;
-  gain2.gain.setValueAtTime(0.5, now + 0.05);
-  gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
-  osc2.start(now + 0.05); osc2.stop(now + 0.15);
-}
-
-function showFlash() {
-  const flash = document.createElement('div');
-  flash.className = 'buzz-flash';
-  document.body.appendChild(flash);
-  setTimeout(() => flash.remove(), 600);
-}
-
-function showOverlay(type) {
-  const overlay = document.getElementById(`${type}Overlay`);
-  overlay.classList.add('show');
-  setTimeout(() => overlay.classList.remove('show'), 2000);
+  document.getElementById(`${screenId}Screen`).classList.add('active');
 }
 
 function handleBroadcast(event, payload) {
   switch (event) {
     case 'round_started':
-      roomCode = payload.roomCode;
-      frPlayers = payload.players || [];
-      document.getElementById('roomDisplay').innerText = roomCode;
-      document.getElementById('waitingRoomCode').innerText = roomCode;
-      updateScoreboard();
-      showScreen('Waiting');
+      showScreen('waiting');
       break;
-      
     case 'question_open':
-      frPlayers = payload.frPlayers || frPlayers;
-      document.getElementById('qNumber').innerText = `QUESTION ${payload.questionNumber}`;
       document.getElementById('questionText').innerText = payload.question;
-      updateScoreboard();
-      showScreen('Question');
+      showScreen('question');
       break;
-      
     case 'buzz_confirmed':
-      frPlayers.forEach(p => {
-        if (p.id === payload.playerId) p.status = 'buzzed';
-        else if (p.status === 'waiting') p.status = 'locked';
-      });
-      document.getElementById('buzzedIcon').innerText = payload.playerAvatar || '🎮';
-      document.getElementById('buzzedName').innerText = payload.playerName;
-      showScreen('Buzzed');
-      showFlash();
-      playBuzzSound();
-      updateScoreboard();
+      document.getElementById('buzzedName').innerHTML = `${payload.playerAvatar} ${payload.playerName}`;
+      showScreen('buzzed');
       break;
-      
     case 'correct':
-      frPlayers = payload.frPlayers || frPlayers;
-      showOverlay('correct');
-      updateScoreboard();
-      setTimeout(() => showScreen('Question'), 1500);
+      document.getElementById('correctName').innerHTML = `${payload.playerName} +${payload.points || 100} pts`;
+      showScreen('correct');
+      setTimeout(() => showScreen('question'), 2000);
       break;
-      
-    case 'wrong':
-      frPlayers = payload.frPlayers || frPlayers;
-      showOverlay('wrong');
-      updateScoreboard();
-      setTimeout(() => showScreen('Question'), 1500);
-      break;
-      
     case 'next_question':
-      frPlayers = payload.frPlayers || frPlayers;
-      showScreen('Question');
-      updateScoreboard();
+      showScreen('waiting');
       break;
-      
-    case 'eliminated':
-      frPlayers = payload.frPlayers || frPlayers;
-      updateScoreboard();
-      break;
-      
     case 'round_ended':
-      frPlayers = payload.players || frPlayers;
       document.getElementById('winnerName').innerHTML = `${payload.winner?.avatar || '🏆'} ${payload.winner?.name || '—'}`;
-      showScreen('Ended');
-      updateScoreboard();
+      showScreen('ended');
       break;
   }
 }
@@ -297,9 +149,6 @@ async function init() {
   document.getElementById('roomDisplay').innerText = roomCode;
   document.getElementById('waitingRoomCode').innerText = roomCode;
   
-  try { frPlayers = JSON.parse(localStorage.getItem('fr_players') || '[]'); } catch(e) {}
-  updateScoreboard();
-  
   realtimeChannel = sb.channel(`fr-${roomCode}`, { config: { broadcast: { self: false } } });
   realtimeChannel
     .on('broadcast', { event: 'round_started' }, ({ payload }) => handleBroadcast('round_started', payload))
@@ -308,7 +157,6 @@ async function init() {
     .on('broadcast', { event: 'correct' }, ({ payload }) => handleBroadcast('correct', payload))
     .on('broadcast', { event: 'wrong' }, ({ payload }) => handleBroadcast('wrong', payload))
     .on('broadcast', { event: 'next_question' }, ({ payload }) => handleBroadcast('next_question', payload))
-    .on('broadcast', { event: 'eliminated' }, ({ payload }) => handleBroadcast('eliminated', payload))
     .on('broadcast', { event: 'round_ended' }, ({ payload }) => handleBroadcast('round_ended', payload))
     .subscribe();
 }

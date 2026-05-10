@@ -7,7 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     :root {
       --bg: #03050b; --surface: #0d1120; --border: #1f2a3c;
       --gold: #fbbf24; --green: #10b981; --red: #ef4444;
@@ -19,7 +19,6 @@
     /* Join Screen */
     #joinScreen { width: 100%; max-width: 420px; }
     .logo { font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: 4px; background: linear-gradient(135deg, #fff, var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-align: center; margin-bottom: 8px; }
-    .logo-sub { font-size: 12px; color: var(--gold); text-align: center; letter-spacing: 2px; margin-bottom: 32px; }
     .join-card { background: rgba(13,17,32,0.95); border: 1px solid var(--border); border-radius: 28px; padding: 32px 24px; backdrop-filter: blur(20px); }
     .join-title { font-family: 'Bebas Neue', sans-serif; font-size: 28px; text-align: center; margin-bottom: 24px; }
     .field { margin-bottom: 16px; }
@@ -31,7 +30,6 @@
     .avatar-opt.selected { border-color: var(--gold); background: rgba(251,191,36,0.12); }
     .join-btn { width: 100%; padding: 16px; background: linear-gradient(135deg, var(--gold), #f97316); border: none; border-radius: 16px; font-size: 18px; font-weight: 800; color: #111; cursor: pointer; margin-top: 20px; transition: 0.15s; }
     .join-btn:active { transform: scale(0.97); }
-    .join-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
     /* Buzzer Screen */
     #buzzerScreen { display: none; width: 100%; height: 100vh; flex-direction: column; align-items: center; justify-content: space-between; padding: 30px 20px; }
@@ -42,7 +40,7 @@
     
     /* The BIG Buzzer */
     .buzzer-container { position: relative; display: flex; justify-content: center; margin: 30px 0; }
-    .buzzer-button { width: min(70vw, 300px); height: min(70vw, 300px); border-radius: 50%; border: none; cursor: pointer; background: radial-gradient(circle at 35% 35%, #ff6b35, #ef4444 50%, #b91c1c); box-shadow: 0 12px 0 #7f1d1d, 0 0 0 12px rgba(239,68,68,0.15); font-family: 'Bebas Neue', sans-serif; font-size: clamp(32px, 8vw, 56px); letter-spacing: 4px; color: #fff; transition: all 0.08s; font-weight: 700; }
+    .buzzer-button { width: min(70vw, 300px); height: min(70vw, 300px); border-radius: 50%; border: none; cursor: pointer; background: radial-gradient(circle at 35% 35%, #ff6b35, #ef4444 50%, #b91c1c); box-shadow: 0 12px 0 #7f1d1d, 0 0 0 12px rgba(239,68,68,0.15); font-family: 'Bebas Neue', sans-serif; font-size: clamp(32px, 8vw, 56px); letter-spacing: 4px; color: #fff; transition: all 0.08s; }
     .buzzer-button:active { transform: translateY(8px); box-shadow: 0 4px 0 #7f1d1d, 0 0 0 12px rgba(239,68,68,0.15); }
     .buzzer-button:disabled { opacity: 0.5; transform: none; cursor: not-allowed; background: radial-gradient(circle at 35% 35%, #4b5563, #374151 50%, #1f2937); box-shadow: 0 12px 0 #111827; }
     .buzzer-pulse { position: absolute; width: 100%; height: 100%; border-radius: 50%; border: 3px solid rgba(239,68,68,0.4); animation: pulseRing 1.5s ease-out infinite; pointer-events: none; }
@@ -51,15 +49,10 @@
     .status-text { font-size: 16px; font-weight: 700; text-align: center; padding: 12px; border-radius: 40px; margin: 16px auto; max-width: 280px; }
     .status-open { background: rgba(16,185,129,0.15); color: var(--green); }
     .status-buzzed { background: rgba(251,191,36,0.15); color: var(--gold); animation: blink 0.5s infinite; }
-    .status-locked { background: rgba(239,68,68,0.1); color: var(--red); }
     @keyframes blink { 0%,100%{ opacity: 1; } 50%{ opacity: 0.6; } }
     
-    .mini-leaderboard { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; padding: 16px; max-width: 100%; }
-    .mini-player { display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); border-radius: 40px; padding: 6px 14px; font-size: 13px; font-weight: 600; }
-    .mini-player.me { border-color: var(--gold); background: rgba(251,191,36,0.1); color: var(--gold); }
-    .mini-score { font-family: monospace; font-weight: 700; margin-left: 6px; }
-
     .hidden { display: none !important; }
+    .error-msg { color: var(--red); font-size: 13px; text-align: center; margin-top: 10px; }
   </style>
 </head>
 <body>
@@ -67,14 +60,14 @@
   <!-- Join Screen -->
   <div id="joinScreen">
     <div class="logo">PLAYAQUIZ</div>
-    <div class="logo-sub">⚡ FINAL ROUND</div>
+    <div style="font-size:12px;color:var(--gold);text-align:center;margin-bottom:20px">⚡ FINAL ROUND</div>
     <div class="join-card">
       <div class="join-title">JOIN THE ARENA</div>
       <div class="field"><label>ROOM CODE</label><input id="roomInput" placeholder="e.g. FR4X7K" maxlength="10" style="text-transform:uppercase;letter-spacing:3px;font-size:22px"></div>
       <div class="field"><label>YOUR NAME</label><input id="nameInput" placeholder="Enter your name" maxlength="20"></div>
       <div class="field"><label>AVATAR</label><div class="avatar-grid" id="avatarGrid"></div></div>
       <button class="join-btn" id="joinBtn" onclick="joinGame()">⚡ ENTER FINAL ROUND</button>
-      <div id="joinError" style="color:var(--red);font-size:13px;text-align:center;margin-top:12px"></div>
+      <div id="joinError" class="error-msg"></div>
     </div>
   </div>
 
@@ -90,7 +83,6 @@
       <button class="buzzer-button" id="buzzerBtn" onclick="buzz()" disabled>BUZZ!</button>
     </div>
     <div class="status-text" id="statusText">Waiting for round to start...</div>
-    <div class="mini-leaderboard" id="miniLeaderboard"></div>
   </div>
 </div>
 
@@ -99,12 +91,11 @@ const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
 const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-const AVATARS = ['🦁', '🐯', '🦊', '🐺', '🦝', '🐻', '🐼', '🐨', '🦄', '🐲', '🦅', '🦋', '🐙', '🦈', '🦖', '🤖', '👾', '👻', '🎃', '🔥', '⚡', '🌊', '🎯'];
-let myId = null, myName = '', myAvatar = '🎯', myScore = 0;
+const AVATARS = ['😎','🦁','🐯','🐱','🐶','🐺','🦊','🐸','🐧','🐙','🦄','🐲','🚀','⭐','🔥','⚡','🎮','🏆','💎','🌈','🍕','🎸','👾','🤖'];
+let myId = null, myName = '', myAvatar = '😎', myScore = 0;
 let roomCode = null, realtimeChannel = null;
 let isQuestionOpen = false;
 let myStatus = 'waiting';
-let frPlayers = [];
 
 function renderAvatars() {
   const container = document.getElementById('avatarGrid');
@@ -124,63 +115,32 @@ function setStatus(text, type = '') {
   el.className = `status-text ${type}`;
 }
 
-function updateMiniLeaderboard() {
-  const sorted = [...frPlayers].sort((a, b) => b.score - a.score);
-  const container = document.getElementById('miniLeaderboard');
-  container.innerHTML = sorted.slice(0, 8).map(p => `
-    <div class="mini-player ${p.id === myId ? 'me' : ''}">
-      <span>${p.avatar}</span>
-      <span>${p.id === myId ? 'YOU' : p.name.substring(0, 8)}</span>
-      <span class="mini-score">${p.score}</span>
-    </div>
-  `).join('');
-}
-
 function updateBuzzerButton() {
   const btn = document.getElementById('buzzerBtn');
   const pulse = document.getElementById('buzzerPulse');
+  
   if (myStatus === 'eliminated') {
-    btn.disabled = true;
-    btn.innerText = 'OUT';
-    pulse.style.display = 'none';
-    setStatus('⚡ You have been eliminated', 'status-locked');
+    btn.disabled = true; btn.innerText = 'OUT'; pulse.style.display = 'none';
+    setStatus('⚡ You have been eliminated', 'status-buzzed');
   } else if (myStatus === 'buzzed') {
-    btn.disabled = true;
-    btn.innerText = 'BUZZED!';
-    pulse.style.display = 'none';
+    btn.disabled = true; btn.innerText = 'BUZZED!'; pulse.style.display = 'none';
     setStatus('🔔 You buzzed in! Answer verbally.', 'status-buzzed');
   } else if (myStatus === 'locked') {
-    btn.disabled = true;
-    btn.innerText = 'LOCKED';
-    pulse.style.display = 'none';
-    setStatus('🔒 You are locked out for this question', 'status-locked');
-  } else if (myStatus === 'correct') {
-    btn.disabled = true;
-    btn.innerText = '✓';
-    pulse.style.display = 'none';
-  } else if (myStatus === 'wrong') {
-    btn.disabled = true;
-    btn.innerText = '✗';
-    pulse.style.display = 'none';
+    btn.disabled = true; btn.innerText = 'LOCKED'; pulse.style.display = 'none';
+    setStatus('🔒 You are locked out for this question');
   } else if (isQuestionOpen && myStatus === 'waiting') {
-    btn.disabled = false;
-    btn.innerText = 'BUZZ!';
-    pulse.style.display = 'block';
+    btn.disabled = false; btn.innerText = 'BUZZ!'; pulse.style.display = 'block';
     setStatus('🔴 BUZZERS ARE OPEN! Tap to buzz!', 'status-open');
   } else {
-    btn.disabled = true;
-    btn.innerText = 'WAIT';
-    pulse.style.display = 'none';
-    setStatus('⏳ Waiting for question...', '');
+    btn.disabled = true; btn.innerText = 'WAIT'; pulse.style.display = 'none';
+    setStatus('⏳ Waiting for question...');
   }
 }
 
 async function buzz() {
   if (!isQuestionOpen || myStatus !== 'waiting') return;
   
-  // Haptic feedback if available
   if (navigator.vibrate) navigator.vibrate(100);
-  
   playBuzzSound();
   myStatus = 'buzzed';
   updateBuzzerButton();
@@ -191,17 +151,14 @@ async function buzz() {
 function handleBroadcast(event, payload) {
   switch (event) {
     case 'round_started':
-      roomCode = payload.roomCode;
-      frPlayers = payload.players || [];
-      updateMiniLeaderboard();
-      setStatus('Round starting soon...', '');
+      document.getElementById('questionBox').innerHTML = 'Round starting soon...';
+      setStatus('Round starting! Get ready!');
       break;
       
     case 'question_open':
       isQuestionOpen = true;
       myStatus = 'waiting';
       document.getElementById('questionBox').innerHTML = payload.question;
-      updateMiniLeaderboard();
       updateBuzzerButton();
       break;
       
@@ -212,57 +169,41 @@ function handleBroadcast(event, payload) {
         setStatus('🔔 You buzzed in! Answer now!', 'status-buzzed');
       } else {
         if (myStatus === 'waiting') myStatus = 'locked';
-        setStatus(`🔔 ${payload.playerName} buzzed in first!`, 'status-locked');
+        setStatus(`🔔 ${payload.playerName} buzzed in first!`);
       }
-      frPlayers.forEach(p => {
-        if (p.id === payload.playerId) p.status = 'buzzed';
-        else if (p.status === 'waiting') p.status = 'locked';
-      });
-      updateMiniLeaderboard();
       updateBuzzerButton();
       break;
       
     case 'correct':
-      frPlayers = payload.frPlayers || frPlayers;
       if (payload.playerId === myId) {
-        const player = frPlayers.find(p => p.id === myId);
-        myScore = player?.score || myScore;
-        myStatus = 'correct';
+        myScore = payload.newScore || myScore + 100;
         document.getElementById('myScore').innerText = myScore;
+        myStatus = 'correct';
         setStatus('✅ CORRECT! +' + (payload.points || 100) + ' points!', 'status-open');
         playCorrectSound();
-      } else {
-        if (myStatus !== 'eliminated') myStatus = 'waiting';
+      } else if (myStatus !== 'eliminated') {
+        myStatus = 'waiting';
       }
-      updateMiniLeaderboard();
       updateBuzzerButton();
       break;
       
     case 'wrong':
-      frPlayers = payload.frPlayers || frPlayers;
       if (payload.playerId === myId) {
         myStatus = 'wrong';
-        setStatus('❌ Wrong answer! Locked out this question.', 'status-locked');
+        setStatus('❌ Wrong answer! Locked out this question.');
         playWrongSound();
       } else if (myStatus === 'locked') {
-        // Check if I can be reopened
-        const myData = frPlayers.find(p => p.id === myId);
-        if (myData && myData.status === 'waiting') {
-          myStatus = 'waiting';
-          isQuestionOpen = true;
-          setStatus('🔴 BUZZERS REOPENED! Tap to buzz!', 'status-open');
-        }
+        myStatus = 'waiting';
+        isQuestionOpen = true;
+        setStatus('🔴 BUZZERS REOPENED! Tap to buzz!', 'status-open');
       }
-      updateMiniLeaderboard();
       updateBuzzerButton();
       break;
       
     case 'next_question':
-      frPlayers = payload.frPlayers || frPlayers;
       isQuestionOpen = false;
       myStatus = 'waiting';
       document.getElementById('questionBox').innerHTML = 'Waiting for next question...';
-      updateMiniLeaderboard();
       updateBuzzerButton();
       break;
       
@@ -275,18 +216,14 @@ function handleBroadcast(event, payload) {
       break;
       
     case 'eliminated':
-      frPlayers = payload.frPlayers || frPlayers;
-      const me = frPlayers.find(p => p.id === myId);
-      if (me && me.status === 'eliminated') {
+      if (payload.playerId === myId) {
         myStatus = 'eliminated';
         updateBuzzerButton();
         playEliminateSound();
       }
-      updateMiniLeaderboard();
       break;
       
     case 'round_ended':
-      frPlayers = payload.players || frPlayers;
       isQuestionOpen = false;
       const winner = payload.winner;
       if (winner && winner.id === myId) {
@@ -294,7 +231,7 @@ function handleBroadcast(event, payload) {
         document.getElementById('questionBox').innerHTML = `🎉 CONGRATULATIONS! YOU WON! 🎉`;
         launchConfetti();
       } else {
-        setStatus(`Game Over! Winner: ${winner?.name || '—'}`, '');
+        setStatus(`Game Over! Winner: ${winner?.name || '—'}`);
         document.getElementById('questionBox').innerHTML = `🏁 FINAL ROUND ENDED<br>Winner: ${winner?.avatar || '🏆'} ${winner?.name || '—'}`;
       }
       updateBuzzerButton();
@@ -306,9 +243,8 @@ async function joinGame() {
   const room = document.getElementById('roomInput').value.trim().toUpperCase();
   const name = document.getElementById('nameInput').value.trim();
   
-  if (!room) { setJoinError('Enter room code'); return; }
-  if (!name) { setJoinError('Enter your name'); return; }
-  if (name.length < 2) { setJoinError('Name too short'); return; }
+  if (!room) { setError('Enter room code'); return; }
+  if (!name || name.length < 2) { setError('Enter a valid name'); return; }
   
   myId = 'p_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
   myName = name;
@@ -332,14 +268,14 @@ async function joinGame() {
         document.getElementById('buzzerScreen').style.display = 'flex';
         document.getElementById('myAvatar').innerText = myAvatar;
         document.getElementById('myName').innerText = myName;
-        setStatus('Joined! Waiting for round to start...', '');
+        setStatus('Joined! Waiting for host to start...');
       } else {
-        setJoinError('Failed to connect. Check room code.');
+        setError('Failed to connect. Check room code.');
       }
     });
 }
 
-function setJoinError(msg) {
+function setError(msg) {
   document.getElementById('joinError').innerText = msg;
   setTimeout(() => document.getElementById('joinError').innerText = '', 3000);
 }
@@ -354,8 +290,7 @@ function getAudioContext() {
 function playBuzzSound() {
   const ctx = getAudioContext();
   const now = ctx.currentTime;
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
+  const osc = ctx.createOscillator(), gain = ctx.createGain();
   osc.connect(gain); gain.connect(ctx.destination);
   osc.type = 'square'; osc.frequency.value = 880;
   gain.gain.setValueAtTime(0.5, now);
@@ -366,8 +301,7 @@ function playCorrectSound() {
   const ctx = getAudioContext();
   [523, 659, 784, 1047].forEach((f, i) => {
     const now = ctx.currentTime + i * 0.08;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
+    const osc = ctx.createOscillator(), gain = ctx.createGain();
     osc.connect(gain); gain.connect(ctx.destination);
     osc.type = 'sine'; osc.frequency.value = f;
     gain.gain.setValueAtTime(0.4, now);
@@ -377,8 +311,7 @@ function playCorrectSound() {
 }
 function playWrongSound() {
   const ctx = getAudioContext();
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
+  const osc = ctx.createOscillator(), gain = ctx.createGain();
   osc.connect(gain); gain.connect(ctx.destination);
   osc.type = 'sawtooth'; osc.frequency.value = 200;
   gain.gain.setValueAtTime(0.5, ctx.currentTime);
@@ -387,8 +320,7 @@ function playWrongSound() {
 }
 function playEliminateSound() {
   const ctx = getAudioContext();
-  const osc = ctx.createOscillator();
-  const gain = ctx.createGain();
+  const osc = ctx.createOscillator(), gain = ctx.createGain();
   osc.connect(gain); gain.connect(ctx.destination);
   osc.type = 'sawtooth'; osc.frequency.value = 160;
   gain.gain.setValueAtTime(0.4, ctx.currentTime);
@@ -398,16 +330,7 @@ function playEliminateSound() {
 function launchConfetti() {
   for (let i = 0; i < 100; i++) {
     const c = document.createElement('div');
-    c.style.position = 'fixed';
-    c.style.width = (6 + Math.random() * 8) + 'px';
-    c.style.height = (6 + Math.random() * 8) + 'px';
-    c.style.background = ['#fbbf24', '#ef4444', '#10b981', '#3b82f6', '#a855f7'][Math.floor(Math.random() * 5)];
-    c.style.left = Math.random() * 100 + 'vw';
-    c.style.top = '-10px';
-    c.style.borderRadius = '2px';
-    c.style.zIndex = '9999';
-    c.style.pointerEvents = 'none';
-    c.style.animation = `fall ${2 + Math.random() * 3}s linear forwards`;
+    c.style.cssText = `position:fixed;width:${6+Math.random()*8}px;height:${6+Math.random()*8}px;background:${['#fbbf24','#ef4444','#10b981','#3b82f6','#a855f7'][Math.floor(Math.random()*5)]};left:${Math.random()*100}vw;top:-10px;border-radius:2px;z-index:9999;pointer-events:none;animation:fall ${2+Math.random()*3}s linear forwards;`;
     document.body.appendChild(c);
     setTimeout(() => c.remove(), 5000);
   }
@@ -419,6 +342,10 @@ document.head.appendChild(style);
 // Auto-fill room from URL
 const urlParams = new URLSearchParams(window.location.search);
 if (urlParams.get('room')) document.getElementById('roomInput').value = urlParams.get('room');
+
+window.joinGame = joinGame;
+window.selectAvatar = selectAvatar;
+window.buzz = buzz;
 </script>
 </body>
 </html>
