@@ -7,153 +7,132 @@
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;600;700;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    * { margin:0; padding:0; box-sizing:border-box; user-select:none; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
-      --bg:#03050b; --gold:#fbbf24; --green:#10b981;
-      --red:#ef4444; --accent:#3b82f6; --purple:#a855f7;
-      --text:#ffffff; --muted:rgba(255,255,255,0.5);
+      --bg: #03050b; --gold: #fbbf24; --green: #10b981;
+      --red: #ef4444; --accent: #3b82f6; --purple: #a855f7;
+      --text: #ffffff; --muted: rgba(255,255,255,0.5);
     }
-    html,body { width:100%; height:100%; overflow:hidden; background:var(--bg); font-family:'Space Grotesk',sans-serif; color:var(--text); }
-
+    body { background: var(--bg); font-family: 'Space Grotesk', sans-serif; color: var(--text); min-height: 100vh; overflow: hidden; }
     body::before {
-      content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
+      content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
       background: radial-gradient(ellipse at 20% 50%, rgba(251,191,36,0.06) 0%, transparent 50%),
-                  radial-gradient(ellipse at 80% 50%, rgba(239,68,68,0.06) 0%, transparent 50%),
-                  radial-gradient(ellipse at 50% 20%, rgba(168,85,247,0.05) 0%, transparent 50%);
+                  radial-gradient(ellipse at 80% 50%, rgba(239,68,68,0.06) 0%, transparent 50%);
     }
-    body::after {
-      content:''; position:fixed; inset:0;
-      background:repeating-linear-gradient(0deg,rgba(0,0,0,0.06) 0,rgba(0,0,0,0.06) 1px,transparent 1px,transparent 5px);
-      pointer-events:none; z-index:1;
-    }
+    .app { position: relative; z-index: 2; height: 100vh; display: flex; flex-direction: column; }
+    
+    /* Top Bar */
+    .top-bar { display: flex; justify-content: space-between; align-items: center; padding: 16px 32px; background: rgba(3,5,11,0.9); backdrop-filter: blur(16px); border-bottom: 2px solid rgba(251,191,36,0.4); }
+    .logo { font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: 4px; background: linear-gradient(135deg, #fff, var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .fr-badge { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: var(--gold); background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.4); padding: 6px 20px; border-radius: 30px; }
+    .room-display { font-family: 'JetBrains Mono', monospace; font-size: 24px; font-weight: 700; background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.3); padding: 6px 24px; border-radius: 30px; color: var(--gold); letter-spacing: 3px; }
 
-    .foh { position:relative; width:100%; height:100vh; display:flex; flex-direction:column; z-index:3; }
+    /* Main Layout */
+    .main-layout { display: flex; flex: 1; overflow: hidden; }
+    .center-stage { flex: 1; display: flex; align-items: center; justify-content: center; padding: 40px; position: relative; }
+    .scoreboard { width: 320px; background: rgba(3,5,11,0.85); backdrop-filter: blur(20px); border-left: 2px solid rgba(251,191,36,0.25); display: flex; flex-direction: column; }
+    .sb-header { padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .sb-title { font-family: 'Bebas Neue', sans-serif; font-size: 28px; color: var(--gold); }
+    .sb-list { flex: 1; overflow-y: auto; padding: 16px; }
+    .sb-item { display: flex; align-items: center; gap: 14px; padding: 12px 16px; margin-bottom: 8px; border-radius: 14px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); transition: all 0.3s; }
+    .sb-item.buzzed { background: rgba(251,191,36,0.12); border-color: rgba(251,191,36,0.5); animation: pulseBg 0.5s ease; }
+    .sb-item.correct { background: rgba(16,185,129,0.12); border-color: rgba(16,185,129,0.5); }
+    .sb-rank { font-size: 24px; width: 40px; }
+    .sb-avatar { font-size: 32px; }
+    .sb-info { flex: 1; }
+    .sb-name { font-weight: 700; font-size: 15px; }
+    .sb-score { font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 700; color: var(--gold); }
+    @keyframes pulseBg { 0%,100%{ opacity: 1; } 50%{ background: rgba(251,191,36,0.25); } }
 
-    /* TOP BAR */
-    .top-bar { display:flex; justify-content:space-between; align-items:center; padding:14px 32px; background:rgba(3,5,11,0.9); backdrop-filter:blur(16px); border-bottom:2px solid rgba(251,191,36,0.4); flex-shrink:0; }
-    .logo { font-family:'Bebas Neue',sans-serif; font-size:30px; letter-spacing:4px; background:linear-gradient(135deg,#fff,var(--gold)); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
-    .fr-badge-top { font-family:'Bebas Neue',sans-serif; font-size:18px; letter-spacing:3px; color:var(--gold); background:rgba(251,191,36,0.12); border:1px solid rgba(251,191,36,0.4); padding:6px 18px; border-radius:30px; }
-    .room-display { font-family:'JetBrains Mono',monospace; font-size:22px; font-weight:700; letter-spacing:3px; background:rgba(251,191,36,0.1); border:1px solid rgba(251,191,36,0.3); padding:6px 20px; border-radius:30px; color:var(--gold); }
+    /* Screens */
+    .screen { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.4s; }
+    .screen.active { opacity: 1; pointer-events: auto; }
 
-    /* MAIN LAYOUT */
-    .main-layout { display:flex; flex:1; overflow:hidden; }
-    .center { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px; position:relative; }
+    /* Waiting Screen */
+    .waiting-content { text-align: center; }
+    .waiting-icon { font-size: 80px; animation: float 3s ease-in-out infinite; }
+    @keyframes float { 0%,100%{ transform: translateY(0); } 50%{ transform: translateY(-16px); } }
+    .waiting-title { font-family: 'Bebas Neue', sans-serif; font-size: 80px; letter-spacing: 4px; background: linear-gradient(135deg, var(--gold), var(--red)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .big-room { font-family: 'JetBrains Mono', monospace; font-size: 72px; font-weight: 700; color: var(--gold); letter-spacing: 12px; margin-top: 20px; text-shadow: 0 0 40px rgba(251,191,36,0.5); }
 
-    /* RIGHT SCOREBOARD */
-    .scoreboard { width:300px; background:rgba(3,5,11,0.85); backdrop-filter:blur(20px); border-left:2px solid rgba(251,191,36,0.25); display:flex; flex-direction:column; flex-shrink:0; }
-    .sb-header { padding:18px 20px; border-bottom:1px solid rgba(255,255,255,0.08); background:linear-gradient(135deg,rgba(251,191,36,0.08),rgba(239,68,68,0.04)); }
-    .sb-title { font-family:'Bebas Neue',sans-serif; font-size:28px; letter-spacing:2px; color:var(--gold); }
-    .sb-list { flex:1; overflow-y:auto; padding:12px; scrollbar-width:none; }
-    .sb-list::-webkit-scrollbar { display:none; }
-    .sb-item { display:flex; align-items:center; gap:12px; padding:12px 14px; margin-bottom:8px; border-radius:16px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); transition:all .3s; }
-    .sb-item.buzzed   { background:rgba(251,191,36,0.12); border-color:rgba(251,191,36,0.5); box-shadow:0 0 20px rgba(251,191,36,0.15); }
-    .sb-item.correct  { background:rgba(16,185,129,0.12);  border-color:rgba(16,185,129,0.5); }
-    .sb-item.wrong    { background:rgba(239,68,68,0.08);   border-color:rgba(239,68,68,0.3); opacity:.7; }
-    .sb-item.locked   { opacity:.5; }
-    .sb-item.eliminated { opacity:.25; filter:grayscale(1); }
-    .sb-rank { font-size:20px; width:32px; text-align:center; }
-    .sb-avatar { font-size:28px; }
-    .sb-info { flex:1; overflow:hidden; }
-    .sb-name { font-weight:700; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .sb-score { font-family:'JetBrains Mono',monospace; font-size:18px; font-weight:700; color:var(--gold); }
+    /* Question Screen */
+    .question-content { width: min(90%, 1000px); text-align: center; }
+    .q-number { font-size: 20px; color: var(--muted); letter-spacing: 2px; margin-bottom: 20px; }
+    .question-text { font-size: clamp(28px, 4vw, 52px); font-weight: 800; line-height: 1.4; background: rgba(255,255,255,0.04); border: 2px solid rgba(255,255,255,0.08); border-radius: 32px; padding: 40px 48px; }
+    .buzzer-open-badge { margin-top: 30px; display: inline-flex; align-items: center; gap: 12px; background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.4); padding: 12px 28px; border-radius: 60px; font-size: 18px; font-weight: 700; color: var(--green); }
+    .buzzer-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--green); animation: pulse 1s infinite; }
+    @keyframes pulse { 0%,100%{ opacity: 1; } 50%{ opacity: 0.4; } }
 
-    /* CENTER SCREENS */
-    .screen { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity .4s; }
-    .screen.active { opacity:1; pointer-events:auto; }
+    /* Buzzed Screen */
+    .buzzed-content { text-align: center; }
+    .buzz-flash { position: fixed; inset: 0; background: rgba(251,191,36,0.2); pointer-events: none; animation: flashFade 0.6s ease forwards; z-index: 100; }
+    @keyframes flashFade { 0%{ opacity: 1; } 100%{ opacity: 0; } }
+    .buzzed-icon { font-size: 100px; animation: pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    @keyframes pop { from{ transform: scale(0); opacity: 0; } to{ transform: scale(1); opacity: 1; } }
+    .buzzed-label { font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: 4px; color: var(--gold); margin-top: 16px; }
+    .buzzed-name { font-family: 'Bebas Neue', sans-serif; font-size: clamp(60px, 8vw, 120px); background: linear-gradient(135deg, #fff, var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .buzzed-sub { font-size: 20px; color: var(--muted); margin-top: 12px; }
 
-    /* Waiting */
-    .waiting-content { text-align:center; }
-    .waiting-icon { font-size:80px; margin-bottom:20px; animation:float 3s ease-in-out infinite; }
-    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-16px)} }
-    .waiting-title { font-family:'Bebas Neue',sans-serif; font-size:80px; letter-spacing:4px; background:linear-gradient(135deg,var(--gold),var(--red)); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
-    .waiting-sub { font-size:18px; color:var(--muted); margin-top:8px; }
-    .big-room { font-family:'JetBrains Mono',monospace; font-size:64px; font-weight:700; color:var(--gold); letter-spacing:8px; margin-top:16px; text-shadow:0 0 40px rgba(251,191,36,0.5); }
-    .join-url { font-size:16px; color:rgba(255,255,255,0.4); margin-top:12px; letter-spacing:1px; }
+    /* End Screen */
+    .end-content { text-align: center; }
+    .winner-crown { font-size: 100px; animation: bounce 1s ease infinite; }
+    @keyframes bounce { 0%,100%{ transform: translateY(0); } 50%{ transform: translateY(-20px); } }
+    .winner-label { font-family: 'Bebas Neue', sans-serif; font-size: 36px; color: var(--gold); margin-top: 16px; }
+    .winner-name { font-family: 'Bebas Neue', sans-serif; font-size: clamp(64px, 10vw, 140px); background: linear-gradient(135deg, var(--gold), var(--red)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
 
-    /* Question screen */
-    .question-content { width:min(92%,900px); text-align:center; }
-    .q-num-badge { font-family:'Bebas Neue',sans-serif; font-size:22px; letter-spacing:2px; color:var(--muted); margin-bottom:16px; }
-    .q-text-big { font-size:clamp(24px,3.5vw,48px); font-weight:800; line-height:1.3; color:#fff; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:24px; padding:30px 40px; }
-    .buzzer-open-badge { margin-top:20px; display:inline-flex; align-items:center; gap:10px; background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.4); padding:10px 24px; border-radius:40px; font-size:16px; font-weight:700; color:var(--green); }
-    .buzzer-open-dot { width:10px; height:10px; border-radius:50%; background:var(--green); box-shadow:0 0 8px var(--green); animation:pulse 1s infinite; }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+    /* Overlays */
+    .result-overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 200; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+    .result-overlay.show { opacity: 1; }
+    .result-overlay.correct { background: rgba(16,185,129,0.25); }
+    .result-overlay.wrong { background: rgba(239,68,68,0.25); }
+    .result-text { font-family: 'Bebas Neue', sans-serif; font-size: clamp(80px, 15vw, 200px); letter-spacing: 8px; }
+    .correct .result-text { color: var(--green); text-shadow: 0 0 60px rgba(16,185,129,0.8); }
+    .wrong .result-text { color: var(--red); text-shadow: 0 0 60px rgba(239,68,68,0.8); }
 
-    /* Buzzed screen */
-    .buzzed-content { text-align:center; }
-    .buzz-flash { position:fixed; inset:0; background:rgba(251,191,36,0.15); pointer-events:none; z-index:50; animation:flashFade .6s ease forwards; }
-    @keyframes flashFade { 0%{opacity:1} 100%{opacity:0} }
-    .buzzed-icon { font-size:80px; animation:buzzPop .4s cubic-bezier(0.34,1.56,0.64,1); }
-    @keyframes buzzPop { from{transform:scale(0);opacity:0} to{transform:scale(1);opacity:1} }
-    .buzzed-label { font-family:'Bebas Neue',sans-serif; font-size:28px; letter-spacing:3px; color:var(--gold); margin:12px 0 6px; }
-    .buzzed-player-name { font-family:'Bebas Neue',sans-serif; font-size:clamp(48px,7vw,96px); letter-spacing:3px; background:linear-gradient(135deg,#fff,var(--gold)); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; line-height:1; }
-    .buzzed-sub { font-size:20px; color:var(--muted); margin-top:12px; }
-
-    /* Correct / Wrong overlays */
-    .result-overlay { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; z-index:100; opacity:0; pointer-events:none; transition:opacity .3s; }
-    .result-overlay.show { opacity:1; }
-    .result-overlay.correct-ov { background:rgba(16,185,129,0.2); }
-    .result-overlay.wrong-ov   { background:rgba(239,68,68,0.2); }
-    .result-big { font-family:'Bebas Neue',sans-serif; font-size:clamp(80px,14vw,180px); letter-spacing:4px; text-align:center; }
-    .correct-ov .result-big { color:var(--green); text-shadow:0 0 60px rgba(16,185,129,0.8); }
-    .wrong-ov   .result-big { color:var(--red);   text-shadow:0 0 60px rgba(239,68,68,0.8); }
-
-    /* End screen */
-    .end-content { text-align:center; }
-    .winner-crown { font-size:80px; animation:crownBounce 1s ease infinite; }
-    @keyframes crownBounce { 0%,100%{transform:translateY(0) rotate(-5deg)} 50%{transform:translateY(-12px) rotate(5deg)} }
-    .winner-label { font-family:'Bebas Neue',sans-serif; font-size:32px; letter-spacing:3px; color:var(--gold); margin:12px 0 4px; }
-    .winner-name { font-family:'Bebas Neue',sans-serif; font-size:clamp(56px,8vw,100px); background:linear-gradient(135deg,var(--gold),var(--red)); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
-    .confetti-piece { position:fixed; width:10px; height:10px; border-radius:2px; opacity:0; animation:fall linear forwards; z-index:200; pointer-events:none; }
-    @keyframes fall { 0%{opacity:1;transform:translateY(-40px) rotate(0)} 100%{opacity:0;transform:translateY(100vh) rotate(720deg)} }
-
-    .footer { padding:8px 28px; display:flex; justify-content:space-between; font-size:12px; color:rgba(255,255,255,0.25); border-top:1px solid #0f1420; flex-shrink:0; background:rgba(3,5,11,0.6); }
+    .footer { padding: 12px 32px; display: flex; justify-content: space-between; font-size: 12px; color: rgba(255,255,255,0.25); border-top: 1px solid #0f1420; background: rgba(3,5,11,0.8); }
   </style>
 </head>
 <body>
-<div class="foh">
+<div class="app">
   <div class="top-bar">
     <div class="logo">PLAY<span style="color:var(--gold)">A</span>QUIZ</div>
-    <div class="fr-badge-top">⚡ FINAL ROUND</div>
+    <div class="fr-badge">⚡ FINAL ROUND</div>
     <div class="room-display" id="roomDisplay">——</div>
   </div>
 
   <div class="main-layout">
-    <div class="center" id="centerArea">
+    <div class="center-stage" id="centerStage">
       <!-- Waiting -->
-      <div class="screen active" id="screen-waiting">
+      <div class="screen active" id="screenWaiting">
         <div class="waiting-content">
           <div class="waiting-icon">⚡</div>
           <div class="waiting-title">FINAL ROUND</div>
-          <div class="waiting-sub">Finalists, join the room below</div>
+          <div class="waiting-title" style="font-size:40px">PREPARING...</div>
           <div class="big-room" id="waitingRoomCode">——</div>
-          <div class="join-url">playaquiz.xyz/finalroundplayer.html</div>
         </div>
       </div>
 
-      <!-- Question open -->
-      <div class="screen" id="screen-question">
+      <!-- Question -->
+      <div class="screen" id="screenQuestion">
         <div class="question-content">
-          <div class="q-num-badge" id="qNumBadge">QUESTION 1</div>
-          <div class="q-text-big" id="qTextBig">Loading...</div>
-          <div class="buzzer-open-badge">
-            <div class="buzzer-open-dot"></div>
-            BUZZERS ARE OPEN
-          </div>
+          <div class="q-number" id="qNumber">QUESTION 1</div>
+          <div class="question-text" id="questionText">Loading...</div>
+          <div class="buzzer-open-badge"><div class="buzzer-dot"></div>BUZZERS ARE OPEN</div>
         </div>
       </div>
 
       <!-- Buzzed -->
-      <div class="screen" id="screen-buzzed">
+      <div class="screen" id="screenBuzzed">
         <div class="buzzed-content">
-          <div class="buzzed-icon" id="buzzedAvatar">🎮</div>
+          <div class="buzzed-icon" id="buzzedIcon">🎮</div>
           <div class="buzzed-label">🔔 BUZZED IN</div>
-          <div class="buzzed-player-name" id="buzzedName">—</div>
+          <div class="buzzed-name" id="buzzedName">—</div>
           <div class="buzzed-sub">is answering the question...</div>
         </div>
       </div>
 
-      <!-- Game ended -->
-      <div class="screen" id="screen-ended">
+      <!-- Ended -->
+      <div class="screen" id="screenEnded">
         <div class="end-content">
           <div class="winner-crown">👑</div>
           <div class="winner-label">🏆 FINAL ROUND WINNER</div>
@@ -162,215 +141,175 @@
       </div>
     </div>
 
-    <!-- Right Scoreboard -->
     <div class="scoreboard">
-      <div class="sb-header">
-        <div class="sb-title">🏆 STANDINGS</div>
-      </div>
-      <div class="sb-list" id="sbList">
-        <div style="padding:30px;text-align:center;color:var(--muted);font-size:14px">Waiting for players...</div>
-      </div>
+      <div class="sb-header"><div class="sb-title">🏆 STANDINGS</div></div>
+      <div class="sb-list" id="scoreboardList"><div style="padding:40px;text-align:center;color:var(--muted)">Waiting for players...</div></div>
     </div>
   </div>
 
-  <div class="footer">
-    <span>PlayAQuiz — Final Round</span>
-    <span id="footerStatus">waiting</span>
-    <span id="footerTime"></span>
-  </div>
+  <div class="footer"><span>PlayAQuiz — Final Round</span><span id="footerStatus">waiting</span><span id="footerTime"></span></div>
 </div>
 
-<!-- Result overlays -->
-<div class="result-overlay correct-ov" id="correctOverlay"><div class="result-big">CORRECT!</div></div>
-<div class="result-overlay wrong-ov"   id="wrongOverlay"><div class="result-big">WRONG!</div></div>
+<div class="result-overlay correct" id="correctOverlay"><div class="result-text">CORRECT!</div></div>
+<div class="result-overlay wrong" id="wrongOverlay"><div class="result-text">WRONG!</div></div>
 
 <script>
-const SUPABASE_URL  = 'https://efgirqbaayfjwswnwbop.supabase.co';
+const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
 const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
+let roomCode = null;
 let frPlayers = [];
 let realtimeChannel = null;
-let roomCode = null;
 
-// Sounds
-const AC = window.AudioContext || window.webkitAudioContext;
-let ac;
-function getAC() { if (!ac) ac = new AC(); if (ac.state === 'suspended') ac.resume(); return ac; }
-function beep(freq,dur,vol=0.6,type='sine',delay=0) {
-  try { const c=getAC(),o=c.createOscillator(),g=c.createGain(); o.connect(g); g.connect(c.destination); o.type=type; o.frequency.value=freq; const t=c.currentTime+delay; g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.001,t+dur); o.start(t); o.stop(t+dur+0.05); } catch(e){}
-}
-function playBuzzSound()    { beep(880,.05,.9,'square'); beep(1200,.1,.7,'sine',.05); beep(800,.15,.5,'sine',.1); }
-function playCorrectSound() { [[523,0],[659,.1],[784,.2],[1047,.3],[1319,.45]].forEach(([f,d])=>beep(f,.2,.7,'sine',d)); }
-function playWrongSound()   { [0,.2,.4].forEach(d=>beep(160+d*10,.25,.8,'sawtooth',d)); }
-function playEndSound()     { [[523,0],[659,.15],[784,.3],[1047,.5],[784,.7],[1047,.9],[1319,1.1]].forEach(([f,d])=>beep(f,.25,.7,'sine',d)); }
-
-function showScreen(id) {
+function showScreen(screenId) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  const el = document.getElementById(`screen-${id}`);
-  if (el) el.classList.add('active');
-  document.getElementById('footerStatus').innerText = id;
+  document.getElementById(`screen${screenId}`).classList.add('active');
+  document.getElementById('footerStatus').innerText = screenId.toLowerCase();
 }
 
-function renderScoreboard(players) {
-  if (!players || !players.length) return;
-  const sorted = [...players].sort((a,b) => b.score - a.score);
-  const medals = ['🥇','🥈','🥉'];
-  document.getElementById('sbList').innerHTML = sorted.map((p,i) => {
-    return `<div class="sb-item ${p.status || ''}">
+function updateScoreboard() {
+  const sorted = [...frPlayers].sort((a, b) => b.score - a.score);
+  const medals = ['🥇', '🥈', '🥉'];
+  const container = document.getElementById('scoreboardList');
+  container.innerHTML = sorted.map((p, i) => `
+    <div class="sb-item ${p.status || ''}">
       <div class="sb-rank">${medals[i] || `#${i+1}`}</div>
       <div class="sb-avatar">${p.avatar || '🎮'}</div>
-      <div class="sb-info">
-        <div class="sb-name">${p.name}</div>
-      </div>
+      <div class="sb-info"><div class="sb-name">${p.name}</div></div>
       <div class="sb-score">${p.score}</div>
-    </div>`;
-  }).join('');
+    </div>
+  `).join('');
 }
 
-function handleEvent(event, payload) {
+function playBuzzSound() {
+  const ctx = new (window.AudioContext || window.webkitAudioContext)();
+  if (ctx.state === 'suspended') ctx.resume();
+  const now = ctx.currentTime;
+  const osc1 = ctx.createOscillator();
+  const gain1 = ctx.createGain();
+  osc1.connect(gain1); gain1.connect(ctx.destination);
+  osc1.type = 'square'; osc1.frequency.value = 880;
+  gain1.gain.setValueAtTime(0.6, now);
+  gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+  osc1.start(now); osc1.stop(now + 0.1);
+  
+  const osc2 = ctx.createOscillator();
+  const gain2 = ctx.createGain();
+  osc2.connect(gain2); gain2.connect(ctx.destination);
+  osc2.type = 'sine'; osc2.frequency.value = 1200;
+  gain2.gain.setValueAtTime(0.5, now + 0.05);
+  gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+  osc2.start(now + 0.05); osc2.stop(now + 0.15);
+}
+
+function showFlash() {
+  const flash = document.createElement('div');
+  flash.className = 'buzz-flash';
+  document.body.appendChild(flash);
+  setTimeout(() => flash.remove(), 600);
+}
+
+function showOverlay(type) {
+  const overlay = document.getElementById(`${type}Overlay`);
+  overlay.classList.add('show');
+  setTimeout(() => overlay.classList.remove('show'), 2000);
+}
+
+function handleBroadcast(event, payload) {
   switch (event) {
+    case 'round_started':
+      roomCode = payload.roomCode;
+      frPlayers = payload.players || [];
+      document.getElementById('roomDisplay').innerText = roomCode;
+      document.getElementById('waitingRoomCode').innerText = roomCode;
+      updateScoreboard();
+      showScreen('Waiting');
+      break;
+      
     case 'question_open':
       frPlayers = payload.frPlayers || frPlayers;
-      document.getElementById('qNumBadge').innerText = `QUESTION ${payload.questionNumber}`;
-      document.getElementById('qTextBig').innerText = payload.question;
-      showScreen('question');
-      renderScoreboard(frPlayers);
+      document.getElementById('qNumber').innerText = `QUESTION ${payload.questionNumber}`;
+      document.getElementById('questionText').innerText = payload.question;
+      updateScoreboard();
+      showScreen('Question');
       break;
-
+      
     case 'buzz_confirmed':
-      document.getElementById('buzzedAvatar').innerText = payload.playerAvatar || '🎮';
-      document.getElementById('buzzedName').innerText = payload.playerName;
-      showScreen('buzzed');
-      // Flash effect
-      const flash = document.createElement('div');
-      flash.className = 'buzz-flash';
-      document.body.appendChild(flash);
-      setTimeout(() => flash.remove(), 700);
-      playBuzzSound();
-      // Update scoreboard status
       frPlayers.forEach(p => {
         if (p.id === payload.playerId) p.status = 'buzzed';
         else if (p.status === 'waiting') p.status = 'locked';
       });
-      renderScoreboard(frPlayers);
+      document.getElementById('buzzedIcon').innerText = payload.playerAvatar || '🎮';
+      document.getElementById('buzzedName').innerText = payload.playerName;
+      showScreen('Buzzed');
+      showFlash();
+      playBuzzSound();
+      updateScoreboard();
       break;
-
+      
     case 'correct':
-      frPlayers = payload.frPlayers ? payload.frPlayers.map(fp => {
-        const existing = frPlayers.find(p => p.id === fp.id);
-        return existing ? { ...existing, ...fp } : fp;
-      }) : frPlayers;
-      showOverlay('correct');
-      playCorrectSound();
-      renderScoreboard(frPlayers);
-      break;
-
-    case 'wrong':
-      frPlayers = payload.frPlayers ? payload.frPlayers.map(fp => {
-        const existing = frPlayers.find(p => p.id === fp.id);
-        return existing ? { ...existing, ...fp } : fp;
-      }) : frPlayers;
-      showOverlay('wrong');
-      playWrongSound();
-      renderScoreboard(frPlayers);
-      // Return to question screen after brief delay
-      setTimeout(() => showScreen('question'), 1800);
-      break;
-
-    case 'next_question':
-      frPlayers = payload.frPlayers ? payload.frPlayers.map(fp => {
-        const existing = frPlayers.find(p => p.id === fp.id);
-        return existing ? { ...existing, ...fp } : fp;
-      }) : frPlayers;
-      showScreen('waiting');
-      renderScoreboard(frPlayers);
-      break;
-
-    case 'reset_buzzers':
-      frPlayers.forEach(p => { if (p.status !== 'eliminated') p.status = 'waiting'; });
-      showScreen('question');
-      renderScoreboard(frPlayers);
-      break;
-
-    case 'eliminated':
-      frPlayers = payload.frPlayers ? payload.frPlayers.map(fp => {
-        const existing = frPlayers.find(p => p.id === fp.id);
-        return existing ? { ...existing, ...fp } : fp;
-      }) : frPlayers;
-      renderScoreboard(frPlayers);
-      break;
-
-    case 'player_join':
-      if (!frPlayers.find(p => p.id === payload.id)) {
-        frPlayers.push({ id: payload.id, name: payload.name, avatar: payload.avatar, score: 0, status: 'waiting' });
-        renderScoreboard(frPlayers);
-      }
-      break;
-
-    case 'round_ended':
       frPlayers = payload.frPlayers || frPlayers;
-      document.getElementById('winnerName').innerText = `${payload.winner?.avatar || '🏆'} ${payload.winner?.name || '—'}`;
-      showScreen('ended');
-      playEndSound();
-      launchConfetti();
-      renderScoreboard(frPlayers);
+      showOverlay('correct');
+      updateScoreboard();
+      setTimeout(() => showScreen('Question'), 1500);
       break;
-  }
-}
-
-function showOverlay(type) {
-  const el = document.getElementById(`${type}Overlay`);
-  el.classList.add('show');
-  setTimeout(() => el.classList.remove('show'), 2000);
-}
-
-function launchConfetti() {
-  const colors = ['#fbbf24','#ef4444','#a855f7','#3b82f6','#10b981','#ec4899'];
-  for (let i = 0; i < 120; i++) {
-    const c = document.createElement('div');
-    c.className = 'confetti-piece';
-    c.style.left = Math.random() * 100 + 'vw';
-    c.style.top = '-10px';
-    c.style.background = colors[Math.floor(Math.random() * colors.length)];
-    c.style.width = 6 + Math.random() * 10 + 'px';
-    c.style.height = 6 + Math.random() * 10 + 'px';
-    c.style.animationDuration = 2 + Math.random() * 3 + 's';
-    c.style.animationDelay = Math.random() * 2 + 's';
-    document.body.appendChild(c);
-    setTimeout(() => c.remove(), 6000);
+      
+    case 'wrong':
+      frPlayers = payload.frPlayers || frPlayers;
+      showOverlay('wrong');
+      updateScoreboard();
+      setTimeout(() => showScreen('Question'), 1500);
+      break;
+      
+    case 'next_question':
+      frPlayers = payload.frPlayers || frPlayers;
+      showScreen('Question');
+      updateScoreboard();
+      break;
+      
+    case 'eliminated':
+      frPlayers = payload.frPlayers || frPlayers;
+      updateScoreboard();
+      break;
+      
+    case 'round_ended':
+      frPlayers = payload.players || frPlayers;
+      document.getElementById('winnerName').innerHTML = `${payload.winner?.avatar || '🏆'} ${payload.winner?.name || '—'}`;
+      showScreen('Ended');
+      updateScoreboard();
+      break;
   }
 }
 
 async function init() {
-  setInterval(() => { document.getElementById('footerTime').innerText = new Date().toLocaleTimeString(); }, 1000);
-
+  setInterval(() => {
+    document.getElementById('footerTime').innerText = new Date().toLocaleTimeString();
+  }, 1000);
+  
   const params = new URLSearchParams(window.location.search);
   roomCode = params.get('room') || localStorage.getItem('fr_room');
   if (!roomCode) {
-    document.getElementById('waitingRoomCode').innerText = 'NO ROOM';
+    document.getElementById('waitingRoomCode').innerHTML = 'NO ROOM CODE';
     return;
   }
-
+  
   document.getElementById('roomDisplay').innerText = roomCode;
   document.getElementById('waitingRoomCode').innerText = roomCode;
-
-  // Load saved players if any
-  try { frPlayers = JSON.parse(localStorage.getItem('fr_players') || '[]'); } catch(e) { frPlayers = []; }
-  if (frPlayers.length) renderScoreboard(frPlayers);
-
-  // Subscribe to broadcast channel
-  realtimeChannel = sb.channel(`fr-${roomCode}`, { config: { broadcast: { self: true } } });
+  
+  try { frPlayers = JSON.parse(localStorage.getItem('fr_players') || '[]'); } catch(e) {}
+  updateScoreboard();
+  
+  realtimeChannel = sb.channel(`fr-${roomCode}`, { config: { broadcast: { self: false } } });
   realtimeChannel
-    .on('broadcast', { event: 'question_open' },   ({ payload }) => handleEvent('question_open', payload))
-    .on('broadcast', { event: 'buzz_confirmed' },  ({ payload }) => handleEvent('buzz_confirmed', payload))
-    .on('broadcast', { event: 'correct' },         ({ payload }) => handleEvent('correct', payload))
-    .on('broadcast', { event: 'wrong' },           ({ payload }) => handleEvent('wrong', payload))
-    .on('broadcast', { event: 'next_question' },   ({ payload }) => handleEvent('next_question', payload))
-    .on('broadcast', { event: 'reset_buzzers' },   ({ payload }) => handleEvent('reset_buzzers', payload))
-    .on('broadcast', { event: 'eliminated' },      ({ payload }) => handleEvent('eliminated', payload))
-    .on('broadcast', { event: 'player_join' },     ({ payload }) => handleEvent('player_join', payload))
-    .on('broadcast', { event: 'round_ended' },     ({ payload }) => handleEvent('round_ended', payload))
+    .on('broadcast', { event: 'round_started' }, ({ payload }) => handleBroadcast('round_started', payload))
+    .on('broadcast', { event: 'question_open' }, ({ payload }) => handleBroadcast('question_open', payload))
+    .on('broadcast', { event: 'buzz_confirmed' }, ({ payload }) => handleBroadcast('buzz_confirmed', payload))
+    .on('broadcast', { event: 'correct' }, ({ payload }) => handleBroadcast('correct', payload))
+    .on('broadcast', { event: 'wrong' }, ({ payload }) => handleBroadcast('wrong', payload))
+    .on('broadcast', { event: 'next_question' }, ({ payload }) => handleBroadcast('next_question', payload))
+    .on('broadcast', { event: 'eliminated' }, ({ payload }) => handleBroadcast('eliminated', payload))
+    .on('broadcast', { event: 'round_ended' }, ({ payload }) => handleBroadcast('round_ended', payload))
     .subscribe();
 }
 
