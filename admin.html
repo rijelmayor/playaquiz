@@ -263,6 +263,7 @@
         </div>
         <div class="flex">
           <button id="btnStart" class="btn btn-green btn-lg" onclick="gameStart()">▶ Start Game</button>
+          <button id="btnTimer" class="btn btn-lg btn-purple" onclick="startTimerBroadcast()" disabled title="Question must be on screen before starting the timer">⏱️ Start Timer</button>
           <button id="btnReveal" class="btn btn-yellow btn-lg" onclick="revealAnswerAndBroadcast()" disabled>🔓 Reveal</button>
           <button id="btnNext" class="btn btn-lg" onclick="gameNext()" disabled>⏩ Next</button>
           <button class="btn btn-ghost btn-lg" style="color:var(--red);border-color:rgba(239,68,68,.3)" onclick="resetGameSession()">🔄 Reset</button>
@@ -523,6 +524,7 @@
         <div class="card-title">📡 Send Commands to Screen</div>
         <div class="foh-grid">
           <div class="foh-tile" onclick="fohCommand('question')"><div class="icon">❓</div>Show Question</div>
+          <div class="foh-tile" onclick="startTimerBroadcast()" style="border-color:rgba(139,92,246,0.4);background:rgba(139,92,246,0.05)"><div class="icon">⏱️</div>Start Timer</div>
           <div class="foh-tile" onclick="revealAnswerAndBroadcast()"><div class="icon">🔓</div>Reveal Answer</div>
           <div class="foh-tile" onclick="fohCommand('leaderboard')"><div class="icon">🏆</div>Leaderboard</div>
           <div class="foh-tile" onclick="fohCommand('responses')"><div class="icon">📊</div>Response Stats</div>
@@ -579,6 +581,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 let SESSION_ID=null, sessionData=null;
 let questions=[], gameQueue=[], players=[], categories=[];
 let currentQuestionIndex=-1, answerRevealed=false, currentQuestionObj=null;
+let timerStarted=false; // ← NEW: tracks whether timer has been started for the current question
 let respPollingInterval=null, activeCatId=null, catQuestionsCache={}, selectedCatQIds=new Set();
 let pendingNextQuestion=null;
 let adminNextPickQuestion=null;
@@ -761,6 +764,7 @@ async function startQuestion(idx) {
   // Mark as used
   usedQuestionIds.add(currentQuestionObj.id);
   answerRevealed=false;
+  timerStarted=false; // ← reset so Start Timer button becomes active again
   await sb.from('game_sessions').update({current_question_index:idx,answer_revealed:false,status:'active'}).eq('id',SESSION_ID);
   if (currentQuestionObj.category_id) {
     const cat=categories.find(c=>c.id===currentQuestionObj.category_id);
@@ -779,6 +783,15 @@ async function gameNext() {
   const next=currentQuestionIndex+1;
   if (next>=gameQueue.length){await endGame();return;}
   await startQuestion(next);
+}
+async function startTimerBroadcast() {
+  if (!currentQuestionObj) { toast('No active question', 'error'); return; }
+  if (timerStarted) { toast('Timer already running', 'info'); return; }
+  if (answerRevealed) { toast('Answer already revealed', 'info'); return; }
+  timerStarted = true;
+  await broadcastFOH('start_timer', { duration: currentQuestionObj.time_limit || GLOBAL_TIMER });
+  updateGameControlUI();
+  toast('⏱️ Timer started!', 'success');
 }
 async function revealAnswerAndBroadcast() {
   if (answerRevealed){toast('Already revealed','info');return;}
@@ -812,7 +825,7 @@ async function resetGameSession() {
   await sb.from('answers').delete().eq('session_id',SESSION_ID);
   await sb.from('players').delete().eq('session_id',SESSION_ID);
   await sb.from('game_sessions').update({status:'waiting',current_question_index:-1,answer_revealed:false}).eq('id',SESSION_ID);
-  currentQuestionObj=null;answerRevealed=false;currentQuestionIndex=-1;
+  currentQuestionObj=null;answerRevealed=false;currentQuestionIndex=-1;timerStarted=false;
   pendingNextQuestion=null;updateNextQBanner();
   adminNextPickQuestion=null;updateAdminNextPickBanner();
   emergencyQuestion=null;renderEmergencyQueue();
@@ -1288,9 +1301,13 @@ function updateGameControlUI(){
   const badge=document.getElementById('gameStatusBadge');
   badge.className='game-status-badge'; badge.classList.add('status-'+status); badge.innerText=status.toUpperCase();
   document.getElementById('statStatus').innerText=status.toUpperCase();
-  const btnStart=document.getElementById('btnStart'),btnReveal=document.getElementById('btnReveal'),btnNext=document.getElementById('btnNext');
+  const btnStart=document.getElementById('btnStart'),btnTimer=document.getElementById('btnTimer'),btnReveal=document.getElementById('btnReveal'),btnNext=document.getElementById('btnNext');
   btnStart.disabled=status==='active'||status==='reveal';
-  btnReveal.disabled=!currentQuestionObj||answerRevealed||status!=='active';
+  // Start Timer: only enabled when a question is shown but timer hasn't started yet and answer not revealed
+  btnTimer.disabled=!currentQuestionObj||timerStarted||answerRevealed||status==='waiting'||status==='ended';
+  btnTimer.style.opacity=btnTimer.disabled?'0.45':'1';
+  btnTimer.innerText=timerStarted?'⏱️ Timer Running':'⏱️ Start Timer';
+  btnReveal.disabled=!currentQuestionObj||answerRevealed||!timerStarted||status!=='active'&&status!=='reveal';
   btnNext.disabled=!answerRevealed;
   if(currentQuestionObj){
     const progress=gameQueue.length>0?((currentQuestionIndex+1)/gameQueue.length)*100:0;
@@ -1407,7 +1424,7 @@ window.addQuestion=addQuestion; window.clearQuestionForm=clearQuestionForm; wind
 window.addAllToGame=addAllToGame; window.addSingleToGame=addSingleToGame;
 window.removeFromBank=removeFromBank; window.removeFromQueue=removeFromQueue; window.filterQBank=filterQBank;
 window.gameStart=gameStart; window.gameNext=gameNext; window.resetGameSession=resetGameSession;
-window.revealAnswerAndBroadcast=revealAnswerAndBroadcast; window.fohCommand=fohCommand;
+window.revealAnswerAndBroadcast=revealAnswerAndBroadcast; window.startTimerBroadcast=startTimerBroadcast; window.fohCommand=fohCommand;
 window.pickRandomNextQuestion=pickRandomNextQuestion; window.clearDashNextPick=clearDashNextPick;
 window.setEmergencyQuestion=setEmergencyQuestion; window.clearEmergencyQuestion=clearEmergencyQuestion; window.fireEmergencyQuestion=fireEmergencyQuestion;
 window.applyGlobalTimer=applyGlobalTimer; window.onGlobalTimerSlide=onGlobalTimerSlide;

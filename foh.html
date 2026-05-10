@@ -699,6 +699,7 @@
 
     .confetti-piece { position: fixed; width: 10px; height: 10px; border-radius: 2px; opacity: 0; animation: confettiFall linear forwards; z-index: 1000; pointer-events: none; }
     @keyframes confettiFall { 0%{opacity:1;transform:translateY(-50px) rotate(0deg)} 100%{opacity:0;transform:translateY(100vh) rotate(720deg)} }
+    @keyframes badgePulse { 0%,100%{opacity:1;} 50%{opacity:0.55;} }
 
     .end-content { text-align: center; }
     .end-icon { font-size: 100px; margin-bottom: 24px; }
@@ -748,6 +749,10 @@
                   <circle class="timer-ring" id="timerRing" cx="50" cy="50" r="42" fill="none" stroke="var(--accent)" stroke-width="8" stroke-linecap="round" stroke-dasharray="263.9" stroke-dashoffset="0"/>
                 </svg>
                 <div class="timer-num" id="timerNum">—</div>
+              </div>
+              <!-- Reading phase badge — shown while timer is frozen, hidden once timer starts -->
+              <div id="readingBadge" style="display:none;align-items:center;gap:8px;background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.4);border-radius:40px;padding:6px 18px;font-size:14px;font-weight:800;color:#fbbf24;letter-spacing:1px;animation:badgePulse 1.4s ease-in-out infinite;">
+                📖 HOST READING…
               </div>
             </div>
 
@@ -1219,7 +1224,7 @@ function handleEvent(evt) {
         currentQuestion = evt.payload.question;
         totalTime = currentQuestion.time_limit || 20;
         updateQProgress(evt.payload.qIdx, evt.payload.total);
-        // audio starts when show_question_view fires startTimer
+        // timer starts only when admin fires start_timer event (show_question_view handler below)
       }
       break;
     case 'show_question_view':
@@ -1230,8 +1235,16 @@ function handleEvent(evt) {
         
         displayQuestion(evt.payload.question);
         showScreen('question');
-        startTimer(totalTime);
+        // ── Phase 1: question is visible, timer is FROZEN waiting for host cue ──
+        timeLeft = totalTime;
+        updateTimerUI();          // renders the full ring at max value, no ticking
+        // do NOT call startTimer() here — admin must press ▶ Start Timer
       }
+      break;
+    case 'start_timer':
+      // ── Phase 2: host has finished reading, timer now runs ──
+      if (evt.payload && evt.payload.duration) totalTime = evt.payload.duration;
+      startTimer(totalTime);
       break;
     case 'answer_reveal':
       if (evt.payload) revealAnswer(evt.payload.correctOption, evt.payload.options, evt.payload.explanation);
@@ -1294,6 +1307,10 @@ function displayQuestion(q) {
       <div>${opt || ''}</div>
     </div>
   `).join('');
+
+  // Show "HOST READING" badge and freeze timer display at full value
+  const badge = document.getElementById('readingBadge');
+  if (badge) badge.style.display = 'flex';
 }
 
 // ─── Countdown BG Engine ─────────────────────────────────────────────
@@ -1368,7 +1385,10 @@ function startTimer(duration) {
   timeLeft = duration;
   totalTime = duration;
   updateTimerUI();
-  _cdTick(timeLeft);                // start countdownbg.mp3 immediately on question show
+  // Hide reading badge, show timer is now live
+  const badge = document.getElementById('readingBadge');
+  if (badge) badge.style.display = 'none';
+  _cdTick(timeLeft);                // start countdownbg.mp3 now that timer is running
   timerInterval = setInterval(() => {
     timeLeft--;
     updateTimerUI();
@@ -1386,6 +1406,8 @@ function startTimer(duration) {
 function stopTimer() {
   if (timerInterval) clearInterval(timerInterval);
   timerInterval = null;
+  const badge = document.getElementById('readingBadge');
+  if (badge) badge.style.display = 'none';
   _cdStop(false);                   // clean stop when answer revealed or game ends
 }
 

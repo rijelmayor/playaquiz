@@ -324,6 +324,7 @@
     .eliminated-card { text-align: center; padding: 48px 24px; background: rgba(239,68,68,0.08); border: 2px solid rgba(239,68,68,0.25); border-radius: var(--radius); }
     .hidden { display: none !important; }
     .error-msg { color: var(--red); font-size: 13px; text-align: center; margin-top: 10px; font-weight: 600; }
+    @keyframes readingPulse { 0%,100%{opacity:1} 50%{opacity:0.55} }
   </style>
 </head>
 <body>
@@ -402,6 +403,10 @@
         </div>
       </div>
       <div class="q-text" id="quizQText">Loading...</div>
+      <!-- Reading phase notice: shown while host reads, hidden once timer starts -->
+      <div id="readingNotice" class="hidden" style="display:flex;align-items:center;justify-content:center;gap:10px;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.35);border-radius:14px;padding:14px 18px;font-size:14px;font-weight:700;color:#fbbf24;animation:readingPulse 1.4s ease-in-out infinite;">
+        📖 Host is reading the question… answer buttons unlock when timer starts
+      </div>
       <div class="options-list" id="optList"></div>
       <div id="pendingBox" class="feedback-pending hidden">⏳ Locked in! Waiting for answer reveal...</div>
       <div id="feedbackBox" class="hidden"></div>
@@ -600,7 +605,16 @@ function setupRealtime() {
 function handleEvent(evt) {
   switch(evt.event_type) {
     case 'new_question': curQuestion = evt.payload.question; curQIdx = evt.payload.qIdx; totalQ = evt.payload.total; answered = false; selOption = -1; timerEnded = false; break;
-    case 'show_question_view': displayQuestion(evt.payload.question || curQuestion, curQIdx); showScreen('quiz'); break;
+    case 'show_question_view':
+      // Phase 1: show question, freeze timer — wait for host's start_timer signal
+      displayQuestion(evt.payload.question || curQuestion, curQIdx);
+      showScreen('quiz');
+      break;
+    case 'start_timer':
+      // Phase 2: host finished reading — unlock buttons and start timer
+      if (evt.payload && evt.payload.duration) { totalTime = evt.payload.duration; timeLeft = totalTime; }
+      unlockAndStartTimer();
+      break;
     case 'answer_reveal': revealAndScore(evt.payload.correctOption); break;
     case 'game_ended': stopTimer(); showResult(); break;
     case 'game_reset':
@@ -660,16 +674,29 @@ function displayQuestion(q, idx) {
   document.getElementById('quizQText').innerText = q.question_text;
   const letters = ['A','B','C','D'];
   const opts = [q.option_a, q.option_b, q.option_c, q.option_d];
-  document.getElementById('optList').innerHTML = opts.map((o,i) => `<button class="opt-btn" data-idx="${i}" onclick="submitAnswer(${i})"><div class="opt-letter">${letters[i]}</div><span>${o}</span></button>`).join('');
+  // Buttons rendered disabled — they unlock when start_timer fires
+  document.getElementById('optList').innerHTML = opts.map((o,i) => `<button class="opt-btn" data-idx="${i}" onclick="submitAnswer(${i})" disabled><div class="opt-letter">${letters[i]}</div><span>${o}</span></button>`).join('');
   hide('pendingBox'); hide('feedbackBox'); hide('actionButtonsRow');
   answered = false; selOption = -1;
   totalTime = q.time_limit || 20;
   timeLeft = totalTime;
+
+  // Show reading state: timer frozen at full, "Host reading…" notice visible
+  stopTimer();
+  updateTimerUI();
+  show('readingNotice');
+}
+
+function unlockAndStartTimer() {
+  // Hide reading notice, enable answer buttons, start the countdown
+  hide('readingNotice');
+  document.querySelectorAll('.opt-btn').forEach(b => { if (!answered) b.disabled = false; });
   startTimer();
 }
 
 function startTimer() {
   stopTimer();
+  hide('readingNotice'); // ensure notice is gone once timer runs
   updateTimerUI();
   timerIv = setInterval(() => {
     timeLeft--;
@@ -741,6 +768,7 @@ async function revealAndScore(correctOption) {
   if (!curQuestion) return; 
   stopTimer(); 
   hide('pendingBox');
+  hide('readingNotice');
   
   if (!timerEnded) {
     timerEnded = true;
