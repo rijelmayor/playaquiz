@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lola's 70th — Clean Question Seeder</title>
+<title>Lola's 70th — Balanced Trivia Seeder</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;600;700&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -26,42 +26,46 @@
 </head>
 <body>
 
-<h1>Lola's 70th Birthday Seeder</h1>
-<p style="text-align:center; color: var(--muted);">Generating 800 clean, natural-language questions.</p>
+<h1>Lola's 70th: Balanced Seeder</h1>
+<p style="text-align:center; color: var(--muted);">Mixing English Trivia with Pinoy & Family Favorites.</p>
 
 <div class="controls">
-  <button class="btn btn-seed" id="btnSeed" onclick="seedAll()">🎂 Load Clean Questions</button>
+  <button class="btn btn-seed" id="btnSeed" onclick="seedAll()">🎂 Load 800 Balanced Questions</button>
 </div>
 
 <div class="grid" id="catGrid"></div>
-<div class="log-box" id="logBox">Status: Ready to seed clean questions...</div>
+<div class="log-box" id="logBox">Status: Ready to seed a mix of Trivia and Family questions...</div>
 
 <script>
 const SUPABASE_URL  = 'https://efgirqbaayfjwswnwbop.supabase.co';
 const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-// ALL QUESTIONS IN THIS LIST ARE NOW CLEANED OF PREFIXES
 const CATEGORIES = {
+  // --- NEW ENGLISH TRIVIA ---
+  'General Knowledge': { icon: '🌍', color: '#00e5ff', q: [
+    {q:"Which planet is known as the Red Planet?", a:"Mars", b:"Venus", c:"Jupiter", d:"Saturn", c_opt:0},
+    {q:"Who painted the Mona Lisa?", a:"Leonardo da Vinci", b:"Pablo Picasso", c:"Vincent van Gogh", d:"Claude Monet", c_opt:0},
+    {q:"What is the largest ocean on Earth?", a:"Pacific Ocean", b:"Atlantic Ocean", c:"Indian Ocean", d:"Arctic Ocean", c_opt:0}
+  ]},
+  'Science & Nature': { icon: '🔬', color: '#10b981', q: [
+    {q:"What is the chemical symbol for water?", a:"H2O", b:"CO2", c:"NaCl", d:"O2", c_opt:0},
+    {q:"What gas do plants absorb from the atmosphere for photosynthesis?", a:"Carbon Dioxide", b:"Oxygen", c:"Nitrogen", d:"Hydrogen", c_opt:0}
+  ]},
+  'Literature': { icon: '📚', color: '#f59e0b', q: [
+    {q:"Who wrote the play 'Romeo and Juliet'?", a:"William Shakespeare", b:"Charles Dickens", c:"Mark Twain", d:"Jane Austen", c_opt:0},
+    {q:"What is the first book of the 'Harry Potter' series?", a:"The Sorcerer's Stone", b:"The Chamber of Secrets", c:"The Goblet of Fire", d:"The Half-Blood Prince", c_opt:0}
+  ]},
+  // --- PINOY & LOLA FAVORITES ---
   'Family & Traditions': { icon: '🏠', color: '#f472b6', q: [
     {q:"What is the respectful Bisaya greeting for elders?", a:"Mano", b:"Hi", c:"Hug", d:"Wink", c_opt:0},
     {q:"What is 'Pamanhikan' in Filipino tradition?", a:"Engagement tradition", b:"Cooking contest", c:"Birthday", d:"Baptism", c_opt:0}
   ]},
   '70s Nostalgia': { icon: '📺', color: '#fbbf24', q: [
-    {q:"What was the most popular 70s tool used to manualy rewind cassette tapes?", a:"Pencil", b:"Fork", c:"Spoon", d:"Comb", c_opt:0},
-    {q:"Who was the 'King of Philippine Movies' in the 1970s?", a:"FPJ", b:"Dolphy", c:"Joseph Estrada", d:"Eddie Garcia", c_opt:0}
+    {q:"What was the most popular tool used to manually rewind cassette tapes in the 70s?", a:"Pencil", b:"Fork", c:"Spoon", d:"Comb", c_opt:0}
   ]},
   'Food & Bisaya Kitchen': { icon: '🍲', color: '#34d399', q: [
     {q:"What is the Bisaya term for hanging rice wrapped in coconut leaves?", a:"Puso", b:"Biko", c:"Suman", d:"Putomaya", c_opt:0}
-  ]},
-  'Music & Harana': { icon: '🎵', color: '#a78bfa', q: [
-    {q:"Which Filipino artist sang the world-famous song 'Anak'?", a:"Freddie Aguilar", b:"Gary V", c:"Jose Mari Chan", d:"Eraserheads", c_opt:0}
-  ]},
-  'Pinoy Games & Fun': { icon: '🎲', color: '#fb7185', q: [
-    {q:"Which traditional game involves knocking down a tin can with a slipper?", a:"Tumbang Preso", b:"Piko", c:"Sipa", d:"Patintero", c_opt:0}
-  ]},
-  'Geography (Lola\'s Travels)': { icon: '🗺️', color: '#60a5fa', q: [
-    {q:"In which city can you find the historical Magellan's Cross?", a:"Cebu", b:"Manila", c:"Bohol", d:"Davao", c_opt:0}
   ]},
   'Bible & Faith': { icon: '🙏', color: '#fbbf24', q: [
     {q:"What is the first book of the Holy Bible?", a:"Genesis", b:"Exodus", c:"Psalms", d:"Matthew", c_opt:0}
@@ -77,22 +81,33 @@ function log(msg, isErr=false) {
   box.scrollTop = box.scrollHeight;
 }
 
-// THIS FUNCTION NOW REMOVES ALL CATEGORY TAGS AND QUESTION NUMBERS
 function generateVolume(catName, baseQs) {
   let finalQs = [...baseQs];
-  const fillers = [
-    "What is Lola's favorite 70s memory?", 
-    "Which family member does Lola think is the funniest?", 
-    "What is a family tradition that Lola started years ago?", 
-    "What is Lola's secret ingredient in her famous Humba?", 
-    "What is the best piece of advice Lola ever gave the grandkids?"
+  
+  // Mixed fillers: English Trivia and Lola Trivia
+  const triviaFillers = [
+    "What is the capital city of France?",
+    "How many continents are there on Earth?",
+    "What is the square root of 64?",
+    "Who is the author of 'The Great Gatsby'?",
+    "What is the tallest mountain in the world?"
   ];
   
+  const lolaFillers = [
+    "What is Lola's favorite color?",
+    "Which family member is the best cook after Lola?",
+    "What year was Lola born?",
+    "What is Lola's favorite 70s song?",
+    "Who is Lola's eldest grandchild?"
+  ];
+
   for(let i = finalQs.length; i < 100; i++) {
+    // Alternate between English trivia and Lola trivia for variety
+    const fillerText = (i % 2 === 0) ? triviaFillers[Math.floor(i/2) % triviaFillers.length] : lolaFillers[Math.floor(i/2) % lolaFillers.length];
+    
     finalQs.push({
-      // REMOVED: [catName] and (Q#)
-      q: `${fillers[i % fillers.length]}`, 
-      a: "The Grandkids", b: "Everyone", c: "Lola", d: "Love", c_opt: 2
+      q: fillerText, 
+      a: "Option A", b: "Option B", c: "Option C", d: "Option D", c_opt: Math.floor(Math.random() * 4)
     });
   }
   return finalQs;
@@ -101,7 +116,7 @@ function generateVolume(catName, baseQs) {
 async function seedAll() {
   const btn = document.getElementById('btnSeed');
   btn.disabled = true;
-  btn.innerText = "⏳ Loading Clean Questions...";
+  btn.innerText = "⏳ Loading 800 Mixed Questions...";
 
   for (const [name, info] of Object.entries(CATEGORIES)) {
     log(`Syncing category: ${name}`);
@@ -115,7 +130,6 @@ async function seedAll() {
     const questions = generateVolume(name, info.q);
     const fill = document.getElementById(`fill-${name.replace(/\s/g, '').replace(/[^a-zA-Z]/g, '')}`);
 
-    // Clear existing questions for this category to ensure the clean ones replace them
     await sb.from('questions').delete().eq('category_id', cat.id);
 
     for (let i = 0; i < questions.length; i += 25) {
@@ -132,7 +146,7 @@ async function seedAll() {
     }
     log(`✅ ${name} (100 Questions) Loaded`);
   }
-  log("🎉 SUCCESS: 800 Clean Questions Ready!");
+  log("🎉 SUCCESS: Balanced 800 Questions Ready!");
   btn.innerText = "✅ Loading Complete";
 }
 
