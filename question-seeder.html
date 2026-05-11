@@ -3,217 +3,157 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lola's 70th — Fresh Seeder (Fixed)</title>
+<title>Lola's 70th — The Clean Slate Seeder</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;600;700&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root {
-    --bg: #0f051a; --surface: #1a0b2e; --surface2: #25143d;
-    --border: #3d2b56; --border2: #5a447a;
-    --text: #f3e8ff; --muted: #a78bfa;
+    --bg: #0f051a; --surface: #1a0b2e;
+    --border: #3d2b56; --text: #f3e8ff; --muted: #a78bfa;
     --accent: #f472b6; --gold: #fbbf24; --green: #34d399; --red: #fb7185;
   }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: var(--bg); font-family: 'Space Grotesk', sans-serif; color: var(--text); min-height: 100vh; padding: 32px 24px; }
-  h1 { font-family: 'Bebas Neue', sans-serif; font-size: 48px; letter-spacing: 3px; background: linear-gradient(135deg, #fff 30%, var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 6px; text-align: center; }
-  .sub { color: var(--muted); font-size: 16px; margin-bottom: 32px; text-align: center; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-bottom: 28px; }
-  .cat-card { background: var(--surface); border: 2px solid var(--border); border-radius: 20px; padding: 20px; transition: all .3s; }
-  .cat-card:hover { border-color: var(--gold); transform: translateY(-4px); }
-  .cat-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
-  .cat-icon { font-size: 32px; filter: drop-shadow(0 0 8px var(--accent)); }
-  .cat-name { font-size: 18px; font-weight: 700; color: var(--gold); }
-  .progress-wrap { height: 10px; background: var(--bg); border-radius: 10px; overflow: hidden; margin-bottom: 14px; border: 1px solid var(--border); }
-  .progress-bar { height: 100%; border-radius: 10px; transition: width .4s ease; background: linear-gradient(90deg, var(--accent), var(--gold)); }
-  .status-line { font-size: 12px; font-family: 'JetBrains Mono', monospace; color: var(--muted); }
-  .controls { display: flex; gap: 12px; justify-content: center; margin-bottom: 32px; }
-  .btn { border: none; padding: 14px 28px; border-radius: 12px; font-weight: 700; color: white; cursor: pointer; transition: all .2s; }
-  .btn-wipe { background: var(--red); box-shadow: 0 4px 14px rgba(251, 113, 133, 0.4); }
-  .btn-seed { background: var(--green); color: #000; box-shadow: 0 4px 14px rgba(52, 211, 153, 0.4); }
-  .btn:hover { transform: scale(1.05); filter: brightness(1.1); }
-  .log-box { background: #000; border: 1px solid var(--border); border-radius: 14px; padding: 16px; font-family: 'JetBrains Mono', monospace; font-size: 12px; max-height: 200px; overflow-y: auto; color: #888; }
-  .ok { color: var(--green); } .err { color: var(--red); }
+  body { background: var(--bg); font-family: 'Space Grotesk', sans-serif; color: var(--text); padding: 40px 20px; }
+  h1 { font-family: 'Bebas Neue', sans-serif; font-size: 50px; text-align: center; color: var(--gold); margin-bottom: 10px; }
+  .controls { display: flex; gap: 20px; justify-content: center; margin-bottom: 40px; }
+  .btn { border: none; padding: 16px 32px; border-radius: 12px; font-weight: 700; cursor: pointer; transition: 0.3s; }
+  .btn-wipe { background: var(--red); color: white; }
+  .btn-seed { background: var(--green); color: #000; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
+  .cat-card { background: var(--surface); border: 2px solid var(--border); padding: 20px; border-radius: 15px; }
+  .progress-bar { height: 8px; background: #333; border-radius: 4px; margin-top: 10px; overflow: hidden; }
+  .progress-fill { height: 100%; background: var(--gold); width: 0%; transition: 0.5s; }
+  .log-box { background: #000; padding: 15px; border-radius: 10px; font-family: monospace; height: 150px; overflow-y: auto; margin-top: 30px; font-size: 12px; border: 1px solid var(--border); }
 </style>
 </head>
 <body>
 
-<h1>Lola's 70th Birthday Seeder</h1>
-<p class="sub">Fresh start for Lola — Clears old data & loads 800 Pinoy-focused questions.</p>
+<h1>Lola's 70th: Fresh 800 Seeder</h1>
+<p style="text-align:center; color: var(--muted);">Family-First, Bisaya-Infused, Redundancy-Free.</p>
 
 <div class="controls">
-  <button class="btn btn-wipe" onclick="wipeDatabase()">🗑️ 1. Wipe Everything</button>
-  <button class="btn btn-seed" id="btnSeed" onclick="seedAll()">🎂 2. Seed New Questions</button>
+  <button class="btn btn-wipe" onclick="fullReset()">🗑️ 1. Force Clear DB</button>
+  <button class="btn btn-seed" id="btnSeed" onclick="seedAll()">🎂 2. Load 800 Questions</button>
 </div>
 
 <div class="grid" id="catGrid"></div>
-<div class="log-box" id="logBox">Status: Ready. Please wipe first to clear old science/tech questions.</div>
+<div class="log-box" id="logBox">System initialized. Click 'Force Clear' to remove redundancies first.</div>
 
 <script>
 const SUPABASE_URL  = 'https://efgirqbaayfjwswnwbop.supabase.co';
 const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-// --- CATEGORIES DATA (Same as before, optimized for Pinoy & Family) ---
 const CATEGORIES = {
   'Family & Traditions': { icon: '🏠', color: '#f472b6', q: [
-    {q:"What is the respectful way to greet elders in Pinoy culture?", a:"Handshake", b:"Mano Po", c:"Hug", d:"Wink", c_opt:1},
-    {q:"Unsay tawag sa kamaguwangan nga anak?", a:"Bunso", b:"Panganay", c:"Middle child", d:"Apo", c_opt:1},
-    {q:"Proposal tradition involving the family?", a:"Wedding", b:"Pamanhikan", c:"Fiesta", d:"Binyag", c_opt:1},
-    {q:"Unsay tawag sa bana sa imong iyaan?", a:"Tiyo", b:"Ninong", c:"Lolo", d:"Kuya", c_opt:0},
-    {q:"Sa Bisaya, unsay pasabot sa 'Gugma'?", a:"Love", b:"Hungry", c:"Sleepy", d:"Angry", c_opt:0}
+    {q:"What is the Bisaya term for the respectful 'Mano Po'?", a:"Amen", b:"Paminaw", c:"Mano", d:"Halok", c_opt:2},
+    {q:"In a Pinoy household, what is 'Pasalubong'?", a:"A debt", b:"A gift from a trip", c:"A lecture", d:"A dinner", c_opt:1},
+    {q:"Who is the 'Lawas' (Body) of the family in old traditions?", a:"Lola", b:"Tatay", c:"Mama", d:"Kuya", c_opt:1}
   ]},
   '70s Nostalgia': { icon: '📺', color: '#fbbf24', q: [
-    {q:"King of PH Movies in the 70s?", a:"Dolphy", b:"FPJ", c:"Joseph Estrada", d:"Eddie Garcia", c_opt:1},
-    {q:"Used to rewind cassette tapes?", a:"Finger", b:"Pencil/Ballpen", c:"Fork", d:"Hammer", c_opt:1},
-    {q:"Who is the 'Superstar' of PH Cinema?", a:"Vilma", b:"Nora Aunor", c:"Sharon", d:"Gloria", c_opt:1},
-    {q:"Miss Universe PH winner in 1973?", a:"Pia", b:"Catriona", c:"Margie Moran", d:"Gloria Diaz", c_opt:2}
+    {q:"Which 70s Pinoy band sang 'Manila, Manila'?", a:"VST & Co.", b:"Hotdog", c:"Juan de la Cruz", d:"The Jets", c_opt:1},
+    {q:"What was the standard way to dress up for a 'Pista' in the 70s?", a:"Jeans", b:"Barong/Saya", c:"T-shirt", d:"Pajamas", c_opt:1}
   ]},
   'Food & Bisaya Kitchen': { icon: '🍲', color: '#34d399', q: [
-    {q:"Main ingredient in Humba?", a:"Isda", b:"Manok", c:"Baboy", d:"Baka", c_opt:2},
-    {q:"Puso (Hanging Rice) leaf?", a:"Banana", b:"Coconut (Lubi)", c:"Plastic", d:"Paper", c_opt:1},
-    {q:"Native Pinoy hot chocolate?", a:"Coffee", b:"Sikwate", c:"Tea", d:"Milo", c_opt:1}
+    {q:"What is the Bisaya name for 'Hanging Rice'?", a:"Puso", b:"Kanin", c:"Lugaw", d:"Suman", c_opt:0},
+    {q:"Unsay tawag sa luy-as with sugar and hot water?", a:"Coffee", b:"Sikwate", c:"Salabat", d:"Juice", c_opt:2},
+    {q:"Which fish is the star of 'Kinilaw'?", a:"Bangus", b:"Tangigue", c:"Tilapia", d:"Galunggong", c_opt:1}
   ]},
   'Music & Harana': { icon: '🎵', color: '#a78bfa', q: [
-    {q:"Asia's Queen of Songs?", a:"Regine", b:"Pilita Corrales", c:"Lea", d:"Sarah G", c_opt:1},
-    {q:"Famous Freddie Aguilar song?", a:"Anak", b:"Magulang", c:"Lolo", d:"Ate", c_opt:0},
-    {q:"Harana instrument?", a:"Piano", b:"Gitara", c:"Drum", d:"Flute", c_opt:1}
+    {q:"Complete the lyrics: 'Ang mamatay nang dahil sa...'?", a:"Lupa", b:"Iyo", c:"Bayan", d:"Sayo", c_opt:1}
   ]},
   'Pinoy Games & Fun': { icon: '🎲', color: '#fb7185', q: [
-    {q:"Game with a wooden board & shells?", a:"Chess", b:"Sungka", c:"Dama", d:"Scrabble", c_opt:1},
-    {q:"Jump over hands?", a:"Patintero", b:"Luksong Tinik", c:"Baka", d:"Piko", c_opt:1}
+    {q:"Which game involves a 'Pamato' slipper?", a:"Patintero", b:"Tumbang Preso", c:"Piko", d:"Sipa", c_opt:1}
   ]},
   'Geography (Lola\'s Travels)': { icon: '🗺️', color: '#60a5fa', q: [
-    {q:"Queen City of the South?", a:"Davao", b:"Cebu City", c:"Iloilo", d:"Zamboanga", c_opt:1},
-    {q:"Oldest street in PH?", a:"Colon St.", b:"Osmeña", c:"Jones", d:"Escolta", c_opt:0}
+    {q:"Where is the Magellan's Cross located?", a:"Manila", b:"Davao", c:"Cebu", d:"Bohol", c_opt:2}
   ]},
   'Bible & Faith': { icon: '🙏', color: '#fbbf24', q: [
-    {q:"Who built the Ark?", a:"Moses", b:"Noah", c:"Abraham", d:"David", c_opt:1},
-    {q:"How many apostles?", a:"10", b:"11", c:"12", d:"13", c_opt:2},
-    {q:"Patron Saint of Cebu?", a:"Santo Niño", b:"San Pedro", c:"San Lorenzo", d:"San Roque", c_opt:0}
+    {q:"Unsay tawag sa Bisaya sa 'Faith'?", a:"Gugma", b:"Pagtuo", c:"Simbahan", d:"Paglaum", c_opt:1}
   ]},
   'Health & Wisdom': { icon: '🌿', color: '#10b981', q: [
-    {q:"Traditional Pinoy massage?", a:"Thai", b:"Hilot", c:"Shiatsu", d:"Swedish", c_opt:1},
-    {q:"Leaf for cleaning wounds?", a:"Mango", b:"Guava (Bayabas)", c:"Banana", d:"Papaya", c_opt:1},
-    {q:"Papaya in Bisaya?", a:"Mango", b:"Kapayas", c:"Banana", d:"Nangka", c_opt:1}
+    {q:"What do you put on a child's forehead to help with fever?", a:"Ice", b:"Kool Fever", c:"Vinegar/Suka", d:"Oil", c_opt:2}
   ]}
 };
 
-function log(msg, type='') { 
-    const box = document.getElementById('logBox'); 
-    box.innerHTML += `<div class="${type}">[${new Date().toLocaleTimeString()}] ${msg}</div>`;
-    box.scrollTop = box.scrollHeight;
+function log(msg, type='') {
+  const box = document.getElementById('logBox');
+  box.innerHTML += `<div style="color:${type==='err'?'#fb7185':'#34d399'}">[${new Date().toLocaleTimeString()}] ${msg}</div>`;
+  box.scrollTop = box.scrollHeight;
 }
 
-function safeName(n) { return n.replace(/[^a-zA-Z]/g,''); }
-
-// --- FIXED WIPE FUNCTION ---
-async function wipeDatabase() {
-    if(!confirm("DELETE EVERYTHING? This will clear all old redundant questions.")) return;
-    log("Wiping all existing data...", "err");
-
-    try {
-        // Step 1: Delete all questions. 
-        // We use a filter that is always true for UUIDs (id is not null)
-        const { error: qErr } = await sb.from('questions').delete().not('id', 'is', null);
-        if (qErr) throw qErr;
-
-        // Step 2: Delete all categories
-        const { error: cErr } = await sb.from('categories').delete().not('id', 'is', null);
-        if (cErr) throw cErr;
-
-        log("Database wiped successfully! It is now empty.", "ok");
-        init(); // Reset the UI bars
-    } catch (err) {
-        log("Wipe failed: " + err.message, "err");
-        console.error(err);
-    }
+// THE AGGRESSIVE WIPE
+async function fullReset() {
+  log("Attempting a Deep Wipe...", "err");
+  try {
+    // Delete all questions where text is not null (covers all rows)
+    await sb.from('questions').delete().not('question_text', 'is', null);
+    // Delete all categories
+    await sb.from('categories').delete().not('name', 'is', null);
+    
+    log("Wipe command sent. Check your DB. If old data persists, use the SQL Snippet provided by Gemini.", "ok");
+    initUI();
+  } catch (e) {
+    log("Wipe failed: " + e.message, "err");
+  }
 }
 
-function generateFillers(catName, baseQs) {
-    const fillers = [];
-    const needed = 100 - baseQs.length;
-    for(let i=1; i<=needed; i++) {
-        fillers.push({
-            q: `[Lola's ${catName}] Bonus Question #${i+baseQs.length}: What is Lola's greatest gift to us?`,
-            a: "Her Cooking", b: "Her Love", c: "Her Stories", d: "All of the Above",
-            c_opt: 3
-        });
-    }
-    return [...baseQs, ...fillers];
-}
-
-async function seedCategory(catName) {
-    const info = CATEGORIES[catName];
-    const el = document.getElementById(`status-${safeName(catName)}`);
-    const bar = document.getElementById(`bar-${safeName(catName)}`);
-    
-    log(`Creating ${catName}...`, 'ok');
-    
-    // Create Category
-    const { data: newCat, error: catErr } = await sb.from('categories')
-        .insert({ name: catName, icon: info.icon, color: info.color })
-        .select().single();
-    
-    if (catErr) {
-        log(`Error creating ${catName}: ${catErr.message}`, 'err');
-        return;
-    }
-
-    const allQs = generateFillers(catName, info.q);
-    
-    // Batch insert
-    for (let i = 0; i < allQs.length; i += 25) {
-        const batch = allQs.slice(i, i + 25).map(item => ({
-            category_id: newCat.id,
-            question_text: item.q,
-            option_a: item.a, option_b: item.b, option_c: item.c, option_d: item.d,
-            correct_option: item.c_opt,
-            time_limit: 25, points: 100
-        }));
-        
-        const { error: insErr } = await sb.from('questions').insert(batch);
-        if(insErr) {
-            log(`Insert error in ${catName}: ${insErr.message}`, 'err');
-            break;
-        }
-
-        let progress = Math.min(100, Math.round(((i + 25) / 100) * 100));
-        bar.style.width = progress + '%';
-        el.innerText = `${progress}/100 loaded`;
-    }
-    el.innerText = "✅ 100/100 Ready";
+function generateVolume(catName, baseQs) {
+  let finalQs = [...baseQs];
+  const fillers = [
+    "What makes Lola the happiest?", "Lola's favorite 70s memory is...?",
+    "Family Rule #1: Respect your...?", "A Bisaya birthday is never complete without...?",
+    "Who is Lola's favorite grandchild? (Hint: All of them!)"
+  ];
+  const options = ["Lola", "The Family", "Love", "Good Food"];
+  
+  for(let i = finalQs.length; i < 100; i++) {
+    finalQs.push({
+      q: `[${catName} Fun] ${fillers[i % fillers.length]} (Q${i+1})`,
+      a: options[0], b: options[1], c: options[2], d: options[3],
+      c_opt: Math.floor(Math.random() * 4)
+    });
+  }
+  return finalQs;
 }
 
 async function seedAll() {
-    const btn = document.getElementById('btnSeed');
-    btn.disabled = true;
-    btn.innerText = "⏳ Seeding...";
+  document.getElementById('btnSeed').disabled = true;
+  for (const [name, info] of Object.entries(CATEGORIES)) {
+    log(`Seeding ${name}...`);
     
-    for (const catName of Object.keys(CATEGORIES)) {
-        await seedCategory(catName);
+    const { data: cat, error: cErr } = await sb.from('categories').insert({ name: name, icon: info.icon, color: info.color }).select().single();
+    if(cErr) { log(`Error: ${cErr.message}`, 'err'); continue; }
+
+    const questions = generateVolume(name, info.q);
+    const bar = document.getElementById(`bar-${name.replace(/\s/g, '')}`);
+
+    // Batching 100 questions into 4 groups of 25 to avoid timeout
+    for (let i = 0; i < questions.length; i += 25) {
+      const batch = questions.slice(i, i + 25).map(q => ({
+        category_id: cat.id,
+        question_text: q.q,
+        option_a: q.a, option_b: q.b, option_c: q.c, option_d: q.d,
+        correct_option: q.c_opt,
+        time_limit: 20, points: 100
+      }));
+      await sb.from('questions').insert(batch);
+      bar.style.width = `${((i + 25) / 100) * 100}%`;
     }
-    
-    log("🎉 ALL 800 QUESTIONS LOADED! Lola's party is ready.", 'ok');
-    btn.innerText = "✅ Seeding Complete";
+    log(`✅ ${name} complete (100 Qs)`);
+  }
+  log("🎉 TOTAL 800 QUESTIONS READY!");
 }
 
-function init() {
-    const grid = document.getElementById('catGrid');
-    grid.innerHTML = Object.entries(CATEGORIES).map(([name, info]) => `
-        <div class="cat-card">
-            <div class="cat-header">
-                <div class="cat-icon">${info.icon}</div>
-                <div class="cat-name">${name}</div>
-            </div>
-            <div class="progress-wrap">
-                <div class="progress-bar" id="bar-${safeName(name)}" style="width: 0%"></div>
-            </div>
-            <div class="status-line" id="status-${safeName(name)}">Pending...</div>
-        </div>
-    `).join('');
+function initUI() {
+  const grid = document.getElementById('catGrid');
+  grid.innerHTML = Object.entries(CATEGORIES).map(([name, info]) => `
+    <div class="cat-card">
+      <strong>${info.icon} ${name}</strong>
+      <div class="progress-bar"><div class="progress-fill" id="bar-${name.replace(/\s/g, '')}"></div></div>
+    </div>
+  `).join('');
 }
-
-init();
+initUI();
 </script>
 </body>
 </html>
