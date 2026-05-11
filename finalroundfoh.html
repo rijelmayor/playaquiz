@@ -8,84 +8,676 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    :root { --bg: #03050b; --gold: #fbbf24; --green: #10b981; --red: #ef4444; --accent: #3b82f6; --purple: #a855f7; --text: #ffffff; --muted: rgba(255,255,255,0.45); }
-    body { background: var(--bg); font-family: 'Space Grotesk', sans-serif; color: var(--text); height: 100vh; overflow: hidden; }
+    :root {
+      --bg: #03050b;
+      --gold: #fbbf24;
+      --green: #10b981;
+      --red: #ef4444;
+      --accent: #3b82f6;
+      --purple: #a855f7;
+      --orange: #f97316;
+      --text: #ffffff;
+      --muted: rgba(255,255,255,0.45);
+      --surface: rgba(13,17,32,0.7);
+    }
+    body {
+      background: var(--bg);
+      font-family: 'Space Grotesk', sans-serif;
+      color: var(--text);
+      height: 100vh;
+      overflow: hidden;
+      background-image: radial-gradient(ellipse at 20% 50%, rgba(59,130,246,0.04) 0%, transparent 60%),
+                        radial-gradient(ellipse at 80% 20%, rgba(251,191,36,0.04) 0%, transparent 60%);
+    }
     .app { height: 100vh; display: flex; flex-direction: column; }
-    .top-bar { display: flex; justify-content: space-between; align-items: center; padding: 12px 28px; background: rgba(3,5,11,0.92); backdrop-filter: blur(20px); border-bottom: 2px solid rgba(251,191,36,0.25); flex-shrink: 0; }
+
+    /* TOP BAR */
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 28px;
+      background: rgba(3,5,11,0.92);
+      backdrop-filter: blur(20px);
+      border-bottom: 2px solid rgba(251,191,36,0.25);
+      flex-shrink: 0;
+      z-index: 10;
+    }
     .logo { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 4px; background: linear-gradient(135deg, #fff, var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .badge { display: flex; align-items: center; gap: 6px; background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.25); padding: 5px 16px; border-radius: 30px; font-size: 12px; font-weight: 700; color: var(--gold); }
     .room-display { font-family: 'JetBrains Mono', monospace; font-size: 20px; background: rgba(0,0,0,0.5); border: 1px solid rgba(251,191,36,0.3); padding: 5px 18px; border-radius: 30px; color: var(--gold); letter-spacing: 3px; }
     .player-counter { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
     .counter-num { font-family: 'JetBrains Mono', monospace; font-size: 22px; font-weight: 800; color: var(--gold); }
-    .main { flex: 1; display: flex; align-items: center; justify-content: center; padding: 24px; position: relative; overflow: hidden; }
-    .screen { display: none; animation: fadeUp 0.5s ease; width: 100%; max-width: 1100px; }
+
+    /* TWO COLUMN LAYOUT */
+    .main-grid {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 280px;
+      gap: 0;
+      overflow: hidden;
+    }
+
+    /* LEFT COLUMN - GAME CONTENT */
+    .game-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      overflow-y: auto;
+      position: relative;
+    }
+    .screen {
+      display: none;
+      animation: fadeUp 0.4s ease;
+      width: 100%;
+      max-width: 900px;
+    }
     .screen.active { display: flex; flex-direction: column; align-items: center; justify-content: center; }
-    @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* WAITING SCREEN */
     .waiting-hero { text-align: center; }
     .waiting-icon { font-size: 80px; margin-bottom: 16px; animation: float 3s ease-in-out infinite; }
     @keyframes float { 0%,100%{ transform: translateY(0); } 50%{ transform: translateY(-12px); } }
-    .waiting-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(44px,7vw,80px); letter-spacing: 5px; background: linear-gradient(135deg, #fff, var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .waiting-code { font-family: 'JetBrains Mono', monospace; font-size: clamp(40px,6vw,72px); color: var(--gold); letter-spacing: 10px; margin: 16px 0; }
-    .question-text { font-size: clamp(24px, 3.8vw, 52px); font-weight: 800; line-height: 1.35; background: rgba(255,255,255,0.03); border: 2px solid rgba(255,255,255,0.07); border-radius: 24px; padding: 32px 36px; margin-bottom: 22px; text-align: center; }
+    .waiting-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(44px,5vw,70px); letter-spacing: 5px; background: linear-gradient(135deg, #fff, var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .waiting-code { font-family: 'JetBrains Mono', monospace; font-size: clamp(36px,5vw,64px); color: var(--gold); letter-spacing: 8px; margin: 16px 0; text-shadow: 0 0 40px rgba(251,191,36,0.4); }
+
+    /* QUESTION SCREEN */
+    .question-hero { width: 100%; }
+    .q-label { font-size: 11px; color: var(--gold); letter-spacing: 3px; font-weight: 700; margin-bottom: 14px; text-align: center; }
+    .question-text {
+      font-size: clamp(22px, 3.2vw, 44px);
+      font-weight: 800;
+      line-height: 1.4;
+      background: rgba(255,255,255,0.03);
+      border: 2px solid rgba(255,255,255,0.07);
+      border-radius: 24px;
+      padding: 28px 32px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
     .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .opt-tile { background: rgba(255,255,255,0.04); border: 1.5px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 16px 20px; display: flex; align-items: center; gap: 14px; font-size: clamp(14px, 1.8vw, 20px); font-weight: 600; }
-    .opt-letter { width: 44px; height: 44px; border-radius: 12px; background: rgba(59,130,246,0.18); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 20px; flex-shrink: 0; color: var(--accent); }
-    .buzzer-open-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.35); padding: 9px 22px; border-radius: 40px; font-size: 15px; font-weight: 700; color: var(--green); margin-top: 18px; animation: pulse 1.2s infinite; }
+    .opt-tile {
+      background: rgba(255,255,255,0.04);
+      border: 1.5px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 14px 18px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: clamp(13px, 1.6vw, 18px);
+      font-weight: 600;
+    }
+    .opt-letter {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      background: rgba(59,130,246,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 20px;
+      flex-shrink: 0;
+      color: var(--accent);
+    }
+    .buzzer-open-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(16,185,129,0.12);
+      border: 1px solid rgba(16,185,129,0.35);
+      padding: 9px 22px;
+      border-radius: 40px;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--green);
+      margin-top: 18px;
+      animation: pulse 1.2s infinite;
+    }
     @keyframes pulse { 0%,100%{ opacity: 1; } 50%{ opacity: 0.55; } }
+
+    /* BUZZED SCREEN */
     .buzzed-hero { text-align: center; }
-    .buzzed-ring { width: 180px; height: 180px; border-radius: 50%; margin: 0 auto 20px; border: 3px solid var(--gold); display: flex; align-items: center; justify-content: center; font-size: 80px; animation: ringPulse 0.8s ease-in-out infinite alternate; }
-    @keyframes ringPulse { from { box-shadow: 0 0 0 0 rgba(251,191,36,0.4); } to { box-shadow: 0 0 0 30px rgba(251,191,36,0); } }
-    .buzzed-name { font-family: 'Bebas Neue', sans-serif; font-size: clamp(56px,8vw,100px); background: linear-gradient(135deg, #fff, var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .buzzed-ring {
+      width: 160px;
+      height: 160px;
+      border-radius: 50%;
+      margin: 0 auto 20px;
+      background: radial-gradient(circle, rgba(251,191,36,0.2), transparent);
+      border: 3px solid var(--gold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 70px;
+      animation: ringPulse 0.8s ease-in-out infinite alternate;
+    }
+    @keyframes ringPulse { from { box-shadow: 0 0 0 0 rgba(251,191,36,0.4); } to { box-shadow: 0 0 0 25px rgba(251,191,36,0); } }
+    .buzzed-label { font-size: 12px; color: var(--gold); letter-spacing: 3px; font-weight: 700; margin-bottom: 8px; }
+    .buzzed-name { font-family: 'Bebas Neue', sans-serif; font-size: clamp(48px,6vw,80px); background: linear-gradient(135deg, #fff, var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+    /* RESULT SCREENS */
     .result-hero { text-align: center; }
-    .result-icon { font-size: 90px; margin-bottom: 16px; animation: pop 0.4s ease; }
+    .result-icon { font-size: 80px; margin-bottom: 16px; animation: pop 0.4s ease; }
     @keyframes pop { 0%{ transform: scale(0.5); } 80%{ transform: scale(1.1); } 100%{ transform: scale(1); } }
-    .result-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(50px,8vw,90px); letter-spacing: 4px; }
+    .result-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(44px,7vw,80px); letter-spacing: 4px; }
+    .result-sub { font-size: 20px; color: var(--muted); margin-top: 10px; }
+
+    /* CATEGORY PICKER SCREEN */
     .catpick-hero { text-align: center; width: 100%; }
-    .catpick-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(36px,5vw,64px); letter-spacing: 4px; margin-bottom: 8px; color: var(--purple); }
-    .catpick-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px; max-width: 900px; margin: 0 auto; }
-    .cat-tile { background: rgba(139,92,246,0.08); border: 2px solid rgba(139,92,246,0.2); border-radius: 20px; padding: 22px 14px; text-align: center; transition: 0.3s; animation: catPop 0.5s ease backwards; }
-    .cat-tile-icon { font-size: 44px; margin-bottom: 10px; }
+    .catpick-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(32px,4.5vw,56px); letter-spacing: 4px; margin-bottom: 8px; color: var(--purple); }
+    .catpick-sub { font-size: 16px; color: var(--muted); margin-bottom: 24px; }
+    .catpick-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; max-width: 800px; margin: 0 auto; }
+    .cat-tile {
+      background: rgba(139,92,246,0.08);
+      border: 2px solid rgba(139,92,246,0.25);
+      border-radius: 20px;
+      padding: 18px 20px;
+      text-align: center;
+      min-width: 120px;
+      transition: 0.3s;
+      animation: catPop 0.4s ease backwards;
+    }
+    .cat-tile-icon { font-size: 40px; margin-bottom: 8px; }
     .cat-tile-name { font-weight: 700; font-size: 14px; }
-    @keyframes catPop { from { opacity:0; transform:scale(0.8); } to { opacity:1; transform:scale(1); } }
-    .live-panel { position: fixed; right: 16px; top: 80px; width: 220px; background: rgba(6,8,18,0.88); backdrop-filter: blur(16px); border-radius: 16px; border: 1px solid rgba(255,255,255,0.08); padding: 14px; }
-    .panel-title { font-size: 10px; font-weight: 700; color: var(--gold); margin-bottom: 10px; text-align: center; }
-    .player-row { display: flex; align-items: center; gap: 7px; padding: 5px 8px; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 12px; }
-    .player-row-name { flex: 1; font-weight: 600; }
-    .player-row-score { color: var(--gold); font-family: monospace; }
-    .footer { padding: 8px 24px; text-align: center; font-size: 10px; color: rgba(255,255,255,0.2); border-top: 1px solid rgba(255,255,255,0.04); flex-shrink: 0; }
-    @keyframes confettiFall { 0%{ opacity:1; transform: translateY(-10px); } 100%{ opacity:0; transform: translateY(100vh); } }
+
+    /* END SCREEN */
+    .ended-hero { text-align: center; }
+    .ended-icon { font-size: 90px; animation: float 3s ease-in-out infinite; }
+    .ended-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(44px,7vw,80px); letter-spacing: 4px; margin: 16px 0; }
+    .ended-winner { font-size: 24px; color: var(--gold); }
+
+    /* RIGHT COLUMN - PLAYER BLOCKS */
+    .players-column {
+      background: rgba(3,5,11,0.6);
+      border-left: 1px solid rgba(251,191,36,0.2);
+      backdrop-filter: blur(8px);
+      padding: 20px 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+    .players-header {
+      text-align: center;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(251,191,36,0.3);
+    }
+    .players-header h3 {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 22px;
+      letter-spacing: 2px;
+      color: var(--gold);
+    }
+    .players-header p {
+      font-size: 10px;
+      color: var(--muted);
+    }
+    .players-blocks {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    /* Player Block Styles */
+    .player-block {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(255,255,255,0.03);
+      border: 1.5px solid rgba(255,255,255,0.08);
+      border-radius: 60px;
+      padding: 6px 12px 6px 8px;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+    .player-avatar-circle {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #1f2a3c, #0d1120);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      border: 2px solid rgba(255,255,255,0.15);
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+    }
+    .player-info {
+      flex: 1;
+    }
+    .player-name-block {
+      font-weight: 700;
+      font-size: 14px;
+      line-height: 1.3;
+    }
+    .player-score-block {
+      font-size: 11px;
+      color: var(--gold);
+      font-family: monospace;
+      font-weight: 700;
+    }
+    .player-status-badge {
+      font-size: 10px;
+      padding: 2px 8px;
+      border-radius: 20px;
+      background: rgba(0,0,0,0.5);
+    }
+    /* BUZZED STATE - HEARTBEAT + STAR SHINE */
+    .player-block.buzzed {
+      background: linear-gradient(135deg, rgba(251,191,36,0.25), rgba(251,191,36,0.05));
+      border-color: var(--gold);
+      animation: heartbeat 0.4s ease-in-out 3, starGlow 0.8s ease-in-out 2;
+      position: relative;
+    }
+    .player-block.buzzed .player-avatar-circle {
+      border-color: var(--gold);
+      box-shadow: 0 0 20px rgba(251,191,36,0.6);
+      animation: avatarPulse 0.3s ease-in-out 3;
+    }
+    @keyframes heartbeat {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.02); background: rgba(251,191,36,0.15); }
+      100% { transform: scale(1); }
+    }
+    @keyframes starGlow {
+      0% { box-shadow: 0 0 0 0 rgba(251,191,36,0.7); }
+      50% { box-shadow: 0 0 0 8px rgba(251,191,36,0.3), 0 0 0 12px rgba(251,191,36,0.1); }
+      100% { box-shadow: 0 0 0 0 rgba(251,191,36,0); }
+    }
+    @keyframes avatarPulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.12); box-shadow: 0 0 25px var(--gold); }
+      100% { transform: scale(1); }
+    }
+    /* WRONG/LOCKED STATE */
+    .player-block.locked {
+      opacity: 0.5;
+      filter: grayscale(0.3);
+      border-color: rgba(239,68,68,0.3);
+    }
+    .player-block.eliminated {
+      opacity: 0.25;
+      filter: grayscale(0.7);
+      text-decoration: line-through;
+    }
+    .player-block.correct {
+      background: rgba(16,185,129,0.15);
+      border-color: var(--green);
+      animation: correctFlash 0.5s ease;
+    }
+    @keyframes correctFlash {
+      0% { background: rgba(16,185,129,0); }
+      50% { background: rgba(16,185,129,0.3); }
+      100% { background: rgba(16,185,129,0.15); }
+    }
+    /* FOOTER */
+    .footer {
+      padding: 6px 20px;
+      text-align: center;
+      font-size: 9px;
+      color: rgba(255,255,255,0.15);
+      border-top: 1px solid rgba(255,255,255,0.03);
+      flex-shrink: 0;
+    }
+    /* CONFETTI */
+    .confetti-piece { position: fixed; pointer-events: none; z-index: 9999; border-radius: 2px; }
+    @keyframes confettiFall { 0%{ opacity:1; transform: translateY(-10px) rotate(0deg); } 100%{ opacity:0; transform: translateY(100vh) rotate(720deg); } }
+    /* Scrollbar */
+    .players-column::-webkit-scrollbar { width: 4px; }
+    .players-column::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 4px; }
+    .players-column::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 4px; }
   </style>
 </head>
 <body>
 <div class="app">
   <div class="top-bar">
     <div class="logo">PLAY<span style="color:var(--gold)">A</span>QUIZ</div>
-    <div style="display:flex;gap:12px;align-items:center">
-      <div class="player-counter">👥 <span class="counter-num" id="playerCount">0</span></div>
-      <div class="room-display" id="roomDisplay">——</div>
+    <div class="badge">⚡ FINAL ROUND</div>
+    <div class="room-display" id="roomDisplay">——</div>
+  </div>
+
+  <div class="main-grid">
+    <!-- LEFT COLUMN - GAME CONTENT -->
+    <div class="game-content">
+      <!-- WAITING -->
+      <div id="waitingScreen" class="screen active">
+        <div class="waiting-hero">
+          <div class="waiting-icon">⚡</div>
+          <div class="waiting-title">FINAL ROUND</div>
+          <div class="waiting-code" id="waitingRoomCode">——</div>
+          <div class="waiting-sub">Get ready for the ultimate battle!</div>
+        </div>
+      </div>
+
+      <!-- QUESTION -->
+      <div id="questionScreen" class="screen">
+        <div class="question-hero">
+          <div class="q-label" id="qLabel">QUESTION</div>
+          <div class="question-text" id="questionText">Loading...</div>
+          <div class="options-grid" id="optionsGrid"></div>
+          <div style="text-align:center">
+            <div class="buzzer-open-badge">🔴 BUZZERS ARE OPEN — HIT THE BUTTON!</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BUZZED -->
+      <div id="buzzedScreen" class="screen">
+        <div class="buzzed-hero">
+          <div class="buzzed-ring">🔔</div>
+          <div class="buzzed-label">BUZZED IN</div>
+          <div class="buzzed-name" id="buzzedName">—</div>
+          <div class="buzzed-sub">is answering...</div>
+        </div>
+      </div>
+
+      <!-- CORRECT -->
+      <div id="correctScreen" class="screen">
+        <div class="result-hero">
+          <div class="result-icon">✅</div>
+          <div class="result-title" style="color:var(--green)">CORRECT!</div>
+          <div class="result-sub" id="correctSub">—</div>
+        </div>
+      </div>
+
+      <!-- WRONG -->
+      <div id="wrongScreen" class="screen">
+        <div class="result-hero">
+          <div class="result-icon">❌</div>
+          <div class="result-title" style="color:var(--red)">WRONG!</div>
+          <div class="result-sub" id="wrongSub">Buzzers reopen for others</div>
+        </div>
+      </div>
+
+      <!-- CATEGORY PICKER -->
+      <div id="catPickScreen" class="screen">
+        <div class="catpick-hero">
+          <div class="catpick-title">🎨 PICK A CATEGORY</div>
+          <div class="catpick-sub">Choose the next category</div>
+          <div class="catpick-grid" id="catPickGrid"></div>
+        </div>
+      </div>
+
+      <!-- ENDED -->
+      <div id="endedScreen" class="screen">
+        <div class="ended-hero">
+          <div class="ended-icon">🏆</div>
+          <div class="ended-title">GAME OVER</div>
+          <div class="ended-winner" id="winnerName">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN - PLAYER BLOCKS WITH EMOJI + NAME -->
+    <div class="players-column">
+      <div class="players-header">
+        <h3>🎮 CONTESTANTS</h3>
+        <p>buzzer battle arena</p>
+      </div>
+      <div class="players-blocks" id="playersBlocksContainer">
+        <div style="text-align:center;color:var(--muted);padding:20px;">Waiting for players...</div>
+      </div>
     </div>
   </div>
-  <div class="main">
-    <div id="waitingScreen" class="screen active"><div class="waiting-hero"><div class="waiting-icon">⚡</div><div class="waiting-title">FINAL ROUND</div><div class="waiting-code" id="waitingRoomCode">——</div></div></div>
-    <div id="questionScreen" class="screen"><div class="question-hero"><div class="question-text" id="questionText">Loading...</div><div class="options-grid" id="optionsGrid"></div><div class="buzzer-open-badge">🔴 BUZZERS ARE OPEN — HIT THE BUTTON!</div></div></div>
-    <div id="buzzedScreen" class="screen"><div class="buzzed-hero"><div class="buzzed-ring">🔔</div><div class="buzzed-label">BUZZED IN</div><div class="buzzed-name" id="buzzedName">—</div></div></div>
-    <div id="correctScreen" class="screen"><div class="result-hero"><div class="result-icon">✅</div><div class="result-title" style="color:var(--green)">CORRECT!</div><div class="result-sub" id="correctSub">—</div></div></div>
-    <div id="wrongScreen" class="screen"><div class="result-hero"><div class="result-icon">❌</div><div class="result-title" style="color:var(--red)">WRONG!</div></div></div>
-    <div id="catPickScreen" class="screen"><div class="catpick-hero"><div class="catpick-title">🎨 PICK A CATEGORY</div><div class="catpick-grid" id="catPickGrid"></div></div></div>
-    <div id="endedScreen" class="screen"><div class="ended-hero"><div class="result-icon">🏆</div><div class="result-title">GAME OVER</div><div class="ended-winner" id="winnerName">—</div></div></div>
-  </div>
-  <div class="live-panel"><div class="panel-title">🏆 LIVE PLAYERS</div><div id="playerListPanel">No players yet</div></div>
+
   <div class="footer">PlayAQuiz — Final Round Display</div>
 </div>
+
 <script>
 const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
 const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
-let roomCode = null, realtimeChannel = null, currentPlayers = [];
-function showScreen(id) { document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); let el=document.getElementById(`${id}Screen`); if(el) el.classList.add('active'); }
-function updatePlayerPanel(players) { currentPlayers=players||[]; document.getElementById('playerCount').innerText=currentPlayers.length; let panel=document.getElementById('playerListPanel'); if(currentPlayers.length===0){ panel.innerHTML='No players yet'; return; } let sorted=[...currentPlayers].sort((a,b)=>(b.score||0)-(a.score||0)); panel.innerHTML=sorted.map(p=>`<div class="player-row"><div>${p.avatar||'🎮'}</div><div class="player-row-name">${p.name}</div><div class="player-row-score">${p.score||0}</div></div>`).join(''); }
-function launchConfetti(){ for(let i=0;i<80;i++){ let c=document.createElement('div'); c.style.cssText=`position:fixed;width:8px;height:8px;background:${['#fbbf24','#ef4444','#10b981','#3b82f6'][Math.floor(Math.random()*4)]};left:${Math.random()*100}vw;top:-10px;border-radius:2px;pointer-events:none;animation:confettiFall ${2+Math.random()*2}s linear forwards;z-index:9999;`; document.body.appendChild(c); setTimeout(()=>c.remove(),5000); } }
-function handleBroadcast(event,payload){ console.log('FOH:',event); switch(event){ case 'round_started': showScreen('waiting'); break; case 'player_list_update': updatePlayerPanel(payload.players); break; case 'question_open': document.getElementById('questionText').innerText=payload.question; let opts=payload.options||[]; document.getElementById('optionsGrid').innerHTML=opts.map((o,i)=>`<div class="opt-tile"><div class="opt-letter">${String.fromCharCode(65+i)}</div><div>${o}</div></div>`).join(''); showScreen('question'); break; case 'buzz_confirmed': document.getElementById('buzzedName').innerHTML=`${payload.playerAvatar||''} ${payload.playerName}`; showScreen('buzzed'); break; case 'correct': document.getElementById('correctSub').innerHTML=`${payload.playerAvatar||''} ${payload.playerName} +${payload.points||100} pts`; showScreen('correct'); launchConfetti(); setTimeout(()=>showScreen('question'),2800); break; case 'wrong': showScreen('wrong'); setTimeout(()=>showScreen('question'),1800); break; case 'next_question': showScreen('waiting'); break; case 'reset_buzzers': showScreen('question'); break; case 'show_category_picker': let cats=payload.categories||[]; document.getElementById('catPickGrid').innerHTML=cats.map((c,i)=>`<div class="cat-tile" style="animation-delay:${i*0.07}s"><div class="cat-tile-icon">${c.icon||'📁'}</div><div class="cat-tile-name">${c.name}</div></div>`).join(''); showScreen('catPick'); break; case 'round_ended': let winner=payload.winner; document.getElementById('winnerName').innerHTML=`${winner?.avatar||'🏆'} ${winner?.name||'—'} — ${winner?.score||0} pts`; showScreen('ended'); launchConfetti(); break; } }
-async function init(){ let params=new URLSearchParams(window.location.search); roomCode=params.get('room')||localStorage.getItem('fr_room'); if(!roomCode){ document.getElementById('waitingRoomCode').innerText='NO ROOM'; document.getElementById('roomDisplay').innerText='NO ROOM'; return; } document.getElementById('roomDisplay').innerText=roomCode; document.getElementById('waitingRoomCode').innerText=roomCode; realtimeChannel=sb.channel(`fr-${roomCode}`); realtimeChannel.on('broadcast',{event:'round_started'},({payload})=>handleBroadcast('round_started',payload)).on('broadcast',{event:'player_list_update'},({payload})=>handleBroadcast('player_list_update',payload)).on('broadcast',{event:'question_open'},({payload})=>handleBroadcast('question_open',payload)).on('broadcast',{event:'buzz_confirmed'},({payload})=>handleBroadcast('buzz_confirmed',payload)).on('broadcast',{event:'correct'},({payload})=>handleBroadcast('correct',payload)).on('broadcast',{event:'wrong'},({payload})=>handleBroadcast('wrong',payload)).on('broadcast',{event:'next_question'},({payload})=>handleBroadcast('next_question',payload)).on('broadcast',{event:'reset_buzzers'},({payload})=>handleBroadcast('reset_buzzers',payload)).on('broadcast',{event:'show_category_picker'},({payload})=>handleBroadcast('show_category_picker',payload)).on('broadcast',{event:'round_ended'},({payload})=>handleBroadcast('round_ended',payload)).subscribe(); }
+
+let roomCode = null;
+let realtimeChannel = null;
+let currentPlayers = [];
+let buzzedPlayerIdTemp = null;
+
+function showScreen(id) {
+  document.querySelectorAll('.game-content .screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById(`${id}Screen`);
+  if (el) el.classList.add('active');
+}
+
+// Render player blocks with emoji avatar, name, score, and status effects
+function renderPlayersBlocks(players) {
+  const container = document.getElementById('playersBlocksContainer');
+  if (!container) return;
+  
+  if (!players || players.length === 0) {
+    container.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;">No players yet</div>';
+    return;
+  }
+
+  // Sort by score descending
+  const sorted = [...players].sort((a, b) => (b.score || 0) - (a.score || 0));
+  
+  container.innerHTML = sorted.map(player => {
+    const isEliminated = player.status === 'eliminated';
+    const isBuzzed = player.status === 'buzzed';
+    const isLocked = player.status === 'locked' || player.status === 'wrong';
+    const isCorrect = player.status === 'correct';
+    
+    let statusClass = '';
+    let statusText = '';
+    if (isBuzzed) statusClass = 'buzzed';
+    else if (isLocked) statusClass = 'locked';
+    else if (isEliminated) statusClass = 'eliminated';
+    else if (isCorrect) statusClass = 'correct';
+    
+    if (isBuzzed) statusText = '🔔 BUZZED!';
+    else if (isLocked) statusText = '🔒 LOCKED';
+    else if (isEliminated) statusText = '⚡ OUT';
+    else if (isCorrect) statusText = '✅ CORRECT';
+    else statusText = '● READY';
+    
+    return `
+      <div class="player-block ${statusClass}" data-player-id="${player.id}">
+        <div class="player-avatar-circle">
+          ${player.avatar || '🎮'}
+        </div>
+        <div class="player-info">
+          <div class="player-name-block">${escapeHtml(player.name)}</div>
+          <div class="player-score-block">${player.score || 0} pts</div>
+        </div>
+        <div class="player-status-badge">${statusText}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+// Helper to escape HTML
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/[&<>]/g, function(m) {
+    if (m === '&') return '&amp;';
+    if (m === '<') return '&lt;';
+    if (m === '>') return '&gt;';
+    return m;
+  });
+}
+
+// Update specific player status in UI without full re-render (optional)
+function updatePlayerStatus(players, playerId, newStatus) {
+  const player = players.find(p => p.id === playerId);
+  if (player) player.status = newStatus;
+  renderPlayersBlocks(players);
+}
+
+// Reset all players back to waiting (preserve eliminated)
+function resetPlayersStatus(players, eliminatedSet = new Set()) {
+  players.forEach(p => {
+    if (!eliminatedSet.has(p.id)) p.status = 'waiting';
+  });
+  renderPlayersBlocks(players);
+}
+
+// Launch confetti
+function launchConfetti() {
+  const colors = ['#fbbf24', '#ef4444', '#10b981', '#3b82f6', '#a855f7', '#f97316'];
+  for (let i = 0; i < 100; i++) {
+    const c = document.createElement('div');
+    c.className = 'confetti-piece';
+    const size = 6 + Math.random() * 10;
+    c.style.cssText = `width:${size}px;height:${size}px;background:${colors[Math.floor(Math.random()*colors.length)]};left:${Math.random()*100}vw;top:-10px;animation:confettiFall ${2+Math.random()*3}s linear ${Math.random()*0.5}s forwards;`;
+    document.body.appendChild(c);
+    setTimeout(() => c.remove(), 5500);
+  }
+}
+
+// Handle incoming broadcasts
+function handleBroadcast(event, payload) {
+  console.log('FOH received:', event, payload);
+
+  switch (event) {
+    case 'round_started':
+      showScreen('waiting');
+      break;
+
+    case 'player_list_update':
+      currentPlayers = payload.players || [];
+      renderPlayersBlocks(currentPlayers);
+      break;
+
+    case 'question_open': {
+      document.getElementById('qLabel').innerText = `QUESTION ${payload.questionNumber || ''}`;
+      document.getElementById('questionText').innerText = payload.question;
+      const opts = payload.options || [];
+      document.getElementById('optionsGrid').innerHTML = opts.map((o, i) => `
+        <div class="opt-tile">
+          <div class="opt-letter">${String.fromCharCode(65 + i)}</div>
+          <div>${escapeHtml(o)}</div>
+        </div>
+      `).join('');
+      showScreen('question');
+      break;
+    }
+
+    case 'buzz_confirmed': {
+      // Update the specific player to 'buzzed' status
+      const playerIndex = currentPlayers.findIndex(p => p.id === payload.playerId);
+      if (playerIndex !== -1) {
+        // Reset all players to waiting first, then set buzzed player
+        currentPlayers.forEach(p => {
+          if (p.status !== 'eliminated') p.status = 'locked';
+        });
+        currentPlayers[playerIndex].status = 'buzzed';
+        renderPlayersBlocks(currentPlayers);
+      }
+      document.getElementById('buzzedName').innerHTML = `${payload.playerAvatar || ''} ${payload.playerName}`;
+      showScreen('buzzed');
+      break;
+    }
+
+    case 'correct': {
+      // Update player score and status
+      const playerIndex = currentPlayers.findIndex(p => p.id === payload.playerId);
+      if (playerIndex !== -1) {
+        currentPlayers[playerIndex].score = payload.newScore || (currentPlayers[playerIndex].score + (payload.points || 100));
+        currentPlayers[playerIndex].status = 'correct';
+        renderPlayersBlocks(currentPlayers);
+      }
+      document.getElementById('correctSub').innerHTML = `${payload.playerAvatar || ''} ${payload.playerName} &nbsp;+${payload.points || 100} pts`;
+      showScreen('correct');
+      launchConfetti();
+      setTimeout(() => showScreen('question'), 2800);
+      break;
+    }
+
+    case 'wrong': {
+      const playerIndex = currentPlayers.findIndex(p => p.id === payload.playerId);
+      if (playerIndex !== -1) {
+        currentPlayers[playerIndex].status = 'wrong';
+        renderPlayersBlocks(currentPlayers);
+      }
+      document.getElementById('wrongSub').innerText = `${payload.playerName} — Buzzers reopen!`;
+      showScreen('wrong');
+      setTimeout(() => showScreen('question'), 1800);
+      break;
+    }
+
+    case 'next_question':
+      // Reset non-eliminated players to waiting
+      currentPlayers.forEach(p => {
+        if (p.status !== 'eliminated') p.status = 'waiting';
+      });
+      renderPlayersBlocks(currentPlayers);
+      showScreen('waiting');
+      break;
+
+    case 'reset_buzzers':
+      currentPlayers.forEach(p => {
+        if (p.status !== 'eliminated' && p.status !== 'correct') p.status = 'waiting';
+      });
+      renderPlayersBlocks(currentPlayers);
+      showScreen('question');
+      break;
+
+    case 'eliminated': {
+      const playerIndex = currentPlayers.findIndex(p => p.id === payload.playerId);
+      if (playerIndex !== -1) {
+        currentPlayers[playerIndex].status = 'eliminated';
+        renderPlayersBlocks(currentPlayers);
+      }
+      break;
+    }
+
+    case 'show_category_picker': {
+      const cats = payload.categories || [];
+      document.getElementById('catPickGrid').innerHTML = cats.map((c, i) => `
+        <div class="cat-tile" style="animation-delay:${i * 0.05}s">
+          <div class="cat-tile-icon">${c.icon || '📁'}</div>
+          <div class="cat-tile-name">${c.name}</div>
+        </div>
+      `).join('');
+      showScreen('catPick');
+      break;
+    }
+
+    case 'round_ended': {
+      const winner = payload.winner;
+      document.getElementById('winnerName').innerHTML = `${winner?.avatar || '🏆'} ${winner?.name || '—'} &nbsp;—&nbsp; ${winner?.score || 0} pts`;
+      showScreen('ended');
+      launchConfetti();
+      break;
+    }
+  }
+}
+
+async function init() {
+  // Get room code from URL or localStorage
+  const params = new URLSearchParams(window.location.search);
+  roomCode = params.get('room') || localStorage.getItem('fr_room');
+  if (!roomCode) {
+    document.getElementById('waitingRoomCode').innerText = 'NO ROOM';
+    document.getElementById('roomDisplay').innerText = 'NO ROOM';
+    return;
+  }
+
+  document.getElementById('roomDisplay').innerText = roomCode;
+  document.getElementById('waitingRoomCode').innerText = roomCode;
+
+  realtimeChannel = sb.channel(`fr-${roomCode}`, { config: { broadcast: { self: false } } });
+  realtimeChannel
+    .on('broadcast', { event: 'round_started' }, ({ payload }) => handleBroadcast('round_started', payload))
+    .on('broadcast', { event: 'player_list_update' }, ({ payload }) => handleBroadcast('player_list_update', payload))
+    .on('broadcast', { event: 'question_open' }, ({ payload }) => handleBroadcast('question_open', payload))
+    .on('broadcast', { event: 'buzz_confirmed' }, ({ payload }) => handleBroadcast('buzz_confirmed', payload))
+    .on('broadcast', { event: 'correct' }, ({ payload }) => handleBroadcast('correct', payload))
+    .on('broadcast', { event: 'wrong' }, ({ payload }) => handleBroadcast('wrong', payload))
+    .on('broadcast', { event: 'next_question' }, ({ payload }) => handleBroadcast('next_question', payload))
+    .on('broadcast', { event: 'reset_buzzers' }, ({ payload }) => handleBroadcast('reset_buzzers', payload))
+    .on('broadcast', { event: 'eliminated' }, ({ payload }) => handleBroadcast('eliminated', payload))
+    .on('broadcast', { event: 'show_category_picker' }, ({ payload }) => handleBroadcast('show_category_picker', payload))
+    .on('broadcast', { event: 'round_ended' }, ({ payload }) => handleBroadcast('round_ended', payload))
+    .subscribe((status) => {
+      console.log('FOH channel status:', status);
+    });
+}
+
 init();
 </script>
 </body>
