@@ -46,6 +46,8 @@
     .logo { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 4px; background: linear-gradient(135deg, #fff, var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
     .badge { display: flex; align-items: center; gap: 6px; background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.25); padding: 5px 16px; border-radius: 30px; font-size: 12px; font-weight: 700; color: var(--gold); }
     .room-display { font-family: 'JetBrains Mono', monospace; font-size: 20px; background: rgba(0,0,0,0.5); border: 1px solid rgba(251,191,36,0.3); padding: 5px 18px; border-radius: 30px; color: var(--gold); letter-spacing: 3px; }
+    .audio-control { background: rgba(0,0,0,0.4); border: none; color: var(--gold); font-size: 20px; cursor: pointer; padding: 6px 12px; border-radius: 30px; transition: 0.2s; }
+    .audio-control:hover { background: rgba(251,191,36,0.2); }
 
     /* TWO COLUMN LAYOUT */
     .main-grid {
@@ -137,7 +139,7 @@
     }
     @keyframes pulse { 0%,100%{ opacity: 1; } 50%{ opacity: 0.55; } }
 
-    /* BUZZED OVERLAY - appears over question */
+    /* BUZZED OVERLAY */
     .buzzed-overlay {
       position: absolute;
       top: 0;
@@ -170,9 +172,8 @@
     }
     @keyframes ringPulse { from { box-shadow: 0 0 0 0 rgba(251,191,36,0.4); } to { box-shadow: 0 0 0 20px rgba(251,191,36,0); } }
     .buzzed-name { font-family: 'Bebas Neue', sans-serif; font-size: clamp(40px,5vw,64px); background: linear-gradient(135deg, #fff, var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-align: center; }
-    .buzzed-label { font-size: 12px; color: var(--gold); letter-spacing: 3px; font-weight: 700; margin-bottom: 8px; }
 
-    /* RESULT OVERLAY - appears over question, persists until next category */
+    /* RESULT OVERLAY */
     .result-overlay {
       position: absolute;
       top: 0;
@@ -241,15 +242,7 @@
       letter-spacing: 2px;
       color: var(--gold);
     }
-    .players-header p {
-      font-size: 10px;
-      color: var(--muted);
-    }
-    .players-blocks {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
+    .players-blocks { display: flex; flex-direction: column; gap: 12px; }
     .player-block {
       display: flex;
       align-items: center;
@@ -270,30 +263,11 @@
       justify-content: center;
       font-size: 32px;
       border: 2px solid rgba(255,255,255,0.15);
-      transition: all 0.2s ease;
       flex-shrink: 0;
     }
-    .player-info {
-      flex: 1;
-    }
-    .player-name-block {
-      font-weight: 700;
-      font-size: 14px;
-      line-height: 1.3;
-    }
-    .player-score-block {
-      font-size: 11px;
-      color: var(--gold);
-      font-family: monospace;
-      font-weight: 700;
-    }
-    .player-status-badge {
-      font-size: 10px;
-      padding: 2px 8px;
-      border-radius: 20px;
-      background: rgba(0,0,0,0.5);
-    }
-    /* BUZZED STATE */
+    .player-info { flex: 1; }
+    .player-name-block { font-weight: 700; font-size: 14px; }
+    .player-score-block { font-size: 11px; color: var(--gold); font-family: monospace; font-weight: 700; }
     .player-block.buzzed {
       background: linear-gradient(135deg, rgba(251,191,36,0.25), rgba(251,191,36,0.05));
       border-color: var(--gold);
@@ -311,7 +285,7 @@
     }
     @keyframes starGlow {
       0% { box-shadow: 0 0 0 0 rgba(251,191,36,0.7); }
-      50% { box-shadow: 0 0 0 8px rgba(251,191,36,0.3), 0 0 0 12px rgba(251,191,36,0.1); }
+      50% { box-shadow: 0 0 0 8px rgba(251,191,36,0.3); }
       100% { box-shadow: 0 0 0 0 rgba(251,191,36,0); }
     }
     @keyframes avatarPulse {
@@ -336,11 +310,10 @@
       flex-shrink: 0;
     }
     .confetti-piece { position: fixed; pointer-events: none; z-index: 9999; border-radius: 2px; }
-    @keyframes confettiFall { 0%{ opacity:1; transform: translateY(-10px) rotate(0deg); } 100%{ opacity:0; transform: translateY(100vh) rotate(720deg); } }
+    @keyframes confettiFall { 0%{ opacity:1; transform: translateY(-10px); } 100%{ opacity:0; transform: translateY(100vh); } }
     .players-column::-webkit-scrollbar { width: 4px; }
     .players-column::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 4px; }
     .players-column::-webkit-scrollbar-thumb { background: var(--gold); border-radius: 4px; }
-    .hidden { display: none !important; }
   </style>
 </head>
 <body>
@@ -348,13 +321,14 @@
   <div class="top-bar">
     <div class="logo">PLAY<span style="color:var(--gold)">A</span>QUIZ</div>
     <div class="badge">⚡ FINAL ROUND</div>
-    <div class="room-display" id="roomDisplay">——</div>
+    <div style="display:flex;gap:12px;align-items:center">
+      <button class="audio-control" id="bgmToggleBtn" onclick="toggleBackgroundMusic()">🔊</button>
+      <div class="room-display" id="roomDisplay">——</div>
+    </div>
   </div>
 
   <div class="main-grid">
-    <!-- LEFT COLUMN - GAME CONTENT -->
     <div class="game-content">
-      <!-- WAITING -->
       <div id="waitingScreen" class="screen active">
         <div class="waiting-hero">
           <div class="waiting-icon">⚡</div>
@@ -362,22 +336,15 @@
           <div class="waiting-code" id="waitingRoomCode">——</div>
         </div>
       </div>
-
-      <!-- QUESTION SCREEN (with overlays) -->
       <div id="questionScreen" class="screen">
         <div class="question-hero" style="position: relative;">
           <div class="q-label" id="qLabel">QUESTION</div>
           <div class="question-text" id="questionText">Loading...</div>
           <div class="options-grid" id="optionsGrid"></div>
-          <div style="text-align:center">
-            <div class="buzzer-open-badge">🔴 BUZZERS ARE OPEN — HIT THE BUTTON!</div>
-          </div>
-          <!-- Dynamic overlays will be injected here -->
+          <div style="text-align:center"><div class="buzzer-open-badge">🔴 BUZZERS ARE OPEN — HIT THE BUTTON!</div></div>
           <div id="overlayContainer"></div>
         </div>
       </div>
-
-      <!-- CATEGORY PICKER -->
       <div id="catPickScreen" class="screen">
         <div class="catpick-hero">
           <div class="catpick-title">🎨 PICK A CATEGORY</div>
@@ -385,8 +352,6 @@
           <div class="catpick-grid" id="catPickGrid"></div>
         </div>
       </div>
-
-      <!-- ENDED -->
       <div id="endedScreen" class="screen">
         <div class="ended-hero">
           <div class="ended-icon">🏆</div>
@@ -396,18 +361,11 @@
       </div>
     </div>
 
-    <!-- RIGHT COLUMN - PLAYER BLOCKS -->
     <div class="players-column">
-      <div class="players-header">
-        <h3>🎮 CONTESTANTS</h3>
-        <p>buzzer battle arena</p>
-      </div>
-      <div class="players-blocks" id="playersBlocksContainer">
-        <div style="text-align:center;color:var(--muted);padding:20px;">Waiting for players...</div>
-      </div>
+      <div class="players-header"><h3>🎮 CONTESTANTS</h3><p>buzzer battle arena</p></div>
+      <div class="players-blocks" id="playersBlocksContainer"><div style="text-align:center;color:var(--muted);padding:20px;">Waiting for players...</div></div>
     </div>
   </div>
-
   <div class="footer">PlayAQuiz — Final Round Display</div>
 </div>
 
@@ -416,102 +374,76 @@ const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
 const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-let roomCode = null;
-let realtimeChannel = null;
-let currentPlayers = [];
-let activeResultOverlay = null; // Track current result overlay (correct/wrong)
-let currentQuestionData = null; // Store current question for display
+let roomCode = null, realtimeChannel = null, currentPlayers = [], activeResultOverlay = null;
 
-// --- AUDIO SYSTEM ---
+// --- BACKGROUND MUSIC ---
+let bgmAudio = null;
+let bgmEnabled = true;
+
+function initBackgroundMusic() {
+  bgmAudio = new Audio();
+  bgmAudio.src = 'countdownbg.mp3';  // Your MP3 file from GitHub repo
+  bgmAudio.loop = true;
+  bgmAudio.volume = 0.35;
+  bgmAudio.load();
+  
+  // Auto-play on first user interaction (browser policy)
+  document.body.addEventListener('click', function enableAudio() {
+    if (bgmAudio && bgmAudio.paused && bgmEnabled) {
+      bgmAudio.play().catch(e => console.log('Audio play prevented:', e));
+    }
+    document.body.removeEventListener('click', enableAudio);
+  }, { once: true });
+}
+
+function playBackgroundMusic() {
+  if (bgmAudio && bgmEnabled) {
+    bgmAudio.play().catch(e => console.log('BGM play error:', e));
+  }
+}
+
+function stopBackgroundMusic() {
+  if (bgmAudio) {
+    bgmAudio.pause();
+    bgmAudio.currentTime = 0;
+  }
+}
+
+function toggleBackgroundMusic() {
+  const btn = document.getElementById('bgmToggleBtn');
+  if (bgmAudio) {
+    if (bgmAudio.paused) {
+      bgmAudio.play().catch(e => console.log('Play error:', e));
+      bgmEnabled = true;
+      btn.innerHTML = '🔊';
+      btn.style.opacity = '1';
+    } else {
+      bgmAudio.pause();
+      bgmEnabled = false;
+      btn.innerHTML = '🔈';
+      btn.style.opacity = '0.6';
+    }
+  }
+}
+
+// --- Event Sounds (Web Audio) ---
 let audioCtx = null;
 function getAudio() {
-  if (!audioCtx) {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  }
-  if (audioCtx.state === 'suspended') {
-    audioCtx.resume();
-  }
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
   return audioCtx;
 }
-
 function playBuzzSound() {
-  try {
-    const ctx = getAudio();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.type = 'square';
-    osc.frequency.value = 880;
-    gain.gain.setValueAtTime(0.5, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.15);
-  } catch(e) { console.log('Audio error:', e); }
+  try { const ctx = getAudio(); const osc = ctx.createOscillator(), g = ctx.createGain(); osc.connect(g); g.connect(ctx.destination); osc.type = 'square'; osc.frequency.value = 880; g.gain.setValueAtTime(0.5, ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15); osc.start(); osc.stop(ctx.currentTime + 0.15); } catch(e) { console.log('Audio error:', e); }
 }
-
 function playCorrectSound() {
-  try {
-    const ctx = getAudio();
-    const notes = [523, 659, 784, 1047];
-    notes.forEach((freq, i) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.type = 'sine';
-      osc.frequency.value = freq;
-      gain.gain.setValueAtTime(0.6, ctx.currentTime + i * 0.1);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.1 + 0.25);
-      osc.start(ctx.currentTime + i * 0.1);
-      osc.stop(ctx.currentTime + i * 0.1 + 0.25);
-    });
-  } catch(e) {}
+  try { const ctx = getAudio(); [523, 659, 784, 1047].forEach((f, i) => { const osc = ctx.createOscillator(), g = ctx.createGain(); osc.connect(g); g.connect(ctx.destination); osc.type = 'sine'; osc.frequency.value = f; g.gain.setValueAtTime(0.5, ctx.currentTime + i * 0.1); g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.1 + 0.2); osc.start(ctx.currentTime + i * 0.1); osc.stop(ctx.currentTime + i * 0.1 + 0.2); }); } catch(e) { console.log('Audio error:', e); }
 }
-
 function playWrongSound() {
-  try {
-    const ctx = getAudio();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.type = 'sawtooth';
-    osc.frequency.value = 200;
-    gain.gain.setValueAtTime(0.6, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.5);
-    // second lower tone
-    const osc2 = ctx.createOscillator();
-    const gain2 = ctx.createGain();
-    osc2.connect(gain2);
-    gain2.connect(ctx.destination);
-    osc2.type = 'sawtooth';
-    osc2.frequency.value = 160;
-    gain2.gain.setValueAtTime(0.4, ctx.currentTime + 0.15);
-    gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.65);
-    osc2.start(ctx.currentTime + 0.15);
-    osc2.stop(ctx.currentTime + 0.65);
-  } catch(e) {}
+  try { const ctx = getAudio(); const osc = ctx.createOscillator(), g = ctx.createGain(); osc.connect(g); g.connect(ctx.destination); osc.type = 'sawtooth'; osc.frequency.value = 200; g.gain.setValueAtTime(0.5, ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5); osc.start(); osc.stop(ctx.currentTime + 0.5); const osc2 = ctx.createOscillator(), g2 = ctx.createGain(); osc2.connect(g2); g2.connect(ctx.destination); osc2.type = 'sawtooth'; osc2.frequency.value = 160; g2.gain.setValueAtTime(0.4, ctx.currentTime + 0.15); g2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.65); osc2.start(ctx.currentTime + 0.15); osc2.stop(ctx.currentTime + 0.65); } catch(e) {}
 }
-
 function playCategorySound() {
-  try {
-    const ctx = getAudio();
-    [392, 523, 659].forEach((freq, i) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.type = 'sine';
-      osc.frequency.value = freq;
-      gain.gain.setValueAtTime(0.4, ctx.currentTime + i * 0.12);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.12 + 0.2);
-      osc.start(ctx.currentTime + i * 0.12);
-      osc.stop(ctx.currentTime + i * 0.12 + 0.2);
-    });
-  } catch(e) {}
+  try { const ctx = getAudio(); [392, 523, 659].forEach((f, i) => { const osc = ctx.createOscillator(), g = ctx.createGain(); osc.connect(g); g.connect(ctx.destination); osc.type = 'sine'; osc.frequency.value = f; g.gain.setValueAtTime(0.4, ctx.currentTime + i * 0.12); g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.12 + 0.2); osc.start(ctx.currentTime + i * 0.12); osc.stop(ctx.currentTime + i * 0.12 + 0.2); }); } catch(e) {}
 }
 
 // --- UI Helpers ---
@@ -521,207 +453,73 @@ function showScreen(id) {
   if (el) el.classList.add('active');
 }
 
-function clearOverlay() {
-  const container = document.getElementById('overlayContainer');
-  if (container) container.innerHTML = '';
-  activeResultOverlay = null;
-}
+function clearOverlay() { const container = document.getElementById('overlayContainer'); if (container) container.innerHTML = ''; activeResultOverlay = null; }
+function showBuzzedOverlay(playerName, playerAvatar) { clearOverlay(); document.getElementById('overlayContainer').innerHTML = `<div class="buzzed-overlay"><div class="buzzed-ring">🔔</div><div class="buzzed-label">BUZZED IN</div><div class="buzzed-name">${playerAvatar || ''} ${escapeHtml(playerName)}</div></div>`; }
+function showResultOverlay(type, playerName, playerAvatar, points) { clearOverlay(); const container = document.getElementById('overlayContainer'); if (type === 'correct') { container.innerHTML = `<div class="result-overlay"><div class="result-icon">✅</div><div class="result-title" style="color:var(--green)">CORRECT!</div><div class="result-sub">${playerAvatar || ''} ${escapeHtml(playerName)} &nbsp;+${points || 100} pts</div><div class="result-waiting-text">✨ Waiting for next category...</div></div>`; } else { container.innerHTML = `<div class="result-overlay"><div class="result-icon">❌</div><div class="result-title" style="color:var(--red)">WRONG!</div><div class="result-sub">${escapeHtml(playerName)} — Locked out</div><div class="result-waiting-text">⏳ Waiting for next buzz...</div></div>`; } activeResultOverlay = type; }
+function hideResultOverlay() { clearOverlay(); }
 
-function showBuzzedOverlay(playerName, playerAvatar) {
-  clearOverlay();
-  const container = document.getElementById('overlayContainer');
-  container.innerHTML = `
-    <div class="buzzed-overlay">
-      <div class="buzzed-ring">🔔</div>
-      <div class="buzzed-label">BUZZED IN</div>
-      <div class="buzzed-name">${playerAvatar || ''} ${escapeHtml(playerName)}</div>
-    </div>
-  `;
-}
-
-function showResultOverlay(type, playerName, playerAvatar, points) {
-  clearOverlay();
-  const container = document.getElementById('overlayContainer');
-  if (type === 'correct') {
-    container.innerHTML = `
-      <div class="result-overlay">
-        <div class="result-icon">✅</div>
-        <div class="result-title" style="color:var(--green)">CORRECT!</div>
-        <div class="result-sub">${playerAvatar || ''} ${escapeHtml(playerName)} &nbsp;+${points || 100} pts</div>
-        <div class="result-waiting-text">✨ Waiting for next category...</div>
-      </div>
-    `;
-  } else if (type === 'wrong') {
-    container.innerHTML = `
-      <div class="result-overlay">
-        <div class="result-icon">❌</div>
-        <div class="result-title" style="color:var(--red)">WRONG!</div>
-        <div class="result-sub">${escapeHtml(playerName)} — Locked out</div>
-        <div class="result-waiting-text">⏳ Waiting for next buzz...</div>
-      </div>
-    `;
-  }
-  activeResultOverlay = type;
-}
-
-function hideResultOverlay() {
-  clearOverlay();
-}
-
-// Render player blocks
 function renderPlayersBlocks(players) {
   const container = document.getElementById('playersBlocksContainer');
   if (!container) return;
-  if (!players || players.length === 0) {
-    container.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;">No players yet</div>';
-    return;
-  }
+  if (!players || players.length === 0) { container.innerHTML = '<div style="text-align:center;color:var(--muted);padding:20px;">Waiting for players...</div>'; return; }
   const sorted = [...players].sort((a, b) => (b.score || 0) - (a.score || 0));
-  container.innerHTML = sorted.map(player => {
-    let statusClass = '';
-    let statusText = '';
-    if (player.status === 'buzzed') { statusClass = 'buzzed'; statusText = '🔔 BUZZED!'; }
-    else if (player.status === 'locked' || player.status === 'wrong') { statusClass = 'locked'; statusText = '🔒 LOCKED'; }
-    else if (player.status === 'eliminated') { statusClass = 'eliminated'; statusText = '⚡ OUT'; }
-    else if (player.status === 'correct') { statusClass = 'correct'; statusText = '✅ CORRECT'; }
+  container.innerHTML = sorted.map(p => {
+    let statusClass = '', statusText = '';
+    if (p.status === 'buzzed') { statusClass = 'buzzed'; statusText = '🔔 BUZZED!'; }
+    else if (p.status === 'locked' || p.status === 'wrong') { statusClass = 'locked'; statusText = '🔒 LOCKED'; }
+    else if (p.status === 'eliminated') { statusClass = 'eliminated'; statusText = '⚡ OUT'; }
+    else if (p.status === 'correct') { statusClass = 'correct'; statusText = '✅ CORRECT'; }
     else { statusText = '● READY'; }
-    return `
-      <div class="player-block ${statusClass}" data-player-id="${player.id}">
-        <div class="player-avatar-circle">${player.avatar || '🎮'}</div>
-        <div class="player-info"><div class="player-name-block">${escapeHtml(player.name)}</div><div class="player-score-block">${player.score || 0} pts</div></div>
-        <div class="player-status-badge">${statusText}</div>
-      </div>
-    `;
+    return `<div class="player-block ${statusClass}"><div class="player-avatar-circle">${p.avatar || '🎮'}</div><div class="player-info"><div class="player-name-block">${escapeHtml(p.name)}</div><div class="player-score-block">${p.score || 0} pts</div></div><div class="player-status-badge">${statusText}</div></div>`;
   }).join('');
 }
-
-function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, function(m) { if (m === '&') return '&amp;'; if (m === '<') return '&lt;'; if (m === '>') return '&gt;'; return m; }); }
-
-function launchConfetti() {
-  const colors = ['#fbbf24', '#ef4444', '#10b981', '#3b82f6', '#a855f7'];
-  for (let i = 0; i < 100; i++) {
-    const c = document.createElement('div');
-    c.className = 'confetti-piece';
-    c.style.cssText = `width:${6+Math.random()*8}px;height:${6+Math.random()*8}px;background:${colors[Math.floor(Math.random()*colors.length)]};left:${Math.random()*100}vw;top:-10px;animation:confettiFall ${2+Math.random()*3}s linear ${Math.random()*0.5}s forwards;`;
-    document.body.appendChild(c);
-    setTimeout(() => c.remove(), 5500);
-  }
-}
+function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;'); }
+function launchConfetti() { for (let i = 0; i < 100; i++) { const c = document.createElement('div'); c.className = 'confetti-piece'; c.style.cssText = `position:fixed;width:${6+Math.random()*8}px;height:${6+Math.random()*8}px;background:${['#fbbf24','#ef4444','#10b981','#3b82f6','#a855f7'][Math.floor(Math.random()*5)]};left:${Math.random()*100}vw;top:-10px;animation:confettiFall ${2+Math.random()*3}s linear forwards;z-index:9999;`; document.body.appendChild(c); setTimeout(() => c.remove(), 5000); } }
 
 // --- Broadcast Handlers ---
 function handleBroadcast(event, payload) {
   console.log('FOH:', event, payload);
-
   switch (event) {
-    case 'round_started':
-      showScreen('waiting');
-      break;
-    case 'player_list_update':
-      currentPlayers = payload.players || [];
-      renderPlayersBlocks(currentPlayers);
-      break;
+    case 'round_started': showScreen('waiting'); break;
+    case 'player_list_update': currentPlayers = payload.players || []; renderPlayersBlocks(currentPlayers); break;
     case 'question_open':
-      // Store current question
-      currentQuestionData = payload;
       document.getElementById('qLabel').innerText = `QUESTION ${payload.questionNumber || ''}`;
       document.getElementById('questionText').innerText = payload.question;
       const opts = payload.options || [];
-      document.getElementById('optionsGrid').innerHTML = opts.map((o, i) => `
-        <div class="opt-tile"><div class="opt-letter">${String.fromCharCode(65 + i)}</div><div>${escapeHtml(o)}</div></div>
-      `).join('');
-      // Clear any result overlay when new question arrives
-      hideResultOverlay();
-      showScreen('question');
+      document.getElementById('optionsGrid').innerHTML = opts.map((o, i) => `<div class="opt-tile"><div class="opt-letter">${String.fromCharCode(65 + i)}</div><div>${escapeHtml(o)}</div></div>`).join('');
+      hideResultOverlay(); showScreen('question');
+      // Stop BGM when question appears, restart after? Let's keep BGM softer during game
       break;
-    case 'buzz_confirmed':
-      playBuzzSound();
-      showBuzzedOverlay(payload.playerName, payload.playerAvatar);
-      // Update player status in blocks
-      const buzzPlayer = currentPlayers.find(p => p.id === payload.playerId);
-      if (buzzPlayer) {
-        currentPlayers.forEach(p => { if (p.status !== 'eliminated') p.status = 'locked'; });
-        buzzPlayer.status = 'buzzed';
-        renderPlayersBlocks(currentPlayers);
-      }
-      // Auto-hide buzzed overlay after 2 seconds to reveal question again
-      setTimeout(() => { if (activeResultOverlay === null) clearOverlay(); }, 2000);
-      break;
-    case 'correct':
-      playCorrectSound();
-      const correctPlayer = currentPlayers.find(p => p.id === payload.playerId);
-      if (correctPlayer) {
-        correctPlayer.score = payload.newScore || (correctPlayer.score + (payload.points || 100));
-        correctPlayer.status = 'correct';
-        renderPlayersBlocks(currentPlayers);
-      }
-      showResultOverlay('correct', payload.playerName, payload.playerAvatar, payload.points);
-      launchConfetti();
-      break;
-    case 'wrong':
-      playWrongSound();
-      const wrongPlayer = currentPlayers.find(p => p.id === payload.playerId);
-      if (wrongPlayer) {
-        wrongPlayer.status = 'wrong';
-        renderPlayersBlocks(currentPlayers);
-      }
-      showResultOverlay('wrong', payload.playerName, payload.playerAvatar, null);
-      // Reset buzzer overlay if present, keep wrong result
-      clearOverlay();
-      showResultOverlay('wrong', payload.playerName, payload.playerAvatar, null);
-      break;
-    case 'next_question':
-      // Clear result overlay and reset player statuses
-      hideResultOverlay();
-      currentPlayers.forEach(p => { if (p.status !== 'eliminated') p.status = 'waiting'; });
-      renderPlayersBlocks(currentPlayers);
-      showScreen('waiting');
-      break;
-    case 'reset_buzzers':
-      currentPlayers.forEach(p => { if (p.status !== 'eliminated' && p.status !== 'correct') p.status = 'waiting'; });
-      renderPlayersBlocks(currentPlayers);
-      hideResultOverlay();
-      showScreen('question');
-      break;
-    case 'eliminated':
-      const elimPlayer = currentPlayers.find(p => p.id === payload.playerId);
-      if (elimPlayer) { elimPlayer.status = 'eliminated'; renderPlayersBlocks(currentPlayers); }
-      break;
+    case 'buzz_confirmed': playBuzzSound(); showBuzzedOverlay(payload.playerName, payload.playerAvatar); const buzzPlayer = currentPlayers.find(p => p.id === payload.playerId); if (buzzPlayer) { currentPlayers.forEach(p => { if (p.status !== 'eliminated') p.status = 'locked'; }); buzzPlayer.status = 'buzzed'; renderPlayersBlocks(currentPlayers); } setTimeout(() => { if (activeResultOverlay === null) clearOverlay(); }, 2000); break;
+    case 'correct': playCorrectSound(); const correctPlayer = currentPlayers.find(p => p.id === payload.playerId); if (correctPlayer) { correctPlayer.score = payload.newScore || (correctPlayer.score + (payload.points || 100)); correctPlayer.status = 'correct'; renderPlayersBlocks(currentPlayers); } showResultOverlay('correct', payload.playerName, payload.playerAvatar, payload.points); launchConfetti(); break;
+    case 'wrong': playWrongSound(); const wrongPlayer = currentPlayers.find(p => p.id === payload.playerId); if (wrongPlayer) { wrongPlayer.status = 'wrong'; renderPlayersBlocks(currentPlayers); } showResultOverlay('wrong', payload.playerName, payload.playerAvatar, null); break;
+    case 'next_question': hideResultOverlay(); currentPlayers.forEach(p => { if (p.status !== 'eliminated') p.status = 'waiting'; }); renderPlayersBlocks(currentPlayers); showScreen('waiting'); break;
+    case 'reset_buzzers': currentPlayers.forEach(p => { if (p.status !== 'eliminated' && p.status !== 'correct') p.status = 'waiting'; }); renderPlayersBlocks(currentPlayers); hideResultOverlay(); showScreen('question'); break;
+    case 'eliminated': const elimPlayer = currentPlayers.find(p => p.id === payload.playerId); if (elimPlayer) { elimPlayer.status = 'eliminated'; renderPlayersBlocks(currentPlayers); } break;
     case 'show_category_picker':
       playCategorySound();
       const cats = payload.categories || [];
-      document.getElementById('catPickGrid').innerHTML = cats.map((c, i) => `
-        <div class="cat-tile" style="animation-delay:${i * 0.05}s">
-          <div class="cat-tile-icon">${c.icon || '📁'}</div>
-          <div class="cat-tile-name">${c.name}</div>
-        </div>
-      `).join('');
-      // When categories are shown, clear any persistent result overlay
-      hideResultOverlay();
-      showScreen('catPick');
+      document.getElementById('catPickGrid').innerHTML = cats.map((c, i) => `<div class="cat-tile" style="animation-delay:${i * 0.05}s"><div class="cat-tile-icon">${c.icon || '📁'}</div><div class="cat-tile-name">${c.name}</div></div>`).join('');
+      hideResultOverlay(); showScreen('catPick');
+      // Play background music when categories are shown (game start / category selection phase)
+      playBackgroundMusic();
       break;
-    case 'round_ended':
-      const winner = payload.winner;
-      document.getElementById('winnerName').innerHTML = `${winner?.avatar || '🏆'} ${winner?.name || '—'} &nbsp;—&nbsp; ${winner?.score || 0} pts`;
-      showScreen('ended');
-      launchConfetti();
-      break;
+    case 'round_ended': const winner = payload.winner; document.getElementById('winnerName').innerHTML = `${winner?.avatar || '🏆'} ${winner?.name || '—'} &nbsp;—&nbsp; ${winner?.score || 0} pts`; showScreen('ended'); launchConfetti(); stopBackgroundMusic(); break;
+    case 'full_game_reset': case 'room_reset': location.reload(); break;
   }
 }
 
 async function init() {
   const params = new URLSearchParams(window.location.search);
   roomCode = params.get('room') || localStorage.getItem('fr_room');
-  if (!roomCode) {
-    document.getElementById('waitingRoomCode').innerText = 'NO ROOM';
-    document.getElementById('roomDisplay').innerText = 'NO ROOM';
-    return;
-  }
+  if (!roomCode) { document.getElementById('waitingRoomCode').innerText = 'NO ROOM'; document.getElementById('roomDisplay').innerText = 'NO ROOM'; return; }
   document.getElementById('roomDisplay').innerText = roomCode;
   document.getElementById('waitingRoomCode').innerText = roomCode;
-
+  
+  initBackgroundMusic();
+  
   realtimeChannel = sb.channel(`fr-${roomCode}`, { config: { broadcast: { self: false } } });
-  realtimeChannel
-    .on('broadcast', { event: 'round_started' }, ({ payload }) => handleBroadcast('round_started', payload))
+  realtimeChannel.on('broadcast', { event: 'round_started' }, ({ payload }) => handleBroadcast('round_started', payload))
     .on('broadcast', { event: 'player_list_update' }, ({ payload }) => handleBroadcast('player_list_update', payload))
     .on('broadcast', { event: 'question_open' }, ({ payload }) => handleBroadcast('question_open', payload))
     .on('broadcast', { event: 'buzz_confirmed' }, ({ payload }) => handleBroadcast('buzz_confirmed', payload))
@@ -732,12 +530,12 @@ async function init() {
     .on('broadcast', { event: 'eliminated' }, ({ payload }) => handleBroadcast('eliminated', payload))
     .on('broadcast', { event: 'show_category_picker' }, ({ payload }) => handleBroadcast('show_category_picker', payload))
     .on('broadcast', { event: 'round_ended' }, ({ payload }) => handleBroadcast('round_ended', payload))
+    .on('broadcast', { event: 'full_game_reset' }, ({ payload }) => handleBroadcast('full_game_reset', payload))
+    .on('broadcast', { event: 'room_reset' }, ({ payload }) => handleBroadcast('room_reset', payload))
     .subscribe();
 }
-
-// Initialize audio on first user interaction (browsers require user gesture)
-document.body.addEventListener('click', () => { if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume(); });
 init();
+window.toggleBackgroundMusic = toggleBackgroundMusic;
 </script>
 </body>
 </html>
