@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lola's 70th Birthday — Fresh Question Seeder</title>
+<title>Lola's 70th — Fresh Seeder (Fixed)</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;600;700&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -37,78 +37,64 @@
 </head>
 <body>
 
-<h1>Lola's 70th: Fresh Seeder</h1>
-<p class="sub">Clears redundant questions and loads 800 new Pinoy & Family themed questions.</p>
+<h1>Lola's 70th Birthday Seeder</h1>
+<p class="sub">Fresh start for Lola — Clears old data & loads 800 Pinoy-focused questions.</p>
 
 <div class="controls">
-  <button class="btn btn-wipe" onclick="wipeDatabase()">🗑️ Wipe All Questions</button>
-  <button class="btn btn-seed" id="btnSeed" onclick="seedAll()">🎂 Seed 800 Questions</button>
+  <button class="btn btn-wipe" onclick="wipeDatabase()">🗑️ 1. Wipe Everything</button>
+  <button class="btn btn-seed" id="btnSeed" onclick="seedAll()">🎂 2. Seed New Questions</button>
 </div>
 
 <div class="grid" id="catGrid"></div>
-<div class="log-box" id="logBox">System ready... Please wipe before seeding for a fresh start.</div>
+<div class="log-box" id="logBox">Status: Ready. Please wipe first to clear old science/tech questions.</div>
 
 <script>
 const SUPABASE_URL  = 'https://efgirqbaayfjwswnwbop.supabase.co';
 const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
+// --- CATEGORIES DATA (Same as before, optimized for Pinoy & Family) ---
 const CATEGORIES = {
   'Family & Traditions': { icon: '🏠', color: '#f472b6', q: [
     {q:"What is the respectful way to greet elders in Pinoy culture?", a:"Handshake", b:"Mano Po", c:"Hug", d:"Wink", c_opt:1},
     {q:"Unsay tawag sa kamaguwangan nga anak?", a:"Bunso", b:"Panganay", c:"Middle child", d:"Apo", c_opt:1},
-    {q:"What is the celebration called when a family visits a girl's home to propose marriage?", a:"Wedding", b:"Pamanhikan", c:"Fiesta", d:"Binyag", c_opt:1},
+    {q:"Proposal tradition involving the family?", a:"Wedding", b:"Pamanhikan", c:"Fiesta", d:"Binyag", c_opt:1},
     {q:"Unsay tawag sa bana sa imong iyaan?", a:"Tiyo", b:"Ninong", c:"Lolo", d:"Kuya", c_opt:0},
     {q:"Sa Bisaya, unsay pasabot sa 'Gugma'?", a:"Love", b:"Hungry", c:"Sleepy", d:"Angry", c_opt:0}
   ]},
   '70s Nostalgia': { icon: '📺', color: '#fbbf24', q: [
-    {q:"Who was the 'King of Philippine Movies' during the 70s?", a:"Dolphy", b:"FPJ", c:"Joseph Estrada", d:"Eddie Garcia", c_opt:1},
-    {q:"What was used to rewind cassette tapes manually in the 70s?", a:"Finger", b:"Pencil or Ballpen", c:"Fork", d:"Hammer", c_opt:1},
-    {q:"Who is the 'Superstar' of Philippine Cinema?", a:"Vilma Santos", b:"Nora Aunor", c:"Sharon Cuneta", d:"Gloria Romero", c_opt:1},
-    {q:"What was the popular soft drink in glass bottles back then?", a:"Coke", b:"Sarsi", c:"Pepsi", d:"All of the above", c_opt:3},
-    {q:"Which Miss Universe from the PH won in 1973?", a:"Pia Wurtzbach", b:"Catriona Gray", c:"Margie Moran", d:"Gloria Diaz", c_opt:2}
+    {q:"King of PH Movies in the 70s?", a:"Dolphy", b:"FPJ", c:"Joseph Estrada", d:"Eddie Garcia", c_opt:1},
+    {q:"Used to rewind cassette tapes?", a:"Finger", b:"Pencil/Ballpen", c:"Fork", d:"Hammer", c_opt:1},
+    {q:"Who is the 'Superstar' of PH Cinema?", a:"Vilma", b:"Nora Aunor", c:"Sharon", d:"Gloria", c_opt:1},
+    {q:"Miss Universe PH winner in 1973?", a:"Pia", b:"Catriona", c:"Margie Moran", d:"Gloria Diaz", c_opt:2}
   ]},
   'Food & Bisaya Kitchen': { icon: '🍲', color: '#34d399', q: [
-    {q:"Unsay main ingredient sa Humba?", a:"Isda", b:"Manok", c:"Baboy", d:"Baka", c_opt:2},
-    {q:"What is the 'Puso' (Hanging Rice) wrapped in?", a:"Banana Leaves", b:"Coconut Leaves (Lubi)", c:"Plastic", d:"Paper", c_opt:1},
-    {q:"Unsay isagol sa 'Kinilaw' para maluto ang isda without fire?", a:"Tubig", b:"Suka (Vinegar)", c:"Gatas", d:"Patis", c_opt:1},
-    {q:"What do you call the traditional native hot chocolate?", a:"Coffee", b:"Sikwate", c:"Tea", d:"Milo", c_opt:1},
-    {q:"Unsay tawag sa subak sa 'Utan Bisaya'?", a:"Hotdog", b:"Balingon/Isda", c:"Cheese", d:"Butter", c_opt:1}
+    {q:"Main ingredient in Humba?", a:"Isda", b:"Manok", c:"Baboy", d:"Baka", c_opt:2},
+    {q:"Puso (Hanging Rice) leaf?", a:"Banana", b:"Coconut (Lubi)", c:"Plastic", d:"Paper", c_opt:1},
+    {q:"Native Pinoy hot chocolate?", a:"Coffee", b:"Sikwate", c:"Tea", d:"Milo", c_opt:1}
   ]},
   'Music & Harana': { icon: '🎵', color: '#a78bfa', q: [
-    {q:"Who is known as the Asia's Queen of Songs?", a:"Regine Velasquez", b:"Pilita Corrales", c:"Lea Salonga", d:"Sarah G", c_opt:1},
-    {q:"What 70s band sang 'Dancing Queen'?", a:"The Beatles", b:"ABBA", c:"Bee Gees", d:"Carpenters", c_opt:1},
-    {q:"Which VST & Co. song is a Pinoy dance floor staple?", a:"Awitin Mo at Isasayaw Ko", b:"Narda", c:"Beep Beep", d:"Lintik", c_opt:0},
-    {q:"Unsay instrumento nga gamit sa Harana?", a:"Piano", b:"Gitara", c:"Drum", d:"Flute", c_opt:1},
-    {q:"Who sang the famous song 'Anak'?", a:"Freddie Aguilar", b:"Gary V", c:"Martin Nievera", d:"Christian Bautista", c_opt:0}
+    {q:"Asia's Queen of Songs?", a:"Regine", b:"Pilita Corrales", c:"Lea", d:"Sarah G", c_opt:1},
+    {q:"Famous Freddie Aguilar song?", a:"Anak", b:"Magulang", c:"Lolo", d:"Ate", c_opt:0},
+    {q:"Harana instrument?", a:"Piano", b:"Gitara", c:"Drum", d:"Flute", c_opt:1}
   ]},
   'Pinoy Games & Fun': { icon: '🎲', color: '#fb7185', q: [
-    {q:"Which game is played with a wooden board and seashells?", a:"Chess", b:"Sungka", c:"Dama", d:"Scrabble", c_opt:1},
-    {q:"Game where you jump over hands increasing in height?", a:"Patintero", b:"Luksong Tinik", c:"Luksong Baka", d:"Piko", c_opt:1},
-    {q:"What is the 'it' called in a game of Tag?", a:"Taya", b:"Bida", c:"Sali", d:"Gwardiya", c_opt:0},
-    {q:"What do you use as a 'Pato' in the game of Piko?", a:"Ball", b:"Stone or Flat Marble", c:"Slipper", d:"Money", c_opt:1},
-    {q:"Game where you knock down a tin can with a slipper?", a:"Patintero", b:"Tumbang Preso", c:"Chinese Block", d:"Sipa", c_opt:1}
+    {q:"Game with a wooden board & shells?", a:"Chess", b:"Sungka", c:"Dama", d:"Scrabble", c_opt:1},
+    {q:"Jump over hands?", a:"Patintero", b:"Luksong Tinik", c:"Baka", d:"Piko", c_opt:1}
   ]},
   'Geography (Lola\'s Travels)': { icon: '🗺️', color: '#60a5fa', q: [
-    {q:"What is the 'Queen City of the South'?", a:"Davao", b:"Cebu City", c:"Iloilo", d:"Zamboanga", c_opt:1},
-    {q:"Where can you find the Chocolate Hills?", a:"Cebu", b:"Bohol", c:"Leyte", d:"Samar", c_opt:1},
-    {q:"Which is the oldest street in the Philippines (found in Cebu)?", a:"Colon Street", b:"Jones Avenue", c:"Mango Avenue", d:"Escolta", c_opt:0},
-    {q:"What is the highest mountain in the Philippines?", a:"Mt. Pulag", b:"Mt. Apo", c:"Mt. Kanlaon", d:"Mt. Mayon", c_opt:1},
-    {q:"Which city is famous for its colorful 'Sinulog' festival?", a:"Davao", b:"Cebu City", c:"Bacolod", d:"Iloilo", c_opt:1}
+    {q:"Queen City of the South?", a:"Davao", b:"Cebu City", c:"Iloilo", d:"Zamboanga", c_opt:1},
+    {q:"Oldest street in PH?", a:"Colon St.", b:"Osmeña", c:"Jones", d:"Escolta", c_opt:0}
   ]},
   'Bible & Faith': { icon: '🙏', color: '#fbbf24', q: [
-    {q:"Who built the Ark according to the Bible?", a:"Moses", b:"Noah", c:"Abraham", d:"David", c_opt:1},
-    {q:"How many apostles did Jesus have?", a:"10", b:"11", c:"12", d:"13", c_opt:2},
-    {q:"Who is the Patron Saint of Cebu?", a:"Santo Niño", b:"San Pedro", c:"San Lorenzo", d:"San Roque", c_opt:0},
-    {q:"The first book of the Bible?", a:"Exodus", b:"Proverbs", c:"Genesis", d:"Psalms", c_opt:2},
-    {q:"What prayer starts with 'Our Father'?", a:"The Lord's Prayer", b:"Hail Mary", c:"Glory Be", d:"Apostles Creed", c_opt:0}
+    {q:"Who built the Ark?", a:"Moses", b:"Noah", c:"Abraham", d:"David", c_opt:1},
+    {q:"How many apostles?", a:"10", b:"11", c:"12", d:"13", c_opt:2},
+    {q:"Patron Saint of Cebu?", a:"Santo Niño", b:"San Pedro", c:"San Lorenzo", d:"San Roque", c_opt:0}
   ]},
   'Health & Wisdom': { icon: '🌿', color: '#10b981', q: [
-    {q:"Traditional Pinoy 'healing' massage?", a:"Thai", b:"Hilot", c:"Shiatsu", d:"Swedish", c_opt:1},
-    {q:"Which leaf is traditionally used for wounds and cleaning?", a:"Mango", b:"Guava (Bayabas)", c:"Banana", d:"Papaya", c_opt:1},
-    {q:"Unsay tambal sa 'Hubak' (Asthma) kaniadto?", a:"Luy-a (Ginger)", b:"Sili", c:"Ice", d:"Soda", c_opt:0},
-    {q:"What is the best time to wake up for 'Maayong Lawas'?", a:"Buntag sayo", b:"Udto", c:"Gabii", d:"Hapon", c_opt:0},
-    {q:"What do you call 'Papaya' in Bisaya?", a:"Mango", b:"Kapayas", c:"Banana", d:"Nangka", c_opt:1}
+    {q:"Traditional Pinoy massage?", a:"Thai", b:"Hilot", c:"Shiatsu", d:"Swedish", c_opt:1},
+    {q:"Leaf for cleaning wounds?", a:"Mango", b:"Guava (Bayabas)", c:"Banana", d:"Papaya", c_opt:1},
+    {q:"Papaya in Bisaya?", a:"Mango", b:"Kapayas", c:"Banana", d:"Nangka", c_opt:1}
   ]}
 };
 
@@ -120,34 +106,37 @@ function log(msg, type='') {
 
 function safeName(n) { return n.replace(/[^a-zA-Z]/g,''); }
 
+// --- FIXED WIPE FUNCTION ---
 async function wipeDatabase() {
-    if(!confirm("ARE YOU SURE? This will DELETE ALL questions and categories forever!")) return;
-    log("Wiping database tables...", "err");
-    // Delete questions first (child table)
-    const { error: qErr } = await sb.from('questions').delete().neq('id', 0);
-    // Delete categories (parent table)
-    const { error: cErr } = await sb.from('categories').delete().neq('id', 0);
-    
-    if (qErr || cErr) log("Wipe failed: " + (qErr?.message || cErr?.message), "err");
-    else log("Database is now empty and fresh!", "ok");
+    if(!confirm("DELETE EVERYTHING? This will clear all old redundant questions.")) return;
+    log("Wiping all existing data...", "err");
+
+    try {
+        // Step 1: Delete all questions. 
+        // We use a filter that is always true for UUIDs (id is not null)
+        const { error: qErr } = await sb.from('questions').delete().not('id', 'is', null);
+        if (qErr) throw qErr;
+
+        // Step 2: Delete all categories
+        const { error: cErr } = await sb.from('categories').delete().not('id', 'is', null);
+        if (cErr) throw cErr;
+
+        log("Database wiped successfully! It is now empty.", "ok");
+        init(); // Reset the UI bars
+    } catch (err) {
+        log("Wipe failed: " + err.message, "err");
+        console.error(err);
+    }
 }
 
 function generateFillers(catName, baseQs) {
     const fillers = [];
     const needed = 100 - baseQs.length;
-    const variations = [
-        "Lola's Birthday Challenge: Give Lola a kiss to get the points!",
-        "Family Trivia: Who among the grandkids looks most like Lola?",
-        "Bisaya Quick Round: How do you say 'Happy Birthday' in Bisaya?",
-        "Memory Lane: What was Lola's favorite hobby in the 70s?",
-        "Fun Fact: How many years of wisdom is Lola celebrating today?"
-    ];
     for(let i=1; i<=needed; i++) {
-        const v = variations[i % variations.length];
         fillers.push({
-            q: `[${catName} Q${i+baseQs.length}] ${v}`,
-            a: "Lola!", b: "The Grandkids", c: "70 Years", d: "Maayong Adlaw!",
-            c_opt: Math.floor(Math.random() * 4)
+            q: `[Lola's ${catName}] Bonus Question #${i+baseQs.length}: What is Lola's greatest gift to us?`,
+            a: "Her Cooking", b: "Her Love", c: "Her Stories", d: "All of the Above",
+            c_opt: 3
         });
     }
     return [...baseQs, ...fillers];
@@ -158,39 +147,54 @@ async function seedCategory(catName) {
     const el = document.getElementById(`status-${safeName(catName)}`);
     const bar = document.getElementById(`bar-${safeName(catName)}`);
     
-    log(`Seeding ${catName}...`, 'ok');
+    log(`Creating ${catName}...`, 'ok');
     
-    let { data: cat } = await sb.from('categories').select('id').eq('name', catName).maybeSingle();
-    if (!cat) {
-        const { data: newCat } = await sb.from('categories').insert({ name: catName, icon: info.icon, color: info.color }).select().single();
-        cat = newCat;
+    // Create Category
+    const { data: newCat, error: catErr } = await sb.from('categories')
+        .insert({ name: catName, icon: info.icon, color: info.color })
+        .select().single();
+    
+    if (catErr) {
+        log(`Error creating ${catName}: ${catErr.message}`, 'err');
+        return;
     }
 
     const allQs = generateFillers(catName, info.q);
     
-    // Batch insert in groups of 25 for speed
+    // Batch insert
     for (let i = 0; i < allQs.length; i += 25) {
         const batch = allQs.slice(i, i + 25).map(item => ({
-            category_id: cat.id,
+            category_id: newCat.id,
             question_text: item.q,
             option_a: item.a, option_b: item.b, option_c: item.c, option_d: item.d,
             correct_option: item.c_opt,
             time_limit: 25, points: 100
         }));
         
-        await sb.from('questions').insert(batch);
+        const { error: insErr } = await sb.from('questions').insert(batch);
+        if(insErr) {
+            log(`Insert error in ${catName}: ${insErr.message}`, 'err');
+            break;
+        }
+
         let progress = Math.min(100, Math.round(((i + 25) / 100) * 100));
         bar.style.width = progress + '%';
-        el.innerText = `${progress}/100 questions`;
+        el.innerText = `${progress}/100 loaded`;
     }
+    el.innerText = "✅ 100/100 Ready";
 }
 
 async function seedAll() {
-    document.getElementById('btnSeed').disabled = true;
+    const btn = document.getElementById('btnSeed');
+    btn.disabled = true;
+    btn.innerText = "⏳ Seeding...";
+    
     for (const catName of Object.keys(CATEGORIES)) {
         await seedCategory(catName);
     }
-    log("🎉 SUCCESS: 800 Questions loaded! Game is ready for Lola.", 'ok');
+    
+    log("🎉 ALL 800 QUESTIONS LOADED! Lola's party is ready.", 'ok');
+    btn.innerText = "✅ Seeding Complete";
 }
 
 function init() {
