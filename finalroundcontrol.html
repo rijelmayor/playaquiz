@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PlayAQuiz — Final Round Control</title>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -13,202 +13,243 @@
       --border: #1f2a3c; --border2: #2d3b52;
       --text: #e8edf7; --muted: #6b7a99;
       --accent: #3b82f6; --green: #10b981; --gold: #fbbf24;
-      --red: #ef4444; --purple: #8b5cf6;
+      --red: #ef4444; --purple: #8b5cf6; --orange: #f97316;
     }
     body { background: var(--bg); font-family: 'Space Grotesk', sans-serif; color: var(--text); height: 100vh; overflow: hidden; }
     .app { display: flex; height: 100%; }
-    
-    .sidebar { width: 280px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow-y: auto; }
-    .sidebar-header { padding: 20px; border-bottom: 1px solid var(--border); }
-    .logo { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 3px; background: linear-gradient(135deg, #fff, var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .room-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin: 16px; text-align: center; }
-    .room-code { font-family: 'JetBrains Mono', monospace; font-size: 28px; font-weight: 700; color: var(--gold); letter-spacing: 4px; }
-    .info-row { display: flex; justify-content: space-between; padding: 10px 16px; margin: 4px 12px; background: var(--surface2); border-radius: 10px; }
-    .info-val { font-weight: 700; color: var(--accent); }
-    .sidebar-section { padding: 16px; }
-    .section-title { font-size: 10px; font-weight: 700; color: var(--muted); letter-spacing: 1.5px; margin-bottom: 12px; }
-    .lb-list { display: flex; flex-direction: column; gap: 6px; }
-    .lb-item { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: var(--surface2); border-radius: 10px; font-size: 13px; }
-    .lb-name { flex: 1; font-weight: 600; }
+
+    /* SIDEBAR */
+    .sidebar { width: 270px; min-width: 270px; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow-y: auto; }
+    .sidebar-header { padding: 18px 20px 14px; border-bottom: 1px solid var(--border); }
+    .logo { font-family: 'Bebas Neue', sans-serif; font-size: 26px; letter-spacing: 3px; background: linear-gradient(135deg, #fff, var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .sub-tag { font-size: 9px; color: var(--gold); letter-spacing: 2px; }
+    .room-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin: 12px; text-align: center; }
+    .room-label { font-size: 9px; color: var(--muted); letter-spacing: 1px; margin-bottom: 4px; }
+    .room-code { font-family: 'JetBrains Mono', monospace; font-size: 26px; font-weight: 700; color: var(--gold); letter-spacing: 4px; }
+    .info-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 14px; margin: 2px 10px; background: var(--surface2); border-radius: 8px; font-size: 13px; }
+    .info-val { font-weight: 700; color: var(--accent); font-family: monospace; }
+    .sidebar-section { padding: 14px 14px; }
+    .section-title { font-size: 10px; font-weight: 700; color: var(--muted); letter-spacing: 1.5px; margin-bottom: 10px; text-transform: uppercase; }
+    .lb-list { display: flex; flex-direction: column; gap: 5px; }
+    .lb-item { display: flex; align-items: center; gap: 8px; padding: 7px 10px; background: var(--surface2); border-radius: 8px; font-size: 13px; }
+    .lb-name { flex: 1; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .lb-score { font-family: monospace; font-weight: 700; color: var(--gold); }
-    
-    .main { flex: 1; overflow-y: auto; padding: 20px 28px; }
-    .page-title { font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: 2px; margin-bottom: 4px; }
-    .page-sub { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
-    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 20px; }
-    .card-title { font-weight: 700; font-size: 15px; margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-    
-    .btn { border: none; padding: 10px 18px; border-radius: 10px; font-weight: 700; font-family: 'Space Grotesk', sans-serif; cursor: pointer; font-size: 14px; transition: all 0.15s; display: inline-flex; align-items: center; gap: 6px; }
+
+    /* MAIN */
+    .main { flex: 1; overflow-y: auto; padding: 20px 24px; }
+    .page-title { font-family: 'Bebas Neue', sans-serif; font-size: 30px; letter-spacing: 2px; margin-bottom: 2px; }
+    .page-sub { font-size: 12px; color: var(--muted); margin-bottom: 18px; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px; margin-bottom: 16px; }
+    .card-title { font-weight: 700; font-size: 14px; margin-bottom: 12px; display: flex; align-items: center; gap: 7px; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+    /* BUTTONS */
+    .btn { border: none; padding: 9px 16px; border-radius: 9px; font-weight: 700; font-family: 'Space Grotesk', sans-serif; cursor: pointer; font-size: 13px; transition: all 0.15s; display: inline-flex; align-items: center; gap: 6px; }
     .btn:hover { transform: translateY(-1px); filter: brightness(1.1); }
     .btn:active { transform: scale(0.97); }
-    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
-    .btn-green { background: var(--green); color: white; }
-    .btn-red { background: var(--red); color: white; }
+    .btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none !important; filter: none !important; }
+    .btn-green { background: var(--green); color: #fff; }
+    .btn-red { background: var(--red); color: #fff; }
     .btn-gold { background: var(--gold); color: #111; }
-    .btn-accent { background: var(--accent); color: white; }
+    .btn-accent { background: var(--accent); color: #fff; }
     .btn-ghost { background: var(--surface2); color: var(--text); border: 1px solid var(--border2); }
-    .btn-lg { padding: 12px 24px; font-size: 15px; }
-    input, select, textarea { background: var(--bg); border: 1px solid var(--border2); border-radius: 10px; padding: 10px 14px; color: var(--text); font-size: 14px; width: 100%; outline: none; }
+    .btn-orange { background: var(--orange); color: #fff; }
+    .btn-purple { background: var(--purple); color: #fff; }
+    .btn-lg { padding: 12px 22px; font-size: 15px; }
+    input, select, textarea { background: var(--bg); border: 1px solid var(--border2); border-radius: 9px; padding: 9px 12px; color: var(--text); font-size: 13px; width: 100%; outline: none; font-family: 'Space Grotesk', sans-serif; }
     input:focus, select:focus { border-color: var(--accent); }
-    
-    .players-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-top: 16px; max-height: 300px; overflow-y: auto; }
-    .player-card { background: var(--surface2); border: 2px solid var(--border); border-radius: 12px; padding: 10px; text-align: center; transition: 0.2s; }
-    .player-card.buzzed { border-color: var(--gold); background: rgba(251,191,36,0.1); animation: buzzFlash 0.3s ease; }
-    .player-card.correct { border-color: var(--green); background: rgba(16,185,129,0.1); }
+
+    /* PLAYERS GRID */
+    .players-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; margin-top: 12px; max-height: 280px; overflow-y: auto; }
+    .player-card { background: var(--surface2); border: 2px solid var(--border); border-radius: 12px; padding: 10px 8px; text-align: center; transition: 0.2s; }
+    .player-card.buzzed { border-color: var(--gold); background: rgba(251,191,36,0.08); animation: buzzFlash 0.3s ease; }
+    .player-card.correct { border-color: var(--green); background: rgba(16,185,129,0.08); }
+    .player-card.wrong { border-color: var(--red); background: rgba(239,68,68,0.08); }
     .player-card.eliminated { opacity: 0.3; filter: grayscale(1); }
-    @keyframes buzzFlash { 0%,100%{ transform: scale(1); } 50%{ transform: scale(1.05); } }
-    .player-avatar { font-size: 36px; margin-bottom: 4px; }
-    .player-name { font-weight: 700; font-size: 12px; }
-    .player-score { font-family: monospace; font-size: 16px; font-weight: 700; color: var(--gold); }
-    .eliminate-btn { margin-top: 6px; font-size: 10px; padding: 3px 8px; background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.3); border-radius: 6px; color: var(--red); cursor: pointer; }
-    
-    .question-area { background: linear-gradient(135deg, rgba(59,130,246,0.08), rgba(139,92,246,0.05)); border: 1px solid rgba(59,130,246,0.2); border-radius: 14px; padding: 18px; margin-bottom: 16px; }
-    .question-text { font-size: 18px; font-weight: 700; line-height: 1.4; }
-    .buzzer-state { border-color: var(--gold); background: rgba(251,191,36,0.05); animation: glow 1s infinite; }
+    @keyframes buzzFlash { 0%,100%{ transform: scale(1); } 50%{ transform: scale(1.06); } }
+    .player-avatar { font-size: 32px; margin-bottom: 3px; }
+    .player-name { font-weight: 700; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .player-score { font-family: monospace; font-size: 15px; font-weight: 700; color: var(--gold); }
+    .player-badge { font-size: 9px; margin-top: 3px; padding: 2px 6px; border-radius: 20px; display: inline-block; }
+    .eliminate-btn { margin-top: 5px; font-size: 9px; padding: 2px 8px; background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.25); border-radius: 6px; color: var(--red); cursor: pointer; font-family: 'Space Grotesk', sans-serif; font-weight: 700; }
+
+    /* QUESTION AREA */
+    .question-area { background: linear-gradient(135deg, rgba(59,130,246,0.06), rgba(139,92,246,0.04)); border: 1px solid rgba(59,130,246,0.15); border-radius: 12px; padding: 16px; margin-bottom: 14px; }
+    .question-text { font-size: 16px; font-weight: 700; line-height: 1.5; }
+
+    /* BUZZER CARD */
+    .buzzer-card { border: 2px solid var(--gold); background: rgba(251,191,36,0.04); animation: glow 1s infinite; }
     @keyframes glow { 0%,100%{ border-color: rgba(251,191,36,0.3); } 50%{ border-color: var(--gold); } }
-    .buzzed-name { font-family: 'Bebas Neue', sans-serif; font-size: 42px; color: var(--gold); text-align: center; }
-    .action-buttons { display: flex; gap: 12px; justify-content: center; margin-top: 16px; }
-    
-    .stat-row { display: flex; gap: 12px; margin-bottom: 20px; }
-    .stat-box { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 12px; text-align: center; }
-    .stat-number { font-family: 'Bebas Neue', sans-serif; font-size: 36px; }
-    .stat-label { font-size: 10px; color: var(--muted); }
-    
-    .category-filter { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 15px; max-height: 100px; overflow-y: auto; }
-    .cat-filter-btn { padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; border: 1px solid var(--border2); background: var(--surface2); cursor: pointer; }
+    .buzzed-name { font-family: 'Bebas Neue', sans-serif; font-size: 48px; color: var(--gold); text-align: center; line-height: 1; }
+
+    /* STATS */
+    .stat-row { display: flex; gap: 10px; margin-bottom: 16px; }
+    .stat-box { flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 10px; text-align: center; }
+    .stat-number { font-family: 'Bebas Neue', sans-serif; font-size: 32px; }
+    .stat-label { font-size: 9px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+
+    /* CATEGORY FILTER */
+    .category-filter { display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 12px; }
+    .cat-filter-btn { padding: 5px 12px; border-radius: 18px; font-size: 11px; font-weight: 600; border: 1px solid var(--border2); background: var(--surface2); cursor: pointer; color: var(--text); font-family: 'Space Grotesk', sans-serif; transition: 0.15s; }
+    .cat-filter-btn:hover { border-color: var(--accent); }
     .cat-filter-btn.active { background: var(--accent); border-color: var(--accent); color: white; }
-    .question-list { max-height: 250px; overflow-y: auto; }
-    .q-item { padding: 10px 12px; border-bottom: 1px solid var(--border); cursor: pointer; transition: 0.1s; display: flex; justify-content: space-between; align-items: center; }
-    .q-item:hover { background: rgba(255,255,255,0.03); }
-    .q-item.selected { background: rgba(59,130,246,0.1); border-left: 3px solid var(--accent); }
-    .q-text-small { font-size: 13px; flex: 1; }
-    .fire-btn { background: var(--red); color: white; border: none; padding: 4px 12px; border-radius: 8px; font-size: 11px; font-weight: 700; cursor: pointer; }
-    
+
+    /* QUESTION LIST */
+    .question-list { max-height: 240px; overflow-y: auto; }
+    .q-item { padding: 9px 12px; border-bottom: 1px solid var(--border); cursor: pointer; transition: 0.1s; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .q-item:hover { background: rgba(255,255,255,0.025); }
+    .q-item.selected { background: rgba(59,130,246,0.08); border-left: 3px solid var(--accent); }
+    .q-text-small { font-size: 12px; flex: 1; line-height: 1.4; }
+    .fire-btn { background: var(--red); color: white; border: none; padding: 4px 10px; border-radius: 7px; font-size: 10px; font-weight: 700; cursor: pointer; white-space: nowrap; font-family: 'Space Grotesk', sans-serif; }
+    .fire-btn:hover { filter: brightness(1.15); }
+
+    /* CATEGORY SHOW BUTTON */
+    .cat-show-row { display: flex; gap: 8px; align-items: center; padding: 10px 14px; background: rgba(139,92,246,0.07); border: 1px solid rgba(139,92,246,0.2); border-radius: 10px; margin-bottom: 10px; }
+
+    /* MISC */
     .hidden { display: none !important; }
-    .toast { position: fixed; bottom: 20px; right: 20px; background: var(--surface); border: 1px solid var(--border2); border-radius: 10px; padding: 10px 18px; animation: slideIn 0.3s ease; z-index: 1000; font-size: 13px; }
+    .toast { position: fixed; bottom: 20px; right: 20px; background: var(--surface); border: 1px solid var(--border2); border-radius: 10px; padding: 10px 16px; animation: slideIn 0.3s ease; z-index: 1000; font-size: 13px; max-width: 280px; }
     @keyframes slideIn { from { opacity: 0; transform: translateX(50px); } to { opacity: 1; transform: translateX(0); } }
+    .connection-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--red); display: inline-block; margin-right: 5px; transition: 0.3s; }
+    .connection-dot.connected { background: var(--green); animation: connPulse 2s infinite; }
+    @keyframes connPulse { 0%,100%{ opacity: 1; } 50%{ opacity: 0.5; } }
+
+    .action-buttons { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }
   </style>
 </head>
 <body>
 <div class="app">
+  <!-- SIDEBAR -->
   <div class="sidebar">
     <div class="sidebar-header">
       <div class="logo">PLAYAQUIZ</div>
-      <div style="font-size: 9px; color: var(--gold); letter-spacing: 2px;">⚡ FINAL ROUND</div>
+      <div class="sub-tag">⚡ FINAL ROUND CONTROL</div>
     </div>
     <div class="room-box">
-      <div class="room-label" style="font-size:9px;color:var(--muted)">ROOM CODE</div>
+      <div class="room-label">ROOM CODE</div>
       <div class="room-code" id="roomCodeDisplay">——</div>
     </div>
-    <div class="info-row"><span>Status</span><span id="statusText">Waiting</span></div>
+    <div class="info-row"><span>Connection</span><span><span class="connection-dot" id="connDot"></span><span id="connText">Offline</span></span></div>
+    <div class="info-row"><span>Status</span><span class="info-val" id="statusText">Waiting</span></div>
     <div class="info-row"><span>Players</span><span class="info-val" id="playerCount">0</span></div>
-    <div class="info-row"><span>Question</span><span class="info-val" id="questionNum">—</span></div>
+    <div class="info-row"><span>Question #</span><span class="info-val" id="questionNum">—</span></div>
     <div class="sidebar-section">
-      <div class="section-title">🏆 LIVE STANDINGS</div>
-      <div class="lb-list" id="sidebarLeaderboard"><div style="color:var(--muted);text-align:center;padding:20px">No players yet</div></div>
+      <div class="section-title">🏆 Live Standings</div>
+      <div class="lb-list" id="sidebarLeaderboard"><div style="color:var(--muted);text-align:center;padding:16px;font-size:12px">No players yet</div></div>
     </div>
   </div>
 
+  <!-- MAIN -->
   <div class="main">
-    <!-- Setup Panel -->
+
+    <!-- SETUP PANEL -->
     <div id="setupPanel">
       <div class="page-title">🎯 FINAL ROUND SETUP</div>
-      <div class="page-sub">Create session - players join with room code</div>
-      
+      <div class="page-sub">Configure & wait for players to join with the room code</div>
+
       <div class="grid-2">
-        <div>
-          <div class="card">
-            <div class="card-title">⚙️ ROUND SETTINGS</div>
-            <label style="font-size:11px;color:var(--muted);margin-bottom:5px;display:block">Points per Correct Answer</label>
-            <input type="number" id="pointsPerBuzz" value="100" min="10" step="10" style="margin-bottom:15px">
-            <label style="font-size:11px;color:var(--muted);margin-bottom:5px;display:block">Room Code</label>
-            <input id="roomCodeInput" readonly style="font-family:monospace;font-size:22px;letter-spacing:4px;color:var(--gold);margin-bottom:10px">
-            <button class="btn btn-ghost btn-sm" onclick="generateRoomCode()">🔄 New Code</button>
-          </div>
-        </div>
-        
         <div class="card">
-          <div class="card-title">👥 WAITING PLAYERS</div>
-          <div id="playerSetupList" style="min-height:200px">
-            <div style="text-align:center;padding:40px;color:var(--muted)">Players will appear here after joining<br><br>👇 Share this room code 👇</div>
+          <div class="card-title">⚙️ Settings</div>
+          <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px">Points Per Correct Answer</label>
+          <input type="number" id="pointsPerBuzz" value="100" min="10" step="10" style="margin-bottom:12px">
+          <label style="font-size:10px;color:var(--muted);display:block;margin-bottom:4px">Room Code</label>
+          <input id="roomCodeInput" readonly style="font-family:monospace;font-size:20px;letter-spacing:4px;color:var(--gold);margin-bottom:10px">
+          <button class="btn btn-ghost" onclick="generateRoomCode()" style="font-size:11px">🔄 New Code</button>
+        </div>
+        <div class="card">
+          <div class="card-title">👥 Players Joined</div>
+          <div id="playerSetupList" style="min-height:150px">
+            <div style="text-align:center;padding:30px 10px;color:var(--muted);font-size:12px">Players will appear here after joining</div>
           </div>
-          <button class="btn btn-green btn-lg" style="width:100%;margin-top:16px" onclick="startFinalRound()" id="startBtn" disabled>🚀 START FINAL ROUND</button>
+          <button class="btn btn-green btn-lg" style="width:100%;margin-top:12px" onclick="startFinalRound()" id="startBtn" disabled>🚀 START FINAL ROUND</button>
         </div>
       </div>
 
-      <!-- Question Bank Section -->
       <div class="card">
-        <div class="card-title">📚 QUESTION BANK (from database)</div>
+        <div class="card-title">📚 Question Bank</div>
         <div class="category-filter" id="categoryFilter"></div>
         <div class="question-list" id="questionBankList">
-          <div style="text-align:center;padding:30px;color:var(--muted)">Loading questions from database...</div>
+          <div style="text-align:center;padding:24px;color:var(--muted);font-size:12px">Loading questions...</div>
         </div>
       </div>
     </div>
 
-    <!-- Game Control Panel -->
+    <!-- GAME PANEL -->
     <div id="gamePanel" class="hidden">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-        <div><div class="page-title" style="margin-bottom:0">⚡ LIVE FINAL ROUND</div><div style="font-size:12px;color:var(--muted)">Room: <span id="liveRoomCode" style="color:var(--gold);font-family:monospace">——</span></div></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+        <div>
+          <div class="page-title" style="margin-bottom:0">⚡ LIVE FINAL ROUND</div>
+          <div style="font-size:11px;color:var(--muted)">Room: <span id="liveRoomCode" style="color:var(--gold);font-family:monospace;font-size:14px">——</span></div>
+        </div>
+        <button class="btn btn-ghost" onclick="endFinalRound()" style="color:var(--red);border-color:rgba(239,68,68,0.3);font-size:12px">🏁 End Round</button>
       </div>
 
       <div class="stat-row">
         <div class="stat-box"><div class="stat-number" id="statPlayers">0</div><div class="stat-label">Active</div></div>
-        <div class="stat-box"><div class="stat-number" id="statQuestion">—</div><div class="stat-label">Q#</div></div>
-        <div class="stat-box"><div class="stat-number" id="statBuzzed">—</div><div class="stat-label">Buzzed By</div></div>
+        <div class="stat-box"><div class="stat-number" id="statQuestion">—</div><div class="stat-label">Q #</div></div>
         <div class="stat-box"><div class="stat-number" id="statEliminated">0</div><div class="stat-label">Eliminated</div></div>
+        <div class="stat-box"><div class="stat-number" id="statBuzzed" style="font-size:16px;padding-top:6px">—</div><div class="stat-label">Buzzed</div></div>
       </div>
 
-      <!-- Selected Question Display -->
-      <div class="card">
-        <div class="card-title">📋 SELECTED QUESTION</div>
-        <div id="selectedQuestionDisplay" class="question-area">
-          <div style="text-align:center;color:var(--muted);padding:15px">Select a question from the bank below</div>
+      <!-- CATEGORY PICKER BROADCAST -->
+      <div class="card" id="categoryPickerCard">
+        <div class="card-title">🎨 Category Picker</div>
+        <p style="font-size:11px;color:var(--muted);margin-bottom:10px">After a correct answer, let the winner pick the next category. Push to FOH screen.</p>
+        <div class="cat-show-row">
+          <span style="font-size:13px;flex:1">Show category selection on FOH display</span>
+          <button class="btn btn-purple" onclick="showCategoryPickerOnFOH()" id="showCatsBtn">🎨 Show Categories on FOH</button>
         </div>
-        <div style="display:flex;gap:10px;margin-top:10px">
-          <button class="btn btn-accent" style="flex:1" onclick="openQuestion()" id="openBtn" disabled>🔔 OPEN BUZZERS</button>
+        <div style="font-size:11px;color:var(--muted);margin-top:8px">Then filter questions by the chosen category below.</div>
+      </div>
+
+      <!-- SELECTED QUESTION -->
+      <div class="card">
+        <div class="card-title">📋 Selected Question</div>
+        <div id="selectedQuestionDisplay" class="question-area">
+          <div style="text-align:center;color:var(--muted);font-size:13px">Select a question from the bank below ↓</div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-accent" style="flex:1;min-width:140px" onclick="openQuestion()" id="openBtn" disabled>🔔 OPEN BUZZERS</button>
           <button class="btn btn-ghost" onclick="resetBuzzers()" id="resetBtn" disabled>↺ Reset</button>
         </div>
       </div>
 
-      <!-- Question Bank (during game) -->
+      <!-- QUESTION BANK in game -->
       <div class="card">
-        <div class="card-title">📚 QUESTION BANK</div>
+        <div class="card-title">📚 Question Bank</div>
         <div class="category-filter" id="gameCategoryFilter"></div>
         <div class="question-list" id="gameQuestionBankList" style="max-height:200px"></div>
       </div>
 
-      <!-- Buzzer Action Card -->
-      <div class="card buzzer-state" id="buzzerCard" style="display:none">
+      <!-- BUZZER CARD -->
+      <div class="card buzzer-card" id="buzzerCard" style="display:none">
         <div style="text-align:center">
-          <div style="font-size:13px;color:var(--gold);letter-spacing:2px">🔔 BUZZED IN</div>
+          <div style="font-size:12px;color:var(--gold);letter-spacing:2px;margin-bottom:4px">🔔 BUZZED IN</div>
           <div class="buzzed-name" id="buzzedName">—</div>
-          <div style="margin-bottom:16px">is answering...</div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:14px">is answering verbally...</div>
           <div class="action-buttons">
-            <button class="btn btn-green" onclick="markCorrect()">✅ CORRECT</button>
-            <button class="btn btn-red" onclick="markWrong()">❌ WRONG</button>
+            <button class="btn btn-green btn-lg" onclick="markCorrect()">✅ CORRECT</button>
+            <button class="btn btn-red btn-lg" onclick="markWrong()">❌ WRONG</button>
           </div>
-          <button class="btn btn-ghost btn-sm" style="margin-top:12px" onclick="nextQuestion()">⏭ Skip</button>
+          <button class="btn btn-ghost" style="margin-top:10px;font-size:11px" onclick="nextQuestion()">⏭ Skip / Next</button>
         </div>
       </div>
 
-      <!-- Next Card -->
+      <!-- NEXT CARD -->
       <div class="card" id="nextCard" style="display:none;border-color:var(--green)">
-        <div style="text-align:center;padding:10px">
-          <div style="font-size:40px;margin-bottom:8px">✅</div>
-          <div style="font-size:18px;font-weight:700;color:var(--green);margin-bottom:12px">Complete!</div>
+        <div style="text-align:center;padding:8px">
+          <div style="font-size:36px;margin-bottom:6px">✅</div>
+          <div style="font-size:16px;font-weight:700;color:var(--green);margin-bottom:10px">Correct! Move to next?</div>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:14px">Tip: let the winner pick the next category before advancing.</div>
           <button class="btn btn-green" onclick="advanceToNext()">⏭ NEXT QUESTION</button>
         </div>
       </div>
 
-      <!-- Players Grid -->
+      <!-- PLAYERS GRID -->
       <div class="card">
-        <div class="card-title">👥 FINALISTS</div>
+        <div class="card-title">👥 Finalists</div>
         <div id="playersGrid" class="players-grid"></div>
       </div>
-
-      <button class="btn btn-ghost" onclick="endFinalRound()" style="width:100%;color:var(--red);border-color:rgba(239,68,68,0.3)">🏁 END FINAL ROUND</button>
     </div>
   </div>
 </div>
@@ -232,448 +273,381 @@ let pointsPerBuzz = 100;
 let allQuestions = [];
 let categories = [];
 let selectedQuestionForGame = null;
+let currentFilterCat = 'all';
 
-// Load questions from database
+// Audio Context
+let audioCtx = null;
+function getAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+function playCorrectSound() {
+  try {
+    const ctx = getAudio();
+    [523, 659, 784, 1047].forEach((f, i) => {
+      const now = ctx.currentTime + i * 0.09;
+      const osc = ctx.createOscillator(), g = ctx.createGain();
+      osc.connect(g); g.connect(ctx.destination);
+      osc.type = 'sine'; osc.frequency.value = f;
+      g.gain.setValueAtTime(0.45, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+      osc.start(now); osc.stop(now + 0.18);
+    });
+  } catch(e) {}
+}
+function playWrongSound() {
+  try {
+    const ctx = getAudio();
+    const osc = ctx.createOscillator(), g = ctx.createGain();
+    osc.connect(g); g.connect(ctx.destination);
+    osc.type = 'sawtooth'; osc.frequency.value = 180;
+    g.gain.setValueAtTime(0.5, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45);
+    osc.start(); osc.stop(ctx.currentTime + 0.45);
+  } catch(e) {}
+}
+function playBuzzInSound() {
+  try {
+    const ctx = getAudio();
+    const osc = ctx.createOscillator(), g = ctx.createGain();
+    osc.connect(g); g.connect(ctx.destination);
+    osc.type = 'square'; osc.frequency.value = 880;
+    g.gain.setValueAtTime(0.4, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
+    osc.start(); osc.stop(ctx.currentTime + 0.12);
+  } catch(e) {}
+}
+
+// DB Load
 async function loadQuestionsFromDB() {
   const { data: questions, error } = await sb.from('questions')
     .select('*, categories(name, icon, color)')
-    .order('created_at', { ascending: false });
-  
-  if (error) {
-    console.error('Error loading questions:', error);
-    toast('Failed to load questions', 'error');
-    return;
-  }
-  
+    .order('sort_order', { ascending: true });
+  if (error) { toast('⚠️ Failed to load questions', 'error'); return; }
   allQuestions = questions || [];
-  
-  // Load categories
   const { data: cats } = await sb.from('categories').select('*').order('name');
   categories = cats || [];
-  
-  renderCategoryFilter();
+  renderCategoryFilters();
   renderQuestionBank();
 }
 
-function renderCategoryFilter() {
-  const container = document.getElementById('categoryFilter');
-  const gameContainer = document.getElementById('gameCategoryFilter');
-  
-  const filterHtml = `<button class="cat-filter-btn active" data-cat="all" onclick="filterQuestionsByCategory('all', this)">📚 All</button>` +
-    categories.map(c => `<button class="cat-filter-btn" data-cat="${c.id}" onclick="filterQuestionsByCategory('${c.id}', this)">${c.icon || '📁'} ${c.name}</button>`).join('');
-  
-  if (container) container.innerHTML = filterHtml;
-  if (gameContainer) gameContainer.innerHTML = filterHtml;
+function renderCategoryFilters() {
+  const html = `<button class="cat-filter-btn active" onclick="filterByCategory('all',this)">📚 All</button>` +
+    categories.map(c => `<button class="cat-filter-btn" onclick="filterByCategory('${c.id}',this)">${c.icon||'📁'} ${c.name}</button>`).join('');
+  const s = document.getElementById('categoryFilter');
+  const g = document.getElementById('gameCategoryFilter');
+  if (s) s.innerHTML = html;
+  if (g) g.innerHTML = html;
 }
 
-let currentFilterCat = 'all';
-
-function filterQuestionsByCategory(catId, btn) {
+function filterByCategory(catId, btn) {
   currentFilterCat = catId;
   document.querySelectorAll('.cat-filter-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
+  document.querySelectorAll(`.cat-filter-btn[onclick*="${catId}"]`).forEach(b => b.classList.add('active'));
   renderQuestionBank();
 }
 
 function renderQuestionBank() {
-  const container = document.getElementById('questionBankList');
-  const gameContainer = document.getElementById('gameQuestionBankList');
-  
-  let filtered = currentFilterCat === 'all' 
-    ? allQuestions 
-    : allQuestions.filter(q => q.category_id === currentFilterCat);
-  
-  if (filtered.length === 0) {
-    const emptyMsg = '<div style="text-align:center;padding:30px;color:var(--muted)">No questions found in this category</div>';
-    if (container) container.innerHTML = emptyMsg;
-    if (gameContainer) gameContainer.innerHTML = emptyMsg;
-    return;
-  }
-  
-  const qHtml = filtered.map(q => `
+  const filtered = currentFilterCat === 'all' ? allQuestions : allQuestions.filter(q => q.category_id === currentFilterCat);
+  const empty = '<div style="text-align:center;padding:24px;color:var(--muted);font-size:12px">No questions in this category</div>';
+  const html = filtered.length === 0 ? empty : filtered.map(q => `
     <div class="q-item" onclick="selectQuestion('${q.id}')">
       <div class="q-text-small">
-        <strong>${q.question_text.substring(0, 80)}${q.question_text.length > 80 ? '...' : ''}</strong>
-        <div style="font-size:10px;color:var(--muted);margin-top:4px">${q.categories?.icon || '📁'} ${q.categories?.name || 'General'} | ⏱️ ${q.time_limit || 20}s | ⭐ ${q.points || 100}pts</div>
+        <strong>${q.question_text.substring(0,85)}${q.question_text.length>85?'…':''}</strong>
+        <div style="font-size:10px;color:var(--muted);margin-top:3px">${q.categories?.icon||'📁'} ${q.categories?.name||'General'} · ⭐ ${q.points||100}pts</div>
       </div>
-      <div style="display:flex;gap:6px">
-        <button class="fire-btn" onclick="event.stopPropagation(); fireQuestionImmediately('${q.id}')">🔥 Fire Now</button>
-      </div>
-    </div>
-  `).join('');
-  
-  if (container) container.innerHTML = qHtml;
-  if (gameContainer) gameContainer.innerHTML = qHtml;
+      <button class="fire-btn" onclick="event.stopPropagation();fireQuestion('${q.id}')">🔥 Fire</button>
+    </div>`).join('');
+  const s = document.getElementById('questionBankList');
+  const g = document.getElementById('gameQuestionBankList');
+  if (s) s.innerHTML = html;
+  if (g) g.innerHTML = html;
 }
 
 function selectQuestion(qId) {
   const q = allQuestions.find(x => x.id === qId);
   if (!q) return;
-  
   selectedQuestionForGame = q;
-  document.getElementById('selectedQuestionDisplay').innerHTML = `<div class="question-text">📢 ${q.question_text}</div>`;
+  const opts = [q.option_a, q.option_b, q.option_c, q.option_d];
+  const letters = ['A','B','C','D'];
+  document.getElementById('selectedQuestionDisplay').innerHTML = `
+    <div class="question-text">📢 ${q.question_text}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px">
+      ${opts.map((o,i)=>`<div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:7px 10px;font-size:12px;display:flex;align-items:center;gap:7px"><span style="font-weight:800;color:var(--accent)">${letters[i]}</span> ${o}</div>`).join('')}
+    </div>
+    <div style="font-size:10px;color:var(--green);margin-top:8px">✅ Correct: ${letters[q.correct_option]} — ${opts[q.correct_option]}</div>`;
   document.getElementById('openBtn').disabled = false;
-  
-  // Update visual selection in both lists
   document.querySelectorAll('.q-item').forEach(el => el.classList.remove('selected'));
-  event?.currentTarget?.classList.add('selected');
-  
-  toast(`Selected: ${q.question_text.substring(0, 50)}...`, 'success');
+  toast(`Selected: ${q.question_text.substring(0,50)}…`, 'success');
 }
 
-function fireQuestionImmediately(qId) {
-  const q = allQuestions.find(x => x.id === qId);
-  if (!q) return;
-  
-  selectedQuestionForGame = q;
-  document.getElementById('selectedQuestionDisplay').innerHTML = `<div class="question-text">📢 ${q.question_text}</div>`;
-  document.getElementById('openBtn').disabled = false;
+function fireQuestion(qId) {
+  selectQuestion(qId);
   openQuestion();
 }
 
+// Room
 function generateRoomCode() {
-  roomCode = 'FR' + Math.random().toString(36).substring(2, 6).toUpperCase();
+  roomCode = 'FR' + Math.random().toString(36).substring(2,6).toUpperCase();
   document.getElementById('roomCodeInput').value = roomCode;
   document.getElementById('roomCodeDisplay').innerText = roomCode;
   localStorage.setItem('fr_room', roomCode);
+  setupRealtimeChannel();
 }
 
 function setupRealtimeChannel() {
   if (realtimeChannel) sb.removeChannel(realtimeChannel);
-  
   realtimeChannel = sb.channel(`fr-${roomCode}`, { config: { broadcast: { self: false } } });
   realtimeChannel
     .on('broadcast', { event: 'player_join' }, ({ payload }) => handlePlayerJoin(payload))
     .on('broadcast', { event: 'buzz' }, ({ payload }) => handleBuzz(payload))
     .subscribe((status) => {
+      const dot = document.getElementById('connDot');
+      const txt = document.getElementById('connText');
       if (status === 'SUBSCRIBED') {
-        console.log('Realtime channel ready for room:', roomCode);
+        dot.classList.add('connected'); txt.innerText = 'Live';
+      } else {
+        dot.classList.remove('connected'); txt.innerText = status;
       }
     });
 }
 
 function broadcast(event, payload) {
-  if (realtimeChannel) {
-    realtimeChannel.send({ type: 'broadcast', event, payload });
-  }
+  if (!realtimeChannel) return;
+  realtimeChannel.send({ type: 'broadcast', event, payload });
 }
 
 function handlePlayerJoin(payload) {
-  console.log('Player joined:', payload);
-  
-  if (!frPlayers.has(payload.id)) {
-    frPlayers.set(payload.id, {
-      id: payload.id,
-      name: payload.name,
-      avatar: payload.avatar,
-      score: 0,
-      status: 'waiting'
-    });
-    renderPlayersGrid();
-    updateSidebar();
-    toast(`✨ ${payload.avatar} ${payload.name} joined!`, 'success');
-    
-    // Broadcast updated player list to FOH
-    broadcast('player_list_update', { players: Array.from(frPlayers.values()) });
-    
-    document.getElementById('startBtn').disabled = frPlayers.size < 2;
-  }
+  if (frPlayers.has(payload.id)) return;
+  frPlayers.set(payload.id, { id: payload.id, name: payload.name, avatar: payload.avatar, score: 0, status: 'waiting' });
+  renderPlayersGrid();
+  updateSidebar();
+  toast(`✨ ${payload.avatar} ${payload.name} joined!`, 'success');
+  broadcast('player_list_update', { players: Array.from(frPlayers.values()) });
+  document.getElementById('startBtn').disabled = frPlayers.size < 2;
 }
 
 function handleBuzz(payload) {
   if (!isQuestionOpen || buzzedPlayerId) return;
   if (lockedPlayers.has(payload.id) || eliminatedPlayers.has(payload.id)) return;
-  
   const player = frPlayers.get(payload.id);
   if (!player) return;
-  
+
   buzzedPlayerId = payload.id;
   isQuestionOpen = false;
-  
   player.status = 'buzzed';
-  
-  frPlayers.forEach((p, id) => {
-    if (id !== payload.id && !eliminatedPlayers.has(id)) {
-      p.status = 'locked';
-    }
-  });
-  
+  frPlayers.forEach((p, id) => { if (id !== payload.id && !eliminatedPlayers.has(id)) p.status = 'locked'; });
+
   document.getElementById('buzzerCard').style.display = 'block';
   document.getElementById('nextCard').style.display = 'none';
   document.getElementById('buzzedName').innerHTML = `${player.avatar} ${player.name}`;
   document.getElementById('openBtn').disabled = true;
   document.getElementById('resetBtn').disabled = false;
   document.getElementById('statBuzzed').innerText = player.name;
-  
-  renderPlayersGrid();
-  updateSidebar();
-  
+
+  playBuzzInSound();
+  renderPlayersGrid(); updateSidebar();
   broadcast('buzz_confirmed', { playerId: payload.id, playerName: player.name, playerAvatar: player.avatar });
   toast(`🔔 ${player.name} buzzed in!`, 'info');
 }
 
-function markCorrect() {
-  if (!buzzedPlayerId) return;
-  
-  const player = frPlayers.get(buzzedPlayerId);
-  if (player) {
-    player.score += pointsPerBuzz;
-    player.status = 'correct';
-    lockedPlayers.add(buzzedPlayerId);
-  }
-  
-  document.getElementById('buzzerCard').style.display = 'none';
-  document.getElementById('nextCard').style.display = 'block';
-  document.getElementById('statBuzzed').innerText = '—';
-  
-  broadcast('correct', { playerId: buzzedPlayerId, newScore: player?.score, playerName: player?.name, points: pointsPerBuzz });
-  renderPlayersGrid();
-  updateSidebar();
-  toast(`✅ Correct! +${pointsPerBuzz} pts for ${player?.name}`, 'success');
-  
-  buzzedPlayerId = null;
-}
-
-function markWrong() {
-  if (!buzzedPlayerId) return;
-  
-  const player = frPlayers.get(buzzedPlayerId);
-  if (player) {
-    player.status = 'wrong';
-    lockedPlayers.add(buzzedPlayerId);
-  }
-  
-  const remaining = Array.from(frPlayers.keys()).filter(id => !lockedPlayers.has(id) && !eliminatedPlayers.has(id));
-  if (remaining.length > 0) {
-    isQuestionOpen = true;
-    frPlayers.forEach((p, id) => {
-      if (!lockedPlayers.has(id) && !eliminatedPlayers.has(id)) {
-        p.status = 'waiting';
-      }
-    });
-    document.getElementById('buzzerCard').style.display = 'none';
-  } else {
-    document.getElementById('nextCard').style.display = 'block';
-  }
-  
-  broadcast('wrong', { playerId: buzzedPlayerId, playerName: player?.name });
-  renderPlayersGrid();
-  updateSidebar();
-  toast(`❌ Wrong - ${player?.name} is locked out`, 'error');
-  
-  buzzedPlayerId = null;
-  document.getElementById('statBuzzed').innerText = '—';
-}
-
-function advanceToNext() {
-  buzzedPlayerId = null;
-  isQuestionOpen = false;
-  selectedQuestionForGame = null;
-  currentQuestionNumber++;
-  
-  document.getElementById('buzzerCard').style.display = 'none';
-  document.getElementById('nextCard').style.display = 'none';
-  document.getElementById('openBtn').disabled = true;
-  document.getElementById('resetBtn').disabled = true;
-  document.getElementById('selectedQuestionDisplay').innerHTML = '<div style="text-align:center;color:var(--muted);padding:15px">Select a question from the bank below</div>';
-  document.getElementById('statQuestion').innerText = `Q${currentQuestionNumber}`;
-  document.getElementById('questionNum').innerText = `Q${currentQuestionNumber}`;
-  
-  broadcast('next_question', { questionNumber: currentQuestionNumber });
-  
-  frPlayers.forEach((p, id) => {
-    if (!eliminatedPlayers.has(id)) p.status = 'waiting';
-  });
-  lockedPlayers.clear();
-  renderPlayersGrid();
-}
-
 function openQuestion() {
-  if (!selectedQuestionForGame) {
-    toast('Select a question first!', 'error');
-    return;
-  }
-  
+  if (!selectedQuestionForGame) { toast('Select a question first!', 'error'); return; }
   isQuestionOpen = true;
   buzzedPlayerId = null;
   lockedPlayers.clear();
-  
-  frPlayers.forEach((p, id) => {
-    if (!eliminatedPlayers.has(id)) p.status = 'waiting';
-  });
-  
+  frPlayers.forEach((p, id) => { if (!eliminatedPlayers.has(id)) p.status = 'waiting'; });
   document.getElementById('openBtn').disabled = true;
   document.getElementById('resetBtn').disabled = false;
   document.getElementById('buzzerCard').style.display = 'none';
   document.getElementById('nextCard').style.display = 'none';
   document.getElementById('statBuzzed').innerText = '—';
-  
+  currentQuestionNumber++;
+  document.getElementById('statQuestion').innerText = `Q${currentQuestionNumber}`;
+  document.getElementById('questionNum').innerText = `Q${currentQuestionNumber}`;
   renderPlayersGrid();
-  
-  broadcast('question_open', { 
+
+  broadcast('question_open', {
     question: selectedQuestionForGame.question_text,
     questionNumber: currentQuestionNumber,
     options: [selectedQuestionForGame.option_a, selectedQuestionForGame.option_b, selectedQuestionForGame.option_c, selectedQuestionForGame.option_d],
-    timeLimit: selectedQuestionForGame.time_limit || 20
+    timeLimit: selectedQuestionForGame.time_limit || 20,
+    category: selectedQuestionForGame.categories?.name || '',
+    categoryIcon: selectedQuestionForGame.categories?.icon || '📁'
   });
-  
   toast('🔔 Buzzers are OPEN!', 'success');
 }
 
 function resetBuzzers() {
   if (!selectedQuestionForGame) return;
-  
   buzzedPlayerId = null;
   lockedPlayers.clear();
   isQuestionOpen = true;
-  
-  frPlayers.forEach((p, id) => {
-    if (!eliminatedPlayers.has(id)) p.status = 'waiting';
-  });
-  
+  frPlayers.forEach((p, id) => { if (!eliminatedPlayers.has(id)) p.status = 'waiting'; });
   document.getElementById('buzzerCard').style.display = 'none';
   document.getElementById('statBuzzed').innerText = '—';
   renderPlayersGrid();
-  
   broadcast('reset_buzzers', {});
   toast('↺ Buzzers reset!', 'info');
 }
 
-function nextQuestion() {
-  advanceToNext();
+function markCorrect() {
+  if (!buzzedPlayerId) return;
+  const player = frPlayers.get(buzzedPlayerId);
+  if (player) { player.score += pointsPerBuzz; player.status = 'correct'; lockedPlayers.add(buzzedPlayerId); }
+  document.getElementById('buzzerCard').style.display = 'none';
+  document.getElementById('nextCard').style.display = 'block';
+  document.getElementById('statBuzzed').innerText = '—';
+  playCorrectSound();
+  broadcast('correct', { playerId: buzzedPlayerId, newScore: player?.score, playerName: player?.name, playerAvatar: player?.avatar, points: pointsPerBuzz });
+  renderPlayersGrid(); updateSidebar();
+  toast(`✅ Correct! +${pointsPerBuzz} pts for ${player?.name}`, 'success');
+  buzzedPlayerId = null;
+  // Broadcast updated player list
+  broadcast('player_list_update', { players: Array.from(frPlayers.values()) });
 }
+
+function markWrong() {
+  if (!buzzedPlayerId) return;
+  const player = frPlayers.get(buzzedPlayerId);
+  if (player) { player.status = 'wrong'; lockedPlayers.add(buzzedPlayerId); }
+  playWrongSound();
+  const remaining = Array.from(frPlayers.keys()).filter(id => !lockedPlayers.has(id) && !eliminatedPlayers.has(id));
+  if (remaining.length > 0) {
+    isQuestionOpen = true;
+    frPlayers.forEach((p, id) => { if (!lockedPlayers.has(id) && !eliminatedPlayers.has(id)) p.status = 'waiting'; });
+    document.getElementById('buzzerCard').style.display = 'none';
+  } else {
+    document.getElementById('buzzerCard').style.display = 'none';
+    document.getElementById('nextCard').style.display = 'block';
+  }
+  broadcast('wrong', { playerId: buzzedPlayerId, playerName: player?.name });
+  renderPlayersGrid(); updateSidebar();
+  toast(`❌ Wrong — ${player?.name} locked out`, 'error');
+  buzzedPlayerId = null;
+  document.getElementById('statBuzzed').innerText = '—';
+}
+
+function advanceToNext() {
+  buzzedPlayerId = null; isQuestionOpen = false; selectedQuestionForGame = null;
+  document.getElementById('buzzerCard').style.display = 'none';
+  document.getElementById('nextCard').style.display = 'none';
+  document.getElementById('openBtn').disabled = true;
+  document.getElementById('resetBtn').disabled = true;
+  document.getElementById('selectedQuestionDisplay').innerHTML = '<div style="text-align:center;color:var(--muted);font-size:13px">Select a question from the bank below ↓</div>';
+  frPlayers.forEach((p, id) => { if (!eliminatedPlayers.has(id)) p.status = 'waiting'; });
+  lockedPlayers.clear();
+  renderPlayersGrid();
+  broadcast('next_question', { questionNumber: currentQuestionNumber });
+}
+
+function nextQuestion() { advanceToNext(); }
 
 function eliminatePlayer(id) {
   const player = frPlayers.get(id);
-  if (!player) return;
-  if (!confirm(`Eliminate ${player.name}?`)) return;
-  
+  if (!player || !confirm(`Eliminate ${player.name}?`)) return;
   eliminatedPlayers.add(id);
   player.status = 'eliminated';
   document.getElementById('statEliminated').innerText = eliminatedPlayers.size;
-  
-  renderPlayersGrid();
-  updateSidebar();
-  
-  broadcast('eliminated', { playerId: id, playerName: player.name });
+  renderPlayersGrid(); updateSidebar();
+  broadcast('eliminated', { playerId: id, playerName: player.name, playerAvatar: player.avatar });
   toast(`⚡ ${player.name} eliminated!`, 'error');
+}
+
+// Category picker on FOH
+function showCategoryPickerOnFOH() {
+  broadcast('show_category_picker', { categories: categories });
+  toast('🎨 Category picker sent to FOH!', 'success');
 }
 
 function startFinalRound() {
   if (frPlayers.size < 2) { toast('Need at least 2 players!', 'error'); return; }
-  
   pointsPerBuzz = parseInt(document.getElementById('pointsPerBuzz').value) || 100;
-  
-  setupRealtimeChannel();
-  
   document.getElementById('setupPanel').classList.add('hidden');
   document.getElementById('gamePanel').classList.remove('hidden');
   document.getElementById('liveRoomCode').innerText = roomCode;
-  
+  renderCategoryFilters();
+  renderQuestionBank();
   broadcast('round_started', { roomCode, pointsPerBuzz });
   toast('🎮 Final Round started!', 'success');
 }
 
 function endFinalRound() {
   if (!confirm('End the Final Round?')) return;
-  
-  const sorted = Array.from(frPlayers.values())
-    .filter(p => !eliminatedPlayers.has(p.id))
-    .sort((a, b) => b.score - a.score);
+  const sorted = Array.from(frPlayers.values()).filter(p => !eliminatedPlayers.has(p.id)).sort((a,b)=>b.score-a.score);
   const winner = sorted[0];
-  
   broadcast('round_ended', { winner, players: Array.from(frPlayers.values()) });
-  toast(`🏆 FINAL ROUND ENDED! Winner: ${winner?.name || 'N/A'}`, 'success');
+  toast(`🏆 Winner: ${winner?.name || 'N/A'}`, 'success');
 }
 
 function renderPlayersGrid() {
-  const sorted = Array.from(frPlayers.values()).sort((a, b) => b.score - a.score);
-  const grid = document.getElementById('playersGrid');
-  const activeCount = sorted.filter(p => !eliminatedPlayers.has(p.id)).length;
-  document.getElementById('statPlayers').innerText = activeCount;
-  document.getElementById('playerCount').innerText = activeCount;
-  
-  if (sorted.length === 0) {
-    grid.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted)">Waiting for players...</div>';
-    const setupList = document.getElementById('playerSetupList');
-    if (setupList) setupList.innerHTML = '<div style="text-align:center;padding:30px;color:var(--muted)">Players will appear here after joining<br><br>Room code: <strong style="color:var(--gold);font-size:24px">' + roomCode + '</strong></div>';
-    return;
-  }
-  
-  grid.innerHTML = sorted.map((p, i) => {
-    const medal = i === 0 ? '👑' : i === 1 ? '🥈' : i === 2 ? '🥉' : '';
-    let statusBadge = '';
-    if (p.status === 'buzzed') statusBadge = '<span style="font-size:9px;color:var(--gold)">🔔 BUZZED</span>';
-    else if (p.status === 'correct') statusBadge = '<span style="font-size:9px;color:var(--green)">✅ CORRECT</span>';
-    else if (p.status === 'wrong') statusBadge = '<span style="font-size:9px;color:var(--red)">❌ WRONG</span>';
-    else if (eliminatedPlayers.has(p.id)) statusBadge = '<span style="font-size:9px;color:var(--muted)">⚡ OUT</span>';
-    else statusBadge = '<span style="font-size:9px;color:var(--green)">○ READY</span>';
-    
-    return `
-      <div class="player-card ${p.status} ${eliminatedPlayers.has(p.id) ? 'eliminated' : ''}">
-        <div style="font-size:18px;margin-top:-8px">${medal}</div>
-        <div class="player-avatar">${p.avatar}</div>
-        <div class="player-name">${p.name}</div>
-        <div class="player-score">${p.score}</div>
-        ${statusBadge}
-        ${!eliminatedPlayers.has(p.id) ? `<div><button class="eliminate-btn" onclick="eliminatePlayer('${p.id}')">⚡ Eliminate</button></div>` : ''}
-      </div>
-    `;
-  }).join('');
-  
-  // Update setup list
+  const sorted = Array.from(frPlayers.values()).sort((a,b)=>b.score-a.score);
+  const active = sorted.filter(p => !eliminatedPlayers.has(p.id)).length;
+  document.getElementById('statPlayers').innerText = active;
+  document.getElementById('playerCount').innerText = sorted.length;
+  const medals = ['👑','🥈','🥉'];
+
+  // Setup panel list
   const setupList = document.getElementById('playerSetupList');
-  if (setupList && sorted.length > 0) {
-    setupList.innerHTML = sorted.map(p => `
-      <div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--surface2);border-radius:10px;margin-bottom:6px">
-        <span style="font-size:24px">${p.avatar}</span>
-        <span style="flex:1;font-weight:600">${p.name}</span>
-        <span style="color:var(--gold)">${p.score} pts</span>
-      </div>
-    `).join('');
+  if (setupList) {
+    setupList.innerHTML = sorted.length === 0
+      ? '<div style="text-align:center;padding:30px;color:var(--muted);font-size:12px">Players will appear after joining</div>'
+      : sorted.map(p => `<div style="display:flex;align-items:center;gap:10px;padding:7px 10px;background:var(--surface2);border-radius:9px;margin-bottom:5px"><span style="font-size:22px">${p.avatar}</span><span style="flex:1;font-weight:600;font-size:13px">${p.name}</span><span style="color:var(--gold);font-size:11px">${p.score} pts</span></div>`).join('');
   }
+
+  const grid = document.getElementById('playersGrid');
+  if (!grid) return;
+  if (sorted.length === 0) { grid.innerHTML = '<div style="text-align:center;padding:24px;color:var(--muted);font-size:12px">Waiting for players...</div>'; return; }
+
+  grid.innerHTML = sorted.map((p, i) => {
+    const isElim = eliminatedPlayers.has(p.id);
+    let badge = '';
+    if (p.status === 'buzzed') badge = `<div class="player-badge" style="background:rgba(251,191,36,0.15);color:var(--gold)">🔔 BUZZED</div>`;
+    else if (p.status === 'correct') badge = `<div class="player-badge" style="background:rgba(16,185,129,0.15);color:var(--green)">✅ CORRECT</div>`;
+    else if (p.status === 'wrong') badge = `<div class="player-badge" style="background:rgba(239,68,68,0.15);color:var(--red)">❌ WRONG</div>`;
+    else if (isElim) badge = `<div class="player-badge" style="background:rgba(107,122,153,0.15);color:var(--muted)">⚡ OUT</div>`;
+    else badge = `<div class="player-badge" style="background:rgba(16,185,129,0.1);color:var(--green)">● READY</div>`;
+    return `<div class="player-card ${p.status} ${isElim?'eliminated':''}">
+      <div style="font-size:16px">${medals[i]||''}</div>
+      <div class="player-avatar">${p.avatar}</div>
+      <div class="player-name">${p.name}</div>
+      <div class="player-score">${p.score}</div>
+      ${badge}
+      ${!isElim?`<button class="eliminate-btn" onclick="eliminatePlayer('${p.id}')">⚡ Eliminate</button>`:''}
+    </div>`;
+  }).join('');
 }
 
 function updateSidebar() {
-  const sorted = Array.from(frPlayers.values())
-    .filter(p => !eliminatedPlayers.has(p.id))
-    .sort((a, b) => b.score - a.score);
-  
+  const sorted = Array.from(frPlayers.values()).filter(p=>!eliminatedPlayers.has(p.id)).sort((a,b)=>b.score-a.score);
+  const medals = ['🥇','🥈','🥉'];
   const lb = document.getElementById('sidebarLeaderboard');
-  const medals = ['🥇', '🥈', '🥉'];
-  
-  if (sorted.length === 0) {
-    lb.innerHTML = '<div style="color:var(--muted);text-align:center;padding:20px">No players yet</div>';
-    return;
-  }
-  
-  lb.innerHTML = sorted.slice(0, 5).map((p, i) => `
-    <div class="lb-item">
-      <span>${medals[i] || i + 1}</span>
-      <span class="lb-name">${p.name}</span>
-      <span class="lb-score">${p.score}</span>
-    </div>
-  `).join('');
+  lb.innerHTML = sorted.length === 0
+    ? '<div style="color:var(--muted);text-align:center;padding:14px;font-size:12px">No players yet</div>'
+    : sorted.slice(0,6).map((p,i)=>`<div class="lb-item"><span>${medals[i]||i+1}</span><span class="lb-name">${p.avatar} ${p.name}</span><span class="lb-score">${p.score}</span></div>`).join('');
 }
 
 function toast(msg, type = 'info') {
-  const toast = document.createElement('div');
-  toast.className = 'toast';
-  toast.innerHTML = msg;
-  document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 3000);
+  const el = document.createElement('div');
+  el.className = 'toast';
+  const colors = { success: 'var(--green)', error: 'var(--red)', info: 'var(--accent)' };
+  el.style.borderColor = colors[type] || 'var(--border2)';
+  el.innerHTML = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
 }
 
-// Initialize
+// Init
 generateRoomCode();
 loadQuestionsFromDB();
 
-// Expose globals
+// Expose
 window.generateRoomCode = generateRoomCode;
 window.startFinalRound = startFinalRound;
 window.selectQuestion = selectQuestion;
-window.fireQuestionImmediately = fireQuestionImmediately;
-window.filterQuestionsByCategory = filterQuestionsByCategory;
+window.fireQuestion = fireQuestion;
+window.filterByCategory = filterByCategory;
 window.openQuestion = openQuestion;
 window.markCorrect = markCorrect;
 window.markWrong = markWrong;
@@ -682,6 +656,7 @@ window.nextQuestion = nextQuestion;
 window.advanceToNext = advanceToNext;
 window.eliminatePlayer = eliminatePlayer;
 window.endFinalRound = endFinalRound;
+window.showCategoryPickerOnFOH = showCategoryPickerOnFOH;
 </script>
 </body>
 </html>
