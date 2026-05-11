@@ -3,140 +3,173 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PlayAQuiz — Final Round Control</title>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <title>Control — PlayAQuiz Final</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    /* (Same beautiful styles as before - abbreviated for brevity) */
-    * { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
-      --bg: #03050b; --surface: #0d1120; --gold: #fbbf24; --green: #10b981;
-      --red: #ef4444; --accent: #3b82f6; --purple: #a855f7;
+      --bg: #03050b; --surface: #0d1120; --border: #1f2a3c;
+      --text: #e8edf7; --accent: #3b82f6; --green: #10b981; --red: #ef4444; --gold: #fbbf24;
     }
-    body { background: var(--bg); font-family: 'Space Grotesk', sans-serif; color: #fff; height: 100vh; overflow: hidden; }
-    .app { display: flex; height: 100%; }
-    .sidebar { width: 280px; background: #0d1120; border-right: 1px solid #1f2a3c; padding: 20px; overflow-y: auto; }
-    .main { flex: 1; padding: 24px; overflow-y: auto; }
-    .btn { padding: 12px 24px; border: none; border-radius: 12px; font-weight: 700; font-size: 15px; cursor: pointer; transition: all 0.2s; }
-    .btn-green { background: var(--green); color: white; }
-    .btn-red { background: var(--red); color: white; }
-    .btn-purple { background: var(--purple); color: white; }
-    .btn-lg { padding: 16px 32px; font-size: 18px; }
-    .card { background: #111827; border: 1px solid #1f2a3c; border-radius: 16px; padding: 20px; margin-bottom: 20px; }
+    body { background: var(--bg); font-family: 'Space Grotesk', sans-serif; color: var(--text); margin: 0; display: flex; height: 100vh; }
+    
+    /* Sidebar */
+    .sidebar { width: 300px; background: var(--surface); border-right: 1px solid var(--border); padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+    .logo { font-family: 'Bebas Neue', sans-serif; font-size: 32px; color: var(--gold); letter-spacing: 2px; }
+    .room-box { background: #000; padding: 15px; border-radius: 12px; text-align: center; border: 1px solid var(--gold); }
+    .room-code { font-size: 32px; font-weight: 800; color: var(--gold); }
+
+    /* Main Area */
+    .main { flex: 1; padding: 30px; overflow-y: auto; }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 20px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+    /* Buttons */
+    .btn { padding: 12px 20px; border-radius: 8px; border: none; font-weight: 800; cursor: pointer; transition: 0.2s; font-family: inherit; }
+    .btn-gold { background: var(--gold); color: #000; width: 100%; font-size: 18px; }
+    .btn-green { background: var(--green); color: #fff; flex: 1; }
+    .btn-red { background: var(--red); color: #fff; flex: 1; }
+    .btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    input { width: 100%; padding: 12px; background: #000; border: 1px solid var(--border); color: #fff; border-radius: 8px; margin-top: 5px; }
+    
+    .buzzed-box { border: 2px solid var(--gold); background: rgba(251,191,36,0.1); padding: 20px; text-align: center; border-radius: 12px; }
+    .buzzed-name { font-size: 40px; font-family: 'Bebas Neue'; color: var(--gold); margin: 10px 0; }
+    
+    .q-item { padding: 10px; border-bottom: 1px solid var(--border); cursor: pointer; display: flex; justify-content: space-between; }
+    .q-item:hover { background: rgba(255,255,255,0.05); }
+    .fire-btn { background: var(--red); color: #fff; border: none; padding: 5px 10px; border-radius: 4px; font-size: 11px; }
   </style>
 </head>
 <body>
-<div class="app">
-  <!-- Sidebar -->
-  <div class="sidebar">
-    <h1 style="font-family:Bebas Neue; font-size:32px; background:linear-gradient(#fff,#fbbf24);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">PLAYAQUIZ</h1>
-    <div class="card">
-      <div style="margin-bottom:12px">Room Code</div>
-      <div id="roomCodeDisplay" style="font-size:42px; font-family:JetBrains Mono; color:var(--gold); letter-spacing:6px; text-align:center;">——</div>
+
+<div class="sidebar">
+  <div class="logo">PLAYAQUIZ</div>
+  <div class="room-box">
+    <div style="font-size: 10px; color: var(--gold)">ROOM CODE</div>
+    <div class="room-code" id="roomDisp">----</div>
+  </div>
+
+  <div>
+    <label style="font-size: 12px; color: #888">Finalist Count</label>
+    <input type="number" id="finalistLimit" value="3">
+  </div>
+
+  <button class="btn btn-gold" onclick="showCategories()">📺 SHOW CATEGORIES</button>
+  
+  <div id="leaderboard" style="margin-top:20px">
+    <div style="font-size: 12px; color: #888; margin-bottom: 10px;">TOP PLAYERS</div>
     </div>
-    <div class="card">
-      <label>Number of Finalists</label>
-      <input type="number" id="numFinalists" value="8" min="2" max="20" style="width:100%; padding:12px; font-size:18px; text-align:center; margin-top:8px;">
+</div>
+
+<div class="main">
+  <div class="card" id="buzzerSection" style="display:none">
+    <div class="buzzed-box">
+      <div style="font-size: 12px; letter-spacing: 2px;">CURRENTLY ANSWERING</div>
+      <div class="buzzed-name" id="activePlayerName">...</div>
+      <div style="display:flex; gap:15px">
+        <button class="btn btn-green" onclick="markCorrect()">✅ CORRECT (+100)</button>
+        <button class="btn btn-red" onclick="markWrong()">❌ WRONG (LOCKOUT)</button>
+      </div>
     </div>
   </div>
 
-  <!-- Main -->
-  <div class="main">
-    <div class="card">
-      <button class="btn btn-purple btn-lg" style="width:100%" onclick="showCategoryPickerOnFOH()">🎨 SHOW CATEGORIES TO START</button>
-      <p style="text-align:center; margin-top:12px; color:#888; font-size:14px;">This will open the category picker on the big screen</p>
-    </div>
-
-    <!-- Question Bank & Controls -->
-    <div class="card">
-      <h3>Question Bank</h3>
-      <!-- Question list and filters remain same as before -->
-      <div id="gameQuestionBankList" style="max-height:300px; overflow-y:auto;"></div>
-    </div>
-
-    <!-- Buzzer Judge -->
-    <div id="buzzerCard" class="card" style="display:none; border:3px solid #fbbf24;">
-      <h2 style="color:#fbbf24; text-align:center;">🔔 <span id="buzzedNameBig"></span> BUZZED</h2>
-      <div style="display:flex; gap:16px; justify-content:center; margin:30px 0;">
-        <button class="btn btn-green btn-lg" onclick="markCorrect()">✅ CORRECT</button>
-        <button class="btn btn-red btn-lg" onclick="markWrong()">❌ WRONG</button>
-      </div>
-    </div>
+  <div class="card">
+    <h3>Question Bank</h3>
+    <div id="questionList">Loading questions...</div>
   </div>
 </div>
 
 <script>
-// ==================== CONFIG ====================
-const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
-const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+  const SB_URL = "YOUR_SUPABASE_URL";
+  const SB_KEY = "YOUR_SUPABASE_ANON_KEY";
+  const sb = supabase.createClient(SB_URL, SB_KEY);
+  
+  let roomCode = Math.random().toString(36).substring(2,6).toUpperCase();
+  let channel;
+  let players = [];
+  let currentBuzzedPlayer = null;
+  let allQuestions = [];
 
-let roomCode = '';
-let frPlayers = new Map();
-let buzzedPlayerId = null;
-let realtimeChannel = null;
+  async function init() {
+    document.getElementById('roomDisp').innerText = roomCode;
+    channel = sb.channel(`fr-${roomCode}`, { config: { broadcast: { self: true } } });
+    
+    channel
+      .on('broadcast', { event: 'player_join' }, ({ payload }) => {
+        if(!players.find(p => p.id === payload.id)) players.push(payload);
+        updateUI();
+      })
+      .on('broadcast', { event: 'buzz' }, ({ payload }) => handleBuzz(payload))
+      .subscribe();
 
-// Generate Room Code
-function generateRoomCode() {
-  roomCode = 'FR' + Math.random().toString(36).substring(2,7).toUpperCase();
-  document.getElementById('roomCodeDisplay').textContent = roomCode;
-  setupRealtime();
-}
-
-function setupRealtime() {
-  realtimeChannel = sb.channel(`fr-${roomCode}`);
-  realtimeChannel
-    .on('broadcast', {event: 'player_join'}, ({payload}) => handlePlayerJoin(payload))
-    .on('broadcast', {event: 'buzz'}, ({payload}) => handleBuzz(payload))
-    .subscribe();
-}
-
-function broadcast(event, payload) {
-  realtimeChannel.send({type: 'broadcast', event, payload});
-}
-
-// Player Join & Buzz Handlers (same logic as before, simplified)
-function handlePlayerJoin(p) {
-  if (!frPlayers.has(p.id)) {
-    frPlayers.set(p.id, {...p, score: 0});
-    renderPlayers();
+    const { data } = await sb.from('questions').select('*');
+    allQuestions = data || [];
+    renderQuestions();
   }
-}
 
-function handleBuzz(p) {
-  if (buzzedPlayerId) return;
-  buzzedPlayerId = p.id;
-  document.getElementById('buzzerCard').style.display = 'block';
-  document.getElementById('buzzedNameBig').innerHTML = `${p.avatar} ${p.name}`;
-  broadcast('buzz_confirmed', p);
-}
+  function updateUI() {
+    const lb = document.getElementById('leaderboard');
+    players.sort((a,b) => b.score - a.score);
+    lb.innerHTML = players.map(p => `<div style="padding:5px 0">${p.avatar} ${p.name} - ${p.score}</div>`).join('');
+    
+    // Broadcast player list to FOH
+    channel.send({ type: 'broadcast', event: 'player_update', payload: { players } });
+  }
 
-// Judge
-function markCorrect() {
-  const player = frPlayers.get(buzzedPlayerId);
-  if (player) player.score += 100;
-  broadcast('correct', {playerId: buzzedPlayerId, playerName: player?.name, points: 100});
-  resetBuzzerState();
-}
+  function showCategories() {
+    const limit = parseInt(document.getElementById('finalistLimit').value);
+    const finalists = players.slice(0, limit);
+    const categories = [...new Set(allQuestions.map(q => q.category))];
+    
+    channel.send({ 
+      type: 'broadcast', 
+      event: 'show_category_picker', 
+      payload: { finalists, categories } 
+    });
+  }
 
-function markWrong() {
-  broadcast('wrong', {playerId: buzzedPlayerId, playerName: frPlayers.get(buzzedPlayerId)?.name});
-  resetBuzzerState();
-}
+  function renderQuestions() {
+    const list = document.getElementById('questionList');
+    list.innerHTML = allQuestions.map(q => `
+      <div class="q-item">
+        <span>[${q.category}] ${q.question_text}</span>
+        <button class="fire-btn" onclick="fireQuestion(${q.id})">FIRE</button>
+      </div>
+    `).join('');
+  }
 
-function resetBuzzerState() {
-  buzzedPlayerId = null;
-  document.getElementById('buzzerCard').style.display = 'none';
-}
+  function fireQuestion(id) {
+    const q = allQuestions.find(x => x.id === id);
+    currentBuzzedPlayer = null;
+    document.getElementById('buzzerSection').style.display = 'none';
+    channel.send({ type: 'broadcast', event: 'question_open', payload: { question: q } });
+  }
 
-// Show Categories
-function showCategoryPickerOnFOH() {
-  broadcast('show_category_picker', { categories: [] }); // You can expand categories later
-  // Auto open first question flow if needed
-}
+  function handleBuzz(payload) {
+    if (currentBuzzedPlayer) return;
+    currentBuzzedPlayer = payload;
+    document.getElementById('buzzerSection').style.display = 'block';
+    document.getElementById('activePlayerName').innerText = payload.name;
+    channel.send({ type: 'broadcast', event: 'buzz_confirmed', payload });
+  }
 
-// Init
-generateRoomCode();
+  function markCorrect() {
+    const p = players.find(x => x.id === currentBuzzedPlayer.id);
+    if(p) p.score += 100;
+    channel.send({ type: 'broadcast', event: 'correct', payload: { id: currentBuzzedPlayer.id } });
+    currentBuzzedPlayer = null;
+    document.getElementById('buzzerSection').style.display = 'none';
+    updateUI();
+  }
+
+  function markWrong() {
+    channel.send({ type: 'broadcast', event: 'wrong', payload: { id: currentBuzzedPlayer.id } });
+    currentBuzzedPlayer = null;
+    document.getElementById('buzzerSection').style.display = 'none';
+  }
+
+  init();
 </script>
 </body>
 </html>
