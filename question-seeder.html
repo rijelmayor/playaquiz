@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lola's 70th — The Clean Slate Seeder</title>
+<title>Lola's 70th — Smart Seeder</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;600;700&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -13,30 +13,29 @@
     --accent: #f472b6; --gold: #fbbf24; --green: #34d399; --red: #fb7185;
   }
   body { background: var(--bg); font-family: 'Space Grotesk', sans-serif; color: var(--text); padding: 40px 20px; }
-  h1 { font-family: 'Bebas Neue', sans-serif; font-size: 50px; text-align: center; color: var(--gold); margin-bottom: 10px; }
-  .controls { display: flex; gap: 20px; justify-content: center; margin-bottom: 40px; }
+  h1 { font-family: 'Bebas Neue', sans-serif; font-size: 50px; text-align: center; color: var(--gold); }
+  .controls { display: flex; gap: 20px; justify-content: center; margin: 30px 0; }
   .btn { border: none; padding: 16px 32px; border-radius: 12px; font-weight: 700; cursor: pointer; transition: 0.3s; }
-  .btn-wipe { background: var(--red); color: white; }
-  .btn-seed { background: var(--green); color: #000; }
+  .btn-seed { background: var(--green); color: #000; width: 300px; font-size: 18px; }
+  .btn-seed:disabled { opacity: 0.5; cursor: not-allowed; }
   .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
   .cat-card { background: var(--surface); border: 2px solid var(--border); padding: 20px; border-radius: 15px; }
-  .progress-bar { height: 8px; background: #333; border-radius: 4px; margin-top: 10px; overflow: hidden; }
-  .progress-fill { height: 100%; background: var(--gold); width: 0%; transition: 0.5s; }
-  .log-box { background: #000; padding: 15px; border-radius: 10px; font-family: monospace; height: 150px; overflow-y: auto; margin-top: 30px; font-size: 12px; border: 1px solid var(--border); }
+  .progress-bar { height: 10px; background: #000; border-radius: 5px; margin-top: 10px; overflow: hidden; border: 1px solid var(--border); }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--gold)); width: 0%; transition: 0.3s; }
+  .log-box { background: #000; padding: 15px; border-radius: 10px; font-family: monospace; height: 180px; overflow-y: auto; margin-top: 30px; font-size: 12px; border: 1px solid var(--border); color: #888; }
 </style>
 </head>
 <body>
 
-<h1>Lola's 70th: Fresh 800 Seeder</h1>
-<p style="text-align:center; color: var(--muted);">Family-First, Bisaya-Infused, Redundancy-Free.</p>
+<h1>Lola's 70th Birthday Seeder</h1>
+<p style="text-align:center; color: var(--muted);">Smart loading: No duplicates, Pinoy & Family focused.</p>
 
 <div class="controls">
-  <button class="btn btn-wipe" onclick="fullReset()">🗑️ 1. Force Clear DB</button>
-  <button class="btn btn-seed" id="btnSeed" onclick="seedAll()">🎂 2. Load 800 Questions</button>
+  <button class="btn btn-seed" id="btnSeed" onclick="seedAll()">🎂 Start Loading 800 Questions</button>
 </div>
 
 <div class="grid" id="catGrid"></div>
-<div class="log-box" id="logBox">System initialized. Click 'Force Clear' to remove redundancies first.</div>
+<div class="log-box" id="logBox">Status: Waiting to start...</div>
 
 <script>
 const SUPABASE_URL  = 'https://efgirqbaayfjwswnwbop.supabase.co';
@@ -45,89 +44,72 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
 const CATEGORIES = {
   'Family & Traditions': { icon: '🏠', color: '#f472b6', q: [
-    {q:"What is the Bisaya term for the respectful 'Mano Po'?", a:"Amen", b:"Paminaw", c:"Mano", d:"Halok", c_opt:2},
-    {q:"In a Pinoy household, what is 'Pasalubong'?", a:"A debt", b:"A gift from a trip", c:"A lecture", d:"A dinner", c_opt:1},
-    {q:"Who is the 'Lawas' (Body) of the family in old traditions?", a:"Lola", b:"Tatay", c:"Mama", d:"Kuya", c_opt:1}
+    {q:"Respectful Bisaya greeting for elders?", a:"Mano", b:"Hi", c:"Hug", d:"Wink", c_opt:0},
+    {q:"What is 'Pamanhikan'?", a:"Engagement tradition", b:"Cooking contest", c:"Birthday", d:"Baptism", c_opt:0}
   ]},
   '70s Nostalgia': { icon: '📺', color: '#fbbf24', q: [
-    {q:"Which 70s Pinoy band sang 'Manila, Manila'?", a:"VST & Co.", b:"Hotdog", c:"Juan de la Cruz", d:"The Jets", c_opt:1},
-    {q:"What was the standard way to dress up for a 'Pista' in the 70s?", a:"Jeans", b:"Barong/Saya", c:"T-shirt", d:"Pajamas", c_opt:1}
+    {q:"Popular 70s rewind tool?", a:"Pencil", b:"Fork", c:"Spoon", d:"Comb", c_opt:0}
   ]},
   'Food & Bisaya Kitchen': { icon: '🍲', color: '#34d399', q: [
-    {q:"What is the Bisaya name for 'Hanging Rice'?", a:"Puso", b:"Kanin", c:"Lugaw", d:"Suman", c_opt:0},
-    {q:"Unsay tawag sa luy-as with sugar and hot water?", a:"Coffee", b:"Sikwate", c:"Salabat", d:"Juice", c_opt:2},
-    {q:"Which fish is the star of 'Kinilaw'?", a:"Bangus", b:"Tangigue", c:"Tilapia", d:"Galunggong", c_opt:1}
+    {q:"Bisaya term for hanging rice?", a:"Puso", b:"Biko", c:"Suman", d:"Putomaya", c_opt:0}
   ]},
   'Music & Harana': { icon: '🎵', color: '#a78bfa', q: [
-    {q:"Complete the lyrics: 'Ang mamatay nang dahil sa...'?", a:"Lupa", b:"Iyo", c:"Bayan", d:"Sayo", c_opt:1}
+    {q:"Who sang 'Anak'?", a:"Freddie Aguilar", b:"Gary V", c:"Jose Mari Chan", d:"Eraserheads", c_opt:0}
   ]},
   'Pinoy Games & Fun': { icon: '🎲', color: '#fb7185', q: [
-    {q:"Which game involves a 'Pamato' slipper?", a:"Patintero", b:"Tumbang Preso", c:"Piko", d:"Sipa", c_opt:1}
+    {q:"Game with a tin can?", a:"Tumbang Preso", b:"Piko", c:"Sipa", d:"Patintero", c_opt:0}
   ]},
   'Geography (Lola\'s Travels)': { icon: '🗺️', color: '#60a5fa', q: [
-    {q:"Where is the Magellan's Cross located?", a:"Manila", b:"Davao", c:"Cebu", d:"Bohol", c_opt:2}
+    {q:"Where is Magellan's Cross?", a:"Cebu", b:"Manila", c:"Bohol", d:"Davao", c_opt:0}
   ]},
   'Bible & Faith': { icon: '🙏', color: '#fbbf24', q: [
-    {q:"Unsay tawag sa Bisaya sa 'Faith'?", a:"Gugma", b:"Pagtuo", c:"Simbahan", d:"Paglaum", c_opt:1}
+    {q:"First book of the Bible?", a:"Genesis", b:"Exodus", c:"Psalms", d:"Matthew", c_opt:0}
   ]},
   'Health & Wisdom': { icon: '🌿', color: '#10b981', q: [
-    {q:"What do you put on a child's forehead to help with fever?", a:"Ice", b:"Kool Fever", c:"Vinegar/Suka", d:"Oil", c_opt:2}
+    {q:"Traditional Pinoy massage?", a:"Hilot", b:"Yoga", c:"Karate", d:"Zumba", c_opt:0}
   ]}
 };
 
-function log(msg, type='') {
+function log(msg, isErr=false) {
   const box = document.getElementById('logBox');
-  box.innerHTML += `<div style="color:${type==='err'?'#fb7185':'#34d399'}">[${new Date().toLocaleTimeString()}] ${msg}</div>`;
+  box.innerHTML += `<div style="color:${isErr?'#fb7185':'#34d399'}">[${new Date().toLocaleTimeString()}] ${msg}</div>`;
   box.scrollTop = box.scrollHeight;
-}
-
-// THE AGGRESSIVE WIPE
-async function fullReset() {
-  log("Attempting a Deep Wipe...", "err");
-  try {
-    // Delete all questions where text is not null (covers all rows)
-    await sb.from('questions').delete().not('question_text', 'is', null);
-    // Delete all categories
-    await sb.from('categories').delete().not('name', 'is', null);
-    
-    log("Wipe command sent. Check your DB. If old data persists, use the SQL Snippet provided by Gemini.", "ok");
-    initUI();
-  } catch (e) {
-    log("Wipe failed: " + e.message, "err");
-  }
 }
 
 function generateVolume(catName, baseQs) {
   let finalQs = [...baseQs];
-  const fillers = [
-    "What makes Lola the happiest?", "Lola's favorite 70s memory is...?",
-    "Family Rule #1: Respect your...?", "A Bisaya birthday is never complete without...?",
-    "Who is Lola's favorite grandchild? (Hint: All of them!)"
-  ];
-  const options = ["Lola", "The Family", "Love", "Good Food"];
-  
+  const fillers = ["Lola's favorite 70s memory?", "Who loves Lola the most?", "A family tradition Lola started?", "Lola's secret ingredient in Humba?", "Best advice Lola ever gave?"];
   for(let i = finalQs.length; i < 100; i++) {
     finalQs.push({
-      q: `[${catName} Fun] ${fillers[i % fillers.length]} (Q${i+1})`,
-      a: options[0], b: options[1], c: options[2], d: options[3],
-      c_opt: Math.floor(Math.random() * 4)
+      q: `[${catName}] ${fillers[i % fillers.length]} (Q${i+1})`,
+      a: "The Grandkids", b: "Everyone", c: "Lola", d: "Love", c_opt: 2
     });
   }
   return finalQs;
 }
 
 async function seedAll() {
-  document.getElementById('btnSeed').disabled = true;
+  const btn = document.getElementById('btnSeed');
+  btn.disabled = true;
+  btn.innerText = "⏳ Seeding 800 Questions...";
+
   for (const [name, info] of Object.entries(CATEGORIES)) {
-    log(`Seeding ${name}...`);
+    log(`Syncing category: ${name}`);
     
-    const { data: cat, error: cErr } = await sb.from('categories').insert({ name: name, icon: info.icon, color: info.color }).select().single();
-    if(cErr) { log(`Error: ${cErr.message}`, 'err'); continue; }
+    // SMART FIX: Use .upsert() so it won't crash if category already exists
+    const { data: cat, error: cErr } = await sb.from('categories')
+      .upsert({ name: name, icon: info.icon, color: info.color }, { onConflict: 'name' })
+      .select().single();
+
+    if(cErr) { log(`Error on ${name}: ${cErr.message}`, true); continue; }
 
     const questions = generateVolume(name, info.q);
-    const bar = document.getElementById(`bar-${name.replace(/\s/g, '')}`);
+    const fill = document.getElementById(`fill-${name.replace(/\s/g, '')}`);
 
-    // Batching 100 questions into 4 groups of 25 to avoid timeout
+    // Delete existing questions for this specific category first to avoid duplicates
+    await sb.from('questions').delete().eq('category_id', cat.id);
+
+    // Batch insert 25 at a time
     for (let i = 0; i < questions.length; i += 25) {
       const batch = questions.slice(i, i + 25).map(q => ({
         category_id: cat.id,
@@ -136,20 +118,21 @@ async function seedAll() {
         correct_option: q.c_opt,
         time_limit: 20, points: 100
       }));
-      await sb.from('questions').insert(batch);
-      bar.style.width = `${((i + 25) / 100) * 100}%`;
+      const { error: qErr } = await sb.from('questions').insert(batch);
+      if(qErr) log(`Insert Error: ${qErr.message}`, true);
+      fill.style.width = `${((i + 25) / 100) * 100}%`;
     }
-    log(`✅ ${name} complete (100 Qs)`);
+    log(`✅ ${name} (100 Questions) Loaded`);
   }
-  log("🎉 TOTAL 800 QUESTIONS READY!");
+  log("🎉 SUCCESS: 800 Questions are now in the Database!");
+  btn.innerText = "✅ Seeding Complete";
 }
 
 function initUI() {
-  const grid = document.getElementById('catGrid');
-  grid.innerHTML = Object.entries(CATEGORIES).map(([name, info]) => `
+  document.getElementById('catGrid').innerHTML = Object.entries(CATEGORIES).map(([name, info]) => `
     <div class="cat-card">
       <strong>${info.icon} ${name}</strong>
-      <div class="progress-bar"><div class="progress-fill" id="bar-${name.replace(/\s/g, '')}"></div></div>
+      <div class="progress-bar"><div class="progress-fill" id="fill-${name.replace(/\s/g, '')}"></div></div>
     </div>
   `).join('');
 }
