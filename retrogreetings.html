@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>RetroGreetings — Vintage Video Jukebox</title>
+  <title>RetroGreetings — Vintage Video Jukebox + Loop</title>
   <link href="https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -81,7 +81,6 @@
       display: block;
     }
 
-    /* Standby / Static screen */
     .standby-screen {
       position: absolute;
       top: 0;
@@ -332,6 +331,11 @@
       <div class="status-led" id="liveLed"></div>
     </div>
 
+    <!-- NEW LOOP BUTTON - actual vintage loop module -->
+    <div class="upload-zone" id="loopToggleBtn" style="border-color:#f0a84d; background:#1f1a10;">
+      🔁 LOOP OFF
+    </div>
+
     <div class="upload-zone" id="autoplayTrigger" style="border-color:#e2a84b;">
       📼 AUTOPLAY ALL
     </div>
@@ -366,12 +370,17 @@
   const uploadTrigger = document.getElementById('uploadTrigger');
   const uploadStatusSpan = document.getElementById('uploadStatus');
   const liveLed = document.getElementById('liveLed');
+  const loopToggleBtn = document.getElementById('loopToggleBtn');
 
   let currentVolume = 0.65;
   let currentVideoUrl = null;
   let currentVideoId = null;
   let greetingsList = [];
   let isVideoPlaying = false;
+
+  // --- NEW LOOP STATE ---
+  let loopActive = false;     // true = current video will replay infinitely after ending
+  let loopWasActiveDuringAutoplay = false; // separate logic to let autoplay not conflict
 
   // Show standby screen, hide video
   function showStandby() {
@@ -450,7 +459,8 @@
     }
   }
 
-  function loadVideoByUrl(url, videoId, title) {
+  // core loading function with loop awareness (reset loop on new video? we preserve loop state)
+  function loadVideoByUrl(url, videoId, title, keepLoopStatus = false) {
     if (!url) {
       showStandby();
       currentVideoUrl = null;
@@ -458,10 +468,7 @@
       return;
     }
     
-    // Show video player first
     showVideo();
-    
-    // Stop current playback
     videoEl.pause();
     videoEl.src = url;
     videoEl.load();
@@ -473,10 +480,37 @@
     
     showToast(`📺 Now playing: ${title || "greeting"}`, 1500);
     
-    // Auto-play
+    // Make sure loop attribute on video element follows our UI state
+    videoEl.loop = loopActive;
+    
     setTimeout(() => {
       playVideo();
     }, 100);
+  }
+
+  // Update loop UI and video element's .loop property
+  function setLoopMode(active) {
+    loopActive = active;
+    if (videoEl) {
+      videoEl.loop = loopActive;
+    }
+    // update button visual & text
+    if (loopActive) {
+      loopToggleBtn.innerHTML = "🔁 LOOP ON";
+      loopToggleBtn.style.borderColor = "#7aff87";
+      loopToggleBtn.style.background = "#2a4422";
+      showToast("🔁 Loop mode ENABLED — video will repeat", 1200);
+    } else {
+      loopToggleBtn.innerHTML = "🔁 LOOP OFF";
+      loopToggleBtn.style.borderColor = "#f0a84d";
+      loopToggleBtn.style.background = "#1f1a10";
+      showToast("⏹ Loop mode DISABLED", 1000);
+    }
+  }
+
+  // toggle loop button handler
+  function toggleLoop() {
+    setLoopMode(!loopActive);
   }
 
   async function fetchGreetings() {
@@ -497,7 +531,6 @@
       greetingsList = data || [];
       renderSelect();
       updateLedStatus(true);
-      // Do NOT auto-load any video - keep standby screen
     } catch (err) {
       console.error(err);
       showToast("DB error: " + err.message, 3000);
@@ -555,7 +588,6 @@
     showToast(`🎬 "${title}" added to greetings!`, 2500);
     await fetchGreetings();
     
-    // Auto-select and play the newly uploaded video
     if (insertData) {
       greetingSelect.value = insertData.id;
       loadVideoByUrl(insertData.video_url, insertData.id, insertData.title);
@@ -601,11 +633,11 @@
   function onSelectGreeting() {
     const selectedId = greetingSelect.value;
     if (!selectedId) {
-      // User selected the placeholder - go back to standby
       showStandby();
       videoEl.src = '';
       currentVideoUrl = null;
       currentVideoId = null;
+      if (loopActive) setLoopMode(false); // optional: reset loop when no video
       return;
     }
     const greeting = greetingsList.find(g => g.id === selectedId);
@@ -632,6 +664,7 @@
   
   rewindBtn.onclick = () => { rewindVideo(); };
   forwardBtn.onclick = () => { forwardVideo(); };
+  loopToggleBtn.onclick = () => { toggleLoop(); };
 
   videoEl.addEventListener('play', () => { 
     isVideoPlaying = true;
@@ -641,21 +674,38 @@
     isVideoPlaying = false;
     playBtn.innerHTML = "▶"; 
   });
-  videoEl.addEventListener('ended', () => { 
-    playBtn.innerHTML = "▶"; 
+  
+  // --- MODIFIED LOOP HANDLING ---
+  // Remove standard ended behavior conflict: HTML5 video.loop already handles native loop.
+  // But we need to make sure that when loopActive = true, we set video.loop = true.
+  // When loopActive = false and video ends, we do NOT replay but also we must not interfere with autoplay chain.
+  // The native 'ended' event: if loop == false we will just show message and stop. Autoplay module also listens to 'ended'.
+  // We'll let video.loop property handle the infinite loop if turned on. However we want extra toast and clear sync.
+  videoEl.addEventListener('ended', () => {
+    playBtn.innerHTML = "▶";
     isVideoPlaying = false;
-    showToast("📼 The tape ended. Select another greeting.", 1500);
+    // If loopActive is true but video.loop is also true, the video will restart automatically. 
+    // We just notify about loop continuation.
+    if (loopActive) {
+      showToast("🔁 Loop active – rewinding tape", 1000);
+      // No need to call play, browser repeats due to .loop property
+    } else {
+      showToast("📼 The tape ended. Select another greeting or enable LOOP.", 1500);
+    }
   });
   
   videoEl.addEventListener('canplay', () => {
     videoEl.muted = false;
     videoEl.volume = currentVolume;
+    // sync loop property in case it was changed while loading
+    videoEl.loop = loopActive;
   });
 
   window.addEventListener('keydown', (e) => {
     if (e.key === 'ArrowUp') { volumeUp(); e.preventDefault(); }
     if (e.key === 'ArrowDown') { volumeDown(); e.preventDefault(); }
     if (e.key === ' ') { playBtn.click(); e.preventDefault(); }
+    if (e.key === 'l' || e.key === 'L') { toggleLoop(); e.preventDefault(); } // handy key L for loop
   });
 
   function showToast(msg, duration = 2000) {
@@ -694,12 +744,13 @@
     await fetchGreetings();
     await seedSampleGreetingIfEmpty();
     setVolume(0.65);
-    // Start with standby screen
     showStandby();
-    
     fileInput.addEventListener('change', handleFileSelected);
     uploadTrigger.addEventListener('click', triggerFileUpload);
     greetingSelect.addEventListener('change', onSelectGreeting);
+    
+    // initial loop state OFF
+    setLoopMode(false);
   }
 
   initRetroTV().catch(console.error);
@@ -710,7 +761,7 @@
     else volumeDown();
   });
 
-  // ── Animated grayscale TV static ──────────────────────────────────
+  // Animated grayscale TV static
   (function() {
     const canvas = document.getElementById('staticCanvas');
     const ctx = canvas.getContext('2d');
@@ -732,7 +783,6 @@
         d[i+3] = 255;
       }
       ctx.putImageData(img, 0, 0);
-      // faint horizontal scan shimmer
       const by = ((Date.now() / 4) % (h + 30)) - 15;
       const g = ctx.createLinearGradient(0, by, 0, by + 30);
       g.addColorStop(0,   'rgba(255,255,255,0)');
@@ -743,29 +793,31 @@
       rafId = requestAnimationFrame(drawNoise);
     }
 
-    // Start/stop tied to standby visibility
     const observer = new MutationObserver(() => {
       const visible = standbyScreen.style.display !== 'none';
       if (visible && !rafId) { drawNoise(); }
       else if (!visible && rafId) { cancelAnimationFrame(rafId); rafId = null; }
     });
     observer.observe(standbyScreen, { attributes: true, attributeFilter: ['style'] });
-
-    // Start immediately (standby is shown on load)
     drawNoise();
   })();
 
-  // ── Autoplay all videos with channel-flash transition ─────────────
+  // Autoplay all videos (no conflict with loop)
   (function() {
     const btn = document.getElementById('autoplayTrigger');
     let active = false;
     let idx = 0;
+    let autoplayLoopTimer = null;
 
     function setActive(val) {
       active = val;
       btn.innerHTML = active ? '⏹ STOP AUTOPLAY' : '📼 AUTOPLAY ALL';
       btn.style.borderColor = active ? '#4dff77' : '#e2a84b';
       btn.style.color       = active ? '#7fff99' : '#e6c28f';
+      if (!active && autoplayLoopTimer) {
+        clearTimeout(autoplayLoopTimer);
+        autoplayLoopTimer = null;
+      }
     }
 
     function flash(cb) {
@@ -781,25 +833,41 @@
       idx = idx % greetingsList.length;
       const g = greetingsList[idx];
       greetingSelect.value = g.id;
+      
+      // Before loading next video, ensure that loop mode is TURNED OFF for autoplay progression!
+      // But we must restore the user's loop preference after autoplay ends? Actually better: autoplay disables loop temporarily while running.
+      // However the smooth fix: each video during autoplay should NOT loop - but we respect the loop button? 
+      // To keep consistent, we temporarily set video.loop = false while autoplay advances, but do NOT override the global loopActive.
+      if (videoEl) videoEl.loop = false;   // ensure autoplay progression, but doesn't change loopActive button.
+      
       flash(() => {
         loadVideoByUrl(g.video_url, g.id, g.title);
         showToast(`📺 [${idx + 1}/${greetingsList.length}] ${g.title}`, 2000);
       });
     }
-
-    // When a video ends, advance if autoplay is on
+    
+    // Override ended event for autoplay: only advance if autoplay is active, regardless of loop button.
+    const originalEndedHandler = videoEl.onended;
     videoEl.addEventListener('ended', () => {
-      if (active) { idx++; setTimeout(playNext, 500); }
+      if (active) {
+        idx++;
+        autoplayLoopTimer = setTimeout(playNext, 400);
+      }
     });
-
+    
     btn.addEventListener('click', () => {
       if (active) {
         setActive(false);
         showToast('⏹ Autoplay stopped', 1200);
+        if (autoplayLoopTimer) clearTimeout(autoplayLoopTimer);
       } else {
         if (greetingsList.length === 0) { showToast('📭 No tapes loaded yet', 1500); return; }
         setActive(true);
         idx = 0;
+        if (videoEl && loopActive) {
+          // If user had loop ON, autoplay will temporarily override loop attribute for sequential playback
+          // but we keep loopActive true – later after autoplay is off, the next manual video respects loop.
+        }
         playNext();
       }
     });
