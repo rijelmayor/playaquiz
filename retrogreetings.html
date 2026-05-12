@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>RetroGreetings — Vintage Video Jukebox</title>
+  <link href="https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      user-select: none;
+    }
+
+    body {
+      background: radial-gradient(circle at 20% 30%, #1a1a2a, #0a0a12);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: 'VT323', 'Share Tech Mono', monospace;
+      padding: 20px;
+    }
+
+    /* CRT SCREEN HOLDER */
+    .tv-cabinet {
+      background: #2c1e12;
+      border-radius: 48px 48px 32px 32px;
+      padding: 24px 28px 36px 28px;
+      box-shadow: 0 30px 40px rgba(0,0,0,0.6), inset 0 1px 4px rgba(255,255,200,0.2);
+      border-bottom: 6px solid #8b5a2b;
+    }
+
+    .crt-tube {
+      background: #000000;
+      border-radius: 28px;
+      padding: 12px;
+      box-shadow: inset 0 0 30px rgba(0,255,100,0.1), 0 10px 20px rgba(0,0,0,0.5);
+      border: 1px solid #6b4c2c;
+    }
+
+    .tv-screen {
+      background: #0b0f0b;
+      border-radius: 20px;
+      overflow: hidden;
+      position: relative;
+      aspect-ratio: 16 / 9;
+      box-shadow: inset 0 0 60px rgba(0,0,0,0.8), 0 0 0 3px #cb9e6b, 0 0 0 8px #3b2a1c;
+      transition: all 0.2s ease;
+    }
+
+    /* scanline effect */
+    .tv-screen::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: repeating-linear-gradient(0deg, rgba(0,255,0,0.03) 0px, rgba(0,255,0,0.03) 2px, transparent 2px, transparent 6px);
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    .tv-screen::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at center, transparent 40%, rgba(0,0,0,0.4) 100%);
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    #videoElement {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #000;
+      display: block;
+    }
+
+    /* control panel - retro knobs */
+    .control-deck {
+      margin-top: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 18px;
+      background: #2f2318;
+      border-radius: 60px;
+      padding: 14px 24px;
+      border-top: 2px solid #cb9e6b;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.6), 0 4px 8px rgba(0,0,0,0.4);
+    }
+
+    .knob-group {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: #221b12;
+      padding: 6px 20px;
+      border-radius: 60px;
+      box-shadow: inset 0 1px 2px #553e22, 0 2px 5px black;
+    }
+
+    .knob {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .knob-label {
+      font-family: 'Orbitron', monospace;
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: #e2c28b;
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    .dial {
+      width: 52px;
+      height: 52px;
+      background: radial-gradient(circle at 30% 30%, #555, #222);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px 6px black, inset 0 1px 2px rgba(255,255,200,0.4);
+      border: 1px solid #cdaa77;
+      transition: transform 0.1s ease;
+      font-size: 26px;
+      font-weight: bold;
+      color: #ffd966;
+      text-shadow: 0 1px 0 #000;
+    }
+
+    .dial:active {
+      transform: scale(0.94);
+    }
+
+    .btn-retro {
+      background: #3a2a1a;
+      border: none;
+      padding: 8px 22px;
+      border-radius: 40px;
+      font-family: 'Orbitron', monospace;
+      font-weight: bold;
+      font-size: 16px;
+      color: #f7e6c4;
+      text-shadow: 0 1px 0 #1f1408;
+      cursor: pointer;
+      transition: all 0.07s linear;
+      box-shadow: 0 3px 0 #1f1408;
+      letter-spacing: 1px;
+    }
+
+    .btn-retro:active {
+      transform: translateY(2px);
+      box-shadow: 0 1px 0 #1f1408;
+    }
+
+    /* hidden upload zone */
+    .upload-zone {
+      background: #12100c;
+      border: 2px dashed #b87c3a;
+      border-radius: 40px;
+      padding: 8px 16px;
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      transition: 0.2s;
+      font-family: 'VT323', monospace;
+      font-size: 18px;
+      letter-spacing: 2px;
+      color: #e6c28f;
+    }
+
+    .upload-zone:hover {
+      background: #2a241a;
+      border-color: #f3b35f;
+    }
+
+    #fileInput {
+      display: none;
+    }
+
+    .greeting-selector {
+      background: #1e1911;
+      padding: 6px 14px;
+      border-radius: 60px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      font-family: 'VT323', monospace;
+      font-size: 20px;
+    }
+
+    select {
+      background: #2f2419;
+      border: 1px solid #cb9e6b;
+      color: #ffeaac;
+      padding: 8px 14px;
+      border-radius: 40px;
+      font-family: 'VT323', monospace;
+      font-size: 18px;
+      font-weight: bold;
+      cursor: pointer;
+      outline: none;
+    }
+
+    .volume-value, .time-value {
+      font-family: 'Orbitron', monospace;
+      font-size: 16px;
+      color: #ffd966;
+      background: #00000066;
+      padding: 2px 8px;
+      border-radius: 20px;
+      min-width: 48px;
+      text-align: center;
+    }
+
+    .status-led {
+      width: 12px;
+      height: 12px;
+      background: #ff3333;
+      border-radius: 50%;
+      box-shadow: 0 0 6px red;
+      animation: pulse 1.2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 0.4; transform: scale(0.9);}
+      100% { opacity: 1; transform: scale(1.2);}
+    }
+
+    .upload-progress {
+      font-size: 14px;
+      font-family: monospace;
+      color: #9eff8a;
+    }
+
+    .toast-retro {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      background: #1a1f12;
+      border-left: 6px solid #ffcf4a;
+      padding: 12px 24px;
+      font-family: 'VT323', monospace;
+      font-size: 20px;
+      color: #fee6b0;
+      z-index: 1000;
+      border-radius: 16px;
+      box-shadow: 0 5px 15px black;
+    }
+  </style>
+</head>
+<body>
+<div class="tv-cabinet">
+  <div class="crt-tube">
+    <div class="tv-screen">
+      <video id="videoElement" autoplay muted playsinline></video>
+    </div>
+  </div>
+
+  <div class="control-deck">
+    <!-- VOLUME KNOB -->
+    <div class="knob-group">
+      <div class="knob">
+        <span class="knob-label">📢 VOLUME</span>
+        <div class="dial" id="volumeDial">🔊</div>
+        <span id="volumePercent" class="volume-value">65%</span>
+      </div>
+      <!-- REW/PLAY/FF KNOB STYLE -->
+      <div class="knob">
+        <span class="knob-label">⏪ REEL ⏩</span>
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <div class="dial" id="rewindBtn" style="width: 44px; height: 44px; font-size: 24px;">⏪</div>
+          <div class="dial" id="playBtn" style="width: 54px; height: 54px; background: radial-gradient(circle at 30% 30%, #3b6b3b, #1a3a1a);">▶</div>
+          <div class="dial" id="forwardBtn" style="width: 44px; height: 44px; font-size: 24px;">⏩</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Greeting selector & upload hidden -->
+    <div class="greeting-selector">
+      <span>📼 GREETING TAPE</span>
+      <select id="greetingSelect"></select>
+      <div class="status-led" id="liveLed"></div>
+    </div>
+
+    <div class="upload-zone" id="uploadTrigger">
+      📀 UPLOAD VIDEO GREETING
+      <input type="file" id="fileInput" accept="video/mp4,video/webm,video/quicktime">
+    </div>
+  </div>
+
+  <div style="margin-top: 14px; display: flex; justify-content: space-between; align-items: center; padding: 0 12px;">
+    <span style="font-family: 'Share Tech Mono'; color: #cbaa72; font-size: 13px;">RETRO GREETINGS · TV STUDIO</span>
+    <span id="uploadStatus" class="upload-progress"></span>
+  </div>
+</div>
+
+<script>
+  // ----------------------------------------------
+  // SUPABASE CONFIG (from reference file)
+  // ----------------------------------------------
+  const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
+  const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+  // DOM elements
+  const videoEl = document.getElementById('videoElement');
+  const greetingSelect = document.getElementById('greetingSelect');
+  const volumeDialDiv = document.getElementById('volumeDial');
+  const volumePercentSpan = document.getElementById('volumePercent');
+  const rewindBtn = document.getElementById('rewindBtn');
+  const playBtn = document.getElementById('playBtn');
+  const forwardBtn = document.getElementById('forwardBtn');
+  const fileInput = document.getElementById('fileInput');
+  const uploadTrigger = document.getElementById('uploadTrigger');
+  const uploadStatusSpan = document.getElementById('uploadStatus');
+  const liveLed = document.getElementById('liveLed');
+
+  // Global state
+  let currentVolume = 0.65;     // 0..1
+  let currentVideoUrl = null;
+  let currentVideoId = null;
+  let greetingsList = [];        // array of {id, title, video_url, created_at}
+  
+  // For retro effect: we keep video element ready
+
+  // Adjust volume display & actual volume
+  function setVolume(value01) {
+    currentVolume = Math.min(1, Math.max(0, value01));
+    videoEl.volume = currentVolume;
+    volumePercentSpan.innerText = `${Math.round(currentVolume * 100)}%`;
+    // visual dial effect
+    if (currentVolume < 0.2) volumeDialDiv.innerHTML = '🔈';
+    else if (currentVolume < 0.6) volumeDialDiv.innerHTML = '🔉';
+    else volumeDialDiv.innerHTML = '🔊';
+  }
+
+  // increase / decrease volume
+  function volumeUp() { setVolume(currentVolume + 0.1); }
+  function volumeDown() { setVolume(currentVolume - 0.1); }
+
+  // ---- Video Controls ----
+  function playVideo() {
+    if (videoEl.src) {
+      videoEl.play().catch(e => {
+        console.warn("play error", e);
+        showToast("📼 Cannot autoplay, click play again?", 1500);
+      });
+    } else {
+      showToast("📭 No video loaded, select a greeting", 1500);
+    }
+  }
+
+  function pauseVideo() { videoEl.pause(); }
+
+  function rewindVideo() {
+    if (videoEl.currentTime > 3) videoEl.currentTime -= 3;
+    else videoEl.currentTime = 0;
+    showToast("⏪ REWIND 3s", 800);
+  }
+
+  function forwardVideo() {
+    if (videoEl.duration && videoEl.currentTime + 3 < videoEl.duration) videoEl.currentTime += 3;
+    else if (videoEl.duration) videoEl.currentTime = videoEl.duration - 0.5;
+    showToast("⏩ FORWARD 3s", 800);
+  }
+
+  // load video from url (blob/public url)
+  function loadVideoByUrl(url, videoId, title) {
+    if (!url) {
+      videoEl.poster = '';
+      videoEl.src = '';
+      currentVideoUrl = null;
+      return;
+    }
+    // important: ensure supabase public url works, we refresh
+    videoEl.src = url;
+    videoEl.load();
+    currentVideoUrl = url;
+    currentVideoId = videoId;
+    playVideo(); // auto-play retro style
+    showToast(`📺 Now playing: ${title || "greeting"}`, 1800);
+  }
+
+  // ========== SUPABASE TABLE "video_greetings" ==========
+  // We'll auto-create if missing by just inserting sample, but we assume table exists.
+  // Create table schema if needed:
+  // CREATE TABLE video_greetings (
+  //   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  //   title TEXT NOT NULL,
+  //   video_url TEXT NOT NULL,
+  //   created_at TIMESTAMPTZ DEFAULT now(),
+  //   updated_at TIMESTAMPTZ
+  // );
+  // Storage bucket: "greetings" (public) for mp4 files.
+
+  // ensure bucket and table are ready – but for demonstration we use dynamic checks
+  async function fetchGreetings() {
+    try {
+      const { data, error } = await sb
+        .from('video_greetings')
+        .select('*')
+        .order('created_at', { ascending: false });
+      if (error) {
+        console.error("Table error:", error);
+        // if table missing, show message but proceed gracefully
+        if (error.code === '42P01') { // relation does not exist
+          showToast("⚠️ TABLE 'video_greetings' missing — please create in Supabase SQL", 4000);
+          greetingsList = [];
+          renderSelect();
+          return;
+        }
+        throw error;
+      }
+      greetingsList = data || [];
+      renderSelect();
+      if (greetingsList.length > 0 && !currentVideoUrl) {
+        // auto load first greeting
+        const first = greetingsList[0];
+        loadVideoByUrl(first.video_url, first.id, first.title);
+      }
+      updateLedStatus(true);
+    } catch (err) {
+      console.error(err);
+      showToast("DB error: " + err.message, 3000);
+      updateLedStatus(false);
+    }
+  }
+
+  function renderSelect() {
+    greetingSelect.innerHTML = '<option value="">📼 -- Select Greeting --</option>';
+    greetingsList.forEach(g => {
+      const option = document.createElement('option');
+      option.value = g.id;
+      option.textContent = `${g.title.length > 28 ? g.title.slice(0,28)+'…' : g.title} 🎞️`;
+      greetingSelect.appendChild(option);
+    });
+    if (currentVideoId) {
+      greetingSelect.value = currentVideoId;
+    }
+  }
+
+  async function uploadVideoToSupabase(file, titleHint) {
+    if (!file) return null;
+    // generate unique file name
+    const ext = file.name.split('.').pop();
+    const fileName = `greeting_${Date.now()}_${Math.floor(Math.random()*10000)}.${ext}`;
+    const filePath = `public/${fileName}`;
+
+    uploadStatusSpan.innerText = `⏫ Uploading ${file.name}...`;
+    const { data: uploadData, error: uploadError } = await sb.storage
+      .from('greetings')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+    if (uploadError) {
+      console.error(uploadError);
+      uploadStatusSpan.innerText = `❌ Upload failed: ${uploadError.message}`;
+      showToast("Storage upload error", 3000);
+      return null;
+    }
+    // get public URL
+    const { data: publicUrlData } = sb.storage.from('greetings').getPublicUrl(filePath);
+    const publicURL = publicUrlData.publicUrl;
+    // insert into table
+    const title = titleHint || file.name.replace(/\.[^/.]+$/, "").slice(0, 45);
+    const { data: insertData, error: insertErr } = await sb
+      .from('video_greetings')
+      .insert([{ title: title, video_url: publicURL }])
+      .select()
+      .single();
+    if (insertErr) {
+      uploadStatusSpan.innerText = `⚠️ DB insert failed`;
+      showToast("DB insert error: " + insertErr.message, 3000);
+      return null;
+    }
+    uploadStatusSpan.innerText = `✅ Uploaded & added: ${title}`;
+    setTimeout(() => { uploadStatusSpan.innerText = ''; }, 3000);
+    showToast(`🎬 "${title}" added to greetings!`, 2500);
+    await fetchGreetings();
+    // auto select new greeting
+    if (insertData) {
+      loadVideoByUrl(insertData.video_url, insertData.id, insertData.title);
+      greetingSelect.value = insertData.id;
+    }
+    return insertData;
+  }
+
+  // Helper to create bucket + table if missing (polite advice)
+  async function ensureStorageBucket() {
+    // just try to list; if bucket not exist, we can't auto-create due to permissions.
+    // But check and show friendly info.
+    const { data, error } = await sb.storage.getBucket('greetings');
+    if (error && error.message.includes('not found')) {
+      console.warn("Bucket 'greetings' missing – please create in Supabase Storage (public bucket)");
+      showToast("⚠️ Storage bucket 'greetings' missing. Please create a public bucket named 'greetings' in Supabase.", 5000);
+      return false;
+    }
+    return true;
+  }
+
+  // handle file selection
+  function triggerFileUpload() {
+    fileInput.click();
+  }
+
+  async function handleFileSelected(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    if (!file.type.startsWith('video/')) {
+      showToast("Please select a video file (MP4, MOV, WebM)", 2000);
+      return;
+    }
+    let customTitle = prompt("Enter greeting title (optional):", file.name.replace(/\.[^/.]+$/, ""));
+    if (customTitle === null) customTitle = file.name;
+    await uploadVideoToSupabase(file, customTitle);
+    fileInput.value = ''; // reset
+  }
+
+  function updateLedStatus(connected) {
+    if (connected) {
+      liveLed.style.background = "#33ff33";
+      liveLed.style.boxShadow = "0 0 8px #2eff5e";
+    } else {
+      liveLed.style.background = "#ff3333";
+    }
+  }
+
+  // event: select greeting from dropdown
+  async function onSelectGreeting() {
+    const selectedId = greetingSelect.value;
+    if (!selectedId) {
+      if (greetingsList.length) {
+        // fallback nothing
+      } else {
+        videoEl.src = '';
+        return;
+      }
+      const first = greetingsList[0];
+      if (first) loadVideoByUrl(first.video_url, first.id, first.title);
+      return;
+    }
+    const greeting = greetingsList.find(g => g.id === selectedId);
+    if (greeting) {
+      loadVideoByUrl(greeting.video_url, greeting.id, greeting.title);
+    }
+  }
+
+  // rotary volume: click on dial cycles / step or use wheel? create intuitive: left/right?
+  volumeDialDiv.onclick = (e) => {
+    // cycle by 0.1
+    let newVol = currentVolume + 0.1;
+    if (newVol > 1.05) newVol = 0;
+    setVolume(newVol);
+  };
+  // rewind / forward / play
+  playBtn.onclick = () => {
+    if (videoEl.paused) playVideo();
+    else pauseVideo();
+    playBtn.innerHTML = videoEl.paused ? "▶" : "⏸";
+    setTimeout(() => {
+      if (!videoEl.paused) playBtn.innerHTML = "▶";
+      else playBtn.innerHTML = "⏸";
+    }, 100);
+  };
+  rewindBtn.onclick = () => { rewindVideo(); };
+  forwardBtn.onclick = () => { forwardVideo(); };
+
+  // adapt play button state on playing/pause
+  videoEl.addEventListener('play', () => { playBtn.innerHTML = "⏸"; });
+  videoEl.addEventListener('pause', () => { playBtn.innerHTML = "▶"; });
+  videoEl.addEventListener('ended', () => { playBtn.innerHTML = "▶"; showToast("📼 The End. Rewind or pick another.", 1500); });
+
+  // volume hotkeys (optional)
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowUp') { volumeUp(); e.preventDefault(); }
+    if (e.key === 'ArrowDown') { volumeDown(); e.preventDefault(); }
+    if (e.key === ' ') { playBtn.click(); e.preventDefault(); }
+  });
+
+  // simple toast
+  function showToast(msg, duration = 2000) {
+    let toastDiv = document.querySelector('.toast-retro');
+    if (toastDiv) toastDiv.remove();
+    const toast = document.createElement('div');
+    toast.className = 'toast-retro';
+    toast.innerText = msg;
+    document.body.appendChild(toast);
+    setTimeout(() => { if (toast) toast.remove(); }, duration);
+  }
+
+  // Additional: if no greetings initially, add sample placeholder using a public demo video? but with storage greeting we add a dummy via upload? prompt to add? we'll try to insert a default test greeting if table empty
+  async function seedSampleGreetingIfEmpty() {
+    const { count, error: countErr } = await sb
+      .from('video_greetings')
+      .select('*', { count: 'exact', head: true });
+    if (!countErr && count === 0) {
+      // insert a demo sample message using a short royalty free sample clip (Big Buck Bunny snippet public domain)
+      const demoVideoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4";
+      const { error: insertErr } = await sb
+        .from('video_greetings')
+        .insert([{ title: "🎬 Retro Welcome Demo", video_url: demoVideoUrl }]);
+      if (!insertErr) {
+        showToast("✨ Added demo greeting video!", 2000);
+        await fetchGreetings();
+      } else {
+        console.warn("could not insert demo, maybe table missing:", insertErr);
+      }
+    }
+  }
+
+  // ========== On load: init supabase & create TABLE if needed ==========
+  // we will manually show a friendly text for table creation if missing.
+  async function initRetroTV() {
+    // test table exist by select limit 1
+    const { error: tableCheck } = await sb.from('video_greetings').select('id', { count: 'exact', head: true });
+    if (tableCheck && tableCheck.code === '42P01') {
+      showToast("📺 TABLE MISSING: Run SQL in Supabase SQL editor → CREATE TABLE video_greetings ( id UUID DEFAULT gen_random_uuid() PRIMARY KEY, title TEXT NOT NULL, video_url TEXT NOT NULL, created_at TIMESTAMPTZ DEFAULT now() )", 8000);
+      document.getElementById('greetingSelect').innerHTML = '<option>❗ Setup needed</option>';
+      return;
+    }
+    await ensureStorageBucket();
+    await fetchGreetings();
+    await seedSampleGreetingIfEmpty();
+    setVolume(0.65);
+    // listen for file input
+    fileInput.addEventListener('change', handleFileSelected);
+    uploadTrigger.addEventListener('click', triggerFileUpload);
+    greetingSelect.addEventListener('change', onSelectGreeting);
+    // set initial video from first if present
+    if (greetingsList.length > 0 && !currentVideoUrl) {
+      const first = greetingsList[0];
+      loadVideoByUrl(first.video_url, first.id, first.title);
+    } else if (!greetingsList.length) {
+      videoEl.poster = '';
+      videoEl.src = '';
+    }
+    // indicator blink for 'live'
+    setInterval(() => {
+      if (videoEl && !videoEl.paused && videoEl.src) {
+        liveLed.style.opacity = '1';
+      } else {
+        liveLed.style.opacity = '0.6';
+      }
+    }, 800);
+  }
+
+  initRetroTV().catch(console.error);
+
+  // ---- additional: handle volume dial with hover/wheel?
+  volumeDialDiv.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    if (e.deltaY < 0) volumeUp();
+    else volumeDown();
+  });
+
+  // For styling mobiles, make it fun
+  console.log("Retro Greetings Studio Loaded — UHF channel 9");
+</script>
+</body>
+</html>
