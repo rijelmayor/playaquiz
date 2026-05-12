@@ -785,7 +785,17 @@ async function startQuestion(idx) {
 async function gameNext() {
   if (!answerRevealed){toast('⚠️ Reveal the answer first!','error');return;}
   const next=currentQuestionIndex+1;
-  if (next>=gameQueue.length){await endGame();return;}
+  if (next>=gameQueue.length){
+    const unusedCount = gameQueue.filter(q => !usedQuestionIds.has(q.id)).length;
+    const confirmed = confirm(
+      unusedCount > 0
+        ? `There are ${unusedCount} unused question(s) still in the queue.\n\nEnd the game anyway?`
+        : `No more questions are queued.\n\nYou can add more questions before continuing, or end the game now.\n\nEnd the game?`
+    );
+    if (!confirmed) return;
+    await endGame();
+    return;
+  }
   await startQuestion(next);
 }
 async function startTimerBroadcast() {
