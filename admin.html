@@ -696,13 +696,17 @@ async function loadCategories() {
   categories = data||[];
   renderCategoryGrid(); populateCatSelects(); buildManualCatGrid(); buildSpinReel();
 }
+
+
 async function loadAllQuestions() {
   const {data} = await sb.from('questions').select('*,categories(name,icon,color)').order('created_at',{ascending:false});
   questions = data||[];
   const {data:sq} = await sb.from('questions').select('*,categories(name,icon,color)').eq('session_id',SESSION_ID).order('sort_order');
   gameQueue = sq||[];
-  renderQuestionBank(); renderGameQueue(); renderDashQueue(); updateStats();
+  renderQuestionBank(); renderGameQueue(); renderDashQueue(); updateStats(); renderCategoryGrid();
 }
+
+
 async function loadPlayers() {
   const {data} = await sb.from('players').select('*').eq('session_id',SESSION_ID).order('score',{ascending:false});
   players = data||[];
