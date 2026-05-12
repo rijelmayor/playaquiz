@@ -27,7 +27,7 @@
       position: relative;
     }
 
-    /* Elegant Floating Balloons + Sparkles */
+    /* Floating Balloons */
     .balloons {
       position: fixed;
       inset: 0;
@@ -38,7 +38,7 @@
 
     .balloon {
       position: absolute;
-      font-size: 65px;
+      font-size: 55px;
       animation: floatUp linear infinite;
       filter: drop-shadow(0 10px 15px rgba(255, 215, 0, 0.4));
     }
@@ -56,77 +56,63 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 40px 20px;
+      padding: 30px 20px;
       text-align: center;
     }
 
     .title {
       font-family: 'Bebas Neue', sans-serif;
-      font-size: clamp(4.5rem, 13vw, 10rem);
+      font-size: clamp(3.8rem, 11vw, 8.5rem);
       font-weight: 800;
-      letter-spacing: 6px;
-      background: linear-gradient(90deg, #ffd700, #ff3b9a, #00f5ff, #ffd700);
+      letter-spacing: 4px;
+      background: linear-gradient(90deg, #ffd700, #ff3b9a, #00f5ff);
       -webkit-background-clip: text;
       background-clip: text;
       -webkit-text-fill-color: transparent;
       animation: titleGlow 4s ease-in-out infinite alternate;
       margin-bottom: 8px;
-      line-height: 0.85;
+      line-height: 0.9;
     }
 
     @keyframes titleGlow {
-      from { filter: brightness(1) hue-rotate(-10deg); }
-      to { filter: brightness(1.4) hue-rotate(10deg); }
+      from { filter: brightness(1); }
+      to { filter: brightness(1.35); }
     }
 
     .subtitle {
-      font-size: 2.8rem;
+      font-size: clamp(1.8rem, 5vw, 2.6rem);
       font-weight: 700;
       color: var(--gold);
-      text-shadow: 0 0 40px rgba(255, 215, 0, 0.7);
-      margin-bottom: 10px;
-    }
-
-    .tagline {
-      font-size: 1.6rem;
-      color: #b0fffc;
-      font-weight: 600;
       margin-bottom: 30px;
-      letter-spacing: 2px;
-    }
-
-    .well-wishes {
-      font-size: 1.5rem;
-      color: #ffe066;
-      margin: 20px 0 40px;
-      font-style: italic;
-      max-width: 600px;
-      line-height: 1.4;
+      text-shadow: 0 0 30px rgba(255, 215, 0, 0.6);
     }
 
     .qr-container {
       background: white;
-      padding: 28px;
+      padding: 25px;
       border-radius: 32px;
       box-shadow: 0 25px 70px rgba(0, 0, 0, 0.6),
-                  0 0 0 15px rgba(255, 215, 0, 0.4);
-      margin: 30px 0;
+                  0 0 0 16px rgba(255, 215, 0, 0.4);
+      margin: 20px 0 30px;
       transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
       cursor: pointer;
+      max-width: 420px;
+      width: 100%;
     }
 
     .qr-container:hover {
-      transform: scale(1.1) rotate(4deg);
-      box-shadow: 0 35px 90px rgba(255, 59, 154, 0.5);
+      transform: scale(1.06) rotate(3deg);
     }
 
     .qr-code {
-      width: 400px;
-      height: 400px;
+      width: 100%;
+      max-width: 380px;
+      aspect-ratio: 1 / 1;
       border: 10px solid #111;
       border-radius: 24px;
       background: white;
-      padding: 18px;
+      padding: 15px;
+      margin: 0 auto;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -135,31 +121,31 @@
     .qr-code img {
       width: 100%;
       height: 100%;
+      object-fit: contain;
       border-radius: 12px;
     }
 
     .scan-text {
       margin-top: 18px;
-      font-size: 1.5rem;
+      font-size: 1.45rem;
       font-weight: 800;
       color: var(--gold);
       text-shadow: 0 4px 20px rgba(255, 215, 0, 0.6);
     }
 
     .instructions {
-      margin: 35px 0;
-      font-size: 1.35rem;
+      font-size: 1.3rem;
       color: #ddd;
       max-width: 520px;
+      margin-bottom: 30px;
     }
 
     .start-btn {
-      margin-top: 10px;
-      padding: 24px 70px;
-      font-size: 2.1rem;
+      padding: 22px 65px;
+      font-size: 2rem;
       font-weight: 800;
       font-family: 'Bebas Neue', sans-serif;
-      letter-spacing: 4px;
+      letter-spacing: 3px;
       background: linear-gradient(90deg, #ffd700, #ff6b00, #ff3b9a);
       color: #111;
       border: none;
@@ -171,25 +157,15 @@
     }
 
     .start-btn:hover {
-      transform: translateY(-10px) scale(1.08);
-      box-shadow: 0 30px 70px rgba(255, 215, 0, 0.7);
+      transform: translateY(-8px) scale(1.05);
     }
 
     .footer {
       position: absolute;
-      bottom: 35px;
-      font-size: 1.2rem;
-      color: rgba(255,255,255,0.75);
+      bottom: 25px;
+      font-size: 1.1rem;
+      color: rgba(255,255,255,0.7);
       z-index: 3;
-    }
-
-    .confetti {
-      position: fixed;
-      width: 14px;
-      height: 14px;
-      border-radius: 3px;
-      z-index: 4;
-      pointer-events: none;
     }
   </style>
 </head>
@@ -200,24 +176,20 @@
   <div class="content">
     <h1 class="title">JOY</h1>
     <div class="subtitle">TURNS 70</div>
-    <div class="tagline">GRAND FINALE • FINAL ROUND</div>
-
-    <div class="well-wishes">
-      🎉 Happy 70th Birthday Joy! <br>
-      Wishing you endless joy, love, and beautiful memories!
+    <div class="subtitle" style="font-size: clamp(1.6rem, 4.5vw, 2.2rem); margin-top: -10px;">
+      GRAND FINALE • FINAL ROUND
     </div>
 
-    <!-- Clickable QR Code -->
+    <!-- Prominent QR Code -->
     <div class="qr-container" onclick="window.open('https://www.playaquiz.xyz/finalroundfoh.html', '_blank')">
       <div class="qr-code">
-        <img src="Final_Round.png" alt="Scan to Join Final Round - Joy Turns 70">
+        <img src="Final_Round.png" alt="Scan to Join Final Round">
       </div>
-      <div class="scan-text">📱 TAP or SCAN TO JOIN THE FINAL ROUND</div>
+      <div class="scan-text">📱 TAP or SCAN TO JOIN FINAL ROUND</div>
     </div>
 
     <div class="instructions">
-      Players: Scan the QR code to join the <strong>Grand Finale</strong><br>
-      Let’s crown the ultimate champion!
+      Scan the QR code above with your phone camera to join as a player
     </div>
 
     <button class="start-btn" onclick="startGame()">
@@ -230,34 +202,35 @@
   </div>
 
   <script>
-    // Floating Balloons
     function createBalloon() {
       const container = document.getElementById('balloons');
       const balloon = document.createElement('div');
       balloon.className = 'balloon';
       
-      const emojis = ['🎈','🎉','🌟','🦄','💖','🎀','🍾','✨','🥂'];
+      const emojis = ['🎈','🎉','🌟','🦄','💖','🍾','✨','🥂'];
       balloon.textContent = emojis[Math.floor(Math.random() * emojis.length)];
       
       balloon.style.left = Math.random() * 100 + 'vw';
-      balloon.style.animationDuration = (Math.random() * 10 + 14) + 's';
-      balloon.style.animationDelay = '-' + Math.random() * 18 + 's';
-      balloon.style.opacity = Math.random() * 0.5 + 0.6;
+      balloon.style.animationDuration = (Math.random() * 9 + 13) + 's';
+      balloon.style.animationDelay = '-' + Math.random() * 20 + 's';
+      balloon.style.opacity = Math.random() * 0.5 + 0.65;
       
       container.appendChild(balloon);
-      
-      setTimeout(() => balloon.remove(), 30000);
+      setTimeout(() => balloon.remove(), 32000);
     }
 
     function launchConfetti() {
-      for (let i = 0; i < 90; i++) {
+      for (let i = 0; i < 80; i++) {
         const conf = document.createElement('div');
-        conf.className = 'confetti';
+        conf.style.position = 'fixed';
         conf.style.left = Math.random() * 100 + 'vw';
         conf.style.top = '-30px';
+        conf.style.width = conf.style.height = (8 + Math.random() * 12) + 'px';
         conf.style.background = ['#ffd700', '#ff3b9a', '#00f5ff', '#ff69b4'][Math.floor(Math.random()*4)];
-        conf.style.width = conf.style.height = (10 + Math.random() * 12) + 'px';
-        conf.style.animation = `fall ${Math.random()*4 + 3}s linear forwards`;
+        conf.style.borderRadius = '3px';
+        conf.style.zIndex = '4';
+        conf.style.pointerEvents = 'none';
+        conf.style.animation = `fall ${Math.random()*4 + 2.5}s linear forwards`;
         document.body.appendChild(conf);
         setTimeout(() => conf.remove(), 10000);
       }
@@ -267,27 +240,19 @@
       launchConfetti();
       setTimeout(() => {
         window.open('https://www.playaquiz.xyz/finalroundfoh.html', '_blank');
-      }, 600);
+      }, 500);
     }
 
     // Initialize
     function init() {
-      setInterval(createBalloon, 320);
-      for (let i = 0; i < 25; i++) {
-        setTimeout(createBalloon, i * 90);
+      setInterval(createBalloon, 300);
+      for (let i = 0; i < 22; i++) {
+        setTimeout(createBalloon, i * 110);
       }
-      
-      setInterval(() => {
-        if (Math.random() > 0.4) launchConfetti();
-      }, 4000);
     }
 
     const style = document.createElement('style');
-    style.innerHTML = `
-      @keyframes fall {
-        to { transform: translateY(120vh) rotate(800deg); opacity: 0; }
-      }
-    `;
+    style.innerHTML = `@keyframes fall { to { transform: translateY(120vh) rotate(720deg); opacity: 0; } }`;
     document.head.appendChild(style);
 
     window.onload = init;
