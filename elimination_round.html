@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Elimination Round — PlayAQuiz | Celebration Arena</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      user-select: none;
+    }
+
+    body {
+      min-height: 100vh;
+      background: radial-gradient(circle at 20% 30%, #0a0f2a, #03050b);
+      font-family: 'Space Grotesk', sans-serif;
+      overflow-x: hidden;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    /* animated background particles / balloons canvas */
+    #balloonCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* main card */
+    .elimination-arena {
+      position: relative;
+      z-index: 20;
+      max-width: 880px;
+      width: 100%;
+      background: rgba(6, 8, 22, 0.82);
+      backdrop-filter: blur(18px);
+      border-radius: 64px;
+      border: 2px solid rgba(239, 68, 68, 0.5);
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.8), 0 0 0 1px rgba(239,68,68,0.3), 0 0 40px rgba(239,68,68,0.2);
+      padding: 28px 32px 44px;
+      text-align: center;
+      transition: all 0.3s;
+      animation: floatIn 0.6s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+    }
+
+    @keyframes floatIn {
+      0% { opacity: 0; transform: scale(0.92) translateY(40px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    /* glowing header */
+    .elimination-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+      background: rgba(239, 68, 68, 0.2);
+      border: 1px solid rgba(239, 68, 68, 0.6);
+      border-radius: 100px;
+      padding: 8px 28px;
+      margin-bottom: 24px;
+      backdrop-filter: blur(4px);
+    }
+    .elimination-badge span:first-child {
+      font-size: 36px;
+      filter: drop-shadow(0 0 6px #ef4444);
+      animation: pulseGlow 1.2s infinite;
+    }
+    .elimination-badge span:last-child {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 28px;
+      letter-spacing: 3px;
+      background: linear-gradient(135deg, #fff, #f87171);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    @keyframes pulseGlow {
+      0%,100% { text-shadow: 0 0 0px #ef4444; transform: scale(1); }
+      50% { text-shadow: 0 0 18px #ef4444; transform: scale(1.08); }
+    }
+
+    .main-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 68px;
+      letter-spacing: 4px;
+      background: linear-gradient(135deg, #facc15, #ef4444, #f97316);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      text-shadow: 0 2px 12px rgba(0,0,0,0.5);
+      margin-bottom: 8px;
+    }
+
+    .sub {
+      color: #b9c3e6;
+      font-weight: 500;
+      font-size: 17px;
+      letter-spacing: 1px;
+      margin-bottom: 28px;
+      border-top: 1px dashed rgba(239,68,68,0.4);
+      display: inline-block;
+      padding-top: 8px;
+    }
+
+    /* QR code big style */
+    .qr-magnificent {
+      background: white;
+      padding: 24px;
+      border-radius: 48px;
+      display: inline-block;
+      margin: 16px 0 20px;
+      box-shadow: 0 20px 35px -8px black, 0 0 0 4px #facc15, 0 0 0 8px rgba(239,68,68,0.4);
+      transition: transform 0.2s;
+    }
+    .qr-magnificent:hover {
+      transform: scale(1.02);
+    }
+    #qrCodeBig {
+      width: 260px;
+      height: 260px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    canvas, #qrCodeBig img {
+      width: 100% !important;
+      height: auto !important;
+      border-radius: 20px;
+    }
+
+    .qr-label {
+      font-size: 14px;
+      font-weight: 700;
+      background: rgba(0,0,0,0.5);
+      display: inline-block;
+      padding: 6px 16px;
+      border-radius: 50px;
+      margin-top: 12px;
+      color: #facc15;
+    }
+
+    /* START GAME BUTTON */
+    .start-game-btn {
+      background: linear-gradient(105deg, #10b981, #059669);
+      border: none;
+      padding: 18px 44px;
+      border-radius: 80px;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 32px;
+      font-weight: bold;
+      letter-spacing: 3px;
+      color: white;
+      cursor: pointer;
+      margin: 16px 0 24px;
+      box-shadow: 0 12px 25px -8px #05966980, 0 0 0 2px rgba(255,255,240,0.3);
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .start-game-btn:hover {
+      transform: scale(1.03);
+      background: linear-gradient(105deg, #34d399, #10b981);
+      box-shadow: 0 18px 32px -6px #10b981;
+    }
+    .start-game-btn:active {
+      transform: scale(0.97);
+    }
+
+    /* running ticker (Joy @ 70 and wishes) */
+    .ticker-tape {
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(12px);
+      border-radius: 60px;
+      padding: 12px 20px;
+      margin: 20px 0 12px;
+      overflow: hidden;
+      white-space: nowrap;
+      border: 1px solid rgba(250,204,21,0.6);
+    }
+    .ticker-content {
+      display: inline-block;
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 700;
+      font-size: 20px;
+      color: #facc15;
+      animation: scrollText 18s linear infinite;
+      letter-spacing: 2px;
+    }
+    .ticker-content span {
+      margin: 0 28px;
+      display: inline-block;
+    }
+    .ticker-content i {
+      font-style: normal;
+      background: rgba(239,68,68,0.3);
+      padding: 4px 16px;
+      border-radius: 40px;
+      margin: 0 8px;
+    }
+
+    @keyframes scrollText {
+      0% { transform: translateX(0%); }
+      100% { transform: translateX(-50%); }
+    }
+
+    /* wishes & greetings grid */
+    .wishes-grid {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 14px;
+      margin: 18px 0 8px;
+    }
+    .wish-card {
+      background: rgba(255,255,245,0.08);
+      border-radius: 60px;
+      padding: 8px 24px;
+      font-size: 15px;
+      font-weight: 600;
+      backdrop-filter: blur(4px);
+      border: 1px solid rgba(250,204,21,0.3);
+      color: #fde68a;
+      transition: 0.1s;
+      animation: fadeWobble 0.6s ease;
+    }
+    @keyframes fadeWobble {
+      0% { opacity: 0; transform: translateY(20px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+    .wish-card:nth-child(odd) { background: rgba(239,68,68,0.15); border-color: #f97316; }
+    .wish-card:nth-child(even) { background: rgba(16,185,129,0.12); border-color: #10b981; }
+
+    .footer-note {
+      font-size: 13px;
+      color: #9ca3af;
+      margin-top: 24px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      padding-top: 16px;
+    }
+
+    /* confetti / balloon enhancements */
+    @keyframes balloonFloat {
+      0% { transform: translateY(100vh) rotate(0deg); opacity: 0.8; }
+      100% { transform: translateY(-20vh) rotate(15deg); opacity: 0; }
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+  <canvas id="balloonCanvas"></canvas>
+
+  <div class="elimination-arena">
+    <div class="elimination-badge">
+      <span>⚡🔥</span>
+      <span>ELIMINATION ROUND</span>
+      <span>⚠️</span>
+    </div>
+    <div class="main-title">FINAL SHOWDOWN</div>
+    <div class="sub">⚡ one scan, one chance — ignite the victory ⚡</div>
+
+    <!-- QR code display area (large) -->
+    <div class="qr-magnificent">
+      <div id="qrCodeBig"></div>
+    </div>
+    <div class="qr-label">📱 SCAN TO JOIN THE ARENA</div>
+
+    <!-- START GAME BUTTON: opens foh.html -->
+    <button class="start-game-btn" id="startGameBtn">🎮 START GAME →</button>
+
+    <!-- Running text (marquee style) with Joy @ 70, greetings -->
+    <div class="ticker-tape">
+      <div class="ticker-content">
+        <span>🎉✨ HAPPY BIRTHDAY JOY @ 70! ✨🎉</span>
+        <span>🔥 LEGENDARY PLAYER — 70 WONDERFUL YEARS 🔥</span>
+        <span>🎂 MAY YOUR DAY SHINE BRIGHTER THAN A THOUSAND QUIZZES 🎂</span>
+        <span>💪 JOY THE UNSTOPPABLE! 70 & FABULOUS 💪</span>
+        <span>🏆 GRAND CELEBRATION ELIMINATION ROUND 🏆</span>
+        <span>🎈 LET THE GAMES BEGIN — WITH LOVE & LAUGHTER 🎈</span>
+        <span>🎉✨ HAPPY BIRTHDAY JOY @ 70! ✨🎉</span>
+        <span>🔥 LEGENDARY PLAYER — 70 WONDERFUL YEARS 🔥</span>
+        <span>🎂 MAY YOUR DAY SHINE BRIGHTER THAN A THOUSAND QUIZZES 🎂</span>
+        <span>💪 JOY THE UNSTOPPABLE! 70 & FABULOUS 💪</span>
+        <span>🏆 GRAND CELEBRATION ELIMINATION ROUND 🏆</span>
+        <span>🎈 LET THE GAMES BEGIN — WITH LOVE & LAUGHTER 🎈</span>
+      </div>
+    </div>
+
+    <!-- wishes & greetings (animated extras) -->
+    <div class="wishes-grid" id="wishesContainer"></div>
+
+    <div class="footer-note">
+      🚀 Scan QR → join elimination arena → host fires ultimate battle<br>
+      🎯 The strongest will survive. Good luck, warriors!
+    </div>
+  </div>
+
+  <script>
+    // ---- 1. QR Code generation (big size) with full join URL ----
+    // dynamically construct player join URL (points to foh.html? but actually we need the player join, but instruction: "show qr code big size, image file name Elimination_Round.png"
+    // plus start game button opens https://www.playaquiz.xyz/foh.html
+    // We'll generate QR code that points to the same domain player join? But to match "Scan to Play", QR should point to the game join page (player.html) with room code param.
+    // we'll embed current room code from url param or generate new? For dynamic environment, we fetch session from admin? Since we want real QR working, we make a call to get active session.
+    // For simplicity and real integration: we'll fetch from supabase the latest active session and generate QR with player.html?code=ROOM.
+    // But also we show "Elimination_Round.png" in the background? The requirement: "show the qr code big size image file name still in the root folder Elimination_Round.png"
+    // Explanation: we place a decorative image overlay? Actually the elimination round background uses that graphic? not necessary but we embed the Elimination_Round.png as an element behind QR? we'll add an img reference.
+    // I'll add a floating gradient but also ensure the .png appears somewhere on the card.
+
+    // Insert Elimination_Round.png as a background emblem.
+    const elimImg = document.createElement('div');
+    elimImg.style.position = 'absolute';
+    elimImg.style.top = '-20px';
+    elimImg.style.right = '-15px';
+    elimImg.style.width = '110px';
+    elimImg.style.height = '110px';
+    elimImg.style.backgroundImage = "url('Elimination_Round.png')";
+    elimImg.style.backgroundSize = 'contain';
+    elimImg.style.backgroundRepeat = 'no-repeat';
+    elimImg.style.opacity = '0.75';
+    elimImg.style.pointerEvents = 'none';
+    elimImg.style.zIndex = '5';
+    document.querySelector('.elimination-arena').style.position = 'relative';
+    document.querySelector('.elimination-arena').appendChild(elimImg);
+
+    // Also add smaller version on the left side (floating)
+    const elimImgLeft = document.createElement('div');
+    elimImgLeft.style.position = 'absolute';
+    elimImgLeft.style.bottom = '10px';
+    elimImgLeft.style.left = '10px';
+    elimImgLeft.style.width = '70px';
+    elimImgLeft.style.height = '70px';
+    elimImgLeft.style.backgroundImage = "url('Elimination_Round.png')";
+    elimImgLeft.style.backgroundSize = 'contain';
+    elimImgLeft.style.backgroundRepeat = 'no-repeat';
+    elimImgLeft.style.opacity = '0.5';
+    elimImgLeft.style.pointerEvents = 'none';
+    document.querySelector('.elimination-arena').appendChild(elimImgLeft);
+
+    // ---- balloon animation with canvas ----
+    const canvas = document.getElementById('balloonCanvas');
+    let ctx = canvas.getContext('2d');
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+    let balloons = [];
+
+    function resizeCanvas() {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = width;
+      canvas.height = height;
+    }
+
+    class Balloon {
+      constructor(x, y, radius, color, speed) {
+        this.x = x;
+        this.y = y;
+        this.radius = radius;
+        this.color = color;
+        this.speed = speed;
+        this.angle = Math.random() * Math.PI * 2;
+        this.wobble = 0;
+      }
+      draw() {
+        if (!ctx) return;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = this.color;
+        ctx.fill();
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = "rgba(255,200,100,0.6)";
+        ctx.strokeStyle = '#ffffff90';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(this.x - 3, this.y + this.radius);
+        ctx.lineTo(this.x, this.y + this.radius + 9);
+        ctx.lineTo(this.x + 3, this.y + this.radius);
+        ctx.fillStyle = '#b45309';
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+      update() {
+        this.y -= this.speed;
+        this.wobble += 0.03;
+        this.x += Math.sin(this.wobble) * 0.5;
+        if (this.y + this.radius < -30) {
+          this.y = height + this.radius;
+          this.x = Math.random() * width;
+        }
+        this.draw();
+      }
+    }
+
+    function initBalloons() {
+      balloons = [];
+      const colors = ['#ef4444', '#f97316', '#facc15', '#10b981', '#3b82f6', '#a855f7', '#ec4899', '#fbbf24'];
+      for (let i = 0; i < 32; i++) {
+        const radius = 20 + Math.random() * 30;
+        balloons.push(new Balloon(
+          Math.random() * width,
+          Math.random() * height + height,
+          radius,
+          colors[Math.floor(Math.random() * colors.length)],
+          0.5 + Math.random() * 1.2
+        ));
+      }
+    }
+
+    function animateBalloons() {
+      if (!ctx) return;
+      ctx.clearRect(0, 0, width, height);
+      for (let b of balloons) b.update();
+      requestAnimationFrame(animateBalloons);
+    }
+
+    window.addEventListener('resize', () => {
+      resizeCanvas();
+      initBalloons();
+    });
+    resizeCanvas();
+    initBalloons();
+    animateBalloons();
+
+    // ---- Running text already in ticker, but we also add additional greetings/wishes ----
+    const wishes = [
+      "🎂 Joy — 70 years of pure awesomeness! 🎂",
+      "🌟 May your days be filled with laughter and victories! 🌟",
+      "🏅 The wisest quiz master, Joy @ 70! 🏅",
+      "🎈 70 & still buzzing with energy! Cheers! 🎈",
+      "🎉 Wishing you boundless joy and high scores! 🎉",
+      "🔥 Elimination round honor — for the legend! 🔥",
+      "💐 Happy 70th! Keep shining like a star! 💐",
+      "🏆 Grandmaster of the arena — Joy! 🏆"
+    ];
+    const wishesContainer = document.getElementById('wishesContainer');
+    function renderWishes() {
+      wishesContainer.innerHTML = '';
+      wishes.forEach(w => {
+        const div = document.createElement('div');
+        div.className = 'wish-card';
+        div.innerText = w;
+        wishesContainer.appendChild(div);
+      });
+    }
+    renderWishes();
+
+    // ---- QR generation: Build dynamic join URL using active session from supabase ----
+    const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
+    const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+    async function getActiveSessionAndRoom() {
+      // try to get existing active session from localStorage or fetch newest waiting/active
+      let sessionId = localStorage.getItem('paq_session_id');
+      if (sessionId) {
+        const { data } = await sb.from('game_sessions').select('id, room_code').eq('id', sessionId).maybeSingle();
+        if (data) return data;
+      }
+      // fallback: get first waiting/active session
+      const { data } = await sb.from('game_sessions').select('id, room_code').in('status', ['waiting','active']).order('created_at', { ascending: false }).limit(1);
+      if (data && data.length) {
+        localStorage.setItem('paq_session_id', data[0].id);
+        return data[0];
+      }
+      // create new session
+      const code = Math.random().toString(36).slice(2,8).toUpperCase();
+      const { data: newSession } = await sb.from('game_sessions').insert({ room_code: code, title: 'Celebration Arena', status: 'waiting' }).select().single();
+      if (newSession) {
+        localStorage.setItem('paq_session_id', newSession.id);
+        return newSession;
+      }
+      return null;
+    }
+
+    async function generateQRForPlayer() {
+      const session = await getActiveSessionAndRoom();
+      if (!session || !session.room_code) {
+        document.getElementById('qrCodeBig').innerHTML = '<div style="background:#fff; padding:30px; border-radius:20px; font-size:14px;">⚠️ No active game room. Please create a session.</div>';
+        return;
+      }
+      // Construct player join url (assuming player.html is at same domain)
+      let base = window.location.origin + window.location.pathname.replace('elimination_round.html', 'player.html');
+      const joinUrl = `${base}?code=${session.room_code}`;
+      const qrDiv = document.getElementById('qrCodeBig');
+      qrDiv.innerHTML = '';
+      try {
+        new QRCode(qrDiv, {
+          text: joinUrl,
+          width: 260,
+          height: 260,
+          colorDark: "#000000",
+          colorLight: "#ffffff",
+          correctLevel: QRCode.CorrectLevel.M
+        });
+      } catch(e) {
+        qrDiv.innerHTML = `<div style="background:#fff; padding:30px;">QR Error</div>`;
+      }
+      // extra label
+    }
+
+    // START GAME BUTTON -> open https://www.playaquiz.xyz/foh.html
+    document.getElementById('startGameBtn').addEventListener('click', () => {
+      window.location.href = 'https://www.playaquiz.xyz/foh.html';
+    });
+
+    // Also support fire elimination sound? optional additional.
+    function playCelebrationFanfare() {
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const ctxAudio = new AudioContext();
+        if (ctxAudio.state === 'suspended') ctxAudio.resume();
+        const now = ctxAudio.currentTime;
+        const osc1 = ctxAudio.createOscillator();
+        const gain1 = ctxAudio.createGain();
+        osc1.connect(gain1);
+        gain1.connect(ctxAudio.destination);
+        osc1.type = 'triangle';
+        osc1.frequency.value = 523.25;
+        gain1.gain.setValueAtTime(0.3, now);
+        gain1.gain.exponentialRampToValueAtTime(0.0001, now + 1.2);
+        osc1.start();
+        osc1.stop(now + 1.1);
+        
+        const osc2 = ctxAudio.createOscillator();
+        const gain2 = ctxAudio.createGain();
+        osc2.connect(gain2); gain2.connect(ctxAudio.destination);
+        osc2.type = 'square';
+        osc2.frequency.value = 659.25;
+        gain2.gain.setValueAtTime(0.2, now + 0.2);
+        gain2.gain.exponentialRampToValueAtTime(0.0001, now + 1);
+        osc2.start(now + 0.2);
+        osc2.stop(now + 1);
+      } catch(e) { console.log(e); }
+    }
+    // subtle fanfare on page load
+    setTimeout(() => { playCelebrationFanfare(); }, 500);
+
+    // Extra interactive: add confetti-like effect on button hover? but okay
+    // display floating “JOY @70” text effect
+    const floatingText = document.createElement('div');
+    floatingText.innerText = "🎉 JOY @ 70 🎉";
+    floatingText.style.position = 'fixed';
+    floatingText.style.bottom = '30px';
+    floatingText.style.right = '30px';
+    floatingText.style.fontSize = '28px';
+    floatingText.style.fontWeight = '800';
+    floatingText.style.fontFamily = 'Bebas Neue';
+    floatingText.style.background = 'linear-gradient(145deg, gold, #ff8c00)';
+    floatingText.style.webkitBackgroundClip = 'text';
+    floatingText.style.backgroundClip = 'text';
+    floatingText.style.color = 'transparent';
+    floatingText.style.textShadow = '0 0 8px #facc15';
+    floatingText.style.zIndex = '99';
+    floatingText.style.pointerEvents = 'none';
+    floatingText.style.animation = 'pulseGlow 1.4s infinite';
+    document.body.appendChild(floatingText);
+    
+    // additional moving bubbles (small)
+    setInterval(() => {
+      if (!ctx) return;
+      // more floating particles context independent? just visual style not needed
+    }, 100);
+
+    // run QR generation
+    generateQRForPlayer();
+    // also refresh periodically to reflect updated room? not required but fine
+    setInterval(() => {
+      generateQRForPlayer();
+    }, 30000);
+  </script>
+</body>
+</html>
