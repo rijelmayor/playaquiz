@@ -529,6 +529,7 @@
           <div class="foh-tile" onclick="fohCommand('leaderboard')"><div class="icon">🏆</div>Leaderboard</div>
           <div class="foh-tile" onclick="fohCommand('responses')"><div class="icon">📊</div>Response Stats</div>
           <div class="foh-tile" onclick="fohCommand('waiting')"><div class="icon">⏳</div>Waiting Screen</div>
+          <div class="foh-tile" onclick="fohCommand('mechanics')" style="border-color:rgba(16,185,129,0.4);background:rgba(16,185,129,0.05);grid-column:1/-1"><div class="icon">🎮</div>Show Game Mechanics</div>
         </div>
       </div>
       <div class="card">
@@ -785,17 +786,7 @@ async function startQuestion(idx) {
 async function gameNext() {
   if (!answerRevealed){toast('⚠️ Reveal the answer first!','error');return;}
   const next=currentQuestionIndex+1;
-  if (next>=gameQueue.length){
-    const unusedCount = gameQueue.filter(q => !usedQuestionIds.has(q.id)).length;
-    const confirmed = confirm(
-      unusedCount > 0
-        ? `There are ${unusedCount} unused question(s) still in the queue.\n\nEnd the game anyway?`
-        : `No more questions are queued.\n\nYou can add more questions before continuing, or end the game now.\n\nEnd the game?`
-    );
-    if (!confirmed) return;
-    await endGame();
-    return;
-  }
+  if (next>=gameQueue.length){await endGame();return;}
   await startQuestion(next);
 }
 async function startTimerBroadcast() {
@@ -887,6 +878,8 @@ function updateMiniFoh(type,data){
     el.innerHTML=`<div style="font-size:12px;font-weight:800;color:var(--accent);margin-bottom:6px">📊 RESPONSES</div><div class="mini-foh-state-label">Response chart on FOH</div>`;
   } else if(type==='ended'){
     el.innerHTML=`<div class="mini-foh-waiting">🏁</div><div class="mini-foh-state-label">Game Over!</div>`;
+  } else if(type==='mechanics'){
+    el.innerHTML=`<div class="mini-foh-waiting">🎮</div><div class="mini-foh-state-label">Game Mechanics on screen</div>`;
   }
 }
 
@@ -1099,6 +1092,7 @@ async function fohCommand(cmd) {
         updateMiniFoh('responses',{});lastFohState={type:'responses',data:{}};
       }break;
     case 'waiting': await broadcastFOH('show_waiting_screen',{});updateMiniFoh('waiting',{});lastFohState={type:'waiting',data:{}};break;
+    case 'mechanics': await broadcastFOH('show_mechanics',{});updateMiniFoh('mechanics',{});lastFohState={type:'mechanics',data:{}};toast('🎮 Game Mechanics sent to FOH!','success');return;
   }
   toast('Command sent to FOH','success');
 }
