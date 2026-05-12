@@ -27,7 +27,7 @@
       position: relative;
     }
 
-    /* Floating Balloons Background */
+    /* Floating Balloons */
     .balloons {
       position: fixed;
       inset: 0;
@@ -102,11 +102,13 @@
       box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5),
                   0 0 0 12px rgba(255, 59, 154, 0.3);
       margin: 30px 0;
-      transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      cursor: pointer;
     }
 
     .qr-container:hover {
-      transform: scale(1.08) rotate(2deg);
+      transform: scale(1.08) rotate(3deg);
+      box-shadow: 0 30px 80px rgba(255, 59, 154, 0.5);
     }
 
     .qr-code {
@@ -119,12 +121,18 @@
       display: flex;
       align-items: center;
       justify-content: center;
+      overflow: hidden;
     }
 
     .qr-code img {
       width: 100%;
       height: 100%;
       image-rendering: crisp-edges;
+      transition: transform 0.3s;
+    }
+
+    .qr-container:hover img {
+      transform: scale(1.03);
     }
 
     .scan-text {
@@ -171,15 +179,6 @@
       color: rgba(255,255,255,0.7);
       z-index: 3;
     }
-
-    .confetti {
-      position: fixed;
-      width: 12px;
-      height: 12px;
-      border-radius: 3px;
-      z-index: 4;
-      pointer-events: none;
-    }
   </style>
 </head>
 <body>
@@ -191,16 +190,17 @@
     <div class="subtitle">TURNS 70</div>
     <div class="tagline">ELIMINATION ROUND 🎉</div>
 
-    <div class="qr-container">
+    <!-- Clickable QR Code -->
+    <div class="qr-container" onclick="window.open('https://www.playaquiz.xyz/foh.html', '_blank')">
       <div class="qr-code">
-        <img src="Elimination_Round.png" alt="Scan to Join Game" id="qrImage">
+        <img src="Elimination_Round.png" alt="Scan to Join - Joy Turns 70" id="qrImage">
       </div>
-      <div class="scan-text">📱 SCAN TO JOIN THE GAME</div>
+      <div class="scan-text">📱 TAP or SCAN TO JOIN THE GAME</div>
     </div>
 
     <div class="instructions">
-      Open your camera app or browser and scan the QR code above<br>
-      <strong>Join as a player</strong> and get ready for the ultimate showdown!
+      Players: Open your camera and scan the QR code above<br>
+      <strong>Get ready for an unforgettable Elimination Round!</strong>
     </div>
 
     <button class="start-btn" onclick="startGame()">
@@ -213,96 +213,62 @@
   </div>
 
   <script>
-    // Create floating balloons
+    // Floating Balloons
     function createBalloon() {
-      const balloonsContainer = document.getElementById('balloons');
+      const container = document.getElementById('balloons');
       const balloon = document.createElement('div');
       balloon.className = 'balloon';
       
-      const emojis = ['🎈', '🎉', '🦄', '🌈', '⭐', '🍾', '🎊', '💖'];
+      const emojis = ['🎈','🎉','🦄','🌈','⭐','🍾','🎊','💖','🎀'];
       balloon.textContent = emojis[Math.floor(Math.random() * emojis.length)];
       
-      const leftPos = Math.random() * 100;
-      balloon.style.left = `${leftPos}vw`;
+      balloon.style.left = Math.random() * 100 + 'vw';
+      balloon.style.animationDuration = (Math.random() * 8 + 13) + 's';
+      balloon.style.animationDelay = '-' + Math.random() * 15 + 's';
+      balloon.style.opacity = Math.random() * 0.4 + 0.7;
       
-      const duration = Math.random() * 8 + 12;
-      balloon.style.animationDuration = `${duration}s`;
+      container.appendChild(balloon);
       
-      const delay = Math.random() * -15;
-      balloon.style.animationDelay = `${delay}s`;
-      
-      const scale = Math.random() * 0.6 + 0.7;
-      balloon.style.transform = `scale(${scale})`;
-      
-      balloonsContainer.appendChild(balloon);
-      
-      // Remove after animation
-      setTimeout(() => {
-        balloon.remove();
-      }, (duration + Math.abs(delay)) * 1000);
+      setTimeout(() => balloon.remove(), 25000);
     }
 
-    // Launch confetti
     function launchConfetti() {
-      for (let i = 0; i < 80; i++) {
+      for (let i = 0; i < 70; i++) {
         const conf = document.createElement('div');
         conf.className = 'confetti';
         conf.style.left = Math.random() * 100 + 'vw';
         conf.style.top = '-20px';
         conf.style.background = ['#ff3b9a', '#ffd700', '#00f5ff', '#ff6b00'][Math.floor(Math.random()*4)];
+        conf.style.width = conf.style.height = (8 + Math.random() * 10) + 'px';
         conf.style.animation = `fall ${Math.random()*3 + 2}s linear forwards`;
         document.body.appendChild(conf);
-        
-        setTimeout(() => conf.remove(), 6000);
+        setTimeout(() => conf.remove(), 8000);
       }
     }
 
-    // Button handler
     function startGame() {
       launchConfetti();
       setTimeout(() => {
         window.open('https://www.playaquiz.xyz/foh.html', '_blank');
-      }, 600);
+      }, 500);
     }
-
-    // Keyboard support
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        startGame();
-      }
-    });
 
     // Initialize
     function init() {
-      // Spawn balloons continuously
       setInterval(createBalloon, 280);
-      
-      // Initial balloons
-      for (let i = 0; i < 18; i++) {
-        setTimeout(createBalloon, i * 120);
+      for (let i = 0; i < 20; i++) {
+        setTimeout(createBalloon, i * 100);
       }
       
-      // Occasional confetti
       setInterval(() => {
-        if (Math.random() > 0.6) launchConfetti();
-      }, 4500);
-      
-      // Make QR bigger on load
-      const qrImg = document.getElementById('qrImage');
-      qrImg.style.transition = 'all 1.2s cubic-bezier(0.34, 1.56, 0.64, 1)';
-      
-      // Hover effect on title
-      console.log('%c🎉 JOY TURNS 70 - Elimination Round Ready!', 'color:#ff3b9a; font-size:18px; font-weight:bold');
+        if (Math.random() > 0.5) launchConfetti();
+      }, 5000);
     }
 
-    // Add falling animation for confetti
     const style = document.createElement('style');
     style.innerHTML = `
       @keyframes fall {
-        to {
-          transform: translateY(110vh) rotate(720deg);
-          opacity: 0;
-        }
+        to { transform: translateY(110vh) rotate(720deg); opacity: 0; }
       }
     `;
     document.head.appendChild(style);
