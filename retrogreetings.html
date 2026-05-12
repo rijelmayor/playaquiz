@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <meta name="screen-orientation" content="landscape">
   <title>RetroGreetings — Vintage Video Jukebox</title>
   <link href="https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -22,43 +21,15 @@
       justify-content: center;
       align-items: center;
       font-family: 'VT323', 'Share Tech Mono', monospace;
-      padding: 12px;
+      padding: 20px;
     }
 
     .tv-cabinet {
       background: #2c1e12;
       border-radius: 48px 48px 32px 32px;
-      padding: 16px 20px 28px 20px;
+      padding: 24px 28px 36px 28px;
       box-shadow: 0 30px 40px rgba(0,0,0,0.6), inset 0 1px 4px rgba(255,255,200,0.2);
       border-bottom: 6px solid #8b5a2b;
-      width: 100%;
-      max-width: 1200px;
-    }
-
-    /* Force landscape on mobile */
-    @media (max-width: 768px) and (orientation: portrait) {
-      body {
-        transform: rotate(90deg);
-        transform-origin: left top;
-        width: 100vh;
-        height: 100vw;
-        overflow: hidden;
-        position: fixed;
-        top: 0;
-        left: 100vw;
-        padding: 8px;
-      }
-    }
-
-    @media (max-width: 1024px) {
-      .tv-cabinet {
-        padding: 12px 14px 20px 14px;
-        border-radius: 28px 28px 20px 20px;
-      }
-      .control-deck {
-        gap: 10px !important;
-        padding: 10px 16px !important;
-      }
     }
 
     .crt-tube {
@@ -117,7 +88,7 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: #1a1a1a;
+      background: #0a0a0a;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -126,34 +97,36 @@
       transition: opacity 0.5s ease;
     }
 
-    #staticCanvas {
+    .static-overlay {
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      opacity: 0.92;
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter><rect width="100%" height="100%" filter="url(%23noise)" opacity="0.3"/></svg>');
+      background-repeat: repeat;
+      background-size: 200px 150px;
+      opacity: 0.4;
+      pointer-events: none;
     }
 
     .standby-text {
       font-family: 'VT323', monospace;
       font-size: 28px;
-      color: #cccccc;
+      color: #8b8b8b;
       text-align: center;
       letter-spacing: 6px;
-      animation: blink 1.5s step-end infinite;
+      animation: blink 2s step-end infinite;
       z-index: 4;
-      background: rgba(0,0,0,0.55);
+      background: #000000aa;
       padding: 12px 24px;
       border-radius: 8px;
-      border: 1px solid #555;
-      text-shadow: 0 0 8px #aaa;
     }
 
     .standby-text small {
       font-size: 16px;
       letter-spacing: 2px;
-      color: #999999;
+      color: #6b6b6b;
     }
 
     @keyframes blink {
@@ -303,50 +276,6 @@
       color: #9eff8a;
     }
 
-    /* Autoplay button */
-    .autoplay-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background: radial-gradient(circle at 30% 30%, #4b3a1a, #2a1f0e);
-      border: 2px solid #cb9e6b;
-      border-radius: 40px;
-      padding: 6px 18px;
-      font-family: 'VT323', monospace;
-      font-size: 18px;
-      letter-spacing: 2px;
-      color: #ffd966;
-      cursor: pointer;
-      transition: 0.2s;
-      box-shadow: 0 3px 8px rgba(0,0,0,0.5);
-    }
-    .autoplay-btn:hover {
-      background: radial-gradient(circle at 30% 30%, #6b5a2a, #3a2f1e);
-      border-color: #f3c97f;
-      box-shadow: 0 0 12px rgba(203,158,107,0.4);
-    }
-    .autoplay-btn.active {
-      background: radial-gradient(circle at 30% 30%, #1a4a1a, #0e2a0e);
-      border-color: #4dff77;
-      color: #7fff99;
-      box-shadow: 0 0 14px rgba(77,255,119,0.3);
-      animation: autoplay-pulse 1.5s ease-in-out infinite;
-    }
-    @keyframes autoplay-pulse {
-      0%, 100% { box-shadow: 0 0 8px rgba(77,255,119,0.25); }
-      50% { box-shadow: 0 0 20px rgba(77,255,119,0.6); }
-    }
-
-    /* Channel transition overlay */
-    .channel-flash {
-      position: fixed;
-      inset: 0;
-      background: #fff;
-      z-index: 9999;
-      pointer-events: none;
-      opacity: 0;
-    }
-
     .toast-retro {
       position: fixed;
       bottom: 20px;
@@ -369,7 +298,7 @@
     <div class="tv-screen" id="tvScreen">
       <video id="videoElement" style="width:100%;height:100%;display:none"></video>
       <div class="standby-screen" id="standbyScreen">
-        <canvas id="staticCanvas"></canvas>
+        <canvas id="staticCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;"></canvas>
         <div class="standby-text">
           📺 NO SIGNAL<br>
           <small>SELECT A GREETING TAPE</small>
@@ -403,9 +332,9 @@
       <div class="status-led" id="liveLed"></div>
     </div>
 
-    <button class="autoplay-btn" id="autoplayBtn" title="Play all greetings in sequence">
+    <div class="upload-zone" id="autoplayTrigger" style="border-color:#e2a84b;">
       📼 AUTOPLAY ALL
-    </button>
+    </div>
 
     <div class="upload-zone" id="uploadTrigger">
       📀 UPLOAD VIDEO GREETING
@@ -418,8 +347,6 @@
     <span id="uploadStatus" class="upload-progress"></span>
   </div>
 </div>
-
-<div class="channel-flash" id="channelFlash"></div>
 
 <script>
   const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
@@ -775,146 +702,108 @@
     greetingSelect.addEventListener('change', onSelectGreeting);
   }
 
-  // ── Animated TV Static (grayscale canvas noise) ──────────────────
-  const staticCanvas = document.getElementById('staticCanvas');
-  const sctx = staticCanvas.getContext('2d');
-  let staticAnimId = null;
-
-  function resizeStaticCanvas() {
-    const rect = staticCanvas.parentElement.getBoundingClientRect();
-    staticCanvas.width = rect.width || 640;
-    staticCanvas.height = rect.height || 360;
-  }
-
-  function drawStatic() {
-    const w = staticCanvas.width;
-    const h = staticCanvas.height;
-    if (w === 0 || h === 0) { resizeStaticCanvas(); }
-    const imageData = sctx.createImageData(w, h);
-    const data = imageData.data;
-    for (let i = 0; i < data.length; i += 4) {
-      // Random gray pixel — classic analog TV snow
-      const g = (Math.random() * 200 + 30) | 0;
-      // Occasionally add a brighter "hot" pixel for authenticity
-      const bright = Math.random() < 0.02 ? 255 : g;
-      data[i]     = bright;
-      data[i + 1] = bright;
-      data[i + 2] = bright;
-      data[i + 3] = 240;
-    }
-    sctx.putImageData(imageData, 0, 0);
-
-    // Horizontal scan-bar sweep for that authentic VHF shimmer
-    const barY = (Date.now() / 3) % (h + 40) - 20;
-    const grad = sctx.createLinearGradient(0, barY, 0, barY + 40);
-    grad.addColorStop(0, 'rgba(255,255,255,0)');
-    grad.addColorStop(0.5, 'rgba(255,255,255,0.06)');
-    grad.addColorStop(1, 'rgba(255,255,255,0)');
-    sctx.fillStyle = grad;
-    sctx.fillRect(0, barY, w, 40);
-
-    staticAnimId = requestAnimationFrame(drawStatic);
-  }
-
-  function startStatic() {
-    resizeStaticCanvas();
-    if (!staticAnimId) drawStatic();
-  }
-
-  function stopStatic() {
-    if (staticAnimId) { cancelAnimationFrame(staticAnimId); staticAnimId = null; }
-  }
-
-  window.addEventListener('resize', () => {
-    if (standbyScreen.style.display !== 'none') resizeStaticCanvas();
-  });
-
-  // ── Channel Balance Transition ────────────────────────────────────
-  const channelFlash = document.getElementById('channelFlash');
-
-  function channelTransition(callback) {
-    // Quick white flash → brief darkness → play next
-    channelFlash.style.transition = 'none';
-    channelFlash.style.opacity = '1';
-    setTimeout(() => {
-      channelFlash.style.transition = 'opacity 0.25s ease-out';
-      channelFlash.style.opacity = '0';
-      if (callback) callback();
-    }, 80);
-  }
-
-  // ── Autoplay ─────────────────────────────────────────────────────
-  const autoplayBtn = document.getElementById('autoplayBtn');
-  let autoplayActive = false;
-  let autoplayIndex = 0;
-
-  function setAutoplay(active) {
-    autoplayActive = active;
-    autoplayBtn.classList.toggle('active', active);
-    autoplayBtn.textContent = active ? '⏹ STOP AUTOPLAY' : '📼 AUTOPLAY ALL';
-  }
-
-  function autoplayNext(fromIndex) {
-    if (!autoplayActive || greetingsList.length === 0) {
-      setAutoplay(false);
-      showToast("📼 Autoplay finished", 1800);
-      return;
-    }
-    autoplayIndex = fromIndex % greetingsList.length;
-    const g = greetingsList[autoplayIndex];
-    greetingSelect.value = g.id;
-
-    channelTransition(() => {
-      loadVideoByUrl(g.video_url, g.id, g.title);
-      showToast(`📺 [${autoplayIndex + 1}/${greetingsList.length}] ${g.title}`, 2000);
-    });
-  }
-
-  autoplayBtn.onclick = () => {
-    if (autoplayActive) {
-      setAutoplay(false);
-      showToast("⏹ Autoplay stopped", 1200);
-    } else {
-      if (greetingsList.length === 0) {
-        showToast("📭 No tapes loaded yet", 1500);
-        return;
-      }
-      setAutoplay(true);
-      autoplayIndex = 0;
-      autoplayNext(0);
-    }
-  };
-
-  // Hook into video ended to advance autoplay
-  const _origEnded = videoEl.onended;
-  videoEl.addEventListener('ended', () => {
-    if (autoplayActive) {
-      setTimeout(() => autoplayNext(autoplayIndex + 1), 600);
-    }
-  });
-
-  // ── Override showStandby / showVideo to manage static ─────────────
-  // Patch: intercept calls by wrapping the originals via prototype trick
-  // Since they're plain functions, we patch at call sites via MutationObserver on standbyScreen display
-  const standbyObserver = new MutationObserver(() => {
-    if (standbyScreen.style.display === 'none') {
-      stopStatic();
-    } else {
-      startStatic();
-    }
-  });
-  standbyObserver.observe(standbyScreen, { attributes: true, attributeFilter: ['style'] });
-
-  // Start static on load (standby is shown by default)
-  startStatic();
-
-
+  initRetroTV().catch(console.error);
 
   volumeDialDiv.addEventListener('wheel', (e) => {
     e.preventDefault();
     if (e.deltaY < 0) volumeUp();
     else volumeDown();
   });
+
+  // ── Animated grayscale TV static ──────────────────────────────────
+  (function() {
+    const canvas = document.getElementById('staticCanvas');
+    const ctx = canvas.getContext('2d');
+    let rafId = null;
+
+    function syncSize() {
+      canvas.width  = canvas.offsetWidth  || 640;
+      canvas.height = canvas.offsetHeight || 360;
+    }
+
+    function drawNoise() {
+      syncSize();
+      const w = canvas.width, h = canvas.height;
+      const img = ctx.createImageData(w, h);
+      const d = img.data;
+      for (let i = 0; i < d.length; i += 4) {
+        const v = (Math.random() * 255) | 0;
+        d[i] = d[i+1] = d[i+2] = v;
+        d[i+3] = 255;
+      }
+      ctx.putImageData(img, 0, 0);
+      // faint horizontal scan shimmer
+      const by = ((Date.now() / 4) % (h + 30)) - 15;
+      const g = ctx.createLinearGradient(0, by, 0, by + 30);
+      g.addColorStop(0,   'rgba(255,255,255,0)');
+      g.addColorStop(0.5, 'rgba(255,255,255,0.07)');
+      g.addColorStop(1,   'rgba(255,255,255,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, by, w, 30);
+      rafId = requestAnimationFrame(drawNoise);
+    }
+
+    // Start/stop tied to standby visibility
+    const observer = new MutationObserver(() => {
+      const visible = standbyScreen.style.display !== 'none';
+      if (visible && !rafId) { drawNoise(); }
+      else if (!visible && rafId) { cancelAnimationFrame(rafId); rafId = null; }
+    });
+    observer.observe(standbyScreen, { attributes: true, attributeFilter: ['style'] });
+
+    // Start immediately (standby is shown on load)
+    drawNoise();
+  })();
+
+  // ── Autoplay all videos with channel-flash transition ─────────────
+  (function() {
+    const btn = document.getElementById('autoplayTrigger');
+    let active = false;
+    let idx = 0;
+
+    function setActive(val) {
+      active = val;
+      btn.innerHTML = active ? '⏹ STOP AUTOPLAY' : '📼 AUTOPLAY ALL';
+      btn.style.borderColor = active ? '#4dff77' : '#e2a84b';
+      btn.style.color       = active ? '#7fff99' : '#e6c28f';
+    }
+
+    function flash(cb) {
+      const el = document.createElement('div');
+      el.style.cssText = 'position:fixed;inset:0;background:#fff;z-index:9999;pointer-events:none;opacity:1;transition:opacity 0.2s ease';
+      document.body.appendChild(el);
+      setTimeout(() => { el.style.opacity = '0'; cb(); }, 60);
+      setTimeout(() => el.remove(), 300);
+    }
+
+    function playNext() {
+      if (!active || greetingsList.length === 0) { setActive(false); return; }
+      idx = idx % greetingsList.length;
+      const g = greetingsList[idx];
+      greetingSelect.value = g.id;
+      flash(() => {
+        loadVideoByUrl(g.video_url, g.id, g.title);
+        showToast(`📺 [${idx + 1}/${greetingsList.length}] ${g.title}`, 2000);
+      });
+    }
+
+    // When a video ends, advance if autoplay is on
+    videoEl.addEventListener('ended', () => {
+      if (active) { idx++; setTimeout(playNext, 500); }
+    });
+
+    btn.addEventListener('click', () => {
+      if (active) {
+        setActive(false);
+        showToast('⏹ Autoplay stopped', 1200);
+      } else {
+        if (greetingsList.length === 0) { showToast('📭 No tapes loaded yet', 1500); return; }
+        setActive(true);
+        idx = 0;
+        playNext();
+      }
+    });
+  })();
 </script>
 </body>
 </html>
