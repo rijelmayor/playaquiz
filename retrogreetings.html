@@ -24,7 +24,6 @@
       padding: 20px;
     }
 
-    /* CRT SCREEN HOLDER */
     .tv-cabinet {
       background: #2c1e12;
       border-radius: 48px 48px 32px 32px;
@@ -48,10 +47,8 @@
       position: relative;
       aspect-ratio: 16 / 9;
       box-shadow: inset 0 0 60px rgba(0,0,0,0.8), 0 0 0 3px #cb9e6b, 0 0 0 8px #3b2a1c;
-      transition: all 0.2s ease;
     }
 
-    /* scanline effect */
     .tv-screen::before {
       content: "";
       position: absolute;
@@ -84,7 +81,6 @@
       display: block;
     }
 
-    /* control panel - retro knobs */
     .control-deck {
       margin-top: 24px;
       display: flex;
@@ -168,7 +164,6 @@
       box-shadow: 0 1px 0 #1f1408;
     }
 
-    /* hidden upload zone */
     .upload-zone {
       background: #12100c;
       border: 2px dashed #b87c3a;
@@ -232,9 +227,9 @@
     .status-led {
       width: 12px;
       height: 12px;
-      background: #ff3333;
+      background: #33ff33;
       border-radius: 50%;
-      box-shadow: 0 0 6px red;
+      box-shadow: 0 0 6px #33ff33;
       animation: pulse 1.2s infinite;
     }
 
@@ -263,25 +258,33 @@
       border-radius: 16px;
       box-shadow: 0 5px 15px black;
     }
+
+    .audio-warning {
+      background: #ffcc0044;
+      border: 1px solid #ffcc00;
+      border-radius: 8px;
+      padding: 4px 12px;
+      font-size: 11px;
+      color: #ffcc00;
+      font-family: monospace;
+    }
   </style>
 </head>
 <body>
 <div class="tv-cabinet">
   <div class="crt-tube">
     <div class="tv-screen">
-      <video id="videoElement" autoplay muted playsinline></video>
+      <video id="videoElement" autoplay playsinline style="width:100%;height:100%"></video>
     </div>
   </div>
 
   <div class="control-deck">
-    <!-- VOLUME KNOB -->
     <div class="knob-group">
       <div class="knob">
         <span class="knob-label">📢 VOLUME</span>
         <div class="dial" id="volumeDial">🔊</div>
         <span id="volumePercent" class="volume-value">65%</span>
       </div>
-      <!-- REW/PLAY/FF KNOB STYLE -->
       <div class="knob">
         <span class="knob-label">⏪ REEL ⏩</span>
         <div style="display: flex; gap: 10px; align-items: center;">
@@ -292,7 +295,6 @@
       </div>
     </div>
 
-    <!-- Greeting selector & upload hidden -->
     <div class="greeting-selector">
       <span>📼 GREETING TAPE</span>
       <select id="greetingSelect"></select>
@@ -312,14 +314,10 @@
 </div>
 
 <script>
-  // ----------------------------------------------
-  // SUPABASE CONFIG (from reference file)
-  // ----------------------------------------------
   const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
   const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-  // DOM elements
   const videoEl = document.getElementById('videoElement');
   const greetingSelect = document.getElementById('greetingSelect');
   const volumeDialDiv = document.getElementById('volumeDial');
@@ -332,36 +330,42 @@
   const uploadStatusSpan = document.getElementById('uploadStatus');
   const liveLed = document.getElementById('liveLed');
 
-  // Global state
-  let currentVolume = 0.65;     // 0..1
+  let currentVolume = 0.65;
   let currentVideoUrl = null;
   let currentVideoId = null;
-  let greetingsList = [];        // array of {id, title, video_url, created_at}
-  
-  // For retro effect: we keep video element ready
+  let greetingsList = [];
 
-  // Adjust volume display & actual volume
+  // IMPORTANT: Unmute video and set volume
   function setVolume(value01) {
     currentVolume = Math.min(1, Math.max(0, value01));
     videoEl.volume = currentVolume;
     volumePercentSpan.innerText = `${Math.round(currentVolume * 100)}%`;
-    // visual dial effect
     if (currentVolume < 0.2) volumeDialDiv.innerHTML = '🔈';
     else if (currentVolume < 0.6) volumeDialDiv.innerHTML = '🔉';
     else volumeDialDiv.innerHTML = '🔊';
   }
 
-  // increase / decrease volume
   function volumeUp() { setVolume(currentVolume + 0.1); }
   function volumeDown() { setVolume(currentVolume - 0.1); }
 
-  // ---- Video Controls ----
   function playVideo() {
     if (videoEl.src) {
-      videoEl.play().catch(e => {
-        console.warn("play error", e);
-        showToast("📼 Cannot autoplay, click play again?", 1500);
-      });
+      // Ensure video is unmuted
+      videoEl.muted = false;
+      const playPromise = videoEl.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(e => {
+          console.log("Play error:", e);
+          showToast("🔊 Click anywhere to enable audio", 2000);
+          // Try to unmute and play again on user interaction
+          document.body.onclick = function enableAudio() {
+            videoEl.muted = false;
+            videoEl.play().catch(()=>{});
+            document.body.onclick = null;
+            showToast("✅ Audio enabled!", 1000);
+          };
+        });
+      }
     } else {
       showToast("📭 No video loaded, select a greeting", 1500);
     }
@@ -381,36 +385,33 @@
     showToast("⏩ FORWARD 3s", 800);
   }
 
-  // load video from url (blob/public url)
   function loadVideoByUrl(url, videoId, title) {
     if (!url) {
-      videoEl.poster = '';
       videoEl.src = '';
       currentVideoUrl = null;
       return;
     }
-    // important: ensure supabase public url works, we refresh
+    
+    // Stop current playback
+    videoEl.pause();
     videoEl.src = url;
     videoEl.load();
     currentVideoUrl = url;
     currentVideoId = videoId;
-    playVideo(); // auto-play retro style
-    showToast(`📺 Now playing: ${title || "greeting"}`, 1800);
+    
+    // CRITICAL: unmute and set volume before playing
+    videoEl.muted = false;
+    videoEl.volume = currentVolume;
+    
+    // Show loading indicator
+    showToast(`📺 Loading: ${title || "greeting"}`, 1000);
+    
+    // Attempt to play
+    setTimeout(() => {
+      playVideo();
+    }, 100);
   }
 
-  // ========== SUPABASE TABLE "video_greetings" ==========
-  // We'll auto-create if missing by just inserting sample, but we assume table exists.
-  // Create table schema if needed:
-  // CREATE TABLE video_greetings (
-  //   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  //   title TEXT NOT NULL,
-  //   video_url TEXT NOT NULL,
-  //   created_at TIMESTAMPTZ DEFAULT now(),
-  //   updated_at TIMESTAMPTZ
-  // );
-  // Storage bucket: "greetings" (public) for mp4 files.
-
-  // ensure bucket and table are ready – but for demonstration we use dynamic checks
   async function fetchGreetings() {
     try {
       const { data, error } = await sb
@@ -418,10 +419,8 @@
         .select('*')
         .order('created_at', { ascending: false });
       if (error) {
-        console.error("Table error:", error);
-        // if table missing, show message but proceed gracefully
-        if (error.code === '42P01') { // relation does not exist
-          showToast("⚠️ TABLE 'video_greetings' missing — please create in Supabase SQL", 4000);
+        if (error.code === '42P01') {
+          showToast("⚠️ TABLE 'video_greetings' missing — please create in Supabase", 4000);
           greetingsList = [];
           renderSelect();
           return;
@@ -431,7 +430,6 @@
       greetingsList = data || [];
       renderSelect();
       if (greetingsList.length > 0 && !currentVideoUrl) {
-        // auto load first greeting
         const first = greetingsList[0];
         loadVideoByUrl(first.video_url, first.id, first.title);
       }
@@ -458,7 +456,6 @@
 
   async function uploadVideoToSupabase(file, titleHint) {
     if (!file) return null;
-    // generate unique file name
     const ext = file.name.split('.').pop();
     const fileName = `greeting_${Date.now()}_${Math.floor(Math.random()*10000)}.${ext}`;
     const filePath = `public/${fileName}`;
@@ -471,31 +468,32 @@
         upsert: false
       });
     if (uploadError) {
-      console.error(uploadError);
       uploadStatusSpan.innerText = `❌ Upload failed: ${uploadError.message}`;
       showToast("Storage upload error", 3000);
       return null;
     }
-    // get public URL
+    
     const { data: publicUrlData } = sb.storage.from('greetings').getPublicUrl(filePath);
     const publicURL = publicUrlData.publicUrl;
-    // insert into table
     const title = titleHint || file.name.replace(/\.[^/.]+$/, "").slice(0, 45);
+    
     const { data: insertData, error: insertErr } = await sb
       .from('video_greetings')
       .insert([{ title: title, video_url: publicURL }])
       .select()
       .single();
+      
     if (insertErr) {
       uploadStatusSpan.innerText = `⚠️ DB insert failed`;
       showToast("DB insert error: " + insertErr.message, 3000);
       return null;
     }
+    
     uploadStatusSpan.innerText = `✅ Uploaded & added: ${title}`;
     setTimeout(() => { uploadStatusSpan.innerText = ''; }, 3000);
     showToast(`🎬 "${title}" added to greetings!`, 2500);
     await fetchGreetings();
-    // auto select new greeting
+    
     if (insertData) {
       loadVideoByUrl(insertData.video_url, insertData.id, insertData.title);
       greetingSelect.value = insertData.id;
@@ -503,20 +501,15 @@
     return insertData;
   }
 
-  // Helper to create bucket + table if missing (polite advice)
   async function ensureStorageBucket() {
-    // just try to list; if bucket not exist, we can't auto-create due to permissions.
-    // But check and show friendly info.
     const { data, error } = await sb.storage.getBucket('greetings');
     if (error && error.message.includes('not found')) {
-      console.warn("Bucket 'greetings' missing – please create in Supabase Storage (public bucket)");
       showToast("⚠️ Storage bucket 'greetings' missing. Please create a public bucket named 'greetings' in Supabase.", 5000);
       return false;
     }
     return true;
   }
 
-  // handle file selection
   function triggerFileUpload() {
     fileInput.click();
   }
@@ -531,7 +524,7 @@
     let customTitle = prompt("Enter greeting title (optional):", file.name.replace(/\.[^/.]+$/, ""));
     if (customTitle === null) customTitle = file.name;
     await uploadVideoToSupabase(file, customTitle);
-    fileInput.value = ''; // reset
+    fileInput.value = '';
   }
 
   function updateLedStatus(connected) {
@@ -543,18 +536,13 @@
     }
   }
 
-  // event: select greeting from dropdown
-  async function onSelectGreeting() {
+  function onSelectGreeting() {
     const selectedId = greetingSelect.value;
     if (!selectedId) {
       if (greetingsList.length) {
-        // fallback nothing
-      } else {
-        videoEl.src = '';
-        return;
+        const first = greetingsList[0];
+        if (first) loadVideoByUrl(first.video_url, first.id, first.title);
       }
-      const first = greetingsList[0];
-      if (first) loadVideoByUrl(first.video_url, first.id, first.title);
       return;
     }
     const greeting = greetingsList.find(g => g.id === selectedId);
@@ -563,14 +551,13 @@
     }
   }
 
-  // rotary volume: click on dial cycles / step or use wheel? create intuitive: left/right?
-  volumeDialDiv.onclick = (e) => {
-    // cycle by 0.1
+  // Event listeners
+  volumeDialDiv.onclick = () => {
     let newVol = currentVolume + 0.1;
     if (newVol > 1.05) newVol = 0;
     setVolume(newVol);
   };
-  // rewind / forward / play
+  
   playBtn.onclick = () => {
     if (videoEl.paused) playVideo();
     else pauseVideo();
@@ -580,22 +567,26 @@
       else playBtn.innerHTML = "⏸";
     }, 100);
   };
+  
   rewindBtn.onclick = () => { rewindVideo(); };
   forwardBtn.onclick = () => { forwardVideo(); };
 
-  // adapt play button state on playing/pause
   videoEl.addEventListener('play', () => { playBtn.innerHTML = "⏸"; });
   videoEl.addEventListener('pause', () => { playBtn.innerHTML = "▶"; });
   videoEl.addEventListener('ended', () => { playBtn.innerHTML = "▶"; showToast("📼 The End. Rewind or pick another.", 1500); });
+  
+  // Ensure audio is enabled
+  videoEl.addEventListener('canplay', () => {
+    videoEl.muted = false;
+    videoEl.volume = currentVolume;
+  });
 
-  // volume hotkeys (optional)
   window.addEventListener('keydown', (e) => {
     if (e.key === 'ArrowUp') { volumeUp(); e.preventDefault(); }
     if (e.key === 'ArrowDown') { volumeDown(); e.preventDefault(); }
     if (e.key === ' ') { playBtn.click(); e.preventDefault(); }
   });
 
-  // simple toast
   function showToast(msg, duration = 2000) {
     let toastDiv = document.querySelector('.toast-retro');
     if (toastDiv) toastDiv.remove();
@@ -606,13 +597,11 @@
     setTimeout(() => { if (toast) toast.remove(); }, duration);
   }
 
-  // Additional: if no greetings initially, add sample placeholder using a public demo video? but with storage greeting we add a dummy via upload? prompt to add? we'll try to insert a default test greeting if table empty
   async function seedSampleGreetingIfEmpty() {
     const { count, error: countErr } = await sb
       .from('video_greetings')
       .select('*', { count: 'exact', head: true });
     if (!countErr && count === 0) {
-      // insert a demo sample message using a short royalty free sample clip (Big Buck Bunny snippet public domain)
       const demoVideoUrl = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4";
       const { error: insertErr } = await sb
         .from('video_greetings')
@@ -620,59 +609,32 @@
       if (!insertErr) {
         showToast("✨ Added demo greeting video!", 2000);
         await fetchGreetings();
-      } else {
-        console.warn("could not insert demo, maybe table missing:", insertErr);
       }
     }
   }
 
-  // ========== On load: init supabase & create TABLE if needed ==========
-  // we will manually show a friendly text for table creation if missing.
   async function initRetroTV() {
-    // test table exist by select limit 1
     const { error: tableCheck } = await sb.from('video_greetings').select('id', { count: 'exact', head: true });
     if (tableCheck && tableCheck.code === '42P01') {
-      showToast("📺 TABLE MISSING: Run SQL in Supabase SQL editor → CREATE TABLE video_greetings ( id UUID DEFAULT gen_random_uuid() PRIMARY KEY, title TEXT NOT NULL, video_url TEXT NOT NULL, created_at TIMESTAMPTZ DEFAULT now() )", 8000);
-      document.getElementById('greetingSelect').innerHTML = '<option>❗ Setup needed</option>';
+      showToast("📺 TABLE MISSING: Run SQL in Supabase SQL editor", 8000);
       return;
     }
     await ensureStorageBucket();
     await fetchGreetings();
     await seedSampleGreetingIfEmpty();
     setVolume(0.65);
-    // listen for file input
     fileInput.addEventListener('change', handleFileSelected);
     uploadTrigger.addEventListener('click', triggerFileUpload);
     greetingSelect.addEventListener('change', onSelectGreeting);
-    // set initial video from first if present
-    if (greetingsList.length > 0 && !currentVideoUrl) {
-      const first = greetingsList[0];
-      loadVideoByUrl(first.video_url, first.id, first.title);
-    } else if (!greetingsList.length) {
-      videoEl.poster = '';
-      videoEl.src = '';
-    }
-    // indicator blink for 'live'
-    setInterval(() => {
-      if (videoEl && !videoEl.paused && videoEl.src) {
-        liveLed.style.opacity = '1';
-      } else {
-        liveLed.style.opacity = '0.6';
-      }
-    }, 800);
   }
 
   initRetroTV().catch(console.error);
 
-  // ---- additional: handle volume dial with hover/wheel?
   volumeDialDiv.addEventListener('wheel', (e) => {
     e.preventDefault();
     if (e.deltaY < 0) volumeUp();
     else volumeDown();
   });
-
-  // For styling mobiles, make it fun
-  console.log("Retro Greetings Studio Loaded — UHF channel 9");
 </script>
 </body>
 </html>
