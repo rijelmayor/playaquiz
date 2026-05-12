@@ -81,6 +81,59 @@
       display: block;
     }
 
+    /* Standby / Static screen */
+    .standby-screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #0a0a0a;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 3;
+      transition: opacity 0.5s ease;
+    }
+
+    .static-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300"><filter id="noise"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter><rect width="100%" height="100%" filter="url(%23noise)" opacity="0.3"/></svg>');
+      background-repeat: repeat;
+      background-size: 200px 150px;
+      opacity: 0.4;
+      pointer-events: none;
+    }
+
+    .standby-text {
+      font-family: 'VT323', monospace;
+      font-size: 28px;
+      color: #8b8b8b;
+      text-align: center;
+      letter-spacing: 6px;
+      animation: blink 2s step-end infinite;
+      z-index: 4;
+      background: #000000aa;
+      padding: 12px 24px;
+      border-radius: 8px;
+    }
+
+    .standby-text small {
+      font-size: 16px;
+      letter-spacing: 2px;
+      color: #6b6b6b;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
     .control-deck {
       margin-top: 24px;
       display: flex;
@@ -143,27 +196,6 @@
       transform: scale(0.94);
     }
 
-    .btn-retro {
-      background: #3a2a1a;
-      border: none;
-      padding: 8px 22px;
-      border-radius: 40px;
-      font-family: 'Orbitron', monospace;
-      font-weight: bold;
-      font-size: 16px;
-      color: #f7e6c4;
-      text-shadow: 0 1px 0 #1f1408;
-      cursor: pointer;
-      transition: all 0.07s linear;
-      box-shadow: 0 3px 0 #1f1408;
-      letter-spacing: 1px;
-    }
-
-    .btn-retro:active {
-      transform: translateY(2px);
-      box-shadow: 0 1px 0 #1f1408;
-    }
-
     .upload-zone {
       background: #12100c;
       border: 2px dashed #b87c3a;
@@ -213,7 +245,7 @@
       outline: none;
     }
 
-    .volume-value, .time-value {
+    .volume-value {
       font-family: 'Orbitron', monospace;
       font-size: 16px;
       color: #ffd966;
@@ -227,9 +259,9 @@
     .status-led {
       width: 12px;
       height: 12px;
-      background: #33ff33;
+      background: #ff3333;
       border-radius: 50%;
-      box-shadow: 0 0 6px #33ff33;
+      box-shadow: 0 0 6px red;
       animation: pulse 1.2s infinite;
     }
 
@@ -258,23 +290,20 @@
       border-radius: 16px;
       box-shadow: 0 5px 15px black;
     }
-
-    .audio-warning {
-      background: #ffcc0044;
-      border: 1px solid #ffcc00;
-      border-radius: 8px;
-      padding: 4px 12px;
-      font-size: 11px;
-      color: #ffcc00;
-      font-family: monospace;
-    }
   </style>
 </head>
 <body>
 <div class="tv-cabinet">
   <div class="crt-tube">
-    <div class="tv-screen">
-      <video id="videoElement" autoplay playsinline style="width:100%;height:100%"></video>
+    <div class="tv-screen" id="tvScreen">
+      <video id="videoElement" style="width:100%;height:100%;display:none"></video>
+      <div class="standby-screen" id="standbyScreen">
+        <div class="static-overlay"></div>
+        <div class="standby-text">
+          📺 NO SIGNAL<br>
+          <small>SELECT A GREETING TAPE</small>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -297,7 +326,9 @@
 
     <div class="greeting-selector">
       <span>📼 GREETING TAPE</span>
-      <select id="greetingSelect"></select>
+      <select id="greetingSelect">
+        <option value="">-- No Signal --</option>
+      </select>
       <div class="status-led" id="liveLed"></div>
     </div>
 
@@ -319,6 +350,8 @@
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
   const videoEl = document.getElementById('videoElement');
+  const standbyScreen = document.getElementById('standbyScreen');
+  const tvScreen = document.getElementById('tvScreen');
   const greetingSelect = document.getElementById('greetingSelect');
   const volumeDialDiv = document.getElementById('volumeDial');
   const volumePercentSpan = document.getElementById('volumePercent');
@@ -334,8 +367,23 @@
   let currentVideoUrl = null;
   let currentVideoId = null;
   let greetingsList = [];
+  let isVideoPlaying = false;
 
-  // IMPORTANT: Unmute video and set volume
+  // Show standby screen, hide video
+  function showStandby() {
+    standbyScreen.style.display = 'flex';
+    videoEl.style.display = 'none';
+    videoEl.pause();
+    isVideoPlaying = false;
+    playBtn.innerHTML = "▶";
+  }
+
+  // Show video player, hide standby
+  function showVideo() {
+    standbyScreen.style.display = 'none';
+    videoEl.style.display = 'block';
+  }
+
   function setVolume(value01) {
     currentVolume = Math.min(1, Math.max(0, value01));
     videoEl.volume = currentVolume;
@@ -349,15 +397,16 @@
   function volumeDown() { setVolume(currentVolume - 0.1); }
 
   function playVideo() {
-    if (videoEl.src) {
-      // Ensure video is unmuted
+    if (videoEl.src && videoEl.src !== '') {
       videoEl.muted = false;
       const playPromise = videoEl.play();
       if (playPromise !== undefined) {
-        playPromise.catch(e => {
+        playPromise.then(() => {
+          isVideoPlaying = true;
+          playBtn.innerHTML = "⏸";
+        }).catch(e => {
           console.log("Play error:", e);
           showToast("🔊 Click anywhere to enable audio", 2000);
-          // Try to unmute and play again on user interaction
           document.body.onclick = function enableAudio() {
             videoEl.muted = false;
             videoEl.play().catch(()=>{});
@@ -367,30 +416,46 @@
         });
       }
     } else {
-      showToast("📭 No video loaded, select a greeting", 1500);
+      showToast("📭 No video loaded, select a greeting from the dropdown", 1500);
     }
   }
 
-  function pauseVideo() { videoEl.pause(); }
+  function pauseVideo() { 
+    videoEl.pause(); 
+    isVideoPlaying = false;
+    playBtn.innerHTML = "▶";
+  }
 
   function rewindVideo() {
-    if (videoEl.currentTime > 3) videoEl.currentTime -= 3;
-    else videoEl.currentTime = 0;
-    showToast("⏪ REWIND 3s", 800);
+    if (videoEl.src && videoEl.src !== '') {
+      if (videoEl.currentTime > 3) videoEl.currentTime -= 3;
+      else videoEl.currentTime = 0;
+      showToast("⏪ REWIND 3s", 800);
+    } else {
+      showToast("No video playing", 800);
+    }
   }
 
   function forwardVideo() {
-    if (videoEl.duration && videoEl.currentTime + 3 < videoEl.duration) videoEl.currentTime += 3;
-    else if (videoEl.duration) videoEl.currentTime = videoEl.duration - 0.5;
-    showToast("⏩ FORWARD 3s", 800);
+    if (videoEl.src && videoEl.src !== '') {
+      if (videoEl.duration && videoEl.currentTime + 3 < videoEl.duration) videoEl.currentTime += 3;
+      else if (videoEl.duration) videoEl.currentTime = videoEl.duration - 0.5;
+      showToast("⏩ FORWARD 3s", 800);
+    } else {
+      showToast("No video playing", 800);
+    }
   }
 
   function loadVideoByUrl(url, videoId, title) {
     if (!url) {
-      videoEl.src = '';
+      showStandby();
       currentVideoUrl = null;
+      currentVideoId = null;
       return;
     }
+    
+    // Show video player first
+    showVideo();
     
     // Stop current playback
     videoEl.pause();
@@ -399,14 +464,12 @@
     currentVideoUrl = url;
     currentVideoId = videoId;
     
-    // CRITICAL: unmute and set volume before playing
     videoEl.muted = false;
     videoEl.volume = currentVolume;
     
-    // Show loading indicator
-    showToast(`📺 Loading: ${title || "greeting"}`, 1000);
+    showToast(`📺 Now playing: ${title || "greeting"}`, 1500);
     
-    // Attempt to play
+    // Auto-play
     setTimeout(() => {
       playVideo();
     }, 100);
@@ -429,11 +492,8 @@
       }
       greetingsList = data || [];
       renderSelect();
-      if (greetingsList.length > 0 && !currentVideoUrl) {
-        const first = greetingsList[0];
-        loadVideoByUrl(first.video_url, first.id, first.title);
-      }
       updateLedStatus(true);
+      // Do NOT auto-load any video - keep standby screen
     } catch (err) {
       console.error(err);
       showToast("DB error: " + err.message, 3000);
@@ -442,16 +502,13 @@
   }
 
   function renderSelect() {
-    greetingSelect.innerHTML = '<option value="">📼 -- Select Greeting --</option>';
+    greetingSelect.innerHTML = '<option value="">📼 -- SELECT A TAPE --</option>';
     greetingsList.forEach(g => {
       const option = document.createElement('option');
       option.value = g.id;
       option.textContent = `${g.title.length > 28 ? g.title.slice(0,28)+'…' : g.title} 🎞️`;
       greetingSelect.appendChild(option);
     });
-    if (currentVideoId) {
-      greetingSelect.value = currentVideoId;
-    }
   }
 
   async function uploadVideoToSupabase(file, titleHint) {
@@ -494,9 +551,10 @@
     showToast(`🎬 "${title}" added to greetings!`, 2500);
     await fetchGreetings();
     
+    // Auto-select and play the newly uploaded video
     if (insertData) {
-      loadVideoByUrl(insertData.video_url, insertData.id, insertData.title);
       greetingSelect.value = insertData.id;
+      loadVideoByUrl(insertData.video_url, insertData.id, insertData.title);
     }
     return insertData;
   }
@@ -539,10 +597,11 @@
   function onSelectGreeting() {
     const selectedId = greetingSelect.value;
     if (!selectedId) {
-      if (greetingsList.length) {
-        const first = greetingsList[0];
-        if (first) loadVideoByUrl(first.video_url, first.id, first.title);
-      }
+      // User selected the placeholder - go back to standby
+      showStandby();
+      videoEl.src = '';
+      currentVideoUrl = null;
+      currentVideoId = null;
       return;
     }
     const greeting = greetingsList.find(g => g.id === selectedId);
@@ -559,23 +618,31 @@
   };
   
   playBtn.onclick = () => {
-    if (videoEl.paused) playVideo();
-    else pauseVideo();
-    playBtn.innerHTML = videoEl.paused ? "▶" : "⏸";
-    setTimeout(() => {
-      if (!videoEl.paused) playBtn.innerHTML = "▶";
-      else playBtn.innerHTML = "⏸";
-    }, 100);
+    if (videoEl.src && videoEl.src !== '' && videoEl.style.display !== 'none') {
+      if (videoEl.paused) playVideo();
+      else pauseVideo();
+    } else {
+      showToast("📼 No tape loaded — select a greeting first", 1500);
+    }
   };
   
   rewindBtn.onclick = () => { rewindVideo(); };
   forwardBtn.onclick = () => { forwardVideo(); };
 
-  videoEl.addEventListener('play', () => { playBtn.innerHTML = "⏸"; });
-  videoEl.addEventListener('pause', () => { playBtn.innerHTML = "▶"; });
-  videoEl.addEventListener('ended', () => { playBtn.innerHTML = "▶"; showToast("📼 The End. Rewind or pick another.", 1500); });
+  videoEl.addEventListener('play', () => { 
+    isVideoPlaying = true;
+    playBtn.innerHTML = "⏸"; 
+  });
+  videoEl.addEventListener('pause', () => { 
+    isVideoPlaying = false;
+    playBtn.innerHTML = "▶"; 
+  });
+  videoEl.addEventListener('ended', () => { 
+    playBtn.innerHTML = "▶"; 
+    isVideoPlaying = false;
+    showToast("📼 The tape ended. Select another greeting.", 1500);
+  });
   
-  // Ensure audio is enabled
   videoEl.addEventListener('canplay', () => {
     videoEl.muted = false;
     videoEl.volume = currentVolume;
@@ -607,7 +674,7 @@
         .from('video_greetings')
         .insert([{ title: "🎬 Retro Welcome Demo", video_url: demoVideoUrl }]);
       if (!insertErr) {
-        showToast("✨ Added demo greeting video!", 2000);
+        showToast("✨ Added demo greeting video! Select from dropdown.", 3000);
         await fetchGreetings();
       }
     }
@@ -623,6 +690,9 @@
     await fetchGreetings();
     await seedSampleGreetingIfEmpty();
     setVolume(0.65);
+    // Start with standby screen
+    showStandby();
+    
     fileInput.addEventListener('change', handleFileSelected);
     uploadTrigger.addEventListener('click', triggerFileUpload);
     greetingSelect.addEventListener('change', onSelectGreeting);
