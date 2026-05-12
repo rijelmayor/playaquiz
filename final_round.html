@@ -2,646 +2,295 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Final Round — PlayAQuiz | Championship Arena</title>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JOY Turns 70 • FINAL ROUND</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --gold: #ffd700;
+      --pink: #ff3b9a;
+      --cyan: #00f5ff;
+    }
+    
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
-      user-select: none;
     }
 
     body {
-      min-height: 100vh;
-      background: radial-gradient(ellipse at 30% 40%, #0a0f1a, #020408);
       font-family: 'Space Grotesk', sans-serif;
-      overflow-x: hidden;
+      color: white;
+      min-height: 100vh;
+      overflow: hidden;
+      background: linear-gradient(135deg, #0f0022, #2a0044, #4a0077);
       position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
     }
 
-    /* animated particles: sparkles + glowing orbs */
-    #particleCanvas {
+    /* Elegant Floating Balloons + Sparkles */
+    .balloons {
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+      inset: 0;
       pointer-events: none;
       z-index: 1;
+      overflow: hidden;
     }
 
-    /* main championship card */
-    .final-arena {
+    .balloon {
+      position: absolute;
+      font-size: 65px;
+      animation: floatUp linear infinite;
+      filter: drop-shadow(0 10px 15px rgba(255, 215, 0, 0.4));
+    }
+
+    @keyframes floatUp {
+      0% { transform: translateY(110vh) rotate(-15deg); }
+      100% { transform: translateY(-150px) rotate(25deg); }
+    }
+
+    .content {
       position: relative;
-      z-index: 20;
-      max-width: 920px;
-      width: 100%;
-      background: rgba(4, 7, 18, 0.85);
-      backdrop-filter: blur(20px);
-      border-radius: 72px;
-      border: 2px solid rgba(250, 204, 21, 0.7);
-      box-shadow: 0 30px 55px -10px rgba(0,0,0,0.9), 0 0 0 2px rgba(255,215,0,0.4), 0 0 60px rgba(250,204,21,0.25);
-      padding: 30px 36px 48px;
-      text-align: center;
-      transition: 0.4s;
-      animation: riseUp 0.7s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    @keyframes riseUp {
-      0% { opacity: 0; transform: scale(0.92) translateY(50px); }
-      100% { opacity: 1; transform: scale(1) translateY(0); }
-    }
-
-    /* final round badge */
-    .final-badge {
-      display: inline-flex;
+      z-index: 2;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: 12px;
-      background: linear-gradient(135deg, rgba(250,204,21,0.25), rgba(245,158,11,0.2));
-      border: 1px solid rgba(250,204,21,0.7);
-      border-radius: 100px;
-      padding: 10px 28px;
-      margin-bottom: 20px;
-      backdrop-filter: blur(4px);
-    }
-    .final-badge span:first-child {
-      font-size: 38px;
-      filter: drop-shadow(0 0 6px #facc15);
-      animation: crownShine 1.2s infinite alternate;
-    }
-    .final-badge span:last-child {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 32px;
-      letter-spacing: 4px;
-      background: linear-gradient(135deg, #fff, #fbbf24, #f59e0b);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
+      justify-content: center;
+      padding: 40px 20px;
+      text-align: center;
     }
 
-    @keyframes crownShine {
-      0% { text-shadow: 0 0 2px #facc15; transform: scale(1); }
-      100% { text-shadow: 0 0 20px #ffd966; transform: scale(1.08); }
-    }
-
-    .main-title {
+    .title {
       font-family: 'Bebas Neue', sans-serif;
-      font-size: 78px;
+      font-size: clamp(4.5rem, 13vw, 10rem);
+      font-weight: 800;
       letter-spacing: 6px;
-      background: linear-gradient(135deg, #ffd966, #f59e0b, #fbbf24);
+      background: linear-gradient(90deg, #ffd700, #ff3b9a, #00f5ff, #ffd700);
       -webkit-background-clip: text;
       background-clip: text;
-      color: transparent;
-      text-shadow: 0 4px 18px rgba(0,0,0,0.6);
+      -webkit-text-fill-color: transparent;
+      animation: titleGlow 4s ease-in-out infinite alternate;
+      margin-bottom: 8px;
+      line-height: 0.85;
+    }
+
+    @keyframes titleGlow {
+      from { filter: brightness(1) hue-rotate(-10deg); }
+      to { filter: brightness(1.4) hue-rotate(10deg); }
+    }
+
+    .subtitle {
+      font-size: 2.8rem;
+      font-weight: 700;
+      color: var(--gold);
+      text-shadow: 0 0 40px rgba(255, 215, 0, 0.7);
       margin-bottom: 10px;
     }
 
-    .champion-quote {
-      font-size: 18px;
-      font-weight: 500;
-      color: #ffe6b3;
-      background: rgba(0,0,0,0.4);
-      display: inline-block;
-      padding: 6px 24px;
-      border-radius: 60px;
-      margin-bottom: 24px;
-      letter-spacing: 1px;
-      border-left: 2px solid #facc15;
-      border-right: 2px solid #facc15;
-    }
-
-    /* QR CODE — LARGE with golden border */
-    .qr-champion {
-      background: linear-gradient(145deg, #fff, #fef9e6);
-      padding: 22px;
-      border-radius: 56px;
-      display: inline-block;
-      margin: 10px 0 20px;
-      box-shadow: 0 25px 40px -12px black, 0 0 0 6px #fbbf24, 0 0 0 12px rgba(250,204,21,0.35);
-      transition: transform 0.25s ease;
-    }
-    .qr-champion:hover {
-      transform: scale(1.02);
-    }
-    #finalQrCode {
-      width: 260px;
-      height: 260px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    canvas, #finalQrCode img {
-      width: 100% !important;
-      height: auto !important;
-      border-radius: 24px;
-    }
-    .qr-glow-text {
-      margin-top: 12px;
-      font-weight: 800;
-      background: #facc1533;
-      display: inline-block;
-      padding: 5px 24px;
-      border-radius: 40px;
-      font-size: 14px;
-      color: #facc15;
-      letter-spacing: 1px;
-    }
-
-    /* START GAME BUTTON (final round version) */
-    .start-final-btn {
-      background: linear-gradient(115deg, #f59e0b, #d97706);
-      border: none;
-      padding: 20px 48px;
-      border-radius: 80px;
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 34px;
-      font-weight: bold;
-      letter-spacing: 4px;
-      color: #1e1b0a;
-      cursor: pointer;
-      margin: 20px 0 26px;
-      box-shadow: 0 12px 30px -6px #d97706, 0 0 0 2px #ffea9e;
-      transition: all 0.2s;
-      display: inline-flex;
-      align-items: center;
-      gap: 14px;
-    }
-    .start-final-btn:hover {
-      transform: scale(1.03);
-      background: linear-gradient(115deg, #fbbf24, #f59e0b);
-      box-shadow: 0 20px 35px -5px #f59e0b;
-    }
-    .start-final-btn:active {
-      transform: scale(0.96);
-    }
-
-    /* RUNNING TEXT — CHAMPIONSHIP THEME with Final Round Joy@70 */
-    .golden-ticker {
-      background: rgba(0,0,0,0.65);
-      backdrop-filter: blur(10px);
-      border-radius: 60px;
-      padding: 14px 18px;
-      margin: 16px 0 12px;
-      overflow: hidden;
-      white-space: nowrap;
-      border: 1px solid #facc15;
-    }
-    .ticker-run {
-      display: inline-block;
-      font-family: 'Space Grotesk', sans-serif;
-      font-weight: 800;
-      font-size: 20px;
-      color: #ffeaa7;
-      animation: scrollMarquee 22s linear infinite;
-      letter-spacing: 1.5px;
-    }
-    .ticker-run span {
-      margin: 0 32px;
-      display: inline-block;
-    }
-    .ticker-run .highlight {
-      background: rgba(250,204,21,0.35);
-      padding: 4px 20px;
-      border-radius: 30px;
-      color: #facc15;
-      font-weight: 900;
-    }
-
-    @keyframes scrollMarquee {
-      0% { transform: translateX(0%); }
-      100% { transform: translateX(-50%); }
-    }
-
-    /* custom wishes + greetings grid (final edition) */
-    .final-wishes {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 18px;
-      margin: 18px 0 10px;
-    }
-    .final-wish-item {
-      background: linear-gradient(145deg, rgba(245,158,11,0.12), rgba(250,204,21,0.05));
-      border-radius: 50px;
-      padding: 8px 26px;
-      font-size: 15px;
+    .tagline {
+      font-size: 1.6rem;
+      color: #b0fffc;
       font-weight: 600;
-      border: 1px solid rgba(250,204,21,0.45);
-      color: #ffeaae;
-      backdrop-filter: blur(2px);
-      animation: wobbleIn 0.5s ease backwards;
-      transition: 0.1s;
-    }
-    @keyframes wobbleIn {
-      0% { opacity: 0; transform: translateY(20px) scale(0.9); }
-      100% { opacity: 1; transform: translateY(0) scale(1); }
-    }
-    .final-wish-item:nth-child(even) { background: rgba(217,119,6,0.14); border-color: #fbbf24; }
-    .footer-champ {
-      font-size: 13px;
-      color: #a78b5a;
-      margin-top: 28px;
-      padding-top: 12px;
-      border-top: 1px dashed rgba(250,204,21,0.4);
+      margin-bottom: 30px;
+      letter-spacing: 2px;
     }
 
-    /* trophy floating icon */
-    .trophy-float {
-      position: absolute;
-      left: -20px;
-      top: 18%;
-      font-size: 64px;
-      opacity: 0.5;
-      animation: floatTrophy 4s infinite alternate;
-      pointer-events: none;
-      z-index: 5;
+    .well-wishes {
+      font-size: 1.5rem;
+      color: #ffe066;
+      margin: 20px 0 40px;
+      font-style: italic;
+      max-width: 600px;
+      line-height: 1.4;
     }
-    @keyframes floatTrophy {
-      0% { transform: translateY(0px) rotate(-8deg); opacity: 0.4; }
-      100% { transform: translateY(-20px) rotate(4deg); opacity: 0.9; }
+
+    .qr-container {
+      background: white;
+      padding: 28px;
+      border-radius: 32px;
+      box-shadow: 0 25px 70px rgba(0, 0, 0, 0.6),
+                  0 0 0 15px rgba(255, 215, 0, 0.4);
+      margin: 30px 0;
+      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      cursor: pointer;
+    }
+
+    .qr-container:hover {
+      transform: scale(1.1) rotate(4deg);
+      box-shadow: 0 35px 90px rgba(255, 59, 154, 0.5);
+    }
+
+    .qr-code {
+      width: 400px;
+      height: 400px;
+      border: 10px solid #111;
+      border-radius: 24px;
+      background: white;
+      padding: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .qr-code img {
+      width: 100%;
+      height: 100%;
+      border-radius: 12px;
+    }
+
+    .scan-text {
+      margin-top: 18px;
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--gold);
+      text-shadow: 0 4px 20px rgba(255, 215, 0, 0.6);
+    }
+
+    .instructions {
+      margin: 35px 0;
+      font-size: 1.35rem;
+      color: #ddd;
+      max-width: 520px;
+    }
+
+    .start-btn {
+      margin-top: 10px;
+      padding: 24px 70px;
+      font-size: 2.1rem;
+      font-weight: 800;
+      font-family: 'Bebas Neue', sans-serif;
+      letter-spacing: 4px;
+      background: linear-gradient(90deg, #ffd700, #ff6b00, #ff3b9a);
+      color: #111;
+      border: none;
+      border-radius: 9999px;
+      cursor: pointer;
+      box-shadow: 0 20px 50px rgba(255, 215, 0, 0.5);
+      transition: all 0.3s;
+      text-transform: uppercase;
+    }
+
+    .start-btn:hover {
+      transform: translateY(-10px) scale(1.08);
+      box-shadow: 0 30px 70px rgba(255, 215, 0, 0.7);
+    }
+
+    .footer {
+      position: absolute;
+      bottom: 35px;
+      font-size: 1.2rem;
+      color: rgba(255,255,255,0.75);
+      z-index: 3;
+    }
+
+    .confetti {
+      position: fixed;
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      z-index: 4;
+      pointer-events: none;
     }
   </style>
-  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
+  <!-- Floating Balloons -->
+  <div class="balloons" id="balloons"></div>
 
-<canvas id="particleCanvas"></canvas>
+  <div class="content">
+    <h1 class="title">JOY</h1>
+    <div class="subtitle">TURNS 70</div>
+    <div class="tagline">GRAND FINALE • FINAL ROUND</div>
 
-<div class="final-arena">
-  <!-- Floating trophy decoration -->
-  <div class="trophy-float">🏆✨</div>
-  <div class="final-badge">
-    <span>👑🏆</span>
-    <span>FINAL ROUND</span>
-    <span>⚡🔥</span>
-  </div>
-  <div class="main-title">CHAMPIONSHIP SHOWDOWN</div>
-  <div class="champion-quote">⚔️ one final battle — glory awaits ⚔️</div>
+    <div class="well-wishes">
+      🎉 Happy 70th Birthday Joy! <br>
+      Wishing you endless joy, love, and beautiful memories!
+    </div>
 
-  <!-- Big QR code area -->
-  <div class="qr-champion">
-    <div id="finalQrCode"></div>
-  </div>
-  <div class="qr-glow-text">🏅 SCAN TO ENTER FINAL ARENA 🏅</div>
+    <!-- Clickable QR Code -->
+    <div class="qr-container" onclick="window.open('https://www.playaquiz.xyz/finalroundfoh.html', '_blank')">
+      <div class="qr-code">
+        <img src="Final_Round.png" alt="Scan to Join Final Round - Joy Turns 70">
+      </div>
+      <div class="scan-text">📱 TAP or SCAN TO JOIN THE FINAL ROUND</div>
+    </div>
 
-  <!-- START GAME BUTTON (opens finalroundfoh.html) -->
-  <button class="start-final-btn" id="startFinalGameBtn">🎮 START FINAL ROUND →</button>
+    <div class="instructions">
+      Players: Scan the QR code to join the <strong>Grand Finale</strong><br>
+      Let’s crown the ultimate champion!
+    </div>
 
-  <!-- Running text animation: Joy@70 Final edition + epic greetings -->
-  <div class="golden-ticker">
-    <div class="ticker-run">
-      <span>🏆✨ FINAL ROUND — JOY @ 70 ✨🏆</span>
-      <span class="highlight">🔥 THE ULTIMATE QUIZ LEGEND 🔥</span>
-      <span>🎂 HAPPY 70th BIRTHDAY, JOY! 🎂</span>
-      <span>⚡ MAY VICTORY SHINE UPON YOU ⚡</span>
-      <span>🏅 FINAL SHOWDOWN — ALL OR NOTHING 🏅</span>
-      <span>🎈 CHEERS TO 70 YEARS OF GREATNESS 🎈</span>
-      <span>🏆✨ FINAL ROUND — JOY @ 70 ✨🏆</span>
-      <span class="highlight">🔥 THE ULTIMATE QUIZ LEGEND 🔥</span>
-      <span>🎂 HAPPY 70th BIRTHDAY, JOY! 🎂</span>
-      <span>⚡ MAY VICTORY SHINE UPON YOU ⚡</span>
-      <span>🏅 FINAL SHOWDOWN — ALL OR NOTHING 🏅</span>
-      <span>🎈 CHEERS TO 70 YEARS OF GREATNESS 🎈</span>
+    <button class="start-btn" onclick="startGame()">
+      🔥 START FINAL ROUND
+    </button>
+
+    <div class="footer">
+      Celebrating 70 Years of Joy ✨
     </div>
   </div>
 
-  <!-- Wishes / greetings grid (more joyful) -->
-  <div class="final-wishes" id="finalWishesGrid"></div>
-
-  <div class="footer-champ">
-    🎯 Last stand – scan, join & claim the crown 🎯<br>
-    🔥 The champion will be remembered forever 🔥
-  </div>
-</div>
-
-<script>
-  // --------------------------------------------------------------
-  // 1) ADVANCED PARTICLE ANIMATION: floating stars, glowing orbs and golden dust
-  // --------------------------------------------------------------
-  const canvas = document.getElementById('particleCanvas');
-  let ctx = canvas.getContext('2d');
-  let width = window.innerWidth;
-  let height = window.innerHeight;
-  let particles = [];
-
-  function resizeCanvasParticles() {
-    width = window.innerWidth;
-    height = window.innerHeight;
-    canvas.width = width;
-    canvas.height = height;
-  }
-
-  class GoldenSpark {
-    constructor(x, y, size, speedX, speedY, color) {
-      this.x = x;
-      this.y = y;
-      this.size = size;
-      this.speedX = speedX;
-      this.speedY = speedY;
-      this.color = color;
-      this.alpha = 0.7 + Math.random() * 0.3;
+  <script>
+    // Floating Balloons
+    function createBalloon() {
+      const container = document.getElementById('balloons');
+      const balloon = document.createElement('div');
+      balloon.className = 'balloon';
+      
+      const emojis = ['🎈','🎉','🌟','🦄','💖','🎀','🍾','✨','🥂'];
+      balloon.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+      
+      balloon.style.left = Math.random() * 100 + 'vw';
+      balloon.style.animationDuration = (Math.random() * 10 + 14) + 's';
+      balloon.style.animationDelay = '-' + Math.random() * 18 + 's';
+      balloon.style.opacity = Math.random() * 0.5 + 0.6;
+      
+      container.appendChild(balloon);
+      
+      setTimeout(() => balloon.remove(), 30000);
     }
-    update() {
-      this.x += this.speedX;
-      this.y += this.speedY;
-      if (this.x > width + 50) this.x = -50;
-      if (this.x < -50) this.x = width + 50;
-      if (this.y > height + 50) this.y = -50;
-      if (this.y < -50) this.y = height + 50;
-      this.alpha -= 0.002;
-      if (this.alpha <= 0.2) this.alpha = 0.8;
-    }
-    draw() {
-      if (!ctx) return;
-      ctx.save();
-      ctx.shadowBlur = 10;
-      ctx.shadowColor = "#facc15";
-      ctx.beginPath();
-      ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-      ctx.fillStyle = this.color;
-      ctx.globalAlpha = this.alpha;
-      ctx.fill();
-      ctx.restore();
-    }
-  }
 
-  function initParticles() {
-    particles = [];
-    const colors = ["#facc15", "#fbbf24", "#ffd966", "#f59e0b", "#ffb347", "#ffe69b"];
-    for (let i = 0; i < 80; i++) {
-      let size = 2 + Math.random() * 8;
-      let x = Math.random() * width;
-      let y = Math.random() * height;
-      let speedX = (Math.random() - 0.5) * 0.9;
-      let speedY = (Math.random() - 0.5) * 0.7 + 0.3;
-      let color = colors[Math.floor(Math.random() * colors.length)];
-      particles.push(new GoldenSpark(x, y, size, speedX, speedY, color));
-    }
-  }
-
-  function animateParticles() {
-    if (!ctx) return;
-    ctx.clearRect(0, 0, width, height);
-    for (let p of particles) {
-      p.update();
-      p.draw();
-    }
-    requestAnimationFrame(animateParticles);
-  }
-
-  window.addEventListener('resize', () => {
-    resizeCanvasParticles();
-    initParticles();
-  });
-  resizeCanvasParticles();
-  initParticles();
-  animateParticles();
-
-  // Additional dynamic floating elements: create DOM flying crowns
-  function createFlyingCrowns() {
-    for (let i = 0; i < 12; i++) {
-      let crown = document.createElement('div');
-      crown.innerHTML = '👑';
-      crown.style.position = 'fixed';
-      crown.style.fontSize = (24 + Math.random() * 28) + 'px';
-      crown.style.left = Math.random() * 100 + '%';
-      crown.style.top = '-30px';
-      crown.style.pointerEvents = 'none';
-      crown.style.zIndex = '15';
-      crown.style.animation = `floatCrown ${6 + Math.random() * 8}s linear infinite`;
-      crown.style.opacity = 0.5 + Math.random() * 0.4;
-      crown.style.filter = 'drop-shadow(0 0 6px gold)';
-      document.body.appendChild(crown);
-      const keyframesStyle = document.createElement('style');
-      if (!document.querySelector('#crownAnim')) {
-        keyframesStyle.id = 'crownAnim';
-        keyframesStyle.innerText = `
-          @keyframes floatCrown {
-            0% { transform: translateY(0) rotate(0deg); opacity: 0.3; }
-            100% { transform: translateY(110vh) rotate(35deg); opacity: 0; }
-          }
-        `;
-        document.head.appendChild(keyframesStyle);
+    function launchConfetti() {
+      for (let i = 0; i < 90; i++) {
+        const conf = document.createElement('div');
+        conf.className = 'confetti';
+        conf.style.left = Math.random() * 100 + 'vw';
+        conf.style.top = '-30px';
+        conf.style.background = ['#ffd700', '#ff3b9a', '#00f5ff', '#ff69b4'][Math.floor(Math.random()*4)];
+        conf.style.width = conf.style.height = (10 + Math.random() * 12) + 'px';
+        conf.style.animation = `fall ${Math.random()*4 + 3}s linear forwards`;
+        document.body.appendChild(conf);
+        setTimeout(() => conf.remove(), 10000);
       }
     }
-  }
-  createFlyingCrowns();
 
-  // --------------------------------------------------------------
-  // 2) QR Code generation (Final Round) with supabase active session
-  // --------------------------------------------------------------
-  const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
-  const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
-  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
-
-  async function getFinalSession() {
-    let sessionId = localStorage.getItem('paq_final_session_id');
-    if (sessionId) {
-      const { data } = await sb.from('game_sessions').select('id, room_code').eq('id', sessionId).maybeSingle();
-      if (data) return data;
+    function startGame() {
+      launchConfetti();
+      setTimeout(() => {
+        window.open('https://www.playaquiz.xyz/finalroundfoh.html', '_blank');
+      }, 600);
     }
-    // get latest active/waiting session
-    const { data } = await sb.from('game_sessions').select('id, room_code').in('status', ['waiting', 'active']).order('created_at', { ascending: false }).limit(1);
-    if (data && data.length) {
-      localStorage.setItem('paq_final_session_id', data[0].id);
-      return data[0];
-    }
-    // otherwise create fresh final round session
-    const code = "FIN" + Math.random().toString(36).slice(2, 6).toUpperCase();
-    const { data: newSession } = await sb.from('game_sessions').insert({ room_code: code, title: 'FINAL ROUND', status: 'waiting' }).select().single();
-    if (newSession) {
-      localStorage.setItem('paq_final_session_id', newSession.id);
-      return newSession;
-    }
-    return null;
-  }
 
-  async function generateFinalQR() {
-    const session = await getFinalSession();
-    if (!session || !session.room_code) {
-      document.getElementById('finalQrCode').innerHTML = '<div style="background:#fff; padding:25px; border-radius:20px;">⚠️ No active game. Please refresh.</div>';
-      return;
-    }
-    const baseUrl = window.location.origin + window.location.pathname.replace('final_round.html', 'player.html');
-    const joinUrl = `${baseUrl}?code=${session.room_code}`;
-    const qrContainer = document.getElementById('finalQrCode');
-    qrContainer.innerHTML = '';
-    try {
-      new QRCode(qrContainer, {
-        text: joinUrl,
-        width: 260,
-        height: 260,
-        colorDark: "#1e1b0a",
-        colorLight: "#ffffff",
-        correctLevel: QRCode.CorrectLevel.M
-      });
-    } catch(e) {
-      qrContainer.innerHTML = `<div style="padding:20px; background:#fff;">QR Error</div>`;
-    }
-    // add floating room code display edge
-    const roomSpan = document.createElement('div');
-      // optional visual only
-  }
-
-  // start game button -> finalroundfoh.html
-  document.getElementById('startFinalGameBtn').addEventListener('click', () => {
-    window.location.href = 'https://www.playaquiz.xyz/finalroundfoh.html';
-  });
-
-  // --------------------------------------------------------------
-  // 3) Final round specific wishes & greetings with animation
-  // --------------------------------------------------------------
-  const finalWishes = [
-    "🏆 GLORY TO THE CHAMPION — JOY @ 70! 🏆",
-    "🔥 FINAL ROUND: LEGENDARY SHOWDOWN 🔥",
-    "🎂 70 YEARS OF BRILLIANCE, JOY! 🎂",
-    "👑 THE CROWN AWAITS THE ULTIMATE QUIZZER 👑",
-    "⚡ MAY YOUR ANSWERS BE SWIFT AND TRUE ⚡",
-    "🎉 CELEBRATING 70 WITH EPIC TRIUMPH! 🎉",
-    "🌟 FINAL VICTORY — WRITE YOUR NAME IN GOLD 🌟",
-    "💪 STRENGTH, SPEED & WISDOM — JOY'S 70th! 💪"
-  ];
-
-  const gridContainer = document.getElementById('finalWishesGrid');
-  function renderFinalWishes() {
-    gridContainer.innerHTML = '';
-    finalWishes.forEach(w => {
-      const wEl = document.createElement('div');
-      wEl.className = 'final-wish-item';
-      wEl.innerText = w;
-      gridContainer.appendChild(wEl);
-    });
-  }
-  renderFinalWishes();
-
-  // Add floating "Final Round" confetti-like effect via interval sparkling
-  function addSparkleBurst() {
-    const burst = document.createElement('div');
-    burst.style.position = 'fixed';
-    burst.style.pointerEvents = 'none';
-    burst.style.top = '50%';
-    burst.style.left = '50%';
-    burst.style.width = '8px';
-    burst.style.height = '8px';
-    burst.style.borderRadius = '50%';
-    burst.style.background = '#facc15';
-    burst.style.boxShadow = '0 0 12px #f59e0b';
-    burst.style.zIndex = '200';
-    burst.style.animation = 'sparkFade 0.8s forwards';
-    const styleSheet = document.createElement('style');
-    if (!document.querySelector('#sparkAnim')) {
-      styleSheet.id = 'sparkAnim';
-      styleSheet.innerText = `@keyframes sparkFade { 0% { transform: translate(-50%, -50%) scale(1); opacity: 1; } 100% { transform: translate(-50%, -50%) scale(3); opacity: 0; } }`;
-      document.head.appendChild(styleSheet);
-    }
-    document.body.appendChild(burst);
-    setTimeout(() => burst.remove(), 800);
-  }
-  setInterval(() => {
-    if (Math.random() > 0.7) addSparkleBurst();
-  }, 1800);
-
-  // Custom audio fanfare for final round (epic)
-  function playFinalFanfare() {
-    try {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      const audioCtx = new AudioContext();
-      if (audioCtx.state === 'suspended') audioCtx.resume();
-      const now = audioCtx.currentTime;
-      const osc1 = audioCtx.createOscillator();
-      const gain1 = audioCtx.createGain();
-      osc1.connect(gain1);
-      gain1.connect(audioCtx.destination);
-      osc1.type = 'triangle';
-      osc1.frequency.value = 587.33;
-      gain1.gain.setValueAtTime(0.4, now);
-      gain1.gain.exponentialRampToValueAtTime(0.0001, now + 1.5);
-      osc1.start();
-      osc1.stop(now + 1.4);
+    // Initialize
+    function init() {
+      setInterval(createBalloon, 320);
+      for (let i = 0; i < 25; i++) {
+        setTimeout(createBalloon, i * 90);
+      }
       
-      const osc2 = audioCtx.createOscillator();
-      const gain2 = audioCtx.createGain();
-      osc2.connect(gain2); gain2.connect(audioCtx.destination);
-      osc2.type = 'sine';
-      osc2.frequency.value = 880.0;
-      gain2.gain.setValueAtTime(0.2, now + 0.2);
-      gain2.gain.exponentialRampToValueAtTime(0.0001, now + 1.2);
-      osc2.start(now + 0.2); osc2.stop(now + 1.1);
-      
-      const osc3 = audioCtx.createOscillator();
-      const gain3 = audioCtx.createGain();
-      osc3.connect(gain3); gain3.connect(audioCtx.destination);
-      osc3.type = 'square';
-      osc3.frequency.value = 466.16;
-      gain3.gain.setValueAtTime(0.3, now + 0.45);
-      gain3.gain.exponentialRampToValueAtTime(0.0001, now + 0.9);
-      osc3.start(now + 0.45); osc3.stop(now + 0.85);
-    } catch(e) {}
-  }
-  setTimeout(() => { playFinalFanfare(); }, 400);
-
-  // Insert the "Final_Round.png" as background image (decorative) overlay
-  const finalRoundImg = document.createElement('div');
-  finalRoundImg.style.position = 'absolute';
-  finalRoundImg.style.bottom = '18px';
-  finalRoundImg.style.right = '18px';
-  finalRoundImg.style.width = '85px';
-  finalRoundImg.style.height = '85px';
-  finalRoundImg.style.backgroundImage = "url('Final_Round.png')";
-  finalRoundImg.style.backgroundSize = 'contain';
-  finalRoundImg.style.backgroundRepeat = 'no-repeat';
-  finalRoundImg.style.opacity = '0.6';
-  finalRoundImg.style.pointerEvents = 'none';
-  finalRoundImg.style.zIndex = '22';
-  document.querySelector('.final-arena').appendChild(finalRoundImg);
-  
-  const leftCorner = document.createElement('div');
-  leftCorner.style.position = 'absolute';
-  leftCorner.style.top = '10px';
-  leftCorner.style.left = '10px';
-  leftCorner.style.width = '70px';
-  leftCorner.style.height = '70px';
-  leftCorner.style.backgroundImage = "url('Final_Round.png')";
-  leftCorner.style.backgroundSize = 'contain';
-  leftCorner.style.opacity = '0.45';
-  leftCorner.style.pointerEvents = 'none';
-  document.querySelector('.final-arena').appendChild(leftCorner);
-  
-  // generate QR on load
-  generateFinalQR();
-  // refresh session if needed every 30 seconds
-  setInterval(() => generateFinalQR(), 32000);
-  
-  // additional floating golden dust (smaller animated circles)
-  const dustInterval = setInterval(() => {
-    if (!document.body) return;
-    const dust = document.createElement('div');
-    dust.style.position = 'fixed';
-    dust.style.width = '4px';
-    dust.style.height = '4px';
-    dust.style.backgroundColor = '#facc15';
-    dust.style.borderRadius = '50%';
-    dust.style.left = Math.random() * 100 + '%';
-    dust.style.bottom = '-10px';
-    dust.style.pointerEvents = 'none';
-    dust.style.zIndex = '40';
-    dust.style.animation = 'riseDust 3s linear forwards';
-    if (!document.querySelector('#dustAnim')) {
-      const style = document.createElement('style');
-      style.id = 'dustAnim';
-      style.innerText = `@keyframes riseDust { 0% { transform: translateY(0) scale(0.8); opacity: 0.6; } 100% { transform: translateY(-90vh) scale(1.3); opacity: 0; } }`;
-      document.head.appendChild(style);
+      setInterval(() => {
+        if (Math.random() > 0.4) launchConfetti();
+      }, 4000);
     }
-    document.body.appendChild(dust);
-    setTimeout(() => dust.remove(), 3000);
-  }, 500);
-</script>
+
+    const style = document.createElement('style');
+    style.innerHTML = `
+      @keyframes fall {
+        to { transform: translateY(120vh) rotate(800deg); opacity: 0; }
+      }
+    `;
+    document.head.appendChild(style);
+
+    window.onload = init;
+  </script>
 </body>
 </html>
