@@ -289,12 +289,29 @@
       border-radius: 16px;
       box-shadow: 0 5px 15px black;
     }
+
+    /* TV screen fade overlay for smooth autoplay transitions */
+    #tvFadeOverlay {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: #000;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 10;
+      transition: opacity 0.45s ease;
+    }
+    #tvFadeOverlay.fade-in  { opacity: 1; }
+    #tvFadeOverlay.fade-out { opacity: 0; }
+
+    #deleteTapeBtn:hover { background: radial-gradient(circle at 30% 30%,#aa3333,#3a0a0a) !important; border-color:#ff5555 !important; }
+    #deleteTapeBtn:active { transform: scale(0.9); }
   </style>
 </head>
 <body>
 <div class="tv-cabinet">
   <div class="crt-tube">
     <div class="tv-screen" id="tvScreen">
+      <div id="tvFadeOverlay"></div>
       <video id="videoElement" style="width:100%;height:100%;display:none"></video>
       <div class="standby-screen" id="standbyScreen">
         <canvas id="staticCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;"></canvas>
@@ -329,6 +346,7 @@
         <option value="">-- No Signal --</option>
       </select>
       <div class="status-led" id="liveLed"></div>
+      <div class="dial" id="deleteTapeBtn" style="width:44px;height:44px;font-size:22px;background:radial-gradient(circle at 30% 30%,#6b2222,#2a0a0a);border-color:#cc4444;" title="Delete selected tape">🗑️</div>
     </div>
 
     <!-- NEW LOOP BUTTON - actual vintage loop module -->
@@ -371,6 +389,8 @@
   const uploadStatusSpan = document.getElementById('uploadStatus');
   const liveLed = document.getElementById('liveLed');
   const loopToggleBtn = document.getElementById('loopToggleBtn');
+  const deleteTapeBtn = document.getElementById('deleteTapeBtn');
+  const tvFadeOverlay = document.getElementById('tvFadeOverlay');
 
   let currentVolume = 0.65;
   let currentVideoUrl = null;
@@ -512,6 +532,58 @@
   function toggleLoop() {
     setLoopMode(!loopActive);
   }
+
+  // ── DELETE TAPE ─────────────────────────────────────────────────────────────
+  async function deleteCurrentTape() {
+    const selectedId = greetingSelect.value;
+    if (!selectedId) {
+      showToast("📼 No tape selected to delete", 1500);
+      return;
+    }
+    const greeting = greetingsList.find(g => g.id === selectedId);
+    if (!greeting) return;
+
+    const confirmed = confirm(`🗑️ Delete tape "${greeting.title}"?\n\nThis cannot be undone.`);
+    if (!confirmed) return;
+
+    showToast("⏳ Ejecting & deleting tape…", 2000);
+
+    // Extract storage path from public URL (everything after /object/public/greetings/)
+    try {
+      const urlObj = new URL(greeting.video_url);
+      const pathMatch = urlObj.pathname.match(/\/object\/public\/greetings\/(.+)$/);
+      if (pathMatch) {
+        const storagePath = decodeURIComponent(pathMatch[1]);
+        await sb.storage.from('greetings').remove([storagePath]);
+      }
+    } catch (e) {
+      console.warn("Storage delete skipped (URL parse failed):", e);
+    }
+
+    // Delete from DB
+    const { error: dbErr } = await sb
+      .from('video_greetings')
+      .delete()
+      .eq('id', selectedId);
+
+    if (dbErr) {
+      showToast("❌ Delete failed: " + dbErr.message, 3000);
+      return;
+    }
+
+    // If currently playing this tape, go back to standby
+    if (currentVideoId === selectedId) {
+      showStandby();
+      videoEl.src = '';
+      currentVideoUrl = null;
+      currentVideoId = null;
+    }
+
+    showToast(`🗑️ Tape "${greeting.title}" deleted!`, 2000);
+    await fetchGreetings();
+  }
+
+  deleteTapeBtn.addEventListener('click', deleteCurrentTape);
 
   async function fetchGreetings() {
     try {
@@ -820,12 +892,20 @@
       }
     }
 
-    function flash(cb) {
-      const el = document.createElement('div');
-      el.style.cssText = 'position:fixed;inset:0;background:#fff;z-index:9999;pointer-events:none;opacity:1;transition:opacity 0.2s ease';
-      document.body.appendChild(el);
-      setTimeout(() => { el.style.opacity = '0'; cb(); }, 60);
-      setTimeout(() => el.remove(), 300);
+    // Smooth fade: only the TV screen fades to black, then loads the next video
+    function tvFade(cb) {
+      // Fade IN (screen goes dark)
+      tvFadeOverlay.classList.remove('fade-out');
+      tvFadeOverlay.classList.add('fade-in');
+
+      setTimeout(() => {
+        cb(); // load next video while screen is black
+        // Fade OUT (reveal the new video)
+        setTimeout(() => {
+          tvFadeOverlay.classList.remove('fade-in');
+          tvFadeOverlay.classList.add('fade-out');
+        }, 350); // brief black hold while video starts loading
+      }, 480); // wait for fade-in to complete
     }
 
     function playNext() {
@@ -833,41 +913,35 @@
       idx = idx % greetingsList.length;
       const g = greetingsList[idx];
       greetingSelect.value = g.id;
-      
-      // Before loading next video, ensure that loop mode is TURNED OFF for autoplay progression!
-      // But we must restore the user's loop preference after autoplay ends? Actually better: autoplay disables loop temporarily while running.
-      // However the smooth fix: each video during autoplay should NOT loop - but we respect the loop button? 
-      // To keep consistent, we temporarily set video.loop = false while autoplay advances, but do NOT override the global loopActive.
-      if (videoEl) videoEl.loop = false;   // ensure autoplay progression, but doesn't change loopActive button.
-      
-      flash(() => {
+
+      // Ensure no native loop so autoplay can advance
+      if (videoEl) videoEl.loop = false;
+
+      tvFade(() => {
         loadVideoByUrl(g.video_url, g.id, g.title);
         showToast(`📺 [${idx + 1}/${greetingsList.length}] ${g.title}`, 2000);
       });
     }
-    
-    // Override ended event for autoplay: only advance if autoplay is active, regardless of loop button.
-    const originalEndedHandler = videoEl.onended;
+
     videoEl.addEventListener('ended', () => {
       if (active) {
         idx++;
         autoplayLoopTimer = setTimeout(playNext, 400);
       }
     });
-    
+
     btn.addEventListener('click', () => {
       if (active) {
         setActive(false);
         showToast('⏹ Autoplay stopped', 1200);
         if (autoplayLoopTimer) clearTimeout(autoplayLoopTimer);
+        // Ensure overlay is cleared
+        tvFadeOverlay.classList.remove('fade-in');
+        tvFadeOverlay.classList.add('fade-out');
       } else {
         if (greetingsList.length === 0) { showToast('📭 No tapes loaded yet', 1500); return; }
         setActive(true);
         idx = 0;
-        if (videoEl && loopActive) {
-          // If user had loop ON, autoplay will temporarily override loop attribute for sequential playback
-          // but we keep loopActive true – later after autoplay is off, the next manual video respects loop.
-        }
         playNext();
       }
     });
