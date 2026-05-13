@@ -937,38 +937,39 @@
     drawNoise();
   })();
 
-  // Autoplay all videos (no conflict with loop)
+  // Autoplay all videos + images (no conflict with loop)
   (function() {
     const btn = document.getElementById('autoplayTrigger');
+    const IMAGE_DISPLAY_MS = 4000; // how long images stay on screen during autoplay
     let active = false;
     let idx = 0;
     let autoplayLoopTimer = null;
+    let imageHoldTimer = null;
+
+    function clearTimers() {
+      if (autoplayLoopTimer) { clearTimeout(autoplayLoopTimer); autoplayLoopTimer = null; }
+      if (imageHoldTimer)    { clearTimeout(imageHoldTimer);    imageHoldTimer = null; }
+    }
 
     function setActive(val) {
       active = val;
       btn.innerHTML = active ? '⏹ STOP AUTOPLAY' : '📼 AUTOPLAY ALL';
       btn.style.borderColor = active ? '#4dff77' : '#e2a84b';
       btn.style.color       = active ? '#7fff99' : '#e6c28f';
-      if (!active && autoplayLoopTimer) {
-        clearTimeout(autoplayLoopTimer);
-        autoplayLoopTimer = null;
-      }
+      if (!active) clearTimers();
     }
 
-    // Smooth fade: only the TV screen fades to black, then loads the next video
+    // Smooth fade: only the TV screen fades to black, then loads the next item
     function tvFade(cb) {
-      // Fade IN (screen goes dark)
       tvFadeOverlay.classList.remove('fade-out');
       tvFadeOverlay.classList.add('fade-in');
-
       setTimeout(() => {
-        cb(); // load next video while screen is black
-        // Fade OUT (reveal the new video)
+        cb();
         setTimeout(() => {
           tvFadeOverlay.classList.remove('fade-in');
           tvFadeOverlay.classList.add('fade-out');
-        }, 350); // brief black hold while video starts loading
-      }, 480); // wait for fade-in to complete
+        }, 350);
+      }, 480);
     }
 
     function playNext() {
@@ -980,12 +981,26 @@
       // Ensure no native loop so autoplay can advance
       if (videoEl) videoEl.loop = false;
 
+      const isImage = (g.media_type === 'image') ||
+                      (!g.media_type && /\.(png|jpe?g|gif)([?#]|$)/i.test(g.video_url));
+
       tvFade(() => {
         loadVideoByUrl(g.video_url, g.id, g.title, false, g.media_type || null);
         showToast(`📺 [${idx + 1}/${greetingsList.length}] ${g.title}`, 2000);
+
+        // Images don't fire 'ended', so advance after a fixed hold time
+        if (isImage) {
+          imageHoldTimer = setTimeout(() => {
+            if (active) {
+              idx++;
+              autoplayLoopTimer = setTimeout(playNext, 400);
+            }
+          }, IMAGE_DISPLAY_MS);
+        }
       });
     }
 
+    // Videos advance via 'ended'
     videoEl.addEventListener('ended', () => {
       if (active) {
         idx++;
@@ -997,8 +1012,6 @@
       if (active) {
         setActive(false);
         showToast('⏹ Autoplay stopped', 1200);
-        if (autoplayLoopTimer) clearTimeout(autoplayLoopTimer);
-        // Ensure overlay is cleared
         tvFadeOverlay.classList.remove('fade-in');
         tvFadeOverlay.classList.add('fade-out');
       } else {
