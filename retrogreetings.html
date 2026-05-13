@@ -313,6 +313,7 @@
     <div class="tv-screen" id="tvScreen">
       <div id="tvFadeOverlay"></div>
       <video id="videoElement" style="width:100%;height:100%;display:none"></video>
+      <img id="imageElement" style="width:100%;height:100%;object-fit:contain;display:none;background:#000;">
       <div class="standby-screen" id="standbyScreen">
         <canvas id="staticCanvas" style="position:absolute;top:0;left:0;width:100%;height:100%;"></canvas>
         <div class="standby-text">
@@ -359,8 +360,8 @@
     </div>
 
     <div class="upload-zone" id="uploadTrigger">
-      📀 UPLOAD VIDEO GREETING
-      <input type="file" id="fileInput" accept="video/mp4,video/webm,video/quicktime">
+      📀 UPLOAD VIDEO / IMAGE
+      <input type="file" id="fileInput" accept="video/mp4,video/webm,video/quicktime,image/png,image/jpeg,image/gif">
     </div>
   </div>
 
@@ -376,6 +377,7 @@
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
   const videoEl = document.getElementById('videoElement');
+  const imageEl = document.getElementById('imageElement');
   const standbyScreen = document.getElementById('standbyScreen');
   const tvScreen = document.getElementById('tvScreen');
   const greetingSelect = document.getElementById('greetingSelect');
@@ -406,6 +408,7 @@
   function showStandby() {
     standbyScreen.style.display = 'flex';
     videoEl.style.display = 'none';
+    imageEl.style.display = 'none';
     videoEl.pause();
     isVideoPlaying = false;
     playBtn.innerHTML = "▶";
@@ -415,6 +418,14 @@
   function showVideo() {
     standbyScreen.style.display = 'none';
     videoEl.style.display = 'block';
+    imageEl.style.display = 'none';
+  }
+
+  // Show image, hide standby and video
+  function showImage() {
+    standbyScreen.style.display = 'none';
+    videoEl.style.display = 'none';
+    imageEl.style.display = 'block';
   }
 
   function setVolume(value01) {
@@ -487,25 +498,35 @@
       currentVideoId = null;
       return;
     }
-    
-    showVideo();
-    videoEl.pause();
-    videoEl.src = url;
-    videoEl.load();
+
     currentVideoUrl = url;
     currentVideoId = videoId;
-    
-    videoEl.muted = false;
-    videoEl.volume = currentVolume;
-    
-    showToast(`📺 Now playing: ${title || "greeting"}`, 1500);
-    
-    // Make sure loop attribute on video element follows our UI state
-    videoEl.loop = loopActive;
-    
-    setTimeout(() => {
-      playVideo();
-    }, 100);
+
+    // Detect image by extension or mime hint stored in URL
+    const isImage = /\.(png|jpe?g|gif)(\?|$)/i.test(url);
+
+    if (isImage) {
+      videoEl.pause();
+      videoEl.src = '';
+      imageEl.src = url;
+      showImage();
+      isVideoPlaying = false;
+      playBtn.innerHTML = "▶";
+      showToast(`🖼️ Now showing: ${title || "image"}`, 1500);
+    } else {
+      showVideo();
+      videoEl.pause();
+      videoEl.src = url;
+      videoEl.load();
+      videoEl.muted = false;
+      videoEl.volume = currentVolume;
+      showToast(`📺 Now playing: ${title || "greeting"}`, 1500);
+      // Make sure loop attribute on video element follows our UI state
+      videoEl.loop = loopActive;
+      setTimeout(() => {
+        playVideo();
+      }, 100);
+    }
   }
 
   // Update loop UI and video element's .loop property
@@ -613,14 +634,16 @@
   function renderSelect() {
     greetingSelect.innerHTML = '<option value="">📼 -- SELECT A TAPE --</option>';
     greetingsList.forEach(g => {
+      const isImage = /\.(png|jpe?g|gif)(\?|$)/i.test(g.video_url);
+      const icon = isImage ? '🖼️' : '🎞️';
       const option = document.createElement('option');
       option.value = g.id;
-      option.textContent = `${g.title.length > 28 ? g.title.slice(0,28)+'…' : g.title} 🎞️`;
+      option.textContent = `${g.title.length > 28 ? g.title.slice(0,28)+'…' : g.title} ${icon}`;
       greetingSelect.appendChild(option);
     });
   }
 
-  async function uploadVideoToSupabase(file, titleHint) {
+  async function uploadMediaToSupabase(file, titleHint) {
     if (!file) return null;
     const ext = file.name.split('.').pop();
     const fileName = `greeting_${Date.now()}_${Math.floor(Math.random()*10000)}.${ext}`;
@@ -683,13 +706,15 @@
   async function handleFileSelected(event) {
     const file = event.target.files[0];
     if (!file) return;
-    if (!file.type.startsWith('video/')) {
-      showToast("Please select a video file (MP4, MOV, WebM)", 2000);
+    const isVideo = file.type.startsWith('video/');
+    const isImage = file.type.startsWith('image/');
+    if (!isVideo && !isImage) {
+      showToast("Please select a video (MP4, MOV, WebM) or image (PNG, JPG, GIF)", 2500);
       return;
     }
     let customTitle = prompt("Enter greeting title (optional):", file.name.replace(/\.[^/.]+$/, ""));
     if (customTitle === null) customTitle = file.name;
-    await uploadVideoToSupabase(file, customTitle);
+    await uploadMediaToSupabase(file, customTitle);
     fileInput.value = '';
   }
 
