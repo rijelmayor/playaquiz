@@ -81,6 +81,18 @@
       display: block;
     }
 
+    #imageElement {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #000;
+      display: none;
+      z-index: 1;
+    }
+
     .standby-screen {
       position: absolute;
       top: 0;
@@ -491,7 +503,7 @@
   }
 
   // core loading function with loop awareness (reset loop on new video? we preserve loop state)
-  function loadVideoByUrl(url, videoId, title, keepLoopStatus = false) {
+  function loadVideoByUrl(url, videoId, title, keepLoopStatus = false, mediaType = null) {
     if (!url) {
       showStandby();
       currentVideoUrl = null;
@@ -502,18 +514,21 @@
     currentVideoUrl = url;
     currentVideoId = videoId;
 
-    // Detect image by extension or mime hint stored in URL
-    const isImage = /\.(png|jpe?g|gif)(\?|$)/i.test(url);
+    // Use explicit mediaType if passed, otherwise fall back to URL extension detection
+    const isImage = mediaType === 'image' || (!mediaType && /\.(png|jpe?g|gif)([?#]|$)/i.test(url));
 
     if (isImage) {
       videoEl.pause();
       videoEl.src = '';
+      videoEl.style.display = 'none';
       imageEl.src = url;
       showImage();
       isVideoPlaying = false;
       playBtn.innerHTML = "▶";
       showToast(`🖼️ Now showing: ${title || "image"}`, 1500);
     } else {
+      imageEl.src = '';
+      imageEl.style.display = 'none';
       showVideo();
       videoEl.pause();
       videoEl.src = url;
@@ -648,6 +663,7 @@
     const ext = file.name.split('.').pop();
     const fileName = `greeting_${Date.now()}_${Math.floor(Math.random()*10000)}.${ext}`;
     const filePath = `public/${fileName}`;
+    const mediaType = file.type.startsWith('image/') ? 'image' : 'video';
 
     uploadStatusSpan.innerText = `⏫ Uploading ${file.name}...`;
     const { data: uploadData, error: uploadError } = await sb.storage
@@ -668,11 +684,33 @@
     
     const { data: insertData, error: insertErr } = await sb
       .from('video_greetings')
-      .insert([{ title: title, video_url: publicURL }])
+      .insert([{ title: title, video_url: publicURL, media_type: mediaType }])
       .select()
       .single();
       
     if (insertErr) {
+      // If media_type column doesn't exist, fall back to insert without it
+      if (insertErr.code === '42703' || insertErr.message.includes('media_type')) {
+        const { data: fallbackData, error: fallbackErr } = await sb
+          .from('video_greetings')
+          .insert([{ title: title, video_url: publicURL }])
+          .select()
+          .single();
+        if (fallbackErr) {
+          uploadStatusSpan.innerText = `⚠️ DB insert failed`;
+          showToast("DB insert error: " + fallbackErr.message, 3000);
+          return null;
+        }
+        uploadStatusSpan.innerText = `✅ Uploaded & added: ${title}`;
+        setTimeout(() => { uploadStatusSpan.innerText = ''; }, 3000);
+        showToast(`🎬 "${title}" added to greetings!`, 2500);
+        await fetchGreetings();
+        if (fallbackData) {
+          greetingSelect.value = fallbackData.id;
+          loadVideoByUrl(fallbackData.video_url, fallbackData.id, fallbackData.title, false, mediaType);
+        }
+        return fallbackData;
+      }
       uploadStatusSpan.innerText = `⚠️ DB insert failed`;
       showToast("DB insert error: " + insertErr.message, 3000);
       return null;
@@ -685,7 +723,7 @@
     
     if (insertData) {
       greetingSelect.value = insertData.id;
-      loadVideoByUrl(insertData.video_url, insertData.id, insertData.title);
+      loadVideoByUrl(insertData.video_url, insertData.id, insertData.title, false, mediaType);
     }
     return insertData;
   }
@@ -739,7 +777,7 @@
     }
     const greeting = greetingsList.find(g => g.id === selectedId);
     if (greeting) {
-      loadVideoByUrl(greeting.video_url, greeting.id, greeting.title);
+      loadVideoByUrl(greeting.video_url, greeting.id, greeting.title, false, greeting.media_type || null);
     }
   }
 
@@ -943,7 +981,7 @@
       if (videoEl) videoEl.loop = false;
 
       tvFade(() => {
-        loadVideoByUrl(g.video_url, g.id, g.title);
+        loadVideoByUrl(g.video_url, g.id, g.title, false, g.media_type || null);
         showToast(`📺 [${idx + 1}/${greetingsList.length}] ${g.title}`, 2000);
       });
     }
