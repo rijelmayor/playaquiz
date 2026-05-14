@@ -339,6 +339,11 @@
     </div>
   </div>
 
+  <!-- Offline / reconnecting banner -->
+  <div id="offlineBanner" class="hidden" style="position:fixed;top:0;left:0;width:100%;z-index:2000;background:#ef4444;color:#fff;text-align:center;padding:10px 16px;font-size:13px;font-weight:700;letter-spacing:.3px;">
+    📡 Connection lost — reconnecting…
+  </div>
+
   <div id="joinScreen">
     <br>
     <div class="card">
@@ -486,6 +491,11 @@ let playerCountIv = null;
 let realtimeChannel = null;
 let timerEnded = false;
 let excitementInterval;
+// ── answer cache: avoids a re-fetch from DB on reveal ──
+let myLastAnswer = null; // { is_correct, points_earned }
+// ── reconnect state ──
+let reconnectTimeout = null;
+let isOnline = navigator.onLine;
 
 function buildAvatarGrid() {
   const grid = document.getElementById('avatarGrid');
@@ -499,46 +509,42 @@ async function showVerificationAndJoin(roomCode, playerName) {
   const verifyTitle = document.getElementById('verifyTitle');
   const verifyLoader = document.getElementById('verifyLoader');
   const verifyStatus = document.getElementById('verifyStatus');
-  
+
   overlay.classList.remove('hidden');
   verifyIcon.innerHTML = '🔍';
   verifyTitle.innerText = 'Checking Room Code';
   verifyLoader.classList.remove('hidden');
   verifyStatus.innerText = 'Connecting to game server...';
-  
-  await new Promise(r => setTimeout(r, 800));
-  verifyStatus.innerText = 'Verifying room...';
-  await new Promise(r => setTimeout(r, 600));
-  
-  const { data: session } = await sb.from('game_sessions').select('*').eq('room_code', roomCode).maybeSingle();
+
+  // Run both DB lookups in parallel — no artificial delays
+  const [{ data: session }, ] = await Promise.all([
+    sb.from('game_sessions').select('*').eq('room_code', roomCode).maybeSingle(),
+  ]);
+
   if (!session) {
     verifyIcon.innerHTML = '❌'; verifyTitle.innerText = 'Room Not Found';
     verifyLoader.classList.add('hidden'); verifyStatus.innerText = 'Invalid code.';
-    await new Promise(r => setTimeout(r, 1000)); overlay.classList.add('hidden');
+    setTimeout(() => overlay.classList.add('hidden'), 1200);
     showErr('Room not found.'); return null;
   }
   if (session.status === 'ended') {
     verifyIcon.innerHTML = '🚫'; verifyTitle.innerText = 'Game Ended';
     verifyLoader.classList.add('hidden'); verifyStatus.innerText = 'This game has ended.';
-    await new Promise(r => setTimeout(r, 1000)); overlay.classList.add('hidden');
+    setTimeout(() => overlay.classList.add('hidden'), 1200);
     showErr('Game ended.'); return null;
   }
-  
-  verifyIcon.innerHTML = '✅'; verifyTitle.innerText = 'Room Valid!';
-  verifyLoader.classList.add('hidden'); verifyStatus.innerText = 'Checking name...';
-  await new Promise(r => setTimeout(r, 500));
-  
+
+  verifyStatus.innerText = 'Checking name availability...';
   const { data: existing } = await sb.from('players').select('id').eq('session_id', session.id).eq('name', playerName).maybeSingle();
   if (existing) {
     verifyIcon.innerHTML = '⚠️'; verifyTitle.innerText = 'Name Taken';
-    verifyStatus.innerText = 'Choose a different name.';
-    await new Promise(r => setTimeout(r, 1000)); overlay.classList.add('hidden');
+    verifyLoader.classList.add('hidden'); verifyStatus.innerText = 'Choose a different name.';
+    setTimeout(() => overlay.classList.add('hidden'), 1200);
     showErr('Name taken.'); return null;
   }
-  
+
   verifyIcon.innerHTML = '🎉'; verifyTitle.innerText = 'Access Granted!';
-  verifyStatus.innerText = 'Joining game...';
-  await new Promise(r => setTimeout(r, 500));
+  verifyLoader.classList.add('hidden'); verifyStatus.innerText = 'Joining game...';
   overlay.classList.add('hidden');
   return session;
 }
@@ -570,27 +576,15 @@ function showErr(msg) { document.getElementById('joinError').innerText = msg; se
 function resetJoinBtn() { const b = document.getElementById('joinBtn'); b.disabled=false; b.innerText='🚀 Join Game'; }
 
 function setupRealtime() {
-  if (realtimeChannel) sb.removeChannel(realtimeChannel);
+  if (realtimeChannel) { sb.removeChannel(realtimeChannel); realtimeChannel = null; }
+  if (reconnectTimeout) { clearTimeout(reconnectTimeout); reconnectTimeout = null; }
+  if (!SESSION_ID || !myPlayer) return;
+
   realtimeChannel = sb.channel(`paq-${SESSION_ID}`)
     .on('postgres_changes', { event:'INSERT', schema:'public', table:'game_events', filter:`session_id=eq.${SESSION_ID}` }, p => handleEvent(p.new))
     .on('postgres_changes', { event:'UPDATE', schema:'public', table:'game_sessions', filter:`id=eq.${SESSION_ID}` }, p => {
       if (p.new.status==='ended') showResult();
-      if (p.new.status==='waiting') {
-        // Game was reset — kick player back to join screen
-        stopTimer();
-        if (excitementInterval) clearInterval(excitementInterval);
-        if (realtimeChannel) sb.removeChannel(realtimeChannel);
-        clearInterval(playerCountIv);
-        SESSION_ID = null; myPlayer = null;
-        myScore = 0; myCorrect = 0; myQCount = 0;
-        answered = false; selOption = -1; timerEnded = false;
-        localStorage.removeItem('paq_pid'); localStorage.removeItem('paq_sid');
-        document.getElementById('roomCodeInput').value = '';
-        document.getElementById('playerNameInput').value = '';
-        document.getElementById('joinError').innerText = '';
-        closeLiveResponses(); closeLeaderboard();
-        showScreen('join'); resetJoinBtn();
-      }
+      if (p.new.status==='waiting') fullReset(true);
     })
     .on('postgres_changes', { event:'UPDATE', schema:'public', table:'players', filter:`id=eq.${myPlayer.id}` }, p => {
       if (p.new.is_eliminated) { stopTimer(); showEliminated(); }
@@ -599,14 +593,39 @@ function setupRealtime() {
       myCorrect = p.new.correct_count || 0;
       document.getElementById('scoreChip').innerText = myScore + ' pts';
     })
-    .subscribe();
+    .subscribe((status, err) => {
+      if (status === 'SUBSCRIBED') {
+        setOfflineBanner(false);
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        setOfflineBanner(true);
+        // Exponential back-off reconnect: 3 s first, then let it ride
+        if (SESSION_ID && myPlayer && !reconnectTimeout) {
+          reconnectTimeout = setTimeout(() => { reconnectTimeout = null; setupRealtime(); }, 3000);
+        }
+      }
+    });
 }
+
+function setOfflineBanner(show) {
+  let banner = document.getElementById('offlineBanner');
+  if (!banner) return;
+  banner.classList.toggle('hidden', !show);
+}
+
+// ── online/offline native events as a secondary signal ──
+window.addEventListener('online',  () => { isOnline = true;  setOfflineBanner(false); if (SESSION_ID && myPlayer) setupRealtime(); });
+window.addEventListener('offline', () => { isOnline = false; setOfflineBanner(true); });
 
 function handleEvent(evt) {
   switch(evt.event_type) {
-    case 'new_question': curQuestion = evt.payload.question; curQIdx = evt.payload.qIdx; totalQ = evt.payload.total; answered = false; selOption = -1; timerEnded = false; break;
+    case 'new_question':
+      curQuestion = evt.payload.question; curQIdx = evt.payload.qIdx; totalQ = evt.payload.total;
+      answered = false; selOption = -1; timerEnded = false; myLastAnswer = null;
+      break;
     case 'show_question_view':
       // Phase 1: show question, freeze timer — wait for host's start_timer signal
+      // Stop the player-count poll once the quiz is underway — no longer needed
+      clearInterval(playerCountIv); playerCountIv = null;
       displayQuestion(evt.payload.question || curQuestion, curQIdx);
       showScreen('quiz');
       break;
@@ -617,23 +636,30 @@ function handleEvent(evt) {
       break;
     case 'answer_reveal': revealAndScore(evt.payload.correctOption); break;
     case 'game_ended': stopTimer(); showResult(); break;
-    case 'game_reset':
-      stopTimer();
-      if (excitementInterval) clearInterval(excitementInterval);
-      if (realtimeChannel) sb.removeChannel(realtimeChannel);
-      clearInterval(playerCountIv);
-      SESSION_ID = null; myPlayer = null;
-      myScore = 0; myCorrect = 0; myQCount = 0;
-      answered = false; selOption = -1; timerEnded = false;
-      localStorage.removeItem('paq_pid'); localStorage.removeItem('paq_sid');
-      document.getElementById('roomCodeInput').value = '';
-      document.getElementById('playerNameInput').value = '';
-      document.getElementById('joinError').innerText = '';
-      closeLiveResponses(); closeLeaderboard();
-      showScreen('join'); resetJoinBtn();
-      break;
-    case 'player_eliminated': if (evt.payload.playerId === myPlayer.id) { stopTimer(); showEliminated(); } break;
+    case 'game_reset': fullReset(true); break;
+    case 'player_eliminated': if (evt.payload.playerId === myPlayer?.id) { stopTimer(); showEliminated(); } break;
   }
+}
+
+// Centralised teardown — called on game_reset event or session status → waiting
+function fullReset(clearStorage = true) {
+  stopTimer();
+  if (excitementInterval) clearInterval(excitementInterval);
+  if (realtimeChannel) { sb.removeChannel(realtimeChannel); realtimeChannel = null; }
+  if (reconnectTimeout) { clearTimeout(reconnectTimeout); reconnectTimeout = null; }
+  clearInterval(playerCountIv); playerCountIv = null;
+  SESSION_ID = null; myPlayer = null;
+  myScore = 0; myCorrect = 0; myQCount = 0;
+  answered = false; selOption = -1; timerEnded = false; myLastAnswer = null;
+  if (clearStorage) {
+    localStorage.removeItem('paq_pid'); localStorage.removeItem('paq_sid');
+  }
+  document.getElementById('roomCodeInput').value = '';
+  document.getElementById('playerNameInput').value = '';
+  document.getElementById('joinError').innerText = '';
+  setOfflineBanner(false);
+  closeLiveResponses(); closeLeaderboard();
+  showScreen('join'); resetJoinBtn();
 }
 
 function showWaitingWithExcitement() {
@@ -741,6 +767,9 @@ async function submitAnswer(optIdx, isTimeout=false) {
 
 async function saveAnswer(optIdx, isCorrect, pts) {
   if(!curQuestion||!myPlayer) return;
+  // Cache locally so revealAndScore never needs a second DB round-trip
+  myLastAnswer = { is_correct: isCorrect, points_earned: pts };
+
   const answerData = {
     session_id: SESSION_ID, 
     question_id: curQuestion.id, 
@@ -751,14 +780,18 @@ async function saveAnswer(optIdx, isCorrect, pts) {
     time_taken_ms: (totalTime - timeLeft) * 1000
   };
   
-  // Save the answer but DON'T update player score yet
-  const { error } = await sb.from('answers').upsert(
-    answerData, 
-    { onConflict: 'question_id,player_id' }
-  );
-  
+  // Save the answer but DON'T update player score yet — try up to 2 times on failure
+  let error;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    ({ error } = await sb.from('answers').upsert(answerData, { onConflict: 'question_id,player_id' }));
+    if (!error) break;
+    if (attempt === 0) await new Promise(r => setTimeout(r, 800)); // brief pause before retry
+  }
   if (error) {
-    console.error('Error saving answer:', error);
+    console.error('Error saving answer after retry:', error);
+    // Surface a subtle warning so the player knows their answer may not have saved
+    const pending = document.getElementById('pendingBox');
+    if (pending) pending.innerText = '⚠️ Connection issue — answer may not have saved';
   } else {
     console.log('Answer saved (score not updated yet)');
   }
@@ -782,15 +815,19 @@ async function revealAndScore(correctOption) {
     else if(i === selOption && selOption !== correctOption) btn.classList.add('wrong'); 
   });
   
-  // Fetch the saved answer
-  const { data: myAns } = await sb.from('answers')
-    .select('is_correct, points_earned')
-    .eq('question_id', curQuestion.id)
-    .eq('player_id', myPlayer.id)
-    .maybeSingle();
-  
-  const correct = myAns?.is_correct || false; 
-  const earned = myAns?.points_earned || 0;
+  // Use cached answer from saveAnswer — no second DB round-trip needed
+  // Fall back to a DB fetch only if the cache is missing (e.g. page recovered mid-question)
+  let ansResult = myLastAnswer;
+  if (!ansResult) {
+    const { data: myAns } = await sb.from('answers')
+      .select('is_correct, points_earned')
+      .eq('question_id', curQuestion.id)
+      .eq('player_id', myPlayer.id)
+      .maybeSingle();
+    ansResult = myAns || { is_correct: false, points_earned: 0 };
+  }
+  const correct = ansResult?.is_correct || false; 
+  const earned = ansResult?.points_earned || 0;
   
   // NOW update the player score in the database
   if (correct && earned > 0) {
@@ -945,30 +982,43 @@ function hide(id) { document.getElementById(id)?.classList.add('hidden'); }
 function show(id) { document.getElementById(id)?.classList.remove('hidden'); }
 
 function playAgain() {
-  if(excitementInterval) clearInterval(excitementInterval);
-  localStorage.removeItem('paq_pid'); localStorage.removeItem('paq_sid');
-  if(realtimeChannel) sb.removeChannel(realtimeChannel);
-  clearInterval(playerCountIv); stopTimer();
-  SESSION_ID=null; myPlayer=null; myScore=0; myCorrect=0; myQCount=0;
-  answered=false; selOption=-1; timerEnded=false;
-  document.getElementById('roomCodeInput').value=''; document.getElementById('playerNameInput').value='';
-  showScreen('join'); resetJoinBtn(); document.getElementById('joinError').innerText='';
-  closeLiveResponses(); closeLeaderboard();
+  fullReset(true);
 }
 
 async function checkExisting() {
-  const pid=localStorage.getItem('paq_pid'); const sid=localStorage.getItem('paq_sid');
-  if(!pid||!sid) return false;
-  const [{data:player},{data:session}]=await Promise.all([
-    sb.from('players').select('*').eq('id',pid).maybeSingle(),
-    sb.from('game_sessions').select('*').eq('id',sid).maybeSingle()
-  ]);
-  if(!player||!session||session.status==='ended') return false;
-  myPlayer=player; SESSION_ID=sid; myScore=player.score||0; myCorrect=player.correct_count||0;
-  if(player.is_eliminated){showEliminated();return true;}
-  setupRealtime(); startPlayerCountPoll();
-  if(session.status==='active') showScreen('quiz');
-  else showWaitingWithExcitement();
+  const pid = localStorage.getItem('paq_pid');
+  const sid = localStorage.getItem('paq_sid');
+  if (!pid || !sid) return false;
+
+  // Show a brief "restoring session" state on the join screen while we verify
+  const joinBtn = document.getElementById('joinBtn');
+  if (joinBtn) { joinBtn.disabled = true; joinBtn.innerText = '⏳ Restoring session...'; }
+
+  let player, session;
+  try {
+    const [pr, sr] = await Promise.all([
+      sb.from('players').select('*').eq('id', pid).maybeSingle(),
+      sb.from('game_sessions').select('*').eq('id', sid).maybeSingle()
+    ]);
+    player = pr.data; session = sr.data;
+  } catch(e) {
+    // Network error on load — reset the button and let the player join fresh
+    resetJoinBtn(); return false;
+  }
+
+  if (!player || !session || session.status === 'ended') { resetJoinBtn(); return false; }
+
+  myPlayer = player; SESSION_ID = sid;
+  myScore = player.score || 0; myCorrect = player.correct_count || 0;
+  if (player.is_eliminated) { showEliminated(); return true; }
+  setupRealtime();
+  if (session.status === 'active') {
+    // Don't start the poll — quiz is already running
+    showScreen('quiz');
+  } else {
+    startPlayerCountPoll();
+    showWaitingWithExcitement();
+  }
   return true;
 }
 
