@@ -63,11 +63,63 @@ function handleEvent(event,payload){ console.log('Player:',event,payload);
     case 'eliminated': if(payload.playerId===myId){ myStatus='eliminated'; isOpen=false; document.getElementById('questionBox').innerText='⚡ You have been eliminated!'; setStatus('ELIMINATED','var(--red)'); } updateBuzzer(); break;
     case 'round_ended': isOpen=false; let winner=payload.winner; if(winner && winner.id===myId){ document.getElementById('questionBox').innerHTML='🏆 YOU ARE THE CHAMPION! 🎉'; setStatus('CHAMPION!','var(--gold)'); launchConfetti(); } else { setStatus(`Winner: ${winner?.name||'?'}`,'var(--muted)'); } updateBuzzer(); break;
     case 'timer_start': startPlayerTimer(payload.seconds); break;
-    case 'full_game_reset': location.reload(); break;
+    case 'state_sync': if(payload.playerId===myId){ myScore=payload.score||0; myStatus=payload.status||'waiting'; document.getElementById('myScoreDisplay').innerText=myScore; if(payload.isEliminated){ myStatus='eliminated'; document.getElementById('questionBox').innerText='⚡ You have been eliminated!'; } else if(payload.questionText){ document.getElementById('questionBox').innerText=payload.questionText; if(payload.isQuestionOpen && myStatus==='waiting'){ isOpen=true; } } setStatus('✅ Reconnected','var(--gold)'); updateBuzzer(); } break;
+    case 'full_game_reset': try{sessionStorage.removeItem('fr_identity');}catch(e){} location.reload(); break;
   }
 }
 function launchConfetti(){ for(let i=0;i<80;i++){ let c=document.createElement('div'); c.style.cssText=`position:fixed;width:8px;height:8px;background:${['#fbbf24','#ef4444','#10b981','#3b82f6'][Math.floor(Math.random()*4)]};left:${Math.random()*100}vw;top:-10px;border-radius:2px;pointer-events:none;z-index:9999;animation:confettiFall 2s linear forwards;`; document.body.appendChild(c); setTimeout(()=>c.remove(),2000); } }
-async function joinGame(){ let room=document.getElementById('roomInput').value.trim().toUpperCase(); let name=document.getElementById('nameInput').value.trim(); if(!room||name.length<2){ document.getElementById('joinError').innerText='Enter valid room code and name'; return; } myId='p_'+Date.now()+'_'+Math.random().toString(36).substring(2,6); myName=name; roomCode=room; ch=sb.channel(`fr-${roomCode}`); ch.on('broadcast',{event:'round_started'},({payload})=>handleEvent('round_started',payload)).on('broadcast',{event:'question_open'},({payload})=>handleEvent('question_open',payload)).on('broadcast',{event:'buzz_confirmed'},({payload})=>handleEvent('buzz_confirmed',payload)).on('broadcast',{event:'correct'},({payload})=>handleEvent('correct',payload)).on('broadcast',{event:'wrong'},({payload})=>handleEvent('wrong',payload)).on('broadcast',{event:'next_question'},({payload})=>handleEvent('next_question',payload)).on('broadcast',{event:'reset_buzzers'},({payload})=>handleEvent('reset_buzzers',payload)).on('broadcast',{event:'reset_for_next_question'},({payload})=>handleEvent('reset_for_next_question',payload)).on('broadcast',{event:'buzzers_reopen'},({payload})=>handleEvent('buzzers_reopen',payload)).on('broadcast',{event:'buzzer_toggle'},({payload})=>handleEvent('buzzer_toggle',payload)).on('broadcast',{event:'eliminated'},({payload})=>handleEvent('eliminated',payload)).on('broadcast',{event:'round_ended'},({payload})=>handleEvent('round_ended',payload)).on('broadcast',{event:'timer_start'},({payload})=>handleEvent('timer_start',payload)).on('broadcast',{event:'full_game_reset'},({payload})=>handleEvent('full_game_reset',payload)).subscribe(async(status)=>{ if(status==='SUBSCRIBED'){ ch.send({type:'broadcast',event:'player_join',payload:{id:myId,name:myName,avatar:myAvatar}}); document.getElementById('joinScreen').style.display='none'; document.getElementById('gameScreen').style.display='flex'; document.getElementById('myAvatarDisplay').innerText=myAvatar; document.getElementById('myNameDisplay').innerText=myName; setStatus('Joined! Waiting for host'); updateBuzzer(); } else if(status==='CHANNEL_ERROR'){ document.getElementById('joinError').innerText='Connection failed'; } }); }
+function saveIdentity(){ try{ sessionStorage.setItem('fr_identity',JSON.stringify({myId,myName,myAvatar,roomCode})); }catch(e){} }
+function loadIdentity(){ try{ let s=sessionStorage.getItem('fr_identity'); return s?JSON.parse(s):null; }catch(e){ return null; } }
+function subscribeChannel(){
+  if(ch) sb.removeChannel(ch);
+  ch=sb.channel(`fr-${roomCode}`);
+  ch.on('broadcast',{event:'round_started'},({payload})=>handleEvent('round_started',payload))
+    .on('broadcast',{event:'question_open'},({payload})=>handleEvent('question_open',payload))
+    .on('broadcast',{event:'buzz_confirmed'},({payload})=>handleEvent('buzz_confirmed',payload))
+    .on('broadcast',{event:'correct'},({payload})=>handleEvent('correct',payload))
+    .on('broadcast',{event:'wrong'},({payload})=>handleEvent('wrong',payload))
+    .on('broadcast',{event:'next_question'},({payload})=>handleEvent('next_question',payload))
+    .on('broadcast',{event:'reset_buzzers'},({payload})=>handleEvent('reset_buzzers',payload))
+    .on('broadcast',{event:'reset_for_next_question'},({payload})=>handleEvent('reset_for_next_question',payload))
+    .on('broadcast',{event:'buzzers_reopen'},({payload})=>handleEvent('buzzers_reopen',payload))
+    .on('broadcast',{event:'buzzer_toggle'},({payload})=>handleEvent('buzzer_toggle',payload))
+    .on('broadcast',{event:'eliminated'},({payload})=>handleEvent('eliminated',payload))
+    .on('broadcast',{event:'round_ended'},({payload})=>handleEvent('round_ended',payload))
+    .on('broadcast',{event:'timer_start'},({payload})=>handleEvent('timer_start',payload))
+    .on('broadcast',{event:'state_sync'},({payload})=>handleEvent('state_sync',payload))
+    .on('broadcast',{event:'full_game_reset'},({payload})=>handleEvent('full_game_reset',payload))
+    .subscribe(async(status)=>{
+      if(status==='SUBSCRIBED'){
+        ch.send({type:'broadcast',event:'player_join',payload:{id:myId,name:myName,avatar:myAvatar}});
+        document.getElementById('joinScreen').style.display='none';
+        document.getElementById('gameScreen').style.display='flex';
+        document.getElementById('myAvatarDisplay').innerText=myAvatar;
+        document.getElementById('myNameDisplay').innerText=myName;
+        document.getElementById('myScoreDisplay').innerText=myScore;
+        setStatus('Joined! Waiting for host'); updateBuzzer();
+      } else if(status==='CHANNEL_ERROR'){
+        document.getElementById('joinError').innerText='Connection failed';
+      }
+    });
+}
+async function joinGame(){
+  let room=document.getElementById('roomInput').value.trim().toUpperCase();
+  let name=document.getElementById('nameInput').value.trim();
+  if(!room||name.length<2){ document.getElementById('joinError').innerText='Enter valid room code and name'; return; }
+  myId='p_'+Date.now()+'_'+Math.random().toString(36).substring(2,6);
+  myName=name; roomCode=room; myScore=0;
+  saveIdentity();
+  subscribeChannel();
+}
+(function checkRejoin(){
+  let saved=loadIdentity();
+  if(!saved) return;
+  myId=saved.myId; myName=saved.myName; myAvatar=saved.myAvatar; roomCode=saved.roomCode; myScore=0;
+  document.getElementById('roomInput').value=roomCode;
+  document.getElementById('nameInput').value=myName;
+  subscribeChannel();
+  setStatus('Reconnecting...','var(--gold)');
+})();
 window.joinGame=joinGame; window.pickAvatar=pickAvatar; window.buzz=buzz;
 </script>
 </body>

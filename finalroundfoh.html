@@ -62,6 +62,7 @@
     <div class="logo">PLAY<span style="color:var(--gold)">A</span>QUIZ</div>
     <div style="display:flex; align-items:center; gap:10px;">
       <button class="audio-control" id="bgmToggleBtn" onclick="toggleBackgroundMusic()">🔊 BGM</button>
+      <div style="font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px;background:rgba(0,0,0,0.4);color:#6b7a99;" id="fohConnBadge">⏳ Connecting</div>
       <div class="room-display" id="roomDisplay">——</div>
     </div>
   </div>
@@ -75,6 +76,7 @@
     <div class="players-column"><div class="players-header"><h3>🎮 CONTESTANTS</h3></div><div id="playersBlocksContainer"><div style="text-align:center;color:var(--muted);padding:20px;">Waiting...</div></div></div>
   </div>
   <div class="footer">PlayAQuiz — Final Round Display</div>
+  <div id="roomEntryOverlay" style="display:none;position:fixed;inset:0;background:rgba(3,5,11,0.96);backdrop-filter:blur(20px);z-index:500;flex-direction:column;align-items:center;justify-content:center;gap:18px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:52px;background:linear-gradient(135deg,#fff,var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">PLAYAQUIZ</div><div style="font-size:15px;color:rgba(255,255,255,0.5);">FOH Display — Enter the room code from the Control panel</div><div style="display:flex;gap:10px;align-items:center;"><input id="fohRoomInput" placeholder="e.g. FR4X7K" maxlength="8" style="background:rgba(255,255,255,0.06);border:2px solid rgba(251,191,36,0.4);border-radius:14px;padding:14px 20px;color:#fff;font-size:26px;font-family:'JetBrains Mono',monospace;letter-spacing:6px;text-align:center;outline:none;text-transform:uppercase;width:260px;" onkeydown="if(event.key==='Enter') submitFohRoom()"><button onclick="submitFohRoom()" style="padding:14px 24px;background:linear-gradient(135deg,var(--gold),#f97316);border:none;border-radius:14px;font-size:17px;font-weight:800;color:#111;cursor:pointer;">CONNECT</button></div><div id="fohRoomError" style="color:var(--red);font-size:13px;"></div></div>
   <div id="timerWidget" class="timer-display" style="display:none;"><div class="timer-number" id="timerNumber">0</div><div class="timer-label">SECONDS LEFT</div></div>
 </div>
 <script>
@@ -153,15 +155,17 @@ function handleBroadcast(event,payload){ console.log('FOH:',event,payload);
     case 'full_game_reset': location.reload(); break;
   }
 }
-async function init(){ 
-  initBackgroundMusic();
-  let p=new URLSearchParams(location.search); 
-  roomCode=p.get('room')||localStorage.getItem('fr_room'); 
-  if(!roomCode){ document.getElementById('waitingRoomCode').innerText='NO ROOM'; document.getElementById('roomDisplay').innerText='NO ROOM'; return; } 
-  document.getElementById('roomDisplay').innerText=roomCode; 
-  document.getElementById('waitingRoomCode').innerText=roomCode; 
-  realtimeChannel=sb.channel(`fr-${roomCode}`); 
-  realtimeChannel.on('broadcast',{event:'round_started'},({payload})=>handleBroadcast('round_started',payload))
+function connectToRoom(code){
+  roomCode = code.trim().toUpperCase();
+  localStorage.setItem('fr_room', roomCode);
+  document.getElementById('roomDisplay').innerText = roomCode;
+  document.getElementById('waitingRoomCode').innerText = roomCode;
+  let overlay = document.getElementById('roomEntryOverlay');
+  if(overlay) overlay.style.display = 'none';
+  if(realtimeChannel) sb.removeChannel(realtimeChannel);
+  realtimeChannel = sb.channel(`fr-${roomCode}`);
+  realtimeChannel
+    .on('broadcast',{event:'round_started'},({payload})=>handleBroadcast('round_started',payload))
     .on('broadcast',{event:'player_list_update'},({payload})=>handleBroadcast('player_list_update',payload))
     .on('broadcast',{event:'question_open'},({payload})=>handleBroadcast('question_open',payload))
     .on('broadcast',{event:'buzz_confirmed'},({payload})=>handleBroadcast('buzz_confirmed',payload))
@@ -176,14 +180,33 @@ async function init(){
     .on('broadcast',{event:'round_ended'},({payload})=>handleBroadcast('round_ended',payload))
     .on('broadcast',{event:'timer_start'},({payload})=>handleBroadcast('timer_start',payload))
     .on('broadcast',{event:'full_game_reset'},({payload})=>handleBroadcast('full_game_reset',payload))
-    .subscribe(); 
-  document.body.addEventListener('click',()=>{ 
-    if(audioCtx&&audioCtx.state==='suspended') audioCtx.resume(); 
+    .subscribe((status)=>{
+      let badge = document.getElementById('fohConnBadge');
+      if(badge) badge.innerText = status==='SUBSCRIBED' ? '🟢 LIVE' : '🔴 '+status;
+    });
+}
+
+async function init(){
+  initBackgroundMusic();
+  let p = new URLSearchParams(location.search);
+  let code = p.get('room') || localStorage.getItem('fr_room');
+  if(!code){
+    document.getElementById('roomDisplay').innerText = 'NO ROOM';
+    document.getElementById('waitingRoomCode').innerText = 'Enter Room Code Below';
+    document.getElementById('roomEntryOverlay').style.display = 'flex';
+    return;
+  }
+  connectToRoom(code);
+  document.body.addEventListener('click',()=>{
+    if(audioCtx&&audioCtx.state==='suspended') audioCtx.resume();
     if(bgmAudio && bgmAudio.paused && bgmEnabled) bgmAudio.play().catch(e=>console.log(e));
-  },{once:true}); 
+  },{once:true});
 }
 init();
+function submitFohRoom(){ let code=document.getElementById("fohRoomInput").value.trim().toUpperCase(); if(code.length<4){ document.getElementById("fohRoomError").innerText="Enter a valid room code"; return; } document.getElementById("fohRoomError").innerText=""; connectToRoom(code); }
+window.submitFohRoom = submitFohRoom;
 window.toggleBackgroundMusic = toggleBackgroundMusic;
+window.connectToRoom = connectToRoom;
 </script>
 </body>
 </html>
