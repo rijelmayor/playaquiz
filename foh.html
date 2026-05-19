@@ -704,9 +704,194 @@
     .end-content { text-align: center; }
     .end-icon { font-size: 100px; margin-bottom: 24px; }
     .end-title { font-family: 'Bebas Neue', sans-serif; font-size: 96px; background: linear-gradient(135deg, var(--yellow), var(--pink)); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+
+    /* ── ROOM ENTRY OVERLAY ── */
+    #roomEntryOverlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 5, 11, 0.97);
+      backdrop-filter: blur(24px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      flex-direction: column;
+      gap: 0;
+      animation: overlayIn 0.4s ease;
+    }
+
+    @keyframes overlayIn {
+      from { opacity: 0; transform: scale(1.03); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+
+    #roomEntryOverlay.hidden {
+      animation: overlayOut 0.4s ease forwards;
+      pointer-events: none;
+    }
+
+    @keyframes overlayOut {
+      from { opacity: 1; transform: scale(1); }
+      to   { opacity: 0; transform: scale(0.97); }
+    }
+
+    .entry-card {
+      background: rgba(18, 22, 40, 0.95);
+      border: 1.5px solid rgba(59, 130, 246, 0.35);
+      border-radius: 32px;
+      padding: 52px 64px;
+      text-align: center;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.03);
+      max-width: 520px;
+      width: 90%;
+    }
+
+    .entry-logo {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 38px;
+      letter-spacing: 5px;
+      background: linear-gradient(135deg, #fff, #60a5fa);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 6px;
+    }
+
+    .entry-sub {
+      font-size: 13px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.35);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-bottom: 40px;
+    }
+
+    .entry-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: rgba(255,255,255,0.4);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    .entry-input-row {
+      display: flex;
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    .entry-input {
+      flex: 1;
+      background: rgba(255,255,255,0.05);
+      border: 1.5px solid rgba(59,130,246,0.4);
+      border-radius: 16px;
+      padding: 16px 22px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 26px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 6px;
+      text-align: center;
+      text-transform: uppercase;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .entry-input::placeholder {
+      color: rgba(255,255,255,0.18);
+      letter-spacing: 4px;
+      font-size: 20px;
+    }
+
+    .entry-input:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+    }
+
+    .entry-input.error {
+      border-color: var(--red);
+      box-shadow: 0 0 0 3px rgba(239,68,68,0.2);
+      animation: shake 0.35s ease;
+    }
+
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      20%      { transform: translateX(-8px); }
+      40%      { transform: translateX( 8px); }
+      60%      { transform: translateX(-5px); }
+      80%      { transform: translateX( 5px); }
+    }
+
+    .entry-btn {
+      background: linear-gradient(135deg, #3b82f6, #6366f1);
+      border: none;
+      border-radius: 16px;
+      padding: 0 26px;
+      font-size: 22px;
+      cursor: pointer;
+      color: #fff;
+      font-weight: 800;
+      transition: transform 0.15s, box-shadow 0.15s, filter 0.15s;
+      flex-shrink: 0;
+      min-width: 60px;
+    }
+
+    .entry-btn:hover { transform: scale(1.06); box-shadow: 0 8px 20px rgba(59,130,246,0.4); }
+    .entry-btn:active { transform: scale(0.97); }
+    .entry-btn:disabled { filter: grayscale(0.7); opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .entry-error {
+      margin-top: 14px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--red);
+      min-height: 20px;
+      letter-spacing: 0.5px;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .entry-error.visible { opacity: 1; }
+
+    .entry-hint {
+      margin-top: 28px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.25);
+      line-height: 1.6;
+    }
+
+    .entry-hint strong { color: rgba(255,255,255,0.45); }
   </style>
 </head>
 <body>
+<!-- ── ROOM ENTRY OVERLAY ── -->
+<div id="roomEntryOverlay">
+  <div class="entry-card">
+    <div class="entry-logo">PLAY<span style="color:var(--accent)">A</span>QUIZ</div>
+    <div class="entry-sub">FOH Display · Operator Panel</div>
+    <div class="entry-label">Enter Room Code</div>
+    <div class="entry-input-row">
+      <input
+        id="roomCodeInput"
+        class="entry-input"
+        type="text"
+        maxlength="8"
+        placeholder="ROOM"
+        autocomplete="off"
+        autocorrect="off"
+        spellcheck="false"
+      />
+      <button class="entry-btn" id="roomConnectBtn" title="Connect">→</button>
+    </div>
+    <div class="entry-error" id="entryError"></div>
+    <div class="entry-hint">
+      Enter the room code shown in the <strong>Admin panel</strong>.<br>
+      The code is case-insensitive.
+    </div>
+  </div>
+</div>
+
 <div class="foh">
   <div class="top-bar">
     <div class="logo">PLAY<span style="color:var(--accent)">A</span>QUIZ</div>
@@ -1661,39 +1846,155 @@ function startPolling() {
   }, 3000);
 }
 
-async function init() {
-  setInterval(updateFooterTime, 1000);
-  
-  const params = new URLSearchParams(window.location.search);
-  let sid = params.get('session') || localStorage.getItem('paq_session_id');
-  
-  if (!sid) {
-    const { data } = await sb.from('game_sessions').select('id,room_code').eq('status','waiting').order('created_at',{ascending:false}).limit(1);
-    if (data?.[0]) sid = data[0].id;
+// ── Room Entry UI ────────────────────────────────────────────────────
+function showEntryError(msg) {
+  const el = document.getElementById('entryError');
+  const inp = document.getElementById('roomCodeInput');
+  el.innerText = msg;
+  el.classList.add('visible');
+  inp.classList.add('error');
+  setTimeout(() => inp.classList.remove('error'), 400);
+}
+
+function clearEntryError() {
+  const el = document.getElementById('entryError');
+  el.innerText = '';
+  el.classList.remove('visible');
+}
+
+async function connectToRoom(rawCode) {
+  const code = rawCode.trim().toUpperCase();
+  if (!code) { showEntryError('Please enter a room code.'); return; }
+
+  const btn = document.getElementById('roomConnectBtn');
+  const inp = document.getElementById('roomCodeInput');
+  btn.disabled = true;
+  btn.innerText = '…';
+  clearEntryError();
+
+  try {
+    const { data: sessions, error } = await sb
+      .from('game_sessions')
+      .select('id, room_code, status')
+      .eq('room_code', code)
+      .in('status', ['waiting', 'active'])
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (error) throw error;
+
+    if (!sessions || sessions.length === 0) {
+      showEntryError('Room not found or session has ended.');
+      btn.disabled = false;
+      btn.innerText = '→';
+      return;
+    }
+
+    const session = sessions[0];
+    SESSION_ID = session.id;
+    localStorage.setItem('paq_foh_session_id', SESSION_ID);
+    localStorage.setItem('paq_foh_room_code', code);
+
+    await bootFOH(session);
+
+    // Dismiss overlay with animation
+    const overlay = document.getElementById('roomEntryOverlay');
+    overlay.classList.add('hidden');
+    setTimeout(() => overlay.remove(), 420);
+
+  } catch (err) {
+    console.error('Room connect error:', err);
+    showEntryError('Connection error. Check your network and try again.');
+    btn.disabled = false;
+    btn.innerText = '→';
   }
-  
-  if (!sid) { 
-    document.getElementById('roomCode').innerText = 'NO SESSION'; 
-    return; 
-  }
-  
-  SESSION_ID = sid;
-  localStorage.setItem('paq_session_id', sid);
-  
-  const { data: session } = await sb.from('game_sessions').select('*').eq('id', SESSION_ID).single();
-  if (session) {
-    document.getElementById('roomCode').innerText = session.room_code;
-    document.getElementById('waitingRoomCode').innerText = session.room_code;
-    document.getElementById('footerStatus').innerText = session.status;
-    if (session.status === 'active') gameActive = true;
-  }
-  
+}
+
+function setupEntryUI() {
+  const btn  = document.getElementById('roomConnectBtn');
+  const inp  = document.getElementById('roomCodeInput');
+
+  btn.addEventListener('click', () => connectToRoom(inp.value));
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'Enter') connectToRoom(inp.value);
+  });
+  inp.addEventListener('input', () => {
+    inp.value = inp.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    clearEntryError();
+  });
+
+  // Auto-focus so the operator can start typing immediately
+  setTimeout(() => inp.focus(), 120);
+}
+
+// ── Main boot (called after room is confirmed) ───────────────────────
+async function bootFOH(session) {
+  document.getElementById('roomCode').innerText = session.room_code;
+  document.getElementById('waitingRoomCode').innerText = session.room_code;
+  document.getElementById('footerStatus').innerText = session.status;
+  if (session.status === 'active') gameActive = true;
+
   await syncPlayers();
   setupRealtimePlayers();
   setupGameEvents();
   startPolling();
-  
-  console.log('FOH initialized for session:', SESSION_ID);
+
+  console.log('FOH booted for session:', SESSION_ID, '| room:', session.room_code);
+}
+
+// ── Init ─────────────────────────────────────────────────────────────
+async function init() {
+  setInterval(updateFooterTime, 1000);
+
+  // Wire up entry UI listeners immediately (safe to call before overlay is gone)
+  setupEntryUI();
+  const params = new URLSearchParams(window.location.search);
+  const sidParam      = params.get('session');
+  const codeParam     = params.get('room');
+  const cachedSession = localStorage.getItem('paq_foh_session_id');
+  const cachedCode    = localStorage.getItem('paq_foh_room_code');
+
+  if (sidParam) {
+    // Direct session ID provided — look it up and skip the entry screen
+    const { data: session } = await sb.from('game_sessions').select('id,room_code,status').eq('id', sidParam).single();
+    if (session && ['waiting','active'].includes(session.status)) {
+      SESSION_ID = session.id;
+      localStorage.setItem('paq_foh_session_id', SESSION_ID);
+      localStorage.setItem('paq_foh_room_code', session.room_code);
+      await bootFOH(session);
+      const overlay = document.getElementById('roomEntryOverlay');
+      overlay.classList.add('hidden');
+      setTimeout(() => overlay.remove(), 420);
+      return;
+    }
+  }
+
+  if (codeParam) {
+    // Room code in URL — pre-fill and auto-connect
+    const inp = document.getElementById('roomCodeInput');
+    inp.value = codeParam.toUpperCase();
+    await connectToRoom(codeParam);
+    return;
+  }
+
+  // 2. Restore last session from localStorage (convenience for page refreshes)
+  if (cachedSession && cachedCode) {
+    const { data: session } = await sb.from('game_sessions').select('id,room_code,status').eq('id', cachedSession).single();
+    if (session && ['waiting','active'].includes(session.status)) {
+      const inp = document.getElementById('roomCodeInput');
+      inp.value = session.room_code;
+      // Pre-fill but don't auto-connect — let operator confirm
+      inp.focus();
+      return;
+    } else {
+      // Stale cache — clear it
+      localStorage.removeItem('paq_foh_session_id');
+      localStorage.removeItem('paq_foh_room_code');
+    }
+  }
+
+  // 3. Fresh start — entry overlay is already wired, wait for operator input
+  // (nothing else to do; setupEntryUI() was called at the top)
 }
 
 init();

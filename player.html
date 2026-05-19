@@ -493,8 +493,48 @@ let timerEnded = false;
 let excitementInterval;
 // ── answer cache: avoids a re-fetch from DB on reveal ──
 let myLastAnswer = null; // { is_correct, points_earned }
-// ── reconnect state ──
+
+// ── reconnect state — exponential backoff ──
 let reconnectTimeout = null;
+let reconnectAttempt = 0;          // increments on each failed attempt, resets on success
+const RECONNECT_BASE_MS = 3000;    // 3 s → 6 → 12 → 24 → 30 s cap
+const RECONNECT_CAP_MS  = 30000;
+function nextReconnectDelay() {
+  const delay = Math.min(RECONNECT_BASE_MS * Math.pow(2, reconnectAttempt), RECONNECT_CAP_MS);
+  reconnectAttempt++;
+  return delay;
+}
+
+// ── heartbeat poll — catches silent WS drops (Wi-Fi ↔ cellular handoff) ──
+let heartbeatIv = null;
+const HEARTBEAT_MS = 10000; // 10 s
+let lastEventAt   = Date.now();
+
+// ── answer offline queue — flush on reconnect if upsert failed while offline ──
+// Stored in localStorage as JSON array under key 'paq_answer_queue'
+function queueAnswer(answerData) {
+  try {
+    const q = JSON.parse(localStorage.getItem('paq_answer_queue') || '[]');
+    // Replace existing entry for same question (upsert semantics)
+    const idx = q.findIndex(a => a.question_id === answerData.question_id && a.player_id === answerData.player_id);
+    if (idx >= 0) q[idx] = answerData; else q.push(answerData);
+    localStorage.setItem('paq_answer_queue', JSON.stringify(q));
+  } catch(e) { console.warn('Could not queue answer locally:', e); }
+}
+
+async function flushAnswerQueue() {
+  let q;
+  try { q = JSON.parse(localStorage.getItem('paq_answer_queue') || '[]'); } catch(e) { return; }
+  if (!q.length) return;
+  const remaining = [];
+  for (const ans of q) {
+    const { error } = await sb.from('answers').upsert(ans, { onConflict: 'question_id,player_id' });
+    if (error) { remaining.push(ans); }
+  }
+  localStorage.setItem('paq_answer_queue', JSON.stringify(remaining));
+  if (remaining.length === 0) console.log('Answer queue flushed successfully.');
+}
+
 let isOnline = navigator.onLine;
 
 function buildAvatarGrid() {
@@ -581,29 +621,67 @@ function setupRealtime() {
   if (!SESSION_ID || !myPlayer) return;
 
   realtimeChannel = sb.channel(`paq-${SESSION_ID}`)
-    .on('postgres_changes', { event:'INSERT', schema:'public', table:'game_events', filter:`session_id=eq.${SESSION_ID}` }, p => handleEvent(p.new))
+    .on('postgres_changes', { event:'INSERT', schema:'public', table:'game_events', filter:`session_id=eq.${SESSION_ID}` }, p => {
+      lastEventAt = Date.now();
+      handleEvent(p.new);
+    })
     .on('postgres_changes', { event:'UPDATE', schema:'public', table:'game_sessions', filter:`id=eq.${SESSION_ID}` }, p => {
+      lastEventAt = Date.now();
       if (p.new.status==='ended') showResult();
       if (p.new.status==='waiting') fullReset(true);
     })
     .on('postgres_changes', { event:'UPDATE', schema:'public', table:'players', filter:`id=eq.${myPlayer.id}` }, p => {
+      lastEventAt = Date.now();
       if (p.new.is_eliminated) { stopTimer(); showEliminated(); }
       myPlayer = {...myPlayer, ...p.new};
       myScore = p.new.score || 0;
       myCorrect = p.new.correct_count || 0;
       document.getElementById('scoreChip').innerText = myScore + ' pts';
     })
-    .subscribe((status, err) => {
+    .subscribe((status) => {
       if (status === 'SUBSCRIBED') {
+        reconnectAttempt = 0;          // reset backoff counter on successful connection
         setOfflineBanner(false);
+        startHeartbeat();
+        flushAnswerQueue();            // flush any answers queued while offline
       } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
         setOfflineBanner(true);
-        // Exponential back-off reconnect: 3 s first, then let it ride
+        stopHeartbeat();
         if (SESSION_ID && myPlayer && !reconnectTimeout) {
-          reconnectTimeout = setTimeout(() => { reconnectTimeout = null; setupRealtime(); }, 3000);
+          const delay = nextReconnectDelay();
+          console.log(`Reconnecting in ${delay}ms (attempt ${reconnectAttempt})…`);
+          reconnectTimeout = setTimeout(() => { reconnectTimeout = null; setupRealtime(); }, delay);
         }
       }
     });
+}
+
+function startHeartbeat() {
+  stopHeartbeat();
+  heartbeatIv = setInterval(async () => {
+    if (!SESSION_ID || !myPlayer) return;
+    // If no event received in 2× the heartbeat window, the WS is likely silently dead
+    if (Date.now() - lastEventAt > HEARTBEAT_MS * 2) {
+      console.warn('Heartbeat: no events received — checking connection');
+      try {
+        const { error } = await sb.from('game_sessions').select('id').eq('id', SESSION_ID).maybeSingle();
+        if (error) throw error;
+        // DB reachable but WS silent — force a channel reconnect
+        console.warn('Heartbeat: DB ok but WS silent — reconnecting channel');
+        if (!reconnectTimeout) {
+          const delay = nextReconnectDelay();
+          reconnectTimeout = setTimeout(() => { reconnectTimeout = null; setupRealtime(); }, delay);
+        }
+      } catch(e) {
+        // Network totally down — banner is already showing from the offline event
+        console.warn('Heartbeat: network unreachable');
+      }
+    }
+  }, HEARTBEAT_MS);
+}
+
+function stopHeartbeat() {
+  if (heartbeatIv) { clearInterval(heartbeatIv); heartbeatIv = null; }
 }
 
 function setOfflineBanner(show) {
@@ -613,8 +691,15 @@ function setOfflineBanner(show) {
 }
 
 // ── online/offline native events as a secondary signal ──
-window.addEventListener('online',  () => { isOnline = true;  setOfflineBanner(false); if (SESSION_ID && myPlayer) setupRealtime(); });
-window.addEventListener('offline', () => { isOnline = false; setOfflineBanner(true); });
+window.addEventListener('online',  () => {
+  isOnline = true;
+  setOfflineBanner(false);
+  if (SESSION_ID && myPlayer) {
+    reconnectAttempt = 0;   // reset backoff — device just regained connectivity
+    setupRealtime();
+  }
+});
+window.addEventListener('offline', () => { isOnline = false; setOfflineBanner(true); stopHeartbeat(); });
 
 function handleEvent(evt) {
   switch(evt.event_type) {
@@ -644,15 +729,19 @@ function handleEvent(evt) {
 // Centralised teardown — called on game_reset event or session status → waiting
 function fullReset(clearStorage = true) {
   stopTimer();
+  stopHeartbeat();
   if (excitementInterval) clearInterval(excitementInterval);
   if (realtimeChannel) { sb.removeChannel(realtimeChannel); realtimeChannel = null; }
   if (reconnectTimeout) { clearTimeout(reconnectTimeout); reconnectTimeout = null; }
+  reconnectAttempt = 0;
   clearInterval(playerCountIv); playerCountIv = null;
   SESSION_ID = null; myPlayer = null;
   myScore = 0; myCorrect = 0; myQCount = 0;
   answered = false; selOption = -1; timerEnded = false; myLastAnswer = null;
   if (clearStorage) {
-    localStorage.removeItem('paq_pid'); localStorage.removeItem('paq_sid');
+    localStorage.removeItem('paq_pid');
+    localStorage.removeItem('paq_sid');
+    localStorage.removeItem('paq_answer_queue');
   }
   document.getElementById('roomCodeInput').value = '';
   document.getElementById('playerNameInput').value = '';
@@ -767,33 +856,44 @@ async function submitAnswer(optIdx, isTimeout=false) {
 
 async function saveAnswer(optIdx, isCorrect, pts) {
   if(!curQuestion||!myPlayer) return;
-  // Cache locally so revealAndScore never needs a second DB round-trip
+  // Cache in-memory so revealAndScore never needs a second DB round-trip
   myLastAnswer = { is_correct: isCorrect, points_earned: pts };
 
   const answerData = {
-    session_id: SESSION_ID, 
-    question_id: curQuestion.id, 
+    session_id: SESSION_ID,
+    question_id: curQuestion.id,
     player_id: myPlayer.id,
-    chosen_option: optIdx, 
-    is_correct: isCorrect, 
+    chosen_option: optIdx,
+    is_correct: isCorrect,
     points_earned: pts,
     time_taken_ms: (totalTime - timeLeft) * 1000
   };
-  
-  // Save the answer but DON'T update player score yet — try up to 2 times on failure
-  let error;
-  for (let attempt = 0; attempt < 2; attempt++) {
-    ({ error } = await sb.from('answers').upsert(answerData, { onConflict: 'question_id,player_id' }));
-    if (!error) break;
-    if (attempt === 0) await new Promise(r => setTimeout(r, 800)); // brief pause before retry
+
+  // Write to localStorage immediately — survives page close / network drop
+  queueAnswer(answerData);
+
+  // Attempt live upsert up to 3 times with increasing back-off (800ms → 1.6s → 3.2s)
+  let saved = false;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const { error } = await sb.from('answers').upsert(answerData, { onConflict: 'question_id,player_id' });
+    if (!error) {
+      saved = true;
+      // Remove from local queue now that DB has it
+      try {
+        const q = JSON.parse(localStorage.getItem('paq_answer_queue') || '[]');
+        const filtered = q.filter(a => !(a.question_id === answerData.question_id && a.player_id === answerData.player_id));
+        localStorage.setItem('paq_answer_queue', JSON.stringify(filtered));
+      } catch(e) {}
+      console.log('Answer saved to DB.');
+      break;
+    }
+    await new Promise(r => setTimeout(r, 800 * Math.pow(2, attempt)));
   }
-  if (error) {
-    console.error('Error saving answer after retry:', error);
-    // Surface a subtle warning so the player knows their answer may not have saved
+
+  if (!saved) {
+    console.warn('Answer not persisted after 3 attempts — kept in local queue for flush on reconnect.');
     const pending = document.getElementById('pendingBox');
-    if (pending) pending.innerText = '⚠️ Connection issue — answer may not have saved';
-  } else {
-    console.log('Answer saved (score not updated yet)');
+    if (pending) pending.innerText = '⚠️ Connection issue — answer queued, will sync on reconnect';
   }
 }
 
@@ -994,13 +1094,21 @@ async function checkExisting() {
   const joinBtn = document.getElementById('joinBtn');
   if (joinBtn) { joinBtn.disabled = true; joinBtn.innerText = '⏳ Restoring session...'; }
 
-  let player, session;
+  let player, session, lastEvent;
   try {
-    const [pr, sr] = await Promise.all([
+    const [pr, sr, er] = await Promise.all([
       sb.from('players').select('*').eq('id', pid).maybeSingle(),
-      sb.from('game_sessions').select('*').eq('id', sid).maybeSingle()
+      sb.from('game_sessions').select('*').eq('id', sid).maybeSingle(),
+      // Fetch the most recent game event to restore question state on mid-question rejoin
+      sb.from('game_events')
+        .select('*')
+        .eq('session_id', sid)
+        .in('event_type', ['show_question_view', 'answer_reveal', 'show_leaderboard'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
     ]);
-    player = pr.data; session = sr.data;
+    player = pr.data; session = sr.data; lastEvent = er.data;
   } catch(e) {
     // Network error on load — reset the button and let the player join fresh
     resetJoinBtn(); return false;
@@ -1011,13 +1119,64 @@ async function checkExisting() {
   myPlayer = player; SESSION_ID = sid;
   myScore = player.score || 0; myCorrect = player.correct_count || 0;
   if (player.is_eliminated) { showEliminated(); return true; }
+
   setupRealtime();
+
   if (session.status === 'active') {
-    // Don't start the poll — quiz is already running
-    showScreen('quiz');
+    if (lastEvent && lastEvent.event_type === 'show_question_view' && lastEvent.payload?.question) {
+      // ── Mid-question rejoin ──
+      // Restore the question exactly as it was when it was shown.
+      // The timer phase is unknowable from the client, so we show the question
+      // in the "timer running" state — buttons enabled, reading notice hidden.
+      // If the host hasn't started the timer yet, the next start_timer event
+      // will re-trigger unlockAndStartTimer() harmlessly.
+      const q = lastEvent.payload.question;
+      curQuestion = q;
+      totalQ = session.total_questions || 0;
+      curQIdx = session.current_question_index ?? 0;
+
+      // Check if the player already answered this question
+      const { data: existingAnswer } = await sb.from('answers')
+        .select('chosen_option, is_correct, points_earned')
+        .eq('question_id', q.id)
+        .eq('player_id', pid)
+        .maybeSingle();
+
+      displayQuestion(q, curQIdx);
+      showScreen('quiz');
+
+      if (existingAnswer) {
+        // Already answered — show locked state, don't re-enable buttons
+        answered = true;
+        selOption = existingAnswer.chosen_option;
+        myLastAnswer = { is_correct: existingAnswer.is_correct, points_earned: existingAnswer.points_earned };
+        document.querySelectorAll('.opt-btn').forEach((btn, i) => {
+          btn.disabled = true;
+          if (i === selOption) btn.classList.add('selected');
+        });
+        hide('readingNotice');
+        show('pendingBox');
+        document.getElementById('pendingBox').innerText = '⏳ Locked in! Waiting for answer reveal...';
+        document.getElementById('actionButtonsRow').classList.remove('hidden');
+      } else {
+        // Not yet answered — unlock buttons so they can still answer
+        hide('readingNotice');
+        document.querySelectorAll('.opt-btn').forEach(b => b.disabled = false);
+        // Start a client-side timer as a best-effort (won't be perfectly synced)
+        totalTime = q.time_limit || 20;
+        timeLeft = Math.max(1, totalTime - 5); // conservative: assume ~5s elapsed
+        startTimer();
+      }
+    } else {
+      // Active game but between questions or on leaderboard — just show quiz screen
+      showScreen('quiz');
+    }
+    // Flush any queued answers that failed to save while offline
+    await flushAnswerQueue();
   } else {
     startPlayerCountPoll();
     showWaitingWithExcitement();
+    await flushAnswerQueue();
   }
   return true;
 }
