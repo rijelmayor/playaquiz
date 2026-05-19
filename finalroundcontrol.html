@@ -64,7 +64,6 @@
     .connection-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--red); display: inline-block; margin-right: 5px; }
     .connection-dot.connected { background: var(--green); }
     .hidden { display: none !important; }
-    .reset-warning { background: rgba(239,68,68,0.15); border: 1px solid var(--red); border-radius: 8px; padding: 8px; margin-top: 8px; font-size: 11px; color: var(--red); text-align: center; }
   </style>
 </head>
 <body>
@@ -89,8 +88,7 @@
           <input type="number" id="minPlayersInput" value="2" min="1" max="10" style="margin-bottom:12px">
           <label style="font-size:10px;">Room Code</label>
           <input id="roomCodeInput" readonly style="font-family:monospace;font-size:20px;color:var(--gold);margin-bottom:10px">
-          <button class="btn btn-ghost" onclick="generateNewRoomCode()">🔄 New Code</button>
-          <div class="reset-warning" id="resetWarning" style="display:none;">⚠️ New code will reset all players and send FOH/Players to login screen</div>
+          <button class="btn btn-ghost" onclick="generateRoomCode()">🔄 New Code</button>
           <button class="btn btn-orange" style="margin-top:10px;width:100%" onclick="resetFullGame()">🔄 NEW GAME / RESET</button>
         </div>
         <div class="card">
@@ -180,65 +178,17 @@ function selectQuestion(qId) {
   toast(`Selected: ${q.question_text.substring(0,50)}`);
 }
 function fireQuestion(qId) { selectQuestion(qId); openQuestion(); }
-
-// NEW: Generate new room code with full reset broadcast
-function generateNewRoomCode() {
-  if(!confirm('Generate new room code? This will reset the game and all connected players will need to re-join with the new code.')) return;
-  
-  const newCode = 'FR' + Math.random().toString(36).substring(2,6).toUpperCase();
-  roomCode = newCode;
-  document.getElementById('roomCodeInput').value = roomCode;
-  document.getElementById('roomCodeDisplay').innerText = roomCode;
-  localStorage.setItem('fr_room', roomCode);
-  
-  // Clear all game state
-  frPlayers.clear();
-  eliminatedPlayers.clear();
-  lockedPlayers.clear();
-  buzzedPlayerId = null;
-  isQuestionOpen = false;
-  selectedQuestionForGame = null;
-  currentQuestionNumber = 0;
-  
-  renderPlayersGrid();
-  updateSidebar();
-  
-  // Broadcast full reset to all connected clients (FOH and Players)
-  // This will trigger them to show room entry overlay
-  broadcast('full_game_reset', { newRoomCode: roomCode });
-  
-  // Re-setup channel with new room code
-  setupRealtimeChannel();
-  
-  // Hide game panel if visible, show setup panel
-  document.getElementById('setupPanel').classList.remove('hidden');
-  document.getElementById('gamePanel').classList.add('hidden');
-  
-  toast(`🆕 New room code: ${roomCode} - All clients reset to login screen`);
-}
-
-function setupRealtimeChannel() { 
-  if(realtimeChannel) sb.removeChannel(realtimeChannel); 
-  realtimeChannel = sb.channel(`fr-${roomCode}`); 
-  realtimeChannel.on('broadcast', {event:'player_join'}, ({payload})=>handlePlayerJoin(payload))
-    .on('broadcast',{event:'buzz'},({payload})=>handleBuzz(payload))
-    .subscribe((status)=>{ 
-      let dot=document.getElementById('connDot'),txt=document.getElementById('connText'); 
-      if(status==='SUBSCRIBED'){ 
-        dot.classList.add('connected'); 
-        txt.innerText='Live'; 
-      } else { 
-        dot.classList.remove('connected'); 
-        txt.innerText=status; 
-      } 
-    }); 
-}
-
+function generateRoomCode() { roomCode = 'FR' + Math.random().toString(36).substring(2,6).toUpperCase(); document.getElementById('roomCodeInput').value = roomCode; document.getElementById('roomCodeDisplay').innerText = roomCode; localStorage.setItem('fr_room', roomCode); setupRealtimeChannel(); }
+function setupRealtimeChannel() { if(realtimeChannel) sb.removeChannel(realtimeChannel); realtimeChannel = sb.channel(`fr-${roomCode}`); realtimeChannel.on('broadcast', {event:'player_join'}, ({payload})=>handlePlayerJoin(payload)).on('broadcast',{event:'buzz'},({payload})=>handleBuzz(payload)).subscribe((status)=>{ let dot=document.getElementById('connDot'),txt=document.getElementById('connText'); if(status==='SUBSCRIBED'){ dot.classList.add('connected'); txt.innerText='Live'; } else { dot.classList.remove('connected'); txt.innerText=status; } }); }
 function broadcast(event,payload){ if(realtimeChannel) realtimeChannel.send({type:'broadcast',event,payload}); }
 function handlePlayerJoin(payload){
+  // Exact same ID already present — ignore duplicate
   if(frPlayers.has(payload.id)) return;
+
+  // Rejoin detection: same name already in game (reconnected player with new ID)
   let existing = Array.from(frPlayers.values()).find(p => p.name === payload.name);
   if(existing){
+    // Swap old ID → new ID, preserve score & status
     frPlayers.delete(existing.id);
     if(eliminatedPlayers.has(existing.id)){ eliminatedPlayers.delete(existing.id); eliminatedPlayers.add(payload.id); }
     if(lockedPlayers.has(existing.id)){ lockedPlayers.delete(existing.id); lockedPlayers.add(payload.id); }
@@ -246,6 +196,7 @@ function handlePlayerJoin(payload){
     existing.id = payload.id;
     frPlayers.set(payload.id, existing);
     renderPlayersGrid(); updateSidebar();
+    // Send current game state back to the rejoining player
     broadcast('state_sync',{
       playerId: payload.id,
       score: existing.score,
@@ -259,6 +210,7 @@ function handlePlayerJoin(payload){
     toast(`🔄 ${payload.avatar} ${payload.name} reconnected`);
     return;
   }
+
   frPlayers.set(payload.id,{id:payload.id, name:payload.name, avatar:payload.avatar, score:0, status:'waiting'});
   renderPlayersGrid(); updateSidebar(); toast(`✨ ${payload.avatar} ${payload.name} joined`);
   broadcast('player_list_update',{players:Array.from(frPlayers.values())});
@@ -273,44 +225,7 @@ function toggleBuzzerGlobal(){ buzzerGlobalEnabled = !buzzerGlobalEnabled; let b
 function showCategoryPickerOnFOH(){ broadcast('show_category_picker',{categories:categories}); toast('🎨 Categories shown on FOH'); }
 function showCategoryToStart(){ if(frPlayers.size < parseInt(document.getElementById('minPlayersInput').value)){ toast(`Need at least ${document.getElementById('minPlayersInput').value} players`,'error'); return; } pointsPerBuzz = parseInt(document.getElementById('pointsPerBuzz').value)||100; document.getElementById('setupPanel').classList.add('hidden'); document.getElementById('gamePanel').classList.remove('hidden'); document.getElementById('liveRoomCode').innerText = roomCode; broadcast('round_started',{roomCode, pointsPerBuzz}); showCategoryPickerOnFOH(); toast('🎮 Round started!'); }
 function endFinalRound(){ if(!confirm('End Final Round?')) return; let sorted=Array.from(frPlayers.values()).filter(p=>!eliminatedPlayers.has(p.id)).sort((a,b)=>b.score-a.score); let winner=sorted[0]; broadcast('round_ended',{winner}); toast(`🏆 Winner: ${winner?.name||'N/A'}`); }
-
-// UPDATED: Reset full game - broadcasts to all clients to show login screen
-function resetFullGame(){ 
-  if(!confirm('⚠️ NEW GAME: This will reset everything and all connected players will need to re-join with the new room code. Continue?')) return; 
-  
-  // Generate new room code
-  const newCode = 'FR' + Math.random().toString(36).substring(2,6).toUpperCase();
-  roomCode = newCode;
-  document.getElementById('roomCodeInput').value = roomCode;
-  document.getElementById('roomCodeDisplay').innerText = roomCode;
-  localStorage.setItem('fr_room', roomCode);
-  
-  // Clear all game state
-  frPlayers.clear(); 
-  eliminatedPlayers.clear(); 
-  lockedPlayers.clear(); 
-  buzzedPlayerId = null; 
-  isQuestionOpen = false; 
-  selectedQuestionForGame = null; 
-  currentQuestionNumber = 0; 
-  
-  renderPlayersGrid(); 
-  updateSidebar(); 
-  
-  // Broadcast full game reset to ALL connected clients (FOH and Players)
-  // This forces them to show the room entry overlay / login screen
-  broadcast('full_game_reset', { newRoomCode: roomCode, forceLogin: true });
-  
-  // Re-setup channel with new room code
-  setupRealtimeChannel();
-  
-  // Switch back to setup panel
-  document.getElementById('setupPanel').classList.remove('hidden'); 
-  document.getElementById('gamePanel').classList.add('hidden'); 
-  
-  toast(`🔄 NEW GAME READY! Room code: ${roomCode} - All clients reset to login screen`); 
-}
-
+function resetFullGame(){ if(!confirm('NEW GAME? This will reset everything!')) return; broadcast('full_game_reset',{}); setTimeout(()=>{ frPlayers.clear(); eliminatedPlayers.clear(); lockedPlayers.clear(); buzzedPlayerId=null; isQuestionOpen=false; selectedQuestionForGame=null; currentQuestionNumber=0; roomCode = 'FR' + Math.random().toString(36).substring(2,6).toUpperCase(); document.getElementById('roomCodeInput').value = roomCode; document.getElementById('roomCodeDisplay').innerText = roomCode; localStorage.setItem('fr_room', roomCode); document.getElementById('setupPanel').classList.remove('hidden'); document.getElementById('gamePanel').classList.add('hidden'); setupRealtimeChannel(); renderPlayersGrid(); updateSidebar(); toast(`🔄 New Room: ${roomCode}`); }, 200); }
 function renderPlayersGrid(){ let sorted=Array.from(frPlayers.values()).sort((a,b)=>b.score-a.score); let setupList=document.getElementById('playerSetupList'); if(setupList) setupList.innerHTML=sorted.length===0?'<div style="padding:30px;color:var(--muted);">Waiting for players...</div>':sorted.map(p=>`<div style="display:flex;align-items:center;gap:10px;padding:7px;background:var(--surface2);border-radius:9px;margin-bottom:5px"><span style="font-size:22px">${p.avatar}</span><span style="flex:1;">${p.name}</span><span style="color:var(--gold);">${p.score} pts</span></div>`).join('');
   let grid=document.getElementById('playersGrid'); if(!grid) return; if(sorted.length===0){ grid.innerHTML='<div style="padding:24px;text-align:center;">Waiting...</div>'; return; }
   grid.innerHTML=sorted.map(p=>{ let isElim=eliminatedPlayers.has(p.id); let badge=''; if(p.status==='buzzed') badge='🔔 BUZZED'; else if(p.status==='correct') badge='✅ CORRECT'; else if(p.status==='wrong') badge='❌ WRONG'; else if(isElim) badge='⚡ OUT'; else badge='● READY'; return `<div class="player-card ${isElim?'eliminated':''}"><div class="player-avatar">${p.avatar}</div><div class="player-name">${p.name}</div><div class="player-score">${p.score}</div><div class="player-badge">${badge}</div>${!isElim?`<button class="eliminate-btn" onclick="eliminatePlayer('${p.id}')">⚡ Eliminate</button>`:''}</div>`; }).join('');
@@ -319,34 +234,8 @@ function updateSidebar(){ let sorted=Array.from(frPlayers.values()).filter(p=>!e
 function eliminatePlayer(id){ let player=frPlayers.get(id); if(!player || !confirm(`Eliminate ${player.name}?`)) return; eliminatedPlayers.add(id); player.status='eliminated'; renderPlayersGrid(); updateSidebar(); broadcast('eliminated',{playerId:id, playerName:player.name}); toast(`⚡ ${player.name} eliminated`); }
 function nextQuestion(){ buzzedPlayerId=null; isQuestionOpen=false; selectedQuestionForGame=null; document.getElementById('buzzerCard').style.display='none'; document.getElementById('openBtn').disabled=true; document.getElementById('selectedQuestionDisplay').innerHTML='<div style="color:var(--muted);">← Pick a question</div>'; frPlayers.forEach((p,id)=>{ if(!eliminatedPlayers.has(id)) p.status='waiting'; }); lockedPlayers.clear(); renderPlayersGrid(); broadcast('next_question',{}); }
 function toast(msg){ let el=document.createElement('div'); el.className='toast'; el.innerText=msg; document.body.appendChild(el); setTimeout(()=>el.remove(),3000); }
-
-// Initialize with new room code (no auto-load from localStorage)
-function initControl() {
-  roomCode = 'FR' + Math.random().toString(36).substring(2,6).toUpperCase();
-  document.getElementById('roomCodeInput').value = roomCode;
-  document.getElementById('roomCodeDisplay').innerText = roomCode;
-  localStorage.setItem('fr_room', roomCode);
-  setupRealtimeChannel();
-  loadQuestionsFromDB();
-}
-
-initControl();
-window.generateNewRoomCode = generateNewRoomCode;
-window.showCategoryToStart = showCategoryToStart;
-window.selectQuestion = selectQuestion;
-window.fireQuestion = fireQuestion;
-window.filterByCategory = filterByCategory;
-window.openQuestion = openQuestion;
-window.markCorrect = markCorrect;
-window.markWrong = markWrong;
-window.resetBuzzers = resetBuzzers;
-window.nextQuestion = nextQuestion;
-window.eliminatePlayer = eliminatePlayer;
-window.endFinalRound = endFinalRound;
-window.showCategoryPickerOnFOH = showCategoryPickerOnFOH;
-window.resetFullGame = resetFullGame;
-window.startTimer = startTimer;
-window.toggleBuzzerGlobal = toggleBuzzerGlobal;
+generateRoomCode(); loadQuestionsFromDB();
+window.generateRoomCode=generateRoomCode; window.showCategoryToStart=showCategoryToStart; window.selectQuestion=selectQuestion; window.fireQuestion=fireQuestion; window.filterByCategory=filterByCategory; window.openQuestion=openQuestion; window.markCorrect=markCorrect; window.markWrong=markWrong; window.resetBuzzers=resetBuzzers; window.nextQuestion=nextQuestion; window.eliminatePlayer=eliminatePlayer; window.endFinalRound=endFinalRound; window.showCategoryPickerOnFOH=showCategoryPickerOnFOH; window.resetFullGame=resetFullGame; window.startTimer=startTimer; window.toggleBuzzerGlobal=toggleBuzzerGlobal;
 </script>
 </body>
 </html>
