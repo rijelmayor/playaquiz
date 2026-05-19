@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>PlayAQuiz — Final Round Display (Fixed)</title>
+  <title>PlayAQuiz — Final Round Display</title>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;600;700;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -37,7 +37,7 @@
     @keyframes pulse { 0%,100%{ opacity: 1; } 50%{ opacity: 0.55; } }
     .timer-display { position: fixed; top: 100px; right: 320px; background: rgba(0,0,0,0.85); border: 3px solid var(--gold); border-radius: 60px; padding: 15px 30px; z-index: 100; text-align: center; box-shadow: 0 0 20px rgba(251,191,36,0.3); }
     .timer-number { font-family: 'Bebas Neue', sans-serif; font-size: 64px; color: var(--gold); line-height: 1; }
-    .overlay-container { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(3,5,11,0.92); backdrop-filter: blur(20px); border-radius: 28px; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 30; text-align: center; animation: fadeInScale 0.2s cubic-bezier(0.2, 0.9, 0.4, 1.1); }
+    .overlay-container { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(3,5,11,0.95); backdrop-filter: blur(20px); border-radius: 28px; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 30; text-align: center; animation: fadeInScale 0.2s cubic-bezier(0.2, 0.9, 0.4, 1.1); }
     @keyframes fadeInScale { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
     .overlay-icon { font-size: 85px; margin-bottom: 12px; }
     .overlay-title { font-size: 48px; font-weight: 800; background: linear-gradient(135deg, #fff, var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 10px; }
@@ -58,7 +58,81 @@
     .cat-tile { background: rgba(139,92,246,0.08); border: 2px solid rgba(139,92,246,0.25); border-radius: 20px; padding: 18px; text-align: center; min-width: 120px; backdrop-filter: blur(4px); }
     .cat-tile-icon { font-size: 40px; }
     .cat-tile-name { font-weight: 700; }
-    @keyframes catPop { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+    
+    /* Room Entry Overlay - ALWAYS SHOWN FIRST */
+    #roomEntryOverlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(3,5,11,0.98);
+      backdrop-filter: blur(24px);
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+    }
+    .entry-card {
+      background: rgba(13,17,32,0.9);
+      border: 2px solid rgba(251,191,36,0.3);
+      border-radius: 48px;
+      padding: 48px 56px;
+      text-align: center;
+      max-width: 550px;
+      width: 90%;
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+    }
+    .entry-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 52px;
+      background: linear-gradient(135deg, #fff, var(--gold));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 16px;
+    }
+    .entry-subtitle {
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 32px;
+    }
+    .entry-input {
+      background: rgba(255,255,255,0.06);
+      border: 2px solid rgba(251,191,36,0.4);
+      border-radius: 20px;
+      padding: 18px 24px;
+      color: #fff;
+      font-size: 32px;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 8px;
+      text-align: center;
+      outline: none;
+      text-transform: uppercase;
+      width: 100%;
+      margin-bottom: 24px;
+    }
+    .entry-input:focus {
+      border-color: var(--gold);
+      box-shadow: 0 0 20px rgba(251,191,36,0.3);
+    }
+    .entry-btn {
+      padding: 16px 32px;
+      background: linear-gradient(135deg, var(--gold), #f97316);
+      border: none;
+      border-radius: 24px;
+      font-size: 18px;
+      font-weight: 800;
+      color: #111;
+      cursor: pointer;
+      transition: transform 0.1s;
+      width: 100%;
+    }
+    .entry-btn:hover { transform: scale(1.02); }
+    .entry-error {
+      color: var(--red);
+      font-size: 13px;
+      margin-top: 16px;
+    }
+    .hidden { display: none !important; }
   </style>
 </head>
 <body>
@@ -67,7 +141,7 @@
     <div class="logo">PLAY<span style="color:var(--gold)">A</span>QUIZ</div>
     <div style="display:flex; align-items:center; gap:10px;">
       <button class="audio-control" id="bgmToggleBtn" onclick="toggleBackgroundMusic()">🔊 BGM</button>
-      <div style="font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px;background:rgba(0,0,0,0.4);color:#6b7a99;" id="fohConnBadge">⏳ Connecting</div>
+      <div style="font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px;background:rgba(0,0,0,0.4);color:#6b7a99;" id="fohConnBadge">⏳ Not connected</div>
       <div class="room-display" id="roomDisplay">——</div>
     </div>
   </div>
@@ -80,10 +154,22 @@
     </div>
     <div class="players-column"><div class="players-header"><h3>🎮 CONTESTANTS</h3></div><div id="playersBlocksContainer"><div style="text-align:center;color:var(--muted);padding:20px;">Waiting...</div></div></div>
   </div>
-  <div class="footer">PlayAQuiz — Final Round Display (v2)</div>
-  <div id="roomEntryOverlay" style="display:none;position:fixed;inset:0;background:rgba(3,5,11,0.96);backdrop-filter:blur(20px);z-index:500;flex-direction:column;align-items:center;justify-content:center;gap:18px;"><div style="font-family:'Bebas Neue',sans-serif;font-size:52px;background:linear-gradient(135deg,#fff,var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">PLAYAQUIZ</div><div style="font-size:15px;color:rgba(255,255,255,0.5);">FOH Display — Enter the room code from the Control panel</div><div style="display:flex;gap:10px;align-items:center;"><input id="fohRoomInput" placeholder="e.g. FR4X7K" maxlength="8" style="background:rgba(255,255,255,0.06);border:2px solid rgba(251,191,36,0.4);border-radius:14px;padding:14px 20px;color:#fff;font-size:26px;font-family:'JetBrains Mono',monospace;letter-spacing:6px;text-align:center;outline:none;text-transform:uppercase;width:260px;" onkeydown="if(event.key==='Enter') submitFohRoom()"><button onclick="submitFohRoom()" style="padding:14px 24px;background:linear-gradient(135deg,var(--gold),#f97316);border:none;border-radius:14px;font-size:17px;font-weight:800;color:#111;cursor:pointer;">CONNECT</button></div><div id="fohRoomError" style="color:var(--red);font-size:13px;"></div></div>
+  <div class="footer">PlayAQuiz — Final Round Display</div>
+  
+  <!-- Room Entry Overlay - ALWAYS SHOWN FIRST, NO AUTO-LOAD -->
+  <div id="roomEntryOverlay">
+    <div class="entry-card">
+      <div class="entry-title">PLAYAQUIZ</div>
+      <div class="entry-subtitle">Enter the room code from the Control Panel</div>
+      <input type="text" id="fohRoomInput" class="entry-input" placeholder="FR4X7K" maxlength="8" autocomplete="off" onkeydown="if(event.key==='Enter') submitFohRoom()">
+      <button class="entry-btn" onclick="submitFohRoom()">🔌 CONNECT TO ROOM</button>
+      <div id="fohRoomError" class="entry-error"></div>
+    </div>
+  </div>
+  
   <div id="timerWidget" class="timer-display" style="display:none;"><div class="timer-number" id="timerNumber">0</div><div class="timer-label" style="font-size: 11px; letter-spacing: 1px;">SECONDS LEFT</div></div>
 </div>
+
 <script>
 const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
 const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
@@ -91,15 +177,15 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 let roomCode = null, realtimeChannel = null, currentPlayers = [], timerInterval = null;
 let bgmAudio = null, bgmEnabled = true, audioCtx = null;
 
-// Background music (silent if not present)
+// Background music
 function initBackgroundMusic() {
   bgmAudio = new Audio();
-  bgmAudio.src = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'; // royalty-free demo track
+  bgmAudio.src = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
   bgmAudio.loop = true;
   bgmAudio.volume = 0.25;
   bgmAudio.load();
 }
-function playBackgroundMusic() { if (bgmAudio && bgmEnabled) bgmAudio.play().catch(e => console.log('BGM play blocked:', e)); }
+function playBackgroundMusic() { if (bgmAudio && bgmEnabled) bgmAudio.play().catch(e => console.log('BGM:', e)); }
 function stopBackgroundMusic() { if (bgmAudio) { bgmAudio.pause(); bgmAudio.currentTime = 0; } }
 function toggleBackgroundMusic() {
   if (!bgmAudio) initBackgroundMusic();
@@ -117,7 +203,6 @@ function playCategorySound() { try { const ctx = getAudio(); [392,523,659].forEa
 function showScreen(id) { document.querySelectorAll('.game-content .screen').forEach(s=>s.classList.remove('active')); let el=document.getElementById(`${id}Screen`); if(el) el.classList.add('active'); }
 function clearOverlay() { let container = document.getElementById('overlayContainer'); if(container) container.innerHTML = ''; }
 
-// ========== FIXED CORRECT OVERLAY ==========
 function showCorrectOverlay(playerName, playerAvatar, points) {
   clearOverlay();
   const container = document.getElementById('overlayContainer');
@@ -132,10 +217,7 @@ function showCorrectOverlay(playerName, playerAvatar, points) {
     <div style="margin-top: 24px; font-size: 18px; background: rgba(16,185,129,0.2); padding: 6px 20px; border-radius: 60px;">🎊 CONGRATULATIONS! 🎊</div>
   `;
   container.appendChild(overlayDiv);
-  // Auto remove after 3.5 seconds
-  setTimeout(() => {
-    if (overlayDiv && overlayDiv.parentNode) overlayDiv.remove();
-  }, 3800);
+  setTimeout(() => { if (overlayDiv && overlayDiv.parentNode) overlayDiv.remove(); }, 3800);
 }
 
 function showWrongOverlay(playerName) {
@@ -151,9 +233,7 @@ function showWrongOverlay(playerName) {
     <div class="overlay-message" style="color: var(--red);">Locked out this round!</div>
   `;
   container.appendChild(overlayDiv);
-  setTimeout(() => {
-    if (overlayDiv && overlayDiv.parentNode) overlayDiv.remove();
-  }, 2500);
+  setTimeout(() => { if (overlayDiv && overlayDiv.parentNode) overlayDiv.remove(); }, 2500);
 }
 
 function showBuzzOverlay(playerName, playerAvatar) {
@@ -169,9 +249,7 @@ function showBuzzOverlay(playerName, playerAvatar) {
     <div class="overlay-message" style="color: var(--gold);">Ready to answer...</div>
   `;
   container.appendChild(overlayDiv);
-  setTimeout(() => {
-    if (overlayDiv && overlayDiv.parentNode) overlayDiv.remove();
-  }, 2000);
+  setTimeout(() => { if (overlayDiv && overlayDiv.parentNode) overlayDiv.remove(); }, 2000);
 }
 
 function renderPlayersBlocks(players) {
@@ -221,12 +299,10 @@ function handleBroadcast(event,payload){ console.log('FOH:',event,payload);
       break;
     case 'correct': 
       playCorrectSound(); 
-      // FIXED: Display beautiful congratulations overlay with player name, not room code
       showCorrectOverlay(payload.playerName, payload.playerAvatar, payload.points || 100);
       let cP=currentPlayers.find(p=>p.id===payload.playerId); 
       if(cP){ cP.score=payload.newScore; cP.status='correct'; renderPlayersBlocks(currentPlayers); } 
       launchConfetti(); 
-      // Ensure no room code appears anywhere else (just celebration)
       break;
     case 'wrong': 
       playWrongSound(); 
@@ -246,18 +322,27 @@ function handleBroadcast(event,payload){ console.log('FOH:',event,payload);
       showScreen('ended'); launchConfetti(); stopBackgroundMusic(); 
       break;
     case 'timer_start': startTimer(payload.seconds); break;
-    case 'full_game_reset': location.reload(); break;
+    case 'full_game_reset': 
+      // On full reset, disconnect and show room entry again
+      if(realtimeChannel) sb.removeChannel(realtimeChannel);
+      document.getElementById('roomEntryOverlay').style.display = 'flex';
+      document.getElementById('roomDisplay').innerText = '——';
+      document.getElementById('waitingRoomCode').innerText = '——';
+      document.getElementById('fohRoomInput').value = '';
+      showScreen('waiting');
+      break;
     default: break;
   }
 }
 
 function connectToRoom(code){
   roomCode = code.trim().toUpperCase();
-  localStorage.setItem('fr_room', roomCode);
   document.getElementById('roomDisplay').innerText = roomCode;
   document.getElementById('waitingRoomCode').innerText = roomCode;
-  let overlay = document.getElementById('roomEntryOverlay');
-  if(overlay) overlay.style.display = 'none';
+  
+  // Hide the entry overlay
+  document.getElementById('roomEntryOverlay').style.display = 'none';
+  
   if(realtimeChannel) sb.removeChannel(realtimeChannel);
   realtimeChannel = sb.channel(`fr-${roomCode}`);
   realtimeChannel
@@ -278,28 +363,39 @@ function connectToRoom(code){
     .on('broadcast',{event:'full_game_reset'},({payload})=>handleBroadcast('full_game_reset',payload))
     .subscribe((status)=>{
       let badge = document.getElementById('fohConnBadge');
-      if(badge) badge.innerText = status==='SUBSCRIBED' ? '🟢 LIVE' : '🔴 '+status;
+      if(badge) {
+        if(status === 'SUBSCRIBED') {
+          badge.innerText = '🟢 LIVE';
+          badge.style.color = '#10b981';
+        } else {
+          badge.innerText = '🔴 ' + status;
+          badge.style.color = '#ef4444';
+        }
+      }
     });
 }
 
-async function init(){
-  initBackgroundMusic();
-  let p = new URLSearchParams(location.search);
-  let code = p.get('room') || localStorage.getItem('fr_room');
-  if(!code){
-    document.getElementById('roomDisplay').innerText = 'NO ROOM';
-    document.getElementById('waitingRoomCode').innerText = 'Enter Room Code Below';
-    document.getElementById('roomEntryOverlay').style.display = 'flex';
-    return;
-  }
-  connectToRoom(code);
-  document.body.addEventListener('click',()=>{
-    if(audioCtx&&audioCtx.state==='suspended') audioCtx.resume();
-    if(bgmAudio && bgmAudio.paused && bgmEnabled) bgmAudio.play().catch(e=>console.log(e));
-  },{once:true});
+function submitFohRoom(){ 
+  let code = document.getElementById("fohRoomInput").value.trim().toUpperCase(); 
+  if(code.length < 4){ 
+    document.getElementById("fohRoomError").innerText = "Enter a valid room code (4-8 characters)"; 
+    return; 
+  } 
+  document.getElementById("fohRoomError").innerText = ""; 
+  connectToRoom(code); 
 }
+
+// Initialize - NO AUTO-LOAD, NO localStorage
+function init(){
+  initBackgroundMusic();
+  // Entry overlay is already visible by default
+  // No automatic connection - user must input room code
+  document.body.addEventListener('click',()=>{
+    if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  }, {once: true});
+}
+
 init();
-function submitFohRoom(){ let code=document.getElementById("fohRoomInput").value.trim().toUpperCase(); if(code.length<4){ document.getElementById("fohRoomError").innerText="Enter a valid room code (4-8 chars)"; return; } document.getElementById("fohRoomError").innerText=""; connectToRoom(code); }
 window.submitFohRoom = submitFohRoom;
 window.toggleBackgroundMusic = toggleBackgroundMusic;
 window.connectToRoom = connectToRoom;
