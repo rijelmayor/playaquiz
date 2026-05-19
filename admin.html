@@ -1119,62 +1119,90 @@ function setCatSelMode(mode) {
 
 // Spin Reel
 function buildSpinReel() {
-  const reel=document.getElementById('spinReel');
-  if(!reel||!categories.length)return;
-  // 6x repeat for long scroll
-  const repeated=[...categories,...categories,...categories,...categories,...categories,...categories];
-  reel.innerHTML=repeated.map(cat=>`<div class="spin-reel-item" data-id="${cat.id}"><span class="reel-icon">${cat.icon}</span><span>${cat.name}</span></div>`).join('');
+  const reel = document.getElementById('spinReel');
+  const startBtn = document.getElementById('spinStartBtn');
+  if (!reel) return;
+
+  if (!categories.length) {
+    // No categories yet — show a placeholder and disable the spin button
+    reel.innerHTML = '<div class="spin-reel-item" style="color:var(--muted);font-size:14px">No categories loaded</div>';
+    if (startBtn) startBtn.disabled = true;
+    return;
+  }
+
+  if (startBtn) startBtn.disabled = false;
+  // 6× repeat gives a long scroll buffer so the reel never shows a gap
+  const repeated = [...categories,...categories,...categories,...categories,...categories,...categories];
+  reel.innerHTML = repeated.map(cat =>
+    `<div class="spin-reel-item" data-id="${cat.id}"><span class="reel-icon">${cat.icon}</span><span>${cat.name}</span></div>`
+  ).join('');
+  // Reset position so a fresh build doesn't leave a stale offset
+  reelPos = 0;
+  reel.style.transform = 'translateY(0)';
 }
 
 let reelPos = 0;
 function startSpin() {
-  if(spinRunning)return;
-  spinRunning=true; selectedCatForBroadcast=null;
-  document.getElementById('spinResult').innerText='—';
-  document.getElementById('spinStartBtn').style.display='none';
-  document.getElementById('spinStopBtn').style.display='inline-flex';
-  document.getElementById('spinBroadcastBtn').disabled=true;
+  if (spinRunning) return;
+  if (!categories.length) { toast('No categories to spin — add categories first', 'error'); return; }
 
-  const reel=document.getElementById('spinReel');
-  const itemH=52;
-  const totalItems=reel.children.length;
-  const loopHeight=categories.length*itemH;
-  let speed=10;
+  // Rebuild reel if it somehow has no items (e.g. categories loaded after first open)
+  const reel = document.getElementById('spinReel');
+  if (!reel.children.length || reel.querySelector('[data-id]') === null) buildSpinReel();
 
-  spinInterval=setInterval(()=>{
-    reelPos+=speed;
-    // Seamless loop: when past 3 full repeats, reset to keep within bounds
-    if(reelPos>=loopHeight*3) reelPos=loopHeight;
-    reel.style.transform=`translateY(-${reelPos}px)`;
-    // Highlight center
-    const centIdx=Math.floor(reelPos/itemH)%categories.length;
-    Array.from(reel.children).forEach((el,i)=>el.classList.toggle('highlighted',i%categories.length===centIdx));
-  },30);
+  spinRunning = true; selectedCatForBroadcast = null;
+  document.getElementById('spinResult').innerText = '—';
+  document.getElementById('spinStartBtn').style.display = 'none';
+  document.getElementById('spinStopBtn').style.display = 'inline-flex';
+  document.getElementById('spinBroadcastBtn').disabled = true;
+
+  const itemH = 52;
+  const loopHeight = categories.length * itemH;
+  // Guard: loopHeight of 0 would cause NaN — already caught above, but belt-and-suspenders
+  if (loopHeight === 0) { spinRunning = false; return; }
+
+  const speed = 10;
+  spinInterval = setInterval(() => {
+    reelPos += speed;
+    // Seamless loop: wrap back into the second repeat so there's always content above and below
+    if (reelPos >= loopHeight * 4) reelPos = loopHeight;
+    reel.style.transform = `translateY(-${reelPos}px)`;
+    // Highlight whichever category is centered in the window
+    const centIdx = Math.floor(reelPos / itemH) % categories.length;
+    Array.from(reel.children).forEach((el, i) =>
+      el.classList.toggle('highlighted', i % categories.length === centIdx)
+    );
+  }, 30);
 }
 
 function stopSpin() {
-  if(!spinRunning)return;
-  clearInterval(spinInterval); spinRunning=false;
-  document.getElementById('spinStartBtn').style.display='inline-flex';
-  document.getElementById('spinStopBtn').style.display='none';
+  if (!spinRunning) return;
+  clearInterval(spinInterval); spinRunning = false;
+  document.getElementById('spinStartBtn').style.display = 'inline-flex';
+  document.getElementById('spinStopBtn').style.display = 'none';
 
-  // Snap to nearest item
-  const itemH=52;
-  const snapped=Math.round(reelPos/itemH)*itemH;
-  const catIdx=(Math.round(reelPos/itemH))%categories.length;
-  const cat=categories[((catIdx%categories.length)+categories.length)%categories.length];
+  const itemH = 52;
+  // Snap to the nearest item boundary
+  const snappedPos = Math.round(reelPos / itemH) * itemH;
+  // Derive which category index is at the snapped position
+  const rawIdx = Math.round(reelPos / itemH);
+  const catIdx = ((rawIdx % categories.length) + categories.length) % categories.length;
+  const cat = categories[catIdx];
 
-  const reel=document.getElementById('spinReel');
-  reel.style.transition='transform 0.4s cubic-bezier(0.25,1,0.5,1)';
-  reel.style.transform=`translateY(-${snapped}px)`;
-  setTimeout(()=>reel.style.transition='',500);
+  const reel = document.getElementById('spinReel');
+  reel.style.transition = 'transform 0.4s cubic-bezier(0.25,1,0.5,1)';
+  reel.style.transform = `translateY(-${snappedPos}px)`;
+  reelPos = snappedPos; // keep state in sync after snap
+  setTimeout(() => reel.style.transition = '', 500);
 
-  selectedCatForBroadcast=cat;
-  document.getElementById('spinResult').innerText=`${cat.icon}  ${cat.name}`;
-  document.getElementById('spinBroadcastBtn').disabled=false;
-  toast(`🎲 Landed on: ${cat.icon} ${cat.name}!`,'success');
-  // Highlight winner
-  Array.from(reel.children).forEach((el,i)=>el.classList.toggle('highlighted',i%categories.length===((catIdx%categories.length+categories.length)%categories.length)));
+  selectedCatForBroadcast = cat;
+  document.getElementById('spinResult').innerText = `${cat.icon}  ${cat.name}`;
+  document.getElementById('spinBroadcastBtn').disabled = false;
+  toast(`🎲 Landed on: ${cat.icon} ${cat.name}!`, 'success');
+  // Highlight the winning slot across all repeats
+  Array.from(reel.children).forEach((el, i) =>
+    el.classList.toggle('highlighted', i % categories.length === catIdx)
+  );
 }
 
 // Manual
@@ -1335,13 +1363,30 @@ function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
 // ─── Next Question Picker (Dashboard) ───
 function pickRandomNextQuestion() {
   const available = gameQueue.filter(q => !usedQuestionIds.has(q.id) && q.id !== emergencyQuestion?.id);
-  if (!available.length) { toast('No unused questions left in queue', 'error'); return; }
+  if (!available.length) {
+    if (!gameQueue.length) {
+      toast('No questions in queue — load questions first', 'error');
+    } else {
+      toast('All questions already used this round', 'error');
+    }
+    return;
+  }
   const q = available[Math.floor(Math.random() * available.length)];
   adminNextPickQuestion = q;
   updateAdminNextPickBanner();
   renderDashQueue();
   renderGameQueue();
-  toast(`🎲 Random pick: "${q.question_text.slice(0, 45)}..."`, 'success');
+  toast(`🎲 Random pick: "${q.question_text.slice(0, 45)}${q.question_text.length > 45 ? '...' : ''}"`, 'success');
+
+  // Scroll the picked question into view in the dashboard queue list
+  requestAnimationFrame(() => {
+    const queueEl = document.getElementById('dashQueueList');
+    if (!queueEl) return;
+    const idx = gameQueue.findIndex(x => x.id === q.id);
+    if (idx < 0) return;
+    const rows = queueEl.children;
+    if (rows[idx]) rows[idx].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  });
 }
 function clearDashNextPick() {
   adminNextPickQuestion = null;
