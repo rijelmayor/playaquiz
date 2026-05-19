@@ -59,19 +59,6 @@
     .cat-tile-icon { font-size: 40px; }
     .cat-tile-name { font-weight: 700; }
     
-    /* Room Entry Overlay - ALWAYS SHOWN FIRST */
-    #roomEntryOverlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(3,5,11,0.98);
-      backdrop-filter: blur(24px);
-      z-index: 1000;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 24px;
-    }
     .entry-card {
       background: rgba(13,17,32,0.9);
       border: 2px solid rgba(251,191,36,0.3);
@@ -132,6 +119,18 @@
       font-size: 13px;
       margin-top: 16px;
     }
+    #roomEntryOverlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(3,5,11,0.98);
+      backdrop-filter: blur(24px);
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+    }
     .hidden { display: none !important; }
   </style>
 </head>
@@ -147,7 +146,7 @@
   </div>
   <div class="main-grid">
     <div class="game-content">
-      <div id="waitingScreen" class="screen active"><div class="waiting-hero"><div class="waiting-icon">⚡</div><div class="waiting-title">FINAL ROUND</div><div class="waiting-code" id="waitingRoomCode">——</div><div style="margin-top: 20px; font-size:14px; color: var(--muted);">Waiting for host to start the round...</div></div></div>
+      <div id="waitingScreen" class="screen"><div class="waiting-hero"><div class="waiting-icon">⚡</div><div class="waiting-title">FINAL ROUND</div><div class="waiting-code" id="waitingRoomCode">——</div><div style="margin-top: 20px; font-size:14px; color: var(--muted);">Waiting for host to start the round...</div></div></div>
       <div id="questionScreen" class="screen"><div class="question-hero" style="position:relative;"><div class="question-text" id="questionText">Loading...</div><div class="options-grid" id="optionsGrid"></div><div class="buzzer-open-badge">🔴 BUZZERS ARE OPEN</div><div id="overlayContainer"></div></div></div>
       <div id="catPickScreen" class="screen"><div class="catpick-hero"><div class="waiting-title" style="font-size: 42px;">🎨 PICK A CATEGORY</div><div class="catpick-grid" id="catPickGrid"></div></div></div>
       <div id="endedScreen" class="screen"><div class="ended-hero"><div class="waiting-icon">🏆</div><div class="waiting-title">GAME OVER</div><div class="ended-winner" id="winnerName" style="font-size: 32px; background: linear-gradient(135deg, var(--gold), #fff); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">—</div></div></div>
@@ -156,7 +155,6 @@
   </div>
   <div class="footer">PlayAQuiz — Final Round Display</div>
   
-  <!-- Room Entry Overlay - ALWAYS SHOWN FIRST, NO AUTO-LOAD -->
   <div id="roomEntryOverlay">
     <div class="entry-card">
       <div class="entry-title">PLAYAQUIZ</div>
@@ -176,22 +174,39 @@ const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 let roomCode = null, realtimeChannel = null, currentPlayers = [], timerInterval = null;
 let bgmAudio = null, bgmEnabled = true, audioCtx = null;
+let currentQuestionText = '';
 
-// Background music
 function initBackgroundMusic() {
   bgmAudio = new Audio();
-  bgmAudio.src = 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3';
+  bgmAudio.src = 'countdownbg.mp3';
   bgmAudio.loop = true;
-  bgmAudio.volume = 0.25;
+  bgmAudio.volume = 0.35;
   bgmAudio.load();
+  console.log('Background music loaded: countdownbg.mp3');
 }
-function playBackgroundMusic() { if (bgmAudio && bgmEnabled) bgmAudio.play().catch(e => console.log('BGM:', e)); }
-function stopBackgroundMusic() { if (bgmAudio) { bgmAudio.pause(); bgmAudio.currentTime = 0; } }
+function playBackgroundMusic() { 
+  if (bgmAudio && bgmEnabled) {
+    bgmAudio.play().catch(e => console.log('BGM play error:', e));
+  }
+}
+function stopBackgroundMusic() { 
+  if (bgmAudio) { 
+    bgmAudio.pause(); 
+    bgmAudio.currentTime = 0; 
+  } 
+}
 function toggleBackgroundMusic() {
   if (!bgmAudio) initBackgroundMusic();
   const btn = document.getElementById('bgmToggleBtn');
-  if (bgmAudio.paused) { bgmAudio.play().catch(e=>console.log(e)); bgmEnabled = true; btn.innerHTML = '🔊 BGM'; }
-  else { bgmAudio.pause(); bgmEnabled = false; btn.innerHTML = '🔈 BGM'; }
+  if (bgmAudio.paused) { 
+    bgmAudio.play().catch(e=>console.log(e)); 
+    bgmEnabled = true; 
+    btn.innerHTML = '🔊 BGM'; 
+  } else { 
+    bgmAudio.pause(); 
+    bgmEnabled = false; 
+    btn.innerHTML = '🔈 BGM'; 
+  }
 }
 
 function getAudio() { if (!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)(); if (audioCtx.state === 'suspended') audioCtx.resume(); return audioCtx; }
@@ -200,9 +215,19 @@ function playBuzzSound() { try { const ctx = getAudio(); const osc = ctx.createO
 function playCorrectSound() { try { const ctx = getAudio(); [523,659,784,1047].forEach((f,i)=>{ const osc = ctx.createOscillator(), g = ctx.createGain(); osc.connect(g); g.connect(ctx.destination); osc.type = 'sine'; osc.frequency.value = f; g.gain.setValueAtTime(0.5, ctx.currentTime + i*0.09); g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i*0.09 + 0.2); osc.start(ctx.currentTime + i*0.09); osc.stop(ctx.currentTime + i*0.09 + 0.2); }); } catch(e){} }
 function playWrongSound() { try { const ctx = getAudio(); const osc = ctx.createOscillator(), g = ctx.createGain(); osc.connect(g); g.connect(ctx.destination); osc.type = 'sawtooth'; osc.frequency.value = 200; g.gain.setValueAtTime(0.5, ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5); osc.start(); osc.stop(ctx.currentTime + 0.5); } catch(e){} }
 function playCategorySound() { try { const ctx = getAudio(); [392,523,659].forEach((f,i)=>{ const osc = ctx.createOscillator(), g = ctx.createGain(); osc.connect(g); g.connect(ctx.destination); osc.type = 'sine'; osc.frequency.value = f; g.gain.setValueAtTime(0.4, ctx.currentTime + i*0.12); g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i*0.12 + 0.2); osc.start(ctx.currentTime + i*0.12); osc.stop(ctx.currentTime + i*0.12 + 0.2); }); } catch(e){} }
-function showScreen(id) { document.querySelectorAll('.game-content .screen').forEach(s=>s.classList.remove('active')); let el=document.getElementById(`${id}Screen`); if(el) el.classList.add('active'); }
-function clearOverlay() { let container = document.getElementById('overlayContainer'); if(container) container.innerHTML = ''; }
 
+function showScreen(id) {
+  document.querySelectorAll('.game-content .screen').forEach(s=>s.classList.remove('active'));
+  let el=document.getElementById(`${id}Screen`);
+  if(el) el.classList.add('active');
+}
+
+function clearOverlay() { 
+  let container = document.getElementById('overlayContainer'); 
+  if(container) container.innerHTML = ''; 
+}
+
+// Overlay durations - EXTENDED to 5 seconds
 function showCorrectOverlay(playerName, playerAvatar, points) {
   clearOverlay();
   const container = document.getElementById('overlayContainer');
@@ -217,7 +242,10 @@ function showCorrectOverlay(playerName, playerAvatar, points) {
     <div style="margin-top: 24px; font-size: 18px; background: rgba(16,185,129,0.2); padding: 6px 20px; border-radius: 60px;">🎊 CONGRATULATIONS! 🎊</div>
   `;
   container.appendChild(overlayDiv);
-  setTimeout(() => { if (overlayDiv && overlayDiv.parentNode) overlayDiv.remove(); }, 3800);
+  // Extended to 5 seconds
+  setTimeout(() => { 
+    if (overlayDiv && overlayDiv.parentNode) overlayDiv.remove();
+  }, 5000);
 }
 
 function showWrongOverlay(playerName) {
@@ -233,7 +261,9 @@ function showWrongOverlay(playerName) {
     <div class="overlay-message" style="color: var(--red);">Locked out this round!</div>
   `;
   container.appendChild(overlayDiv);
-  setTimeout(() => { if (overlayDiv && overlayDiv.parentNode) overlayDiv.remove(); }, 2500);
+  setTimeout(() => { 
+    if (overlayDiv && overlayDiv.parentNode) overlayDiv.remove();
+  }, 5000);
 }
 
 function showBuzzOverlay(playerName, playerAvatar) {
@@ -249,7 +279,10 @@ function showBuzzOverlay(playerName, playerAvatar) {
     <div class="overlay-message" style="color: var(--gold);">Ready to answer...</div>
   `;
   container.appendChild(overlayDiv);
-  setTimeout(() => { if (overlayDiv && overlayDiv.parentNode) overlayDiv.remove(); }, 2000);
+  // Extended to 5 seconds
+  setTimeout(() => { 
+    if (overlayDiv && overlayDiv.parentNode) overlayDiv.remove();
+  }, 5000);
 }
 
 function renderPlayersBlocks(players) {
@@ -281,49 +314,101 @@ function startTimer(seconds){
   timerInterval=setInterval(()=>{ remaining--; if(remaining<=0){ clearInterval(timerInterval); timerDiv.style.display='none'; } else { timerNum.innerText=remaining; playTickSound(); } },1000); 
 }
 
-function handleBroadcast(event,payload){ console.log('FOH:',event,payload);
-  switch(event){
-    case 'round_started': showScreen('waiting'); break;
-    case 'player_list_update': currentPlayers=payload.players||[]; renderPlayersBlocks(currentPlayers); break;
+function handleBroadcast(event, payload) {
+  console.log('FOH:', event, payload);
+  switch(event) {
+    case 'round_started': 
+      showScreen('waiting'); 
+      break;
+    case 'player_list_update': 
+      currentPlayers = payload.players || []; 
+      renderPlayersBlocks(currentPlayers); 
+      break;
     case 'question_open': 
-      document.getElementById('questionText').innerText=payload.question; 
-      let opts=payload.options||[]; 
-      document.getElementById('optionsGrid').innerHTML=opts.map((o,i)=>`<div class="opt-tile"><div class="opt-letter">${String.fromCharCode(65+i)}</div><div>${escapeHtml(o)}</div></div>`).join(''); 
-      clearOverlay(); showScreen('question'); 
+      currentQuestionText = payload.question;
+      document.getElementById('questionText').innerText = payload.question; 
+      let opts = payload.options || []; 
+      document.getElementById('optionsGrid').innerHTML = opts.map((o,i) => `<div class="opt-tile"><div class="opt-letter">${String.fromCharCode(65+i)}</div><div>${escapeHtml(o)}</div></div>`).join(''); 
+      clearOverlay(); 
+      showScreen('question'); 
       break;
     case 'buzz_confirmed': 
       playBuzzSound(); 
       showBuzzOverlay(payload.playerName, payload.playerAvatar);
-      let buzzP=currentPlayers.find(p=>p.id===payload.playerId); 
-      if(buzzP){ currentPlayers.forEach(p=>{ if(p.status!=='eliminated') p.status='locked'; }); buzzP.status='buzzed'; renderPlayersBlocks(currentPlayers); } 
+      let buzzP = currentPlayers.find(p => p.id === payload.playerId); 
+      if(buzzP) { 
+        currentPlayers.forEach(p => { if(p.status !== 'eliminated') p.status = 'locked'; }); 
+        buzzP.status = 'buzzed'; 
+        renderPlayersBlocks(currentPlayers); 
+      } 
       break;
     case 'correct': 
       playCorrectSound(); 
       showCorrectOverlay(payload.playerName, payload.playerAvatar, payload.points || 100);
-      let cP=currentPlayers.find(p=>p.id===payload.playerId); 
-      if(cP){ cP.score=payload.newScore; cP.status='correct'; renderPlayersBlocks(currentPlayers); } 
-      launchConfetti(); 
+      let cP = currentPlayers.find(p => p.id === payload.playerId); 
+      if(cP) { 
+        cP.score = payload.newScore; 
+        cP.status = 'correct'; 
+        renderPlayersBlocks(currentPlayers); 
+      } 
+      launchConfetti();
       break;
     case 'wrong': 
       playWrongSound(); 
       showWrongOverlay(payload.playerName);
-      let wP=currentPlayers.find(p=>p.id===payload.playerId); 
-      if(wP){ wP.status='wrong'; renderPlayersBlocks(currentPlayers); } 
+      let wP = currentPlayers.find(p => p.id === payload.playerId); 
+      if(wP) { 
+        wP.status = 'wrong'; 
+        renderPlayersBlocks(currentPlayers); 
+      } 
       break;
-    case 'next_question': clearOverlay(); currentPlayers.forEach(p=>{ if(p.status!=='eliminated') p.status='waiting'; }); renderPlayersBlocks(currentPlayers); showScreen('waiting'); break;
-    case 'reset_for_next_question': clearOverlay(); currentPlayers.forEach(p=>{ if(p.status!=='eliminated') p.status='waiting'; }); renderPlayersBlocks(currentPlayers); showScreen('waiting'); break;
-    case 'reset_buzzers': clearOverlay(); currentPlayers.forEach(p=>{ if(p.status!=='eliminated'&&p.status!=='correct') p.status='waiting'; }); renderPlayersBlocks(currentPlayers); showScreen('question'); break;
-    case 'buzzers_reopen': clearOverlay(); currentPlayers.forEach(p=>{ if(p.status!=='eliminated'&&p.status!=='correct'&&p.status!=='wrong') p.status='waiting'; }); renderPlayersBlocks(currentPlayers); showScreen('question'); break;
-    case 'eliminated': let eP=currentPlayers.find(p=>p.id===payload.playerId); if(eP){ eP.status='eliminated'; renderPlayersBlocks(currentPlayers); } break;
-    case 'show_category_picker': playCategorySound(); let cats=payload.categories||[]; document.getElementById('catPickGrid').innerHTML=cats.map((c,i)=>`<div class="cat-tile" style="animation:catPop 0.4s ease backwards;animation-delay:${i*0.05}s;"><div class="cat-tile-icon">${c.icon||'📁'}</div><div class="cat-tile-name">${c.name}</div></div>`).join(''); clearOverlay(); showScreen('catPick'); playBackgroundMusic(); break;
+    case 'next_question': 
+      clearOverlay(); 
+      currentPlayers.forEach(p => { if(p.status !== 'eliminated') p.status = 'waiting'; }); 
+      renderPlayersBlocks(currentPlayers); 
+      showScreen('waiting'); 
+      break;
+    case 'reset_for_next_question': 
+      clearOverlay();
+      currentPlayers.forEach(p => { if(p.status !== 'eliminated') p.status = 'waiting'; });
+      renderPlayersBlocks(currentPlayers);
+      break;
+    case 'reset_buzzers': 
+      clearOverlay(); 
+      currentPlayers.forEach(p => { if(p.status !== 'eliminated' && p.status !== 'correct') p.status = 'waiting'; }); 
+      renderPlayersBlocks(currentPlayers); 
+      break;
+    case 'buzzers_reopen': 
+      clearOverlay(); 
+      currentPlayers.forEach(p => { if(p.status !== 'eliminated' && p.status !== 'correct' && p.status !== 'wrong') p.status = 'waiting'; }); 
+      renderPlayersBlocks(currentPlayers); 
+      break;
+    case 'eliminated': 
+      let eP = currentPlayers.find(p => p.id === payload.playerId); 
+      if(eP) { 
+        eP.status = 'eliminated'; 
+        renderPlayersBlocks(currentPlayers); 
+      } 
+      break;
+    case 'show_category_picker': 
+      playCategorySound(); 
+      let cats = payload.categories || []; 
+      document.getElementById('catPickGrid').innerHTML = cats.map((c,i) => `<div class="cat-tile" style="animation:catPop 0.4s ease backwards;animation-delay:${i*0.05}s;"><div class="cat-tile-icon">${c.icon||'📁'}</div><div class="cat-tile-name">${c.name}</div></div>`).join(''); 
+      clearOverlay(); 
+      showScreen('catPick'); 
+      playBackgroundMusic(); 
+      break;
     case 'round_ended': 
-      let winner=payload.winner; 
-      document.getElementById('winnerName').innerHTML=`${winner?.avatar||'🏆'} ${winner?.name||'—'} — ${winner?.score||0} pts`; 
-      showScreen('ended'); launchConfetti(); stopBackgroundMusic(); 
+      let winner = payload.winner; 
+      document.getElementById('winnerName').innerHTML = `${winner?.avatar||'🏆'} ${winner?.name||'—'} — ${winner?.score||0} pts`; 
+      showScreen('ended'); 
+      launchConfetti(); 
+      stopBackgroundMusic(); 
       break;
-    case 'timer_start': startTimer(payload.seconds); break;
+    case 'timer_start': 
+      startTimer(payload.seconds); 
+      break;
     case 'full_game_reset': 
-      // On full reset, disconnect and show room entry again
       if(realtimeChannel) sb.removeChannel(realtimeChannel);
       document.getElementById('roomEntryOverlay').style.display = 'flex';
       document.getElementById('roomDisplay').innerText = '——';
@@ -331,37 +416,37 @@ function handleBroadcast(event,payload){ console.log('FOH:',event,payload);
       document.getElementById('fohRoomInput').value = '';
       showScreen('waiting');
       break;
-    default: break;
+    default: 
+      break;
   }
 }
 
-function connectToRoom(code){
+function connectToRoom(code) {
   roomCode = code.trim().toUpperCase();
   document.getElementById('roomDisplay').innerText = roomCode;
   document.getElementById('waitingRoomCode').innerText = roomCode;
   
-  // Hide the entry overlay
   document.getElementById('roomEntryOverlay').style.display = 'none';
   
   if(realtimeChannel) sb.removeChannel(realtimeChannel);
   realtimeChannel = sb.channel(`fr-${roomCode}`);
   realtimeChannel
-    .on('broadcast',{event:'round_started'},({payload})=>handleBroadcast('round_started',payload))
-    .on('broadcast',{event:'player_list_update'},({payload})=>handleBroadcast('player_list_update',payload))
-    .on('broadcast',{event:'question_open'},({payload})=>handleBroadcast('question_open',payload))
-    .on('broadcast',{event:'buzz_confirmed'},({payload})=>handleBroadcast('buzz_confirmed',payload))
-    .on('broadcast',{event:'correct'},({payload})=>handleBroadcast('correct',payload))
-    .on('broadcast',{event:'wrong'},({payload})=>handleBroadcast('wrong',payload))
-    .on('broadcast',{event:'next_question'},({payload})=>handleBroadcast('next_question',payload))
-    .on('broadcast',{event:'reset_for_next_question'},({payload})=>handleBroadcast('reset_for_next_question',payload))
-    .on('broadcast',{event:'reset_buzzers'},({payload})=>handleBroadcast('reset_buzzers',payload))
-    .on('broadcast',{event:'buzzers_reopen'},({payload})=>handleBroadcast('buzzers_reopen',payload))
-    .on('broadcast',{event:'eliminated'},({payload})=>handleBroadcast('eliminated',payload))
-    .on('broadcast',{event:'show_category_picker'},({payload})=>handleBroadcast('show_category_picker',payload))
-    .on('broadcast',{event:'round_ended'},({payload})=>handleBroadcast('round_ended',payload))
-    .on('broadcast',{event:'timer_start'},({payload})=>handleBroadcast('timer_start',payload))
-    .on('broadcast',{event:'full_game_reset'},({payload})=>handleBroadcast('full_game_reset',payload))
-    .subscribe((status)=>{
+    .on('broadcast', {event: 'round_started'}, ({payload}) => handleBroadcast('round_started', payload))
+    .on('broadcast', {event: 'player_list_update'}, ({payload}) => handleBroadcast('player_list_update', payload))
+    .on('broadcast', {event: 'question_open'}, ({payload}) => handleBroadcast('question_open', payload))
+    .on('broadcast', {event: 'buzz_confirmed'}, ({payload}) => handleBroadcast('buzz_confirmed', payload))
+    .on('broadcast', {event: 'correct'}, ({payload}) => handleBroadcast('correct', payload))
+    .on('broadcast', {event: 'wrong'}, ({payload}) => handleBroadcast('wrong', payload))
+    .on('broadcast', {event: 'next_question'}, ({payload}) => handleBroadcast('next_question', payload))
+    .on('broadcast', {event: 'reset_for_next_question'}, ({payload}) => handleBroadcast('reset_for_next_question', payload))
+    .on('broadcast', {event: 'reset_buzzers'}, ({payload}) => handleBroadcast('reset_buzzers', payload))
+    .on('broadcast', {event: 'buzzers_reopen'}, ({payload}) => handleBroadcast('buzzers_reopen', payload))
+    .on('broadcast', {event: 'eliminated'}, ({payload}) => handleBroadcast('eliminated', payload))
+    .on('broadcast', {event: 'show_category_picker'}, ({payload}) => handleBroadcast('show_category_picker', payload))
+    .on('broadcast', {event: 'round_ended'}, ({payload}) => handleBroadcast('round_ended', payload))
+    .on('broadcast', {event: 'timer_start'}, ({payload}) => handleBroadcast('timer_start', payload))
+    .on('broadcast', {event: 'full_game_reset'}, ({payload}) => handleBroadcast('full_game_reset', payload))
+    .subscribe((status) => {
       let badge = document.getElementById('fohConnBadge');
       if(badge) {
         if(status === 'SUBSCRIBED') {
@@ -375,9 +460,9 @@ function connectToRoom(code){
     });
 }
 
-function submitFohRoom(){ 
+function submitFohRoom() { 
   let code = document.getElementById("fohRoomInput").value.trim().toUpperCase(); 
-  if(code.length < 4){ 
+  if(code.length < 4) { 
     document.getElementById("fohRoomError").innerText = "Enter a valid room code (4-8 characters)"; 
     return; 
   } 
@@ -385,13 +470,13 @@ function submitFohRoom(){
   connectToRoom(code); 
 }
 
-// Initialize - NO AUTO-LOAD, NO localStorage
-function init(){
+function init() {
   initBackgroundMusic();
-  // Entry overlay is already visible by default
-  // No automatic connection - user must input room code
-  document.body.addEventListener('click',()=>{
+  document.body.addEventListener('click', () => {
     if(audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+    if(bgmAudio && bgmAudio.paused && bgmEnabled) {
+      bgmAudio.play().catch(e => console.log('BGM autoplay blocked, user interaction needed'));
+    }
   }, {once: true});
 }
 
