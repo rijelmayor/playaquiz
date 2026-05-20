@@ -339,11 +339,15 @@
     }
     .entry-logo {
       font-family: 'Syne', sans-serif;
-      font-size: 48px; font-weight: 800; letter-spacing: 6px;
+      font-size: clamp(22px, 6vw, 36px); font-weight: 800; letter-spacing: 4px;
       background: linear-gradient(135deg, #fff 30%, var(--gold));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       margin-bottom: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
     }
     .entry-sub { color: var(--muted); font-size: 13px; margin-bottom: 28px; }
     .entry-label { font-size: 9px; font-weight: 700; letter-spacing: 2px; color: var(--muted); text-align: left; margin-bottom: 6px; text-transform: uppercase; }
@@ -374,6 +378,53 @@
     /* CONFETTI */
     @keyframes confettiFall { 0%{ opacity:1; transform: translateY(-10px) rotate(0deg); } 100%{ opacity:0; transform: translateY(100vh) rotate(720deg); } }
     .hidden { display: none !important; }
+
+    /* MATRIX WELCOME SCREEN */
+    #matrixWelcome {
+      position: fixed; inset: 0; z-index: 900;
+      background: #000;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    #matrixWelcome.active { display: flex; }
+    #matrixCanvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .matrix-center {
+      position: relative; z-index: 2;
+      text-align: center;
+      animation: matrixFadeIn 0.8s ease 0.5s both;
+    }
+    @keyframes matrixFadeIn { from { opacity:0; transform: scale(0.9); } to { opacity:1; transform:none; } }
+    .matrix-logo-text {
+      font-family: 'Syne', sans-serif; font-size: clamp(40px, 9vw, 88px); font-weight: 800;
+      letter-spacing: 8px; color: #00ff41;
+      text-shadow: 0 0 20px #00ff41, 0 0 60px #00ff41;
+      animation: matrixGlitch 3s infinite;
+    }
+    @keyframes matrixGlitch {
+      0%,92%,100% { text-shadow: 0 0 20px #00ff41, 0 0 60px #00ff41; transform: none; }
+      93% { text-shadow: -3px 0 #f43f5e, 3px 0 #6366f1; transform: translateX(2px); }
+      95% { text-shadow: 3px 0 #f43f5e, -3px 0 #6366f1; transform: translateX(-2px); }
+      97% { text-shadow: 0 0 20px #00ff41, 0 0 60px #00ff41; transform: none; }
+    }
+    .matrix-sub {
+      font-family: 'JetBrains Mono', monospace; font-size: 14px; letter-spacing: 6px;
+      color: rgba(0,255,65,0.6); margin-top: 10px; text-transform: uppercase;
+      animation: matrixTypeIn 1.2s steps(24,end) 1s both;
+      overflow: hidden; white-space: nowrap;
+    }
+    @keyframes matrixTypeIn { from { width: 0; } to { width: 100%; } }
+    .matrix-room-badge {
+      margin-top: 28px; font-family: 'JetBrains Mono', monospace; font-size: 22px;
+      color: #fff; background: rgba(0,255,65,0.08); border: 1px solid rgba(0,255,65,0.35);
+      padding: 10px 28px; border-radius: 8px; letter-spacing: 6px;
+    }
+    .matrix-enter-msg {
+      margin-top: 20px; font-size: 12px; color: rgba(0,255,65,0.4); letter-spacing: 3px;
+      animation: blink 1.2s step-end infinite;
+    }
   </style>
 </head>
 <body>
@@ -437,6 +488,17 @@
   </div>
 
   <div class="footer">PlayAQuiz — Final Round Display</div>
+
+  <!-- MATRIX WELCOME SCREEN (shown after login) -->
+  <div id="matrixWelcome">
+    <canvas id="matrixCanvas"></canvas>
+    <div class="matrix-center">
+      <div class="matrix-logo-text">PLAYAQUIZ</div>
+      <div class="matrix-sub">THE GRAND FINAL ARENA</div>
+      <div class="matrix-room-badge" id="matrixRoomBadge">——</div>
+      <div class="matrix-enter-msg">PRESS ANYWHERE TO CONTINUE</div>
+    </div>
+  </div>
 
   <div id="roomEntryOverlay">
     <div class="entry-card">
@@ -598,6 +660,7 @@ function handleBroadcast(event, payload) {
       playBackgroundMusic();
       break;
     case 'show_category_picker':
+      clearOverlay();
       showScreen('categoriesScreen');
       buzzerOpenVisible = false;
       document.getElementById('fohBuzzerOpenIndicator').style.display = 'none';
@@ -686,6 +749,8 @@ function connectToRoom(code) {
   roomCode = code.trim().toUpperCase();
   document.getElementById('roomDisplay').innerText = roomCode;
   document.getElementById('roomEntryOverlay').style.display = 'none';
+  // Show matrix welcome screen
+  showMatrixWelcome(roomCode);
   if(realtimeChannel) sb.removeChannel(realtimeChannel);
   realtimeChannel = sb.channel(`fr-${roomCode}`);
   const events = ['round_started','player_list_update','question_open','buzz_confirmed','correct','wrong','next_question',
@@ -709,6 +774,53 @@ function submitFohRoom() {
 }
 
 function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, m => m==='&'?'&amp;':m==='<'?'&lt;':'&gt;'); }
+
+// ===== MATRIX WELCOME SCREEN =====
+let matrixRAF = null;
+function showMatrixWelcome(code) {
+  const el = document.getElementById('matrixWelcome');
+  document.getElementById('matrixRoomBadge').innerText = code;
+  el.classList.add('active');
+  startMatrixCanvas();
+  // Auto-dismiss after 5s, or on click
+  const dismiss = () => { hideMatrixWelcome(); el.removeEventListener('click', dismiss); };
+  el.addEventListener('click', dismiss);
+  setTimeout(dismiss, 5500);
+}
+function hideMatrixWelcome() {
+  const el = document.getElementById('matrixWelcome');
+  el.style.transition = 'opacity 0.6s';
+  el.style.opacity = '0';
+  setTimeout(() => { el.classList.remove('active'); el.style.opacity = ''; el.style.transition = ''; if(matrixRAF) cancelAnimationFrame(matrixRAF); }, 650);
+}
+function startMatrixCanvas() {
+  const canvas = document.getElementById('matrixCanvas');
+  const ctx = canvas.getContext('2d');
+  function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+  resize();
+  window.addEventListener('resize', resize);
+  const cols = Math.floor(canvas.width / 16);
+  const drops = Array.from({length: cols}, () => Math.random() * -50);
+  const chars = 'アイウエオカキクケコサシスセソタチツテトナニヌネノABCDEF0123456789PLAYAQUIZ!@#$%';
+  function draw() {
+    ctx.fillStyle = 'rgba(0,0,0,0.05)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    for(let i = 0; i < drops.length; i++) {
+      const ch = chars[Math.floor(Math.random() * chars.length)];
+      const x = i * 16;
+      const y = drops[i] * 16;
+      // Bright lead char
+      ctx.fillStyle = drops[i] > 1 ? (Math.random() > 0.9 ? '#ffffff' : '#00ff41') : '#88ffaa';
+      ctx.font = '14px JetBrains Mono, monospace';
+      ctx.fillText(ch, x, y);
+      if(y > canvas.height && Math.random() > 0.975) drops[i] = 0;
+      drops[i] += 0.6;
+    }
+    matrixRAF = requestAnimationFrame(draw);
+  }
+  if(matrixRAF) cancelAnimationFrame(matrixRAF);
+  draw();
+}
 
 function init() {
   initBackgroundMusic();

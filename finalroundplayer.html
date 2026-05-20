@@ -337,9 +337,43 @@
     @keyframes slideUp { from { opacity:0; transform: translateY(50px); } to { opacity:1; transform: translateY(0); } }
 
     .hidden { display: none !important; }
+
+    /* CORRECT OVERLAY */
+    #correctOverlay {
+      position: fixed; inset: 0; z-index: 500;
+      background: rgba(7,5,16,0.97);
+      display: none; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center; padding: 24px;
+      animation: correctOverlayIn 0.4s cubic-bezier(0.22,1,0.36,1);
+    }
+    #correctOverlay.active { display: flex; }
+    @keyframes correctOverlayIn { from { opacity:0; transform: scale(0.95); } to { opacity:1; transform:none; } }
+    .correct-icon { font-size: 72px; margin-bottom: 12px; }
+    .correct-name-big {
+      font-family: 'Syne', sans-serif; font-size: clamp(28px, 8vw, 52px); font-weight: 800;
+      color: var(--green); text-shadow: 0 0 30px rgba(34,211,160,0.5);
+      margin-bottom: 8px;
+    }
+    .correct-label {
+      font-size: 13px; letter-spacing: 4px; color: rgba(34,211,160,0.6);
+      text-transform: uppercase; font-weight: 700;
+    }
+    .correct-pts {
+      margin-top: 18px; font-family: 'Syne', sans-serif; font-size: 32px; font-weight: 800;
+      color: var(--gold);
+    }
   </style>
 </head>
 <body>
+
+<!-- CORRECT ANSWER OVERLAY -->
+<div id="correctOverlay">
+  <div class="correct-icon">💎</div>
+  <div class="correct-name-big" id="correctOverlayName">—</div>
+  <div class="correct-label">Got it correct!</div>
+  <div class="correct-pts" id="correctOverlayPts">+100 pts</div>
+</div>
 
 <!-- JOIN SCREEN -->
 <div id="joinScreen">
@@ -526,12 +560,13 @@ function handleEvent(event, payload) {
       setStatus('Round started!', 'var(--green)');
       break;
     case 'question_open':
-      isOpen = false;
       myStatus = 'waiting';
-      // Do NOT reset globalBuzzerEnabled here; host will send buzzers_reopen later
+      isOpen = true;
+      globalBuzzerEnabled = true;
+      hideCorrectPlayerOverlay();
       document.getElementById('questionBox').innerText = payload.question;
       updateBuzzerUI();
-      setStatus('Question displayed', 'var(--muted)');
+      setStatus('🔴 BUZZ NOW!', 'var(--green)');
       break;
     case 'buzzers_reopen':
       if(myStatus !== 'eliminated' && myStatus !== 'correct' && myStatus !== 'wrong') {
@@ -567,6 +602,8 @@ function handleEvent(event, payload) {
       }
       isOpen = false;
       updateBuzzerUI();
+      // Show correct overlay with winner name — stays until show_category_picker (next_question/reset)
+      showCorrectPlayerOverlay(payload.playerName, payload.playerAvatar, payload.points || 100);
       break;
     case 'reset_for_next_question':
       if(myStatus !== 'eliminated') {
@@ -574,6 +611,7 @@ function handleEvent(event, payload) {
         isOpen = false;
         globalBuzzerEnabled = true; // Reset buzzer enable for next question
       }
+      hideCorrectPlayerOverlay();
       document.getElementById('questionBox').innerText = 'Next question coming...';
       updateBuzzerUI();
       break;
@@ -611,6 +649,7 @@ function handleEvent(event, payload) {
         isOpen = false;
         globalBuzzerEnabled = true;
       }
+      hideCorrectPlayerOverlay();
       document.getElementById('questionBox').innerText = 'Next question coming...';
       updateBuzzerUI();
       break;
@@ -749,6 +788,17 @@ function launchConfetti() {
     setStatus('Reconnecting...', 'var(--gold)');
   }
 })();
+
+function showCorrectPlayerOverlay(name, avatar, pts) {
+  const el = document.getElementById('correctOverlay');
+  document.getElementById('correctOverlayName').innerText = `${avatar || '💎'} ${name || ''}`;
+  document.getElementById('correctOverlayPts').innerText = `+${pts} pts`;
+  el.classList.add('active');
+}
+function hideCorrectPlayerOverlay() {
+  const el = document.getElementById('correctOverlay');
+  if(el) el.classList.remove('active');
+}
 
 window.joinGame = joinGame;
 window.pickAvatar = pickAvatar;

@@ -45,6 +45,9 @@
     .player-card { background: var(--surface2); border: 2px solid var(--border); border-radius: 12px; padding: 10px 8px; text-align: center; }
     .player-card.buzzed { border-color: var(--gold); background: rgba(251,191,36,0.08); animation: buzzFlash 0.3s ease; }
     .player-card.eliminated { opacity: 0.3; filter: grayscale(1); }
+    .conn-dot-inline { width: 7px; height: 7px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+    .conn-dot-inline.live { background: var(--green); box-shadow: 0 0 5px var(--green); }
+    .conn-dot-inline.dc { background: var(--red); }
     @keyframes buzzFlash { 0%,100%{ transform: scale(1); } 50%{ transform: scale(1.06); } }
     .player-avatar { font-size: 32px; }
     .player-name { font-weight: 700; font-size: 11px; }
@@ -221,6 +224,7 @@ function handlePlayerJoin(payload){
     if(buzzedPlayerId === existing.id) buzzedPlayerId = payload.id;
     existing.id = payload.id;
     frPlayers.set(payload.id, existing);
+    existing.connected = true;
     renderPlayersGrid(); updateSidebar();
     broadcast('state_sync',{
       playerId: payload.id,
@@ -235,7 +239,7 @@ function handlePlayerJoin(payload){
     toast(`🔄 ${payload.avatar} ${payload.name} reconnected`);
     return;
   }
-  frPlayers.set(payload.id,{id:payload.id, name:payload.name, avatar:payload.avatar, score:0, status:'waiting'});
+  frPlayers.set(payload.id,{id:payload.id, name:payload.name, avatar:payload.avatar, score:0, status:'waiting', connected:true});
   renderPlayersGrid(); updateSidebar(); toast(`✨ ${payload.avatar} ${payload.name} joined`);
   broadcast('player_list_update',{players:Array.from(frPlayers.values())});
 }
@@ -249,10 +253,17 @@ function toggleBuzzerGlobal(){ buzzerGlobalEnabled = !buzzerGlobalEnabled; let b
 function showCategoryPickerOnFOH(){ broadcast('show_category_picker',{categories:categories}); toast('🎨 Categories shown on FOH'); }
 function showCategoryToStart(){ if(frPlayers.size < parseInt(document.getElementById('minPlayersInput').value)){ toast(`Need at least ${document.getElementById('minPlayersInput').value} players`,'error'); return; } pointsPerBuzz = parseInt(document.getElementById('pointsPerBuzz').value)||100; document.getElementById('setupPanel').classList.add('hidden'); document.getElementById('gamePanel').classList.remove('hidden'); document.getElementById('liveRoomCode').innerText = roomCode; broadcast('round_started',{roomCode, pointsPerBuzz}); showCategoryPickerOnFOH(); toast('🎮 Round started!'); }
 function endFinalRound(){ if(!confirm('End Final Round?')) return; let sorted=Array.from(frPlayers.values()).filter(p=>!eliminatedPlayers.has(p.id)).sort((a,b)=>b.score-a.score); let winner=sorted[0]; broadcast('round_ended',{winner}); toast(`🏆 Winner: ${winner?.name||'N/A'}`); }
-function resetFullGame(){ if(!confirm('⚠️ NEW GAME: This will reset everything and all connected players will need to re-join with the new room code. Continue?')) return; const newCode = 'FR' + Math.random().toString(36).substring(2,6).toUpperCase(); roomCode = newCode; document.getElementById('roomCodeInput').value = roomCode; document.getElementById('roomCodeDisplay').innerText = roomCode; localStorage.setItem('fr_room', roomCode); frPlayers.clear(); eliminatedPlayers.clear(); lockedPlayers.clear(); buzzedPlayerId = null; isQuestionOpen = false; selectedQuestionForGame = null; currentQuestionNumber = 0; renderPlayersGrid(); updateSidebar(); broadcast('full_game_reset', { newRoomCode: roomCode, forceLogin: true }); setupRealtimeChannel(); document.getElementById('setupPanel').classList.remove('hidden'); document.getElementById('gamePanel').classList.add('hidden'); toast(`🔄 NEW GAME READY! Room code: ${roomCode} - All clients reset to login screen`); }
-function renderPlayersGrid(){ let sorted=Array.from(frPlayers.values()).sort((a,b)=>b.score-a.score); let setupList=document.getElementById('playerSetupList'); if(setupList) setupList.innerHTML=sorted.length===0?'<div style="padding:30px;color:var(--muted);">Waiting for players...</div>':sorted.map(p=>`<div style="display:flex;align-items:center;gap:10px;padding:7px;background:var(--surface2);border-radius:9px;margin-bottom:5px"><span style="font-size:22px">${p.avatar}</span><span style="flex:1;">${p.name}</span><span style="color:var(--gold);">${p.score} pts</span></div>`).join('');
+function resetFullGame(){ if(!confirm('⚠️ NEW GAME: This will reset everything and all connected players will need to re-join with the new room code. Continue?')) return; const newCode = 'FR' + Math.random().toString(36).substring(2,6).toUpperCase();
+  // Broadcast the reset on the OLD channel first so connected FOH/Players receive it
+  broadcast('full_game_reset', { newRoomCode: newCode, forceLogin: true });
+  // Small delay to ensure broadcast is sent before we tear down the channel
+  setTimeout(() => {
+    roomCode = newCode; document.getElementById('roomCodeInput').value = roomCode; document.getElementById('roomCodeDisplay').innerText = roomCode; localStorage.setItem('fr_room', roomCode); frPlayers.clear(); eliminatedPlayers.clear(); lockedPlayers.clear(); buzzedPlayerId = null; isQuestionOpen = false; selectedQuestionForGame = null; currentQuestionNumber = 0; renderPlayersGrid(); updateSidebar(); setupRealtimeChannel(); document.getElementById('setupPanel').classList.remove('hidden'); document.getElementById('gamePanel').classList.add('hidden'); toast(`🔄 NEW GAME READY! Room code: ${roomCode} — FOH & Players sent to login screen`);
+  }, 400);
+}
+function renderPlayersGrid(){ let sorted=Array.from(frPlayers.values()).sort((a,b)=>b.score-a.score); let setupList=document.getElementById('playerSetupList'); if(setupList) setupList.innerHTML=sorted.length===0?'<div style="padding:30px;color:var(--muted);">Waiting for players...</div>':sorted.map(p=>`<div style="display:flex;align-items:center;gap:10px;padding:7px;background:var(--surface2);border-radius:9px;margin-bottom:5px"><span style="font-size:22px">${p.avatar}</span><span style="flex:1;">${p.name}</span><span style="font-size:10px;"><span class="conn-dot-inline ${p.connected?'live':'dc'}"></span>${p.connected?'Live':'Disconnected'}</span><span style="color:var(--gold);">${p.score} pts</span></div>`).join('');
   let grid=document.getElementById('playersGrid'); if(!grid) return; if(sorted.length===0){ grid.innerHTML='<div style="padding:24px;text-align:center;">Waiting...</div>'; return; }
-  grid.innerHTML=sorted.map(p=>{ let isElim=eliminatedPlayers.has(p.id); let badge=''; if(p.status==='buzzed') badge='🔔 BUZZED'; else if(p.status==='correct') badge='✅ CORRECT'; else if(p.status==='wrong') badge='❌ WRONG'; else if(isElim) badge='⚡ OUT'; else badge='● READY'; return `<div class="player-card ${isElim?'eliminated':''}"><div class="player-avatar">${p.avatar}</div><div class="player-name">${p.name}</div><div class="player-score">${p.score}</div><div class="player-badge">${badge}</div>${!isElim?`<button class="eliminate-btn" onclick="eliminatePlayer('${p.id}')">⚡ Eliminate</button>`:''}</div>`; }).join('');
+  grid.innerHTML=sorted.map(p=>{ let isElim=eliminatedPlayers.has(p.id); let badge=''; if(p.status==='buzzed') badge='🔔 BUZZED'; else if(p.status==='correct') badge='✅ CORRECT'; else if(p.status==='wrong') badge='❌ WRONG'; else if(isElim) badge='⚡ OUT'; else badge='● READY'; let connLabel=p.connected!==false?`<span class="conn-dot-inline live"></span>Live`:`<span class="conn-dot-inline dc"></span>Disconnected`; return `<div class="player-card ${isElim?'eliminated':''}"><div class="player-avatar">${p.avatar}</div><div class="player-name">${p.name}</div><div class="player-score">${p.score}</div><div style="font-size:9px;margin:2px 0;">${connLabel}</div><div class="player-badge">${badge}</div>${!isElim?`<button class="eliminate-btn" onclick="eliminatePlayer('${p.id}')">⚡ Eliminate</button>`:''}</div>`; }).join('');
 }
 function updateSidebar(){ let sorted=Array.from(frPlayers.values()).filter(p=>!eliminatedPlayers.has(p.id)).sort((a,b)=>b.score-a.score); let lb=document.getElementById('sidebarLeaderboard'); lb.innerHTML=sorted.length===0?'<div style="padding:16px;color:var(--muted);text-align:center;">No players</div>':sorted.slice(0,6).map((p,i)=>`<div class="lb-item"><span>${['🥇','🥈','🥉'][i]||i+1}</span><span class="lb-name">${p.avatar} ${p.name}</span><span class="lb-score">${p.score}</span></div>`).join(''); document.getElementById('playerCount').innerText=frPlayers.size; }
 function eliminatePlayer(id){ let player=frPlayers.get(id); if(!player || !confirm(`Eliminate ${player.name}?`)) return; eliminatedPlayers.add(id); player.status='eliminated'; renderPlayersGrid(); updateSidebar(); broadcast('eliminated',{playerId:id, playerName:player.name}); toast(`⚡ ${player.name} eliminated`); }
