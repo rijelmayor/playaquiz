@@ -6,7 +6,6 @@
   <title>PlayAQuiz — Final Round Display</title>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
@@ -110,6 +109,7 @@
       border-radius: 20px;
       transition: 0.2s;
     }
+    .audio-control:hover { color: var(--text); background: rgba(255,255,255,0.1); }
 
     .conn-badge {
       font-size: 11px;
@@ -118,13 +118,14 @@
       border-radius: 20px;
       background: rgba(0,0,0,0.4);
       color: var(--muted);
+      letter-spacing: 0.5px;
     }
 
     /* MAIN LAYOUT */
     .main-grid {
       flex: 1;
       display: grid;
-      grid-template-columns: 1fr 280px;
+      grid-template-columns: 1fr 260px;
       overflow: hidden;
     }
 
@@ -142,12 +143,12 @@
     .screen.active { display: flex; flex-direction: column; align-items: center; justify-content: center; animation: screenIn 0.45s cubic-bezier(0.22, 1, 0.36, 1); }
     @keyframes screenIn { from { opacity: 0; transform: translateY(18px) scale(0.98); } to { opacity: 1; transform: none; } }
 
-    /* WARM UP / WELCOME SETUP SCREEN */
+    /* WARMUP / WELCOME SCREEN - ENHANCED ANIMATIONS */
     .warmup-container {
       text-align: center;
-      animation: zoomIntro 1s ease-out;
+      animation: zoomIntro 0.8s ease-out;
     }
-    @keyframes zoomIntro { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    @keyframes zoomIntro { from { transform: scale(0.92); opacity: 0; } to { transform: scale(1); opacity: 1; } }
     
     .warmup-logo {
       font-family: 'Syne', sans-serif;
@@ -181,13 +182,25 @@
       position: relative;
       animation: spinRing 20s linear infinite;
     }
-    @keyframes spinRing { to { transform: rotate(300deg); } }
+    @keyframes spinRing { to { transform: rotate(360deg); } }
     .warmup-pulse-circle .inner-text {
       font-family: 'Syne', sans-serif;
       font-size: 28px; font-weight: 800; color: #fff;
       animation: unspin 20s linear infinite;
     }
-    @keyframes unspin { to { transform: rotate(-300deg); } }
+    @keyframes unspin { to { transform: rotate(-360deg); } }
+
+    .warmup-message {
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--muted);
+      letter-spacing: 1px;
+      margin-top: 20px;
+      background: rgba(255,255,255,0.05);
+      padding: 12px 24px;
+      border-radius: 60px;
+      backdrop-filter: blur(8px);
+    }
 
     /* SIDE PANEL LEADERBOARD */
     .side-panel {
@@ -218,10 +231,14 @@
       border: 1px solid var(--border);
       border-radius: 14px;
       transition: all 0.25s;
+      position: relative;
     }
     .p-row.active-buzz { border-color: var(--gold); background: rgba(245,200,66,0.08); box-shadow: 0 0 14px rgba(245,200,66,0.15); }
     .p-row.wrong-lock { opacity: 0.4; filter: grayscale(0.8); border-color: var(--red); }
     .p-row.eliminated { opacity: 0.15; filter: grayscale(1); text-decoration: line-through; }
+    .conn-led { width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; display: inline-block; }
+    .conn-led.online { background: var(--green); box-shadow: 0 0 4px var(--green); }
+    .conn-led.offline { background: var(--red); }
     .p-avatar { font-size: 28px; }
     .p-info { flex: 1; min-width: 0; }
     .p-name { font-weight: 700; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -270,12 +287,16 @@
     @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.2;} }
 
     /* CATEGORIES GRID */
-    .cat-pick-title { font-family: 'Syne', sans-serif; font-size: 46px; font-weight: 800; text-align: center; margin-bottom: 24px; }
+    .cat-pick-title { font-family: 'Syne', sans-serif; font-size: 46px; font-weight: 800; text-align: center; margin-bottom: 24px; background: linear-gradient(135deg, #fff, var(--violet)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
     .catpick-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; }
     .cat-tile {
       background: rgba(167,139,250,0.06); border: 2px solid rgba(167,139,250,0.2);
       border-radius: 20px; padding: 24px; text-align: center; min-width: 150px;
+      backdrop-filter: blur(8px);
+      transition: all 0.2s;
+      animation: catPop 0.4s cubic-bezier(0.22,1,0.36,1) backwards;
     }
+    @keyframes catPop { from { opacity:0; transform: scale(0.9) translateY(10px); } to { opacity:1; transform: none; } }
     .cat-tile-icon { font-size: 40px; margin-bottom: 6px; }
     .cat-tile-name { font-weight: 700; font-size: 14px; }
 
@@ -307,359 +328,399 @@
       box-shadow: 0 30px 80px rgba(0,0,0,0.9);
     }
 
-    #fohRoomSetup {
-      position: fixed; inset: 0; background: var(--bg); z-index: 99999;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
+    #roomEntryOverlay {
+      position: fixed; inset: 0; background: rgba(7,5,16,0.98); backdrop-filter: blur(24px);
+      z-index: 1000; display: flex; flex-direction: column; align-items: center; justify-content: center;
     }
-    .setup-card {
-      background: rgba(255,255,255,0.03); border: 1px solid var(--border2);
-      border-radius: 24px; padding: 32px; width: 100%; max-width: 400px; text-align: center;
+    .entry-card {
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 28px; padding: 44px 48px; text-align: center; max-width: 520px; width: 90%;
+      backdrop-filter: blur(12px);
     }
-    .setup-input {
-      background: rgba(0,0,0,0.4); border: 1.5px solid var(--border2);
-      padding: 12px; border-radius: 12px; width: 100%; color: #fff;
-      font-size: 20px; font-family: 'JetBrains Mono', monospace; text-align: center; outline: none; margin-bottom: 14px;
+    .entry-logo {
+      font-family: 'Syne', sans-serif;
+      font-size: 48px; font-weight: 800; letter-spacing: 6px;
+      background: linear-gradient(135deg, #fff 30%, var(--gold));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 6px;
     }
-    .setup-btn {
-      width: 100%; padding: 14px; background: var(--gold); border: none;
-      border-radius: 12px; font-family: 'Syne', sans-serif; font-weight: 800; font-size: 15px; cursor: pointer;
+    .entry-sub { color: var(--muted); font-size: 13px; margin-bottom: 28px; }
+    .entry-label { font-size: 9px; font-weight: 700; letter-spacing: 2px; color: var(--muted); text-align: left; margin-bottom: 6px; text-transform: uppercase; }
+    .entry-input {
+      background: rgba(255,255,255,0.05); border: 1.5px solid rgba(245,200,66,0.35);
+      border-radius: 16px; padding: 16px 24px; color: #fff; font-size: 28px;
+      font-family: 'JetBrains Mono', monospace; letter-spacing: 8px; text-align: center;
+      outline: none; text-transform: uppercase; width: 100%; margin-bottom: 20px;
+      transition: 0.2s;
     }
+    .entry-input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(245,200,66,0.12); }
+    .entry-btn {
+      width: 100%; padding: 16px; background: linear-gradient(135deg, var(--gold), var(--amber));
+      border: none; border-radius: 14px; font-family: 'Syne', sans-serif; font-size: 18px;
+      font-weight: 800; letter-spacing: 1px; color: #111; cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+    .entry-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(245,200,66,0.25); }
+    .entry-error { color: var(--red); font-size: 12px; margin-top: 10px; font-weight: 500; }
+
+    /* FOOTER */
+    .footer {
+      padding: 5px 20px; text-align: center; font-size: 9px; font-weight: 700;
+      letter-spacing: 2px; color: rgba(255,255,255,0.1); border-top: 1px solid var(--border);
+      text-transform: uppercase;
+    }
+
+    /* CONFETTI */
+    @keyframes confettiFall { 0%{ opacity:1; transform: translateY(-10px) rotate(0deg); } 100%{ opacity:0; transform: translateY(100vh) rotate(720deg); } }
+    .hidden { display: none !important; }
   </style>
 </head>
 <body>
-
-  <div id="fohRoomSetup">
-    <div class="setup-card">
-      <div class="logo" style="font-size:28px; margin-bottom:12px;">PLAYAQUIZ</div>
-      <p style="color:var(--muted); font-size:13px; margin-bottom:20px;">Front of House Display Activation Panel</p>
-      <input type="text" id="fohRoomInput" class="setup-input" placeholder="ROOM CODE" maxlength="8">
-      <button class="setup-btn" onclick="submitFohRoom()">Connect Monitor Screen</button>
-      <div id="fohRoomError" style="color:var(--red); font-size:12px; margin-top:10px; font-weight:500;"></div>
+<div class="app">
+  <div class="top-bar">
+    <div class="logo">PLAYAQUIZ</div>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <button class="audio-control" id="bgmToggleBtn" onclick="toggleBackgroundMusic()">▶ BGM</button>
+      <div class="conn-badge" id="fohConnBadge">⏳ Not connected</div>
+      <div class="room-display" id="roomDisplay">——</div>
     </div>
   </div>
 
-  <div class="app">
-    <div class="top-bar">
-      <div class="logo">PLAYAQUIZ</div>
-      <div class="room-display" id="fohRoomLabel">ROOM: ----</div>
-      <div style="display:flex; gap:12px; align-items:center;">
-        <button class="audio-control" onclick="toggleAudio()">🎵 Sound On</button>
-        <div class="conn-badge" id="fohConnBadge">● DISCONNECTED</div>
+  <div class="main-grid">
+    <div class="game-content">
+      <!-- WARMUP / WAITING SCREEN -->
+      <div id="waitingScreen" class="screen active">
+        <div class="warmup-container">
+          <div class="warmup-logo">PLAYAQUIZ</div>
+          <div class="warmup-banner">The Grand Final Arena</div>
+          <div class="warmup-pulse-circle">
+            <div class="inner-text">READY</div>
+          </div>
+          <div class="warmup-message">Waiting for the host to present the stage questions...</div>
+        </div>
       </div>
+
+      <!-- QUESTION SCREEN -->
+      <div id="questionScreen" class="screen">
+        <div class="question-number" id="fohQuestionMeta">CATEGORY SELECT</div>
+        <div class="question-text" id="fohQuestionText">Question presentation body text loaded dynamically here?</div>
+        <div class="options-grid" id="fohOptionsContainer"></div>
+        <div id="fohBuzzerOpenIndicator" style="display:none;">
+          <div class="buzzer-open-badge"><span class="dot"></span>BUZZERS ACTIVE — PRESS NOW!</div>
+        </div>
+      </div>
+
+      <!-- CATEGORY PICKER SCREEN -->
+      <div id="categoriesScreen" class="screen">
+        <h2 class="cat-pick-title" id="catPickTitle">Available Categories</h2>
+        <div class="catpick-grid" id="fohCategoriesContainer"></div>
+      </div>
+
+      <!-- END SCREEN -->
+      <div id="endedScreen" class="screen">
+        <div style="text-align:center;">
+          <span style="font-size:90px; display:block; margin-bottom:10px;">👑</span>
+          <h2 class="cat-pick-title" style="margin-bottom:6px;">Final Match Champions</h2>
+          <div id="podiumWinnerName" style="font-size:42px; font-weight:800; color:var(--gold);">Player Name</div>
+          <div id="podiumWinnerScore" style="font-size:20px; color:var(--muted); margin-top:4px;">With a score of 0 points</div>
+        </div>
+      </div>
+
+      <div id="overlayContainer"></div>
     </div>
 
-    <div class="main-grid">
-      <div class="game-content">
-        <div id="overlayContainer"></div>
-
-        <div class="screen active" id="screenWarmup">
-          <div class="warmup-container">
-            <div class="warmup-logo">PLAYAQUIZ</div>
-            <div class="warmup-banner">The Grand Final Arena</div>
-            <div class="warmup-pulse-circle">
-              <div class="inner-text">READY</div>
-            </div>
-            <p style="color: var(--muted); font-size:15px; letter-spacing:1px;">Waiting for the host to present the stage questions...</p>
-          </div>
-        </div>
-
-        <div class="screen" id="screenCategories">
-          <h2 class="cat-pick-title" id="catPickTitle">Available Categories</h2>
-          <div class="catpick-grid" id="fohCategoriesContainer">
-            </div>
-        </div>
-
-        <div class="screen" id="screenQuestion">
-          <div class="question-number" id="fohQuestionMeta">CATEGORY SELECT</div>
-          <div class="question-text" id="fohQuestionText">Question presentation body text loaded dynamically here?</div>
-          <div class="options-grid" id="fohOptionsContainer">
-            </div>
-          <div id="fohBuzzerOpenIndicator" style="display:none;">
-            <div class="buzzer-open-badge"><span class="dot"></span>BUZZERS ACTIVE — PRESS NOW!</div>
-          </div>
-        </div>
-
-        <div class="screen" id="screenPodium">
-          <div style="text-align:center;">
-            <span style="font-size:90px; display:block; margin-bottom:10px;">👑</span>
-            <h2 class="cat-pick-title" style="margin-bottom:6px;">Final Match Champions</h2>
-            <div id="podiumWinnerName" style="font-size:42px; font-weight:800; color:var(--gold);">Player Name</div>
-            <div id="podiumWinnerScore" style="font-size:20px; color:var(--muted); margin-top:4px;">With a score of 0 points</div>
-          </div>
-        </div>
-
-      </div>
-
-      <div class="side-panel">
-        <div class="side-title">Live Finalists</div>
-        <div class="player-list" id="fohPlayersList">
-          </div>
-      </div>
+    <div class="side-panel">
+      <div class="side-title">Live Finalists</div>
+      <div class="player-list" id="fohPlayersList"></div>
     </div>
   </div>
 
-  <script>
-    const SUPABASE_URL = window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1') ? 'http://localhost:54321' : '';
-    const SUPABASE_KEY = '';
-    
-    let sb = null;
-    if(SUPABASE_URL && SUPABASE_KEY) {
-      sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    } else {
-      sb = supabase.createClient(window.location.origin, '');
-    }
+  <div class="footer">PlayAQuiz — Final Round Display</div>
 
-    let roomCode = '';
-    let realtimeChannel = null;
-    let cachedPlayers = [];
-    let isBuzzerSignStateAllowed = false; 
+  <div id="roomEntryOverlay">
+    <div class="entry-card">
+      <div class="entry-logo">PLAYAQUIZ</div>
+      <div class="entry-sub">Enter the room code from the Control Panel</div>
+      <div class="entry-label">Room Code</div>
+      <input type="text" id="fohRoomInput" class="entry-input" placeholder="FR4X7K" maxlength="8" autocomplete="off" onkeydown="if(event.key==='Enter') submitFohRoom()">
+      <button class="entry-btn" onclick="submitFohRoom()">CONNECT TO ROOM</button>
+      <div id="fohRoomError" class="entry-error"></div>
+    </div>
+  </div>
+</div>
 
-    // Sound Synthesizer Node Assets
-    let audioCtx = null;
-    function initAudio(){
-      if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    function playBeep(freq, type, duration){
-      try {
-        initAudio(); if(!audioCtx) return;
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = type; osc.frequency.value = freq;
-        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
-        osc.connect(gain); gain.connect(audioCtx.destination);
-        osc.start(); osc.stop(audioCtx.currentTime + duration);
-      } catch(e){}
-    }
+<script>
+const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
+const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+let roomCode = null, realtimeChannel = null, cachedPlayers = [];
+let buzzerOpenVisible = false;
+let bgmAudio = null, bgmEnabled = true;
+let confettiTimer = null, overlayTimer = null;
 
-    function toggleAudio(){
-      initAudio();
-      const btn = document.querySelector('.audio-control');
-      if(audioCtx && audioCtx.state === 'suspended') {
-        audioCtx.resume(); btn.innerText = "🎵 Sound Active";
-      } else {
-        btn.innerText = "🎵 Sound Initialized";
-      }
-    }
+function initBackgroundMusic() {
+  bgmAudio = new Audio();
+  bgmAudio.src = 'countdownbg.mp3';
+  bgmAudio.loop = true;
+  bgmAudio.volume = 0.3;
+  bgmAudio.load();
+}
+function playBackgroundMusic() { if(bgmAudio && bgmEnabled) bgmAudio.play().catch(()=>{}); }
+function stopBackgroundMusic() { if(bgmAudio) { bgmAudio.pause(); bgmAudio.currentTime = 0; } }
+function toggleBackgroundMusic() {
+  if(!bgmAudio) initBackgroundMusic();
+  const btn = document.getElementById('bgmToggleBtn');
+  if(bgmAudio.paused) { bgmAudio.play().catch(()=>{}); bgmEnabled = true; btn.innerHTML = '‖ BGM'; }
+  else { bgmAudio.pause(); bgmEnabled = false; btn.innerHTML = '▶ BGM'; }
+}
 
-    function connectToRoom(code){
-      roomCode = code.toUpperCase();
-      document.getElementById('fohRoomLabel').innerText = `ROOM: ${roomCode}`;
-      document.getElementById('fohRoomSetup').style.display = 'none';
-      
+function playBeep(freq, type, duration) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if(ctx.state === 'suspended') ctx.resume();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + duration);
+  } catch(e) {}
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.game-content .screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById(id);
+  if(el) el.classList.add('active');
+}
+
+function clearOverlay() {
+  const container = document.getElementById('overlayContainer');
+  if(container) container.innerHTML = '';
+  if(overlayTimer) clearTimeout(overlayTimer);
+}
+
+function showBuzzOverlay(name, avatar) {
+  clearOverlay();
+  const container = document.getElementById('overlayContainer');
+  const div = document.createElement('div');
+  div.className = 'overlay-container';
+  div.innerHTML = `
+    <div class="buzz-banner">
+      <span class="buzz-avatar">⚡</span>
+      <div class="buzz-title">${avatar || '🔔'} ${escapeHtml(name)}</div>
+      <div class="buzz-subtitle">Is Responding...</div>
+    </div>
+  `;
+  container.appendChild(div);
+  overlayTimer = setTimeout(() => clearOverlay(), 5000);
+}
+
+function showCorrectOverlay(name, avatar, points) {
+  clearOverlay();
+  const container = document.getElementById('overlayContainer');
+  const div = document.createElement('div');
+  div.className = 'overlay-container';
+  div.innerHTML = `
+    <div class="winner-banner" style="border-color: var(--green);">
+      <span style="font-size:70px; display:block; margin-bottom:10px;">💎</span>
+      <div class="buzz-title" style="font-size:36px;">${avatar || '🏆'} ${escapeHtml(name)}</div>
+      <div style="font-size:18px; margin-top:8px; font-weight:700; color:var(--green);">CORRECT! +${points} POINTS</div>
+    </div>
+  `;
+  container.appendChild(div);
+  overlayTimer = setTimeout(() => clearOverlay(), 20000); // 20 seconds
+}
+
+function showWrongOverlay(name) {
+  clearOverlay();
+  const container = document.getElementById('overlayContainer');
+  const div = document.createElement('div');
+  div.className = 'overlay-container';
+  div.innerHTML = `
+    <div class="winner-banner" style="border-color: var(--red);">
+      <span style="font-size:70px; display:block; margin-bottom:10px;">⚠️</span>
+      <div class="buzz-title" style="font-size:36px;">${escapeHtml(name)}</div>
+      <div style="font-size:18px; margin-top:8px; font-weight:700; color:var(--red);">LOCKED OUT / WRONG ANSWER</div>
+    </div>
+  `;
+  container.appendChild(div);
+  overlayTimer = setTimeout(() => clearOverlay(), 5000);
+}
+
+function launchConfetti(durationMs = 20000) {
+  const end = Date.now() + durationMs;
+  (function frame() {
+    confetti({ particleCount: 3, angle: 60, spread: 55, origin: { x: 0, y: 0.8 } });
+    confetti({ particleCount: 3, angle: 120, spread: 55, origin: { x: 1, y: 0.8 } });
+    if (Date.now() < end) requestAnimationFrame(frame);
+  }());
+}
+
+function renderPlayersList() {
+  const container = document.getElementById('fohPlayersList');
+  if(!container) return;
+  if(!cachedPlayers.length) {
+    container.innerHTML = '<div style="padding:20px;color:var(--muted);font-size:13px;text-align:center;">Waiting for players...</div>';
+    return;
+  }
+  const sorted = [...cachedPlayers].sort((a,b) => (b.score||0) - (a.score||0));
+  container.innerHTML = sorted.map(p => {
+    let statusClass = '', subText = '';
+    if(p.status === 'buzzed') { statusClass = 'active-buzz'; subText = '💥 BUZZED'; }
+    else if(p.status === 'locked') { statusClass = 'wrong-lock'; subText = '🔒 Locked Out'; }
+    else if(p.eliminated) { statusClass = 'eliminated'; subText = '❌ Eliminated'; }
+    else if(!p.isOnline) { subText = '🔌 Offline'; }
+    else { subText = 'Connected'; }
+    return `<div class="p-row ${statusClass}">
+      <div class="p-avatar">${p.avatar || '🎮'}</div>
+      <div class="p-info">
+        <div class="p-name"><span class="conn-led ${p.isOnline ? 'online' : 'offline'}"></span>${escapeHtml(p.name)}</div>
+        <div class="p-status-sub">${subText}</div>
+      </div>
+      <div class="p-score">${p.score || 0}</div>
+    </div>`;
+  }).join('');
+}
+
+function handleBroadcast(event, payload) {
+  switch(event) {
+    case 'player_list_update':
+      cachedPlayers = payload.players || [];
+      renderPlayersList();
+      break;
+    case 'round_started':
+      showScreen('waitingScreen');
+      playBackgroundMusic();
+      break;
+    case 'show_category_picker':
+      showScreen('categoriesScreen');
+      buzzerOpenVisible = false;
+      document.getElementById('fohBuzzerOpenIndicator').style.display = 'none';
+      const cats = payload.categories || [];
+      const catsContainer = document.getElementById('fohCategoriesContainer');
+      catsContainer.innerHTML = cats.map((c, i) => `<div class="cat-tile" style="animation-delay:${i*0.05}s;"><div class="cat-tile-icon">${c.icon || '📂'}</div><div class="cat-tile-name">${c.name}</div></div>`).join('');
+      playBeep(440, 'triangle', 0.2);
+      break;
+    case 'question_open':
+      showScreen('questionScreen');
+      buzzerOpenVisible = false;
+      document.getElementById('fohBuzzerOpenIndicator').style.display = 'none';
+      document.getElementById('fohQuestionMeta').innerText = `QUESTION ${payload.questionNumber || ''}`;
+      document.getElementById('fohQuestionText').innerText = payload.question;
+      const opts = payload.options || [];
+      const letters = ['A','B','C','D'];
+      const optContainer = document.getElementById('fohOptionsContainer');
+      optContainer.innerHTML = opts.map((opt, idx) => `<div class="opt-tile"><div class="opt-letter">${letters[idx]}</div><div class="opt-text">${escapeHtml(opt)}</div></div>`).join('');
+      playBeep(523.25, 'sine', 0.35);
+      break;
+    case 'buzzers_reopen':
+      buzzerOpenVisible = true;
+      document.getElementById('fohBuzzerOpenIndicator').style.display = 'block';
+      playBeep(880, 'sine', 0.1);
+      break;
+    case 'buzz_confirmed':
+      buzzerOpenVisible = false;
+      document.getElementById('fohBuzzerOpenIndicator').style.display = 'none';
+      showBuzzOverlay(payload.playerName, payload.playerAvatar);
+      playBeep(392, 'sawtooth', 0.4);
+      // Update local player status to show buzzed
+      const p = cachedPlayers.find(p => p.id === payload.playerId);
+      if(p) { p.status = 'buzzed'; renderPlayersList(); }
+      break;
+    case 'correct':
+      clearOverlay();
+      if(confettiTimer) clearTimeout(confettiTimer);
+      launchConfetti(20000);
+      showCorrectOverlay(payload.playerName, payload.playerAvatar, payload.points || 100);
+      playBeep(659.25, 'sine', 0.5);
+      const cP = cachedPlayers.find(p => p.id === payload.playerId);
+      if(cP) { cP.score = payload.newScore; cP.status = 'correct'; renderPlayersList(); }
+      break;
+    case 'wrong':
+      clearOverlay();
+      showWrongOverlay(payload.playerName);
+      playBeep(180, 'sawtooth', 0.6);
+      const wP = cachedPlayers.find(p => p.id === payload.playerId);
+      if(wP) { wP.status = 'wrong'; renderPlayersList(); }
+      break;
+    case 'reset_buzzers':
+    case 'next_question':
+    case 'reset_for_next_question':
+      buzzerOpenVisible = false;
+      document.getElementById('fohBuzzerOpenIndicator').style.display = 'none';
+      clearOverlay();
+      cachedPlayers.forEach(p => { if(p.status !== 'eliminated') p.status = 'waiting'; });
+      renderPlayersList();
+      if(event === 'next_question') showScreen('waitingScreen');
+      break;
+    case 'round_ended':
+      buzzerOpenVisible = false;
+      document.getElementById('fohBuzzerOpenIndicator').style.display = 'none';
+      clearOverlay();
+      showScreen('endedScreen');
+      const winner = payload.winner;
+      document.getElementById('podiumWinnerName').innerHTML = `${winner?.avatar || '🏆'} ${winner?.name || '—'}`;
+      document.getElementById('podiumWinnerScore').innerHTML = `Grand Champion with ${winner?.score || 0} points!`;
+      launchConfetti(20000);
+      stopBackgroundMusic();
+      break;
+    case 'timer_start':
+      // optional timer display can be added
+      break;
+    case 'full_game_reset':
       if(realtimeChannel) sb.removeChannel(realtimeChannel);
-      
-      realtimeChannel = sb.channel(`fr-${roomCode}`);
-      
-      const events = [
-        'question_open','buzz_confirmed','correct','wrong','next_question',
-        'reset_buzzers','buzzers_reopen','eliminated','show_category_picker',
-        'round_ended','player_list_update'
-      ];
-      
-      events.forEach(ev => {
-        realtimeChannel.on('broadcast', { event: ev }, ({ payload }) => handleBroadcast(ev, payload));
-      });
+      document.getElementById('roomEntryOverlay').style.display = 'flex';
+      document.getElementById('roomDisplay').innerText = '——';
+      document.getElementById('fohRoomInput').value = '';
+      showScreen('waitingScreen');
+      break;
+  }
+}
 
-      realtimeChannel.subscribe((status) => {
-        const badge = document.getElementById('fohConnBadge');
-        if(status === 'SUBSCRIBED') {
-          badge.innerText = '● LIVE VIEW'; badge.style.color = '#22d3a0';
-          realtimeChannel.send({ type: 'broadcast', event: 'request_sync', payload: {} });
-        } else {
-          badge.innerText = '● CONNECTING'; badge.style.color = '#f43f5e';
-        }
-      });
-    }
+function connectToRoom(code) {
+  roomCode = code.trim().toUpperCase();
+  document.getElementById('roomDisplay').innerText = roomCode;
+  document.getElementById('roomEntryOverlay').style.display = 'none';
+  if(realtimeChannel) sb.removeChannel(realtimeChannel);
+  realtimeChannel = sb.channel(`fr-${roomCode}`);
+  const events = ['round_started','player_list_update','question_open','buzz_confirmed','correct','wrong','next_question',
+    'reset_for_next_question','reset_buzzers','buzzers_reopen','eliminated','show_category_picker',
+    'round_ended','timer_start','full_game_reset'];
+  events.forEach(ev => {
+    realtimeChannel.on('broadcast', { event: ev }, ({ payload }) => handleBroadcast(ev, payload));
+  });
+  realtimeChannel.subscribe((status) => {
+    const badge = document.getElementById('fohConnBadge');
+    if(status === 'SUBSCRIBED') { badge.innerText = '● LIVE'; badge.style.color = '#22d3a0'; }
+    else { badge.innerText = `● ${status}`; badge.style.color = '#f43f5e'; }
+  });
+}
 
-    function handleBroadcast(event, payload){
-      switch(event){
-        case 'player_list_update':
-          cachedPlayers = payload.players || [];
-          renderPlayersList();
-          break;
-          
-        case 'show_category_picker':
-          switchScreen('screenCategories');
-          isBuzzerSignStateAllowed = false;
-          document.getElementById('fohBuzzerOpenIndicator').style.display = 'none';
-          
-          const catsContainer = document.getElementById('fohCategoriesContainer');
-          catsContainer.innerHTML = '';
-          payload.categories.forEach(cat => {
-            catsContainer.innerHTML += `
-              <div class="cat-tile">
-                <div class="cat-tile-icon">📂</div>
-                <div class="cat-tile-name">${cat}</div>
-              </div>
-            `;
-          });
-          playBeep(440, 'triangle', 0.2);
-          break;
+function submitFohRoom() {
+  const code = document.getElementById('fohRoomInput').value.trim().toUpperCase();
+  if(code.length < 4) { document.getElementById('fohRoomError').innerText = 'Enter a valid room code (4-8 characters)'; return; }
+  document.getElementById('fohRoomError').innerText = '';
+  connectToRoom(code);
+}
 
-        case 'question_open':
-          switchScreen('screenQuestion');
-          isBuzzerSignStateAllowed = false; 
-          document.getElementById('fohBuzzerOpenIndicator').style.display = 'none';
-          
-          document.getElementById('fohQuestionMeta').innerText = `Category: ${payload.category || 'Finals'}`;
-          document.getElementById('fohQuestionText').innerText = payload.question;
-          
-          const optContainer = document.getElementById('fohOptionsContainer');
-          optContainer.innerHTML = '';
-          if(payload.options && payload.options.length > 0) {
-            const letters = ['A','B','C','D'];
-            payload.options.forEach((opt, idx) => {
-              optContainer.innerHTML += `
-                <div class="opt-tile">
-                  <div class="opt-letter">${letters[idx]}</div>
-                  <div class="opt-text">${opt}</div>
-                </div>
-              `;
-            });
-          }
-          playBeep(523.25, 'sine', 0.35);
-          break;
+function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, m => m==='&'?'&amp;':m==='<'?'&lt;':'&gt;'); }
 
-        case 'buzzers_reopen':
-          isBuzzerSignStateAllowed = true;
-          document.getElementById('fohBuzzerOpenIndicator').style.display = 'block';
-          playBeep(880, 'sine', 0.1);
-          break;
-
-        case 'buzz_confirmed':
-          isBuzzerSignStateAllowed = false;
-          document.getElementById('fohBuzzerOpenIndicator').style.display = 'none';
-          triggerBuzzOverlay(payload.name);
-          playBeep(392, 'sawtooth', 0.4);
-          break;
-
-        case 'correct':
-          clearOverlay();
-          // FIX ENHANCEMENT: Extended duration configuration for confetti loops to run longer (30 seconds)
-          triggerConfettiBurst(30000); 
-          triggerCelebrationOverlay(payload.name, `CORRECT! ANSWER LOCKED IN.`, true);
-          playBeep(659.25, 'sine', 0.5);
-          break;
-
-        case 'wrong':
-          clearOverlay();
-          triggerCelebrationOverlay(payload.name, `LOCKED OUT / WRONG ANSWER.`, false);
-          playBeep(180, 'sawtooth', 0.6);
-          break;
-
-        case 'reset_buzzers':
-          isBuzzerSignStateAllowed = false; 
-          document.getElementById('fohBuzzerOpenIndicator').style.display = 'none';
-          clearOverlay();
-          break;
-
-        case 'next_question':
-          isBuzzerSignStateAllowed = false;
-          document.getElementById('fohBuzzerOpenIndicator').style.display = 'none';
-          clearOverlay();
-          switchScreen('screenWarmup');
-          break;
-
-        case 'round_ended':
-          isBuzzerSignStateAllowed = false;
-          document.getElementById('fohBuzzerOpenIndicator').style.display = 'none';
-          clearOverlay();
-          switchScreen('screenPodium');
-          document.getElementById('podiumWinnerName').innerText = `${payload.winnerAvatar} ${payload.winnerName}`;
-          document.getElementById('podiumWinnerScore').innerText = `Grand Champion with ${payload.winnerScore} points!`;
-          triggerConfettiBurst(30000);
-          break;
-      }
-    }
-
-    function switchScreen(id){
-      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-      document.getElementById(id).classList.add('active');
-    }
-
-    function renderPlayersList(){
-      const container = document.getElementById('fohPlayersList');
-      container.innerHTML = '';
-      
-      cachedPlayers.forEach(p => {
-        let statusClass = '';
-        let subText = 'Connected';
-        
-        if(p.status === 'buzzed') { statusClass = 'active-buzz'; subText = '💥 BUZZED'; }
-        else if(p.status === 'locked') { statusClass = 'wrong-lock'; subText = '🔒 Locked Out'; }
-        else if(p.eliminated) { statusClass = 'eliminated'; subText = '❌ Eliminated'; }
-        else if(!p.isOnline) { subText = '🔌 Offline'; }
-
-        container.innerHTML += `
-          <div class="p-row ${statusClass}">
-            <div class="p-avatar">${p.avatar}</div>
-            <div class="p-info">
-              <div class="p-name">${p.name}</div>
-              <div class="p-status-sub">${subText}</div>
-            </div>
-            <div class="p-score">${p.score}</div>
-          </div>
-        `;
-      });
-    }
-
-    function triggerBuzzOverlay(name) {
-      const container = document.getElementById('overlayContainer');
-      container.innerHTML = `
-        <div class="overlay-container">
-          <div class="buzz-banner">
-            <span class="buzz-avatar">⚡</span>
-            <div class="buzz-title">${name}</div>
-            <div class="buzz-subtitle">Is Responding...</div>
-          </div>
-        </div>
-      `;
-    }
-
-    function triggerCelebrationOverlay(name, msg, isCorrect) {
-      const container = document.getElementById('overlayContainer');
-      const borderColor = isCorrect ? 'var(--green)' : 'var(--red)';
-      container.innerHTML = `
-        <div class="overlay-container">
-          <div class="winner-banner" style="border-color: ${borderColor}">
-            <span style="font-size:70px; display:block; margin-bottom:10px;">${isCorrect ? '💎' : '⚠️'}</span>
-            <div class="buzz-title" style="font-size:36px;">${name}</div>
-            <div style="font-size:18px; margin-top:8px; font-weight:700; color:#fff; letter-spacing:1px;">${msg}</div>
-          </div>
-        </div>
-      `;
-      
-      // FIX IMPLEMENTED: Banner overlays now stay persistently alive for a full 30 seconds
-      setTimeout(() => {
-        const currentOverlay = container.querySelector('.winner-banner');
-        if(currentOverlay) clearOverlay();
-      }, 30000);
-    }
-
-    function clearOverlay(){
-      document.getElementById('overlayContainer').innerHTML = '';
-    }
-
-    function triggerConfettiBurst(durationMs) {
-      const end = Date.now() + durationMs;
-      (function frame() {
-        confetti({ particleCount: 4, angle: 60, spread: 55, origin: { x: 0, y: 0.8 } });
-        confetti({ particleCount: 4, angle: 120, spread: 55, origin: { x: 1, y: 0.8 } });
-        if (Date.now() < end) {
-          requestAnimationFrame(frame);
-        }
-      }());
-    }
-
-    function submitFohRoom(){
-      const code = document.getElementById('fohRoomInput').value.trim().toUpperCase();
-      if(code.length < 4) { 
-        document.getElementById('fohRoomError').innerText = 'Enter a valid room code'; 
-        return; 
-      }
-      connectToRoom(code);
-    }
-  </script>
+function init() {
+  initBackgroundMusic();
+  document.body.addEventListener('click', () => {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if(ctx.state === 'suspended') ctx.resume();
+    if(bgmAudio && bgmAudio.paused && bgmEnabled) bgmAudio.play().catch(()=>{});
+  }, { once: true });
+}
+init();
+window.submitFohRoom = submitFohRoom;
+window.toggleBackgroundMusic = toggleBackgroundMusic;
+</script>
 </body>
 </html>
