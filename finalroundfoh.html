@@ -720,7 +720,7 @@ function showWrongOverlay(name) {
   overlayTimer = setTimeout(() => clearOverlay(), 5000);
 }
 
-function launchConfetti(durationMs = 20000) {
+function launchConfetti(durationMs = 5000) {
   try {
     const end = Date.now() + durationMs;
     (function frame() {
