@@ -632,18 +632,19 @@ function handleEvent(event, payload) {
       break;
     case 'correct':
       if(payload.playerId === myId) {
+        // I got it right — update score, confetti, no overlay needed (I already know)
         myScore = payload.newScore;
         document.getElementById('myScoreDisplay').innerText = myScore;
         myStatus = 'correct';
         setStatus(`✅ +${payload.points || 100} pts!`, 'var(--gold)');
         launchConfetti();
       } else {
+        // Someone else got it — show who got the answer
         if(myStatus !== 'eliminated') myStatus = 'waiting';
+        showCorrectPlayerOverlay(payload.playerName, payload.playerAvatar, payload.points || 100);
       }
       isOpen = false;
       updateBuzzerUI();
-      // Show correct overlay with winner name — stays until show_category_picker (next_question/reset)
-      showCorrectPlayerOverlay(payload.playerName, payload.playerAvatar, payload.points || 100);
       break;
     case 'reset_for_next_question':
       if(myStatus !== 'eliminated') {

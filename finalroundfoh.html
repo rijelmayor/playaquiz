@@ -6,6 +6,7 @@
   <title>PlayAQuiz — Final Round Display</title>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
@@ -720,12 +721,14 @@ function showWrongOverlay(name) {
 }
 
 function launchConfetti(durationMs = 20000) {
-  const end = Date.now() + durationMs;
-  (function frame() {
-    confetti({ particleCount: 3, angle: 60, spread: 55, origin: { x: 0, y: 0.8 } });
-    confetti({ particleCount: 3, angle: 120, spread: 55, origin: { x: 1, y: 0.8 } });
-    if (Date.now() < end) requestAnimationFrame(frame);
-  }());
+  try {
+    const end = Date.now() + durationMs;
+    (function frame() {
+      confetti({ particleCount: 4, angle: 60, spread: 60, origin: { x: 0, y: 0.75 } });
+      confetti({ particleCount: 4, angle: 120, spread: 60, origin: { x: 1, y: 0.75 } });
+      if (Date.now() < end) requestAnimationFrame(frame);
+    }());
+  } catch(e) { console.warn('Confetti unavailable', e); }
 }
 
 function renderPlayersList() {
@@ -804,10 +807,9 @@ function handleBroadcast(event, payload) {
       break;
     case 'correct':
       clearOverlay();
-      if(confettiTimer) clearTimeout(confettiTimer);
-      launchConfetti(20000);
       showCorrectOverlay(payload.playerName, payload.playerAvatar, payload.points || 100);
       playBeep(659.25, 'sine', 0.5);
+      launchConfetti(20000);
       const cP = cachedPlayers.find(p => p.id === payload.playerId);
       if(cP) { cP.score = payload.newScore; cP.status = 'correct'; renderPlayersList(); }
       break;
