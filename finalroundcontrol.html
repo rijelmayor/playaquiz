@@ -92,7 +92,10 @@
           <input type="number" id="minPlayersInput" value="2" min="1" max="10" style="margin-bottom:12px">
           <label style="font-size:10px;">Room Code</label>
           <input id="roomCodeInput" readonly style="font-family:monospace;font-size:20px;color:var(--gold);margin-bottom:10px">
-          <button class="btn btn-ghost" onclick="generateNewRoomCode()">🔄 New Code</button>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-ghost" onclick="generateNewRoomCode()">🔄 New Code</button>
+            <button class="btn btn-accent" onclick="shareRoomCodeToFOH()" style="flex:1;">📺 Share Room Code to FOH</button>
+          </div>
           <div class="reset-warning" id="resetWarning" style="display:none;">⚠️ New code will reset all players and send FOH/Players to login screen</div>
           <button class="btn btn-orange" style="margin-top:10px;width:100%" onclick="resetFullGame()">🔄 NEW GAME / RESET</button>
         </div>
@@ -111,7 +114,12 @@
         <button class="btn btn-ghost" onclick="endFinalRound()" style="color:var(--red);">🏁 End Round</button>
       </div>
       
-      <div class="card"><div class="card-title">🎨 CATEGORIES</div><button class="btn btn-purple btn-lg" style="width:100%" onclick="showCategoryPickerOnFOH()">🎨 SHOW CATEGORIES ON FOH</button></div>
+      <div class="card"><div class="card-title">🎨 CATEGORIES</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-purple btn-lg" style="flex:1;" onclick="showCategoryPickerOnFOH()">🎨 SHOW CATEGORIES ON FOH</button>
+          <button class="btn btn-accent btn-lg" onclick="shareRoomCodeToFOH()">📺 Share Room Code</button>
+        </div>
+      </div>
       
       <div class="card"><div class="card-title">⏱️ TIMER CONTROL</div>
         <div style="display:flex; gap:10px; align-items:center;">
@@ -250,6 +258,7 @@ function markCorrect(){ if(!buzzedPlayerId) return; let player=frPlayers.get(buz
 function markWrong(){ if(!buzzedPlayerId) return; let player=frPlayers.get(buzzedPlayerId); if(player){ player.status='wrong'; lockedPlayers.add(buzzedPlayerId); } playWrongSound(); let remaining=Array.from(frPlayers.keys()).filter(id=>!lockedPlayers.has(id) && !eliminatedPlayers.has(id)); if(remaining.length>0){ setTimeout(() => { isQuestionOpen=true; buzzerGlobalEnabled=true; document.getElementById('buzzerToggleBtn').innerHTML='🔔 BUZZERS ON'; broadcast('buzzers_reopen',{}); }, 5000); } else { document.getElementById('buzzerCard').style.display='none'; } broadcast('wrong',{playerId:buzzedPlayerId, playerName:player?.name}); renderPlayersGrid(); updateSidebar(); toast(`❌ Wrong — ${player?.name} locked out`); buzzedPlayerId=null; }
 function startTimer(){ let seconds = parseInt(document.getElementById('timerSeconds').value) || 10; broadcast('timer_start', {seconds: seconds}); toast(`⏱️ Timer started: ${seconds} seconds`); }
 function toggleBuzzerGlobal(){ buzzerGlobalEnabled = !buzzerGlobalEnabled; let btn = document.getElementById('buzzerToggleBtn'); if(buzzerGlobalEnabled){ btn.innerHTML='🔔 BUZZERS ON'; btn.style.background='var(--orange)'; } else { btn.innerHTML='🔕 BUZZERS OFF'; btn.style.background='var(--red)'; } broadcast('buzzer_toggle', {enabled: buzzerGlobalEnabled}); toast(`Buzzers ${buzzerGlobalEnabled ? 'ON' : 'OFF'}`); }
+function shareRoomCodeToFOH(){ broadcast('show_room_code', { roomCode }); toast(`📺 Room code ${roomCode} sent to FOH display`); }
 function showCategoryPickerOnFOH(){ broadcast('show_category_picker',{categories:categories}); toast('🎨 Categories shown on FOH'); }
 function showCategoryToStart(){ if(frPlayers.size < parseInt(document.getElementById('minPlayersInput').value)){ toast(`Need at least ${document.getElementById('minPlayersInput').value} players`,'error'); return; } pointsPerBuzz = parseInt(document.getElementById('pointsPerBuzz').value)||100; document.getElementById('setupPanel').classList.add('hidden'); document.getElementById('gamePanel').classList.remove('hidden'); document.getElementById('liveRoomCode').innerText = roomCode; broadcast('round_started',{roomCode, pointsPerBuzz}); showCategoryPickerOnFOH(); toast('🎮 Round started!'); }
 function endFinalRound(){ if(!confirm('End Final Round?')) return; let sorted=Array.from(frPlayers.values()).filter(p=>!eliminatedPlayers.has(p.id)).sort((a,b)=>b.score-a.score); let winner=sorted[0]; broadcast('round_ended',{winner}); toast(`🏆 Winner: ${winner?.name||'N/A'}`); }
@@ -292,6 +301,7 @@ window.resetBuzzers = resetBuzzers;
 window.nextQuestion = nextQuestion;
 window.eliminatePlayer = eliminatePlayer;
 window.endFinalRound = endFinalRound;
+window.shareRoomCodeToFOH = shareRoomCodeToFOH;
 window.showCategoryPickerOnFOH = showCategoryPickerOnFOH;
 window.resetFullGame = resetFullGame;
 window.startTimer = startTimer;
