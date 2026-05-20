@@ -3,123 +3,579 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>PlayAQuiz — Final Round Player</title>
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <title>PlayAQuiz — Final Round</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    :root { --bg: #03050b; --gold: #fbbf24; --green: #10b981; --red: #ef4444; --text: #fff; --muted: rgba(255,255,255,0.45); }
-    body { background: var(--bg); font-family: 'Space Grotesk', sans-serif; color: var(--text); height: 100vh; overflow: hidden; }
-    #joinScreen { height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; }
-    .logo { font-family: 'Bebas Neue', sans-serif; font-size: 34px; background: linear-gradient(135deg, #fff, var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-align: center; }
-    .join-card { background: rgba(13,17,32,0.96); border: 1px solid #1f2a3c; border-radius: 28px; padding: 26px 22px; width: 100%; max-width: 420px; }
-    .field { margin-bottom: 14px; }
-    .field label { font-size: 9px; font-weight: 700; color: var(--muted); text-transform: uppercase; display: block; margin-bottom: 5px; }
-    .field input { background: rgba(255,255,255,0.04); border: 1.5px solid #1f2a3c; border-radius: 12px; padding: 12px 14px; color: var(--text); font-size: 16px; width: 100%; outline: none; text-align: center; }
-    .avatar-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; margin-top: 6px; }
-    .avatar-opt { font-size: 26px; text-align: center; padding: 5px; border-radius: 10px; border: 2px solid transparent; cursor: pointer; background: rgba(255,255,255,0.03); }
-    .avatar-opt.selected { border-color: var(--gold); background: rgba(251,191,36,0.1); }
-    .join-btn { width: 100%; padding: 14px; background: linear-gradient(135deg, var(--gold), #f97316); border: none; border-radius: 14px; font-size: 17px; font-weight: 800; color: #111; cursor: pointer; margin-top: 16px; }
-    #gameScreen { display: none; height: 100vh; flex-direction: column; padding: 16px; }
-    .game-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-    .my-score { font-family: 'Bebas Neue', sans-serif; font-size: 32px; color: var(--gold); }
-    .question-box { width: 100%; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 16px; padding: 16px; text-align: center; font-size: 15px; font-weight: 600; }
-    .buzzer-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-    .buzzer-btn { width: min(62vw, 260px); height: min(62vw, 260px); border-radius: 50%; border: none; cursor: pointer; background: radial-gradient(circle at 35% 30%, #ff7043, #ef4444 55%, #b91c1c); box-shadow: 0 10px 0 #7f1d1d; font-family: 'Bebas Neue', sans-serif; font-size: clamp(26px,8vw,46px); color: #fff; transition: 0.05s linear; }
-    .buzzer-btn:active { transform: translateY(8px); box-shadow: 0 2px 0 #7f1d1d; }
-    .buzzer-btn:disabled { opacity: 0.45; transform: none; cursor: not-allowed; background: radial-gradient(circle at 35% 30%, #4b5563, #374151); }
-    .status-pill { font-size: 13px; font-weight: 700; text-align: center; padding: 9px 22px; border-radius: 40px; margin-top: 12px; background: rgba(16,185,129,0.1); color: var(--green); }
-    .error-msg { color: var(--red); font-size: 12px; text-align: center; margin-top: 10px; }
-    .timer-small { font-size: 24px; font-weight: 800; color: var(--gold); margin-top: 8px; }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    :root {
+      --bg: #070510;
+      --surface: rgba(255,255,255,0.04);
+      --border: rgba(255,255,255,0.09);
+      --border2: rgba(255,255,255,0.15);
+      --gold: #f5c842;
+      --amber: #f97316;
+      --green: #22d3a0;
+      --red: #f43f5e;
+      --violet: #a78bfa;
+      --text: #f0eeff;
+      --muted: rgba(240,238,255,0.4);
+    }
+
+    html, body { height: 100%; }
+
+    body {
+      background: var(--bg);
+      font-family: 'DM Sans', sans-serif;
+      color: var(--text);
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% 100%, rgba(99,102,241,0.12) 0%, transparent 60%),
+        radial-gradient(ellipse 50% 40% at 80% 0%, rgba(245,200,66,0.06) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* === JOIN SCREEN === */
+    #joinScreen {
+      position: relative;
+      z-index: 2;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 20px;
+      gap: 20px;
+    }
+
+    .logo {
+      font-family: 'Syne', sans-serif;
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: 5px;
+      background: linear-gradient(135deg, #fff 20%, var(--gold));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-align: center;
+    }
+
+    .join-card {
+      background: rgba(255,255,255,0.035);
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 28px;
+      padding: 28px 22px;
+      width: 100%;
+      max-width: 420px;
+      backdrop-filter: blur(12px);
+    }
+
+    .field { margin-bottom: 16px; }
+    .field label {
+      font-size: 9px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      display: block;
+      margin-bottom: 6px;
+    }
+    .field input {
+      background: rgba(255,255,255,0.05);
+      border: 1.5px solid var(--border2);
+      border-radius: 14px;
+      padding: 13px 16px;
+      color: var(--text);
+      font-size: 16px;
+      font-family: inherit;
+      width: 100%;
+      outline: none;
+      text-align: center;
+      transition: 0.2s;
+    }
+    .field input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(245,200,66,0.1); }
+    .field input::placeholder { color: var(--muted); }
+
+    /* AVATAR GRID */
+    .avatar-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 7px;
+      margin-top: 6px;
+    }
+    .avatar-opt {
+      font-size: 24px;
+      text-align: center;
+      padding: 6px 4px;
+      border-radius: 12px;
+      border: 2px solid transparent;
+      cursor: pointer;
+      background: rgba(255,255,255,0.04);
+      transition: all 0.15s;
+    }
+    .avatar-opt:active { transform: scale(0.9); }
+    .avatar-opt.selected {
+      border-color: var(--gold);
+      background: rgba(245,200,66,0.1);
+    }
+
+    .join-btn {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, var(--gold), var(--amber));
+      border: none;
+      border-radius: 16px;
+      font-family: 'Syne', sans-serif;
+      font-size: 17px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      color: #111;
+      cursor: pointer;
+      margin-top: 18px;
+      transition: transform 0.1s, box-shadow 0.1s;
+    }
+    .join-btn:active { transform: scale(0.98); }
+    .join-btn:hover { box-shadow: 0 8px 24px rgba(245,200,66,0.3); }
+
+    .error-msg { color: var(--red); font-size: 12px; text-align: center; margin-top: 10px; font-weight: 500; }
+
+    /* === GAME SCREEN === */
+    #gameScreen {
+      display: none;
+      position: relative;
+      z-index: 2;
+      height: 100vh;
+      flex-direction: column;
+      padding: 0;
+    }
+
+    /* PLAYER HEADER */
+    .game-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 20px 12px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(7,5,16,0.7);
+      backdrop-filter: blur(16px);
+      flex-shrink: 0;
+    }
+    .player-identity { display: flex; align-items: center; gap: 10px; }
+    .player-identity-avatar { font-size: 28px; }
+    .player-identity-name { font-weight: 700; font-size: 15px; }
+
+    .score-block { text-align: right; }
+    .score-value {
+      font-family: 'Syne', sans-serif;
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--gold);
+      line-height: 1;
+    }
+    .score-label { font-size: 8px; font-weight: 700; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; }
+
+    /* QUESTION BOX */
+    .question-area {
+      margin: 14px 16px 0;
+      background: rgba(255,255,255,0.03);
+      border: 1.5px solid var(--border2);
+      border-radius: 18px;
+      padding: 16px 18px;
+      text-align: center;
+      font-size: 15px;
+      font-weight: 500;
+      line-height: 1.5;
+      color: var(--text);
+      min-height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    /* BUZZER AREA */
+    .buzzer-wrap {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      padding: 16px;
+    }
+
+    /* The Buzzer Button */
+    .buzzer-btn-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Glow rings */
+    .buzzer-glow {
+      position: absolute;
+      border-radius: 50%;
+      background: transparent;
+      border: 2px solid rgba(244,63,94,0.15);
+      animation: glowRing 2s ease-in-out infinite;
+    }
+    .buzzer-glow:nth-child(1) { width: calc(min(62vw,260px) + 30px); height: calc(min(62vw,260px) + 30px); animation-delay: 0s; }
+    .buzzer-glow:nth-child(2) { width: calc(min(62vw,260px) + 60px); height: calc(min(62vw,260px) + 60px); animation-delay: 0.4s; }
+    .buzzer-glow:nth-child(3) { width: calc(min(62vw,260px) + 90px); height: calc(min(62vw,260px) + 90px); animation-delay: 0.8s; }
+    @keyframes glowRing { 0%,100%{ opacity: 0.4; transform: scale(1); } 50%{ opacity: 0.1; transform: scale(1.03); } }
+
+    .buzzer-btn {
+      position: relative;
+      z-index: 2;
+      width: min(62vw, 260px);
+      height: min(62vw, 260px);
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      background: radial-gradient(circle at 35% 28%, #ff6b6b, #f43f5e 50%, #be123c);
+      box-shadow:
+        0 12px 0 #881337,
+        0 18px 40px rgba(244,63,94,0.35),
+        inset 0 2px 4px rgba(255,255,255,0.2);
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(26px, 8vw, 46px);
+      font-weight: 800;
+      letter-spacing: 2px;
+      color: #fff;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      transition: transform 0.06s linear, box-shadow 0.06s linear;
+    }
+    .buzzer-btn:not(:disabled):active {
+      transform: translateY(10px);
+      box-shadow:
+        0 2px 0 #881337,
+        0 4px 20px rgba(244,63,94,0.25),
+        inset 0 2px 4px rgba(255,255,255,0.1);
+    }
+    .buzzer-btn:disabled {
+      opacity: 0.4;
+      transform: none !important;
+      cursor: not-allowed;
+      background: radial-gradient(circle at 35% 28%, #4b5563, #374151);
+      box-shadow: 0 8px 0 #1f2937, 0 12px 30px rgba(0,0,0,0.3);
+    }
+    .buzzer-btn.buzzed-state {
+      background: radial-gradient(circle at 35% 28%, #fde68a, var(--gold) 50%, #d97706);
+      box-shadow: 0 10px 0 #92400e, 0 16px 40px rgba(245,200,66,0.4), inset 0 2px 4px rgba(255,255,255,0.3);
+    }
+
+    /* STATUS PILL */
+    .status-pill {
+      font-size: 13px;
+      font-weight: 700;
+      text-align: center;
+      padding: 8px 22px;
+      border-radius: 40px;
+      background: rgba(34,211,160,0.08);
+      border: 1px solid rgba(34,211,160,0.2);
+      color: var(--green);
+      letter-spacing: 0.5px;
+      transition: all 0.3s;
+    }
+
+    .timer-small {
+      font-family: 'Syne', sans-serif;
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--gold);
+    }
+
+    /* FLASH OVERLAYS */
+    .buzz-flash {
+      position: fixed;
+      inset: 0;
+      background: rgba(245,200,66,0.15);
+      pointer-events: none;
+      z-index: 100;
+      animation: flashFade 0.6s ease forwards;
+    }
+    @keyframes flashFade { from{ opacity:1; } to{ opacity:0; } }
+
+    /* RESET NOTIFICATION */
+    .reset-notification {
+      position: fixed;
+      bottom: 20px;
+      left: 16px; right: 16px;
+      background: linear-gradient(135deg, var(--red), #be123c);
+      color: white;
+      padding: 14px 18px;
+      border-radius: 16px;
+      text-align: center;
+      animation: slideUp 0.3s cubic-bezier(0.22,1,0.36,1);
+      z-index: 2000;
+      font-weight: 700;
+      font-size: 14px;
+      box-shadow: 0 8px 24px rgba(244,63,94,0.4);
+    }
+    @keyframes slideUp { from { opacity:0; transform: translateY(50px); } to { opacity:1; transform: translateY(0); } }
+    @keyframes confettiFall { 0%{ opacity:1; transform: translateY(-10px) rotate(0deg); } 100%{ opacity:0; transform: translateY(100vh) rotate(720deg); } }
+
+    .hidden { display: none !important; }
   </style>
 </head>
 <body>
-<div id="joinScreen"><div class="logo">PLAYAQUIZ</div><div class="join-card"><div class="field"><label>Room Code</label><input id="roomInput" placeholder="e.g. FR4X7K" style="text-transform:uppercase"></div><div class="field"><label>Your Name</label><input id="nameInput" placeholder="Enter your name"></div><div class="field"><label>Avatar</label><div class="avatar-grid" id="avatarGrid"></div></div><button class="join-btn" onclick="joinGame()">⚡ ENTER FINAL ROUND</button><div id="joinError" class="error-msg"></div></div></div>
-<div id="gameScreen"><div class="game-top"><div><div id="myAvatarDisplay" style="font-size:28px">🎮</div><div id="myNameDisplay">—</div></div><div><div class="my-score"><span id="myScoreDisplay">0</span></div><div class="score-label">POINTS</div></div></div><div class="question-box" id="questionBox">Waiting for host...</div><div class="buzzer-wrap"><button class="buzzer-btn" id="buzzerBtn" onclick="buzz()" disabled>BUZZ!</button><div class="status-pill" id="statusPill">Waiting...</div><div id="playerTimer" class="timer-small"></div></div></div>
+
+<!-- JOIN SCREEN -->
+<div id="joinScreen">
+  <div class="logo">PLAYAQUIZ</div>
+  <div class="join-card">
+    <div class="field">
+      <label>Room Code</label>
+      <input id="roomInput" placeholder="FR4X7K" style="text-transform:uppercase;font-family:'JetBrains Mono',monospace;letter-spacing:4px;font-size:22px;" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>Your Name</label>
+      <input id="nameInput" placeholder="Enter your name" autocomplete="off">
+    </div>
+    <div class="field">
+      <label>Choose Avatar</label>
+      <div class="avatar-grid" id="avatarGrid"></div>
+    </div>
+    <button class="join-btn" onclick="joinGame()">⚡ ENTER FINAL ROUND</button>
+    <div id="joinError" class="error-msg"></div>
+  </div>
+</div>
+
+<!-- GAME SCREEN -->
+<div id="gameScreen">
+  <div class="game-header">
+    <div class="player-identity">
+      <div class="player-identity-avatar" id="myAvatarDisplay">🎮</div>
+      <div class="player-identity-name" id="myNameDisplay">—</div>
+    </div>
+    <div class="score-block">
+      <div class="score-value" id="myScoreDisplay">0</div>
+      <div class="score-label">Points</div>
+    </div>
+  </div>
+
+  <div class="question-area" id="questionBox">Waiting for host to start...</div>
+
+  <div class="buzzer-wrap">
+    <div class="buzzer-btn-wrap">
+      <div class="buzzer-glow"></div>
+      <div class="buzzer-glow"></div>
+      <div class="buzzer-glow"></div>
+      <button class="buzzer-btn" id="buzzerBtn" onclick="buzz()" disabled>BUZZ!</button>
+    </div>
+    <div class="status-pill" id="statusPill">Waiting...</div>
+    <div id="playerTimer" class="timer-small"></div>
+  </div>
+</div>
+
 <script>
 const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
 const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 const AVATARS = ['😎','🦁','🐯','🐱','🐶','🐺','🦊','🐸','🐧','🐙','🦄','🐲','🚀','⭐','🔥','⚡','🎮','🏆'];
-let myId=null, myName='', myAvatar='😎', myScore=0, roomCode=null, ch=null, isOpen=false, myStatus='waiting', globalBuzzerEnabled=true, timerInterval=null;
+
+let myId=null, myName='', myAvatar='😎', myScore=0, roomCode=null, ch=null;
+let isOpen=false, myStatus='waiting', globalBuzzerEnabled=true, timerInterval=null;
+
 document.getElementById('avatarGrid').innerHTML=AVATARS.map((a,i)=>`<div class="avatar-opt ${i===0?'selected':''}" onclick="pickAvatar(this,'${a}')">${a}</div>`).join('');
-function pickAvatar(el,a){ document.querySelectorAll('.avatar-opt').forEach(x=>x.classList.remove('selected')); el.classList.add('selected'); myAvatar=a; }
-function setStatus(text,color='var(--green)'){ let p=document.getElementById('statusPill'); p.innerText=text; p.style.color=color; }
-function updateBuzzer(){ let btn=document.getElementById('buzzerBtn'); if(myStatus==='eliminated'){ btn.disabled=true; btn.innerText='OUT'; setStatus('Eliminated','var(--red)'); } else if(myStatus==='buzzed'){ btn.disabled=true; btn.innerText='BUZZED!'; setStatus('You buzzed! Answer verbally','var(--gold)'); } else if(myStatus==='locked'||myStatus==='wrong'){ btn.disabled=true; btn.innerText='LOCKED'; setStatus('Locked out this round','var(--muted)'); } else if(isOpen && myStatus==='waiting' && globalBuzzerEnabled){ btn.disabled=false; btn.innerText='BUZZ!'; setStatus('🔴 BUZZ NOW!','var(--green)'); } else { btn.disabled=true; btn.innerText='WAIT'; setStatus('Waiting...','var(--muted)'); } }
-function buzz(){ if(!isOpen || myStatus!=='waiting' || !globalBuzzerEnabled) return; if(navigator.vibrate) navigator.vibrate(80); myStatus='buzzed'; updateBuzzer(); ch.send({type:'broadcast',event:'buzz',payload:{id:myId,name:myName,avatar:myAvatar}}); }
-function startPlayerTimer(seconds){ if(timerInterval) clearInterval(timerInterval); let timerDiv=document.getElementById('playerTimer'); let remaining=seconds; timerDiv.innerText=`⏱️ ${remaining}s`; timerInterval=setInterval(()=>{ remaining--; if(remaining<=0){ clearInterval(timerInterval); timerDiv.innerText=''; } else { timerDiv.innerText=`⏱️ ${remaining}s`; } },1000); }
-function handleEvent(event,payload){ console.log('Player:',event,payload);
-  switch(event){
-    case 'round_started': setStatus('Round started!'); break;
-    case 'question_open': isOpen=true; myStatus='waiting'; document.getElementById('questionBox').innerText=payload.question; updateBuzzer(); break;
-    case 'buzz_confirmed': isOpen=false; if(payload.playerId===myId){ myStatus='buzzed'; setStatus('You buzzed!','var(--gold)'); } else { if(myStatus==='waiting') myStatus='locked'; setStatus(`${payload.playerName} buzzed first`,'var(--muted)'); } updateBuzzer(); break;
-    case 'correct': if(payload.playerId===myId){ myScore=payload.newScore; document.getElementById('myScoreDisplay').innerText=myScore; myStatus='correct'; setStatus(`✅ +${payload.points||100} pts!`,'var(--gold)'); } else { if(myStatus!=='eliminated') myStatus='waiting'; } updateBuzzer(); break;
-    case 'reset_for_next_question': isOpen=false; myStatus='waiting'; document.getElementById('questionBox').innerText='Next question coming...'; updateBuzzer(); break;
-    case 'wrong': if(payload.playerId===myId){ myStatus='wrong'; setStatus('❌ Wrong! Locked out','var(--red)'); } else { if(myStatus==='locked'){ setTimeout(()=>{ if(myStatus!=='eliminated' && myStatus!=='correct'){ myStatus='waiting'; isOpen=true; setStatus('Ready!','var(--green)'); updateBuzzer(); } },5000); } } updateBuzzer(); break;
-    case 'next_question': isOpen=false; myStatus='waiting'; document.getElementById('questionBox').innerText='Next question coming...'; updateBuzzer(); break;
-    case 'reset_buzzers': if(myStatus!=='eliminated'){ myStatus='waiting'; isOpen=true; } updateBuzzer(); break;
-    case 'buzzers_reopen': if(myStatus!=='eliminated' && myStatus!=='correct' && myStatus!=='wrong'){ myStatus='waiting'; isOpen=true; updateBuzzer(); setStatus('Buzzers OPEN!','var(--green)'); } break;
-    case 'buzzer_toggle': globalBuzzerEnabled=payload.enabled; if(!globalBuzzerEnabled && myStatus==='waiting'){ setStatus('🔕 Buzzers OFF','var(--muted)'); } else if(globalBuzzerEnabled && myStatus==='waiting' && isOpen){ setStatus('🔴 BUZZ NOW!','var(--green)'); } updateBuzzer(); break;
-    case 'eliminated': if(payload.playerId===myId){ myStatus='eliminated'; isOpen=false; document.getElementById('questionBox').innerText='⚡ You have been eliminated!'; setStatus('ELIMINATED','var(--red)'); } updateBuzzer(); break;
-    case 'round_ended': isOpen=false; let winner=payload.winner; if(winner && winner.id===myId){ document.getElementById('questionBox').innerHTML='🏆 YOU ARE THE CHAMPION! 🎉'; setStatus('CHAMPION!','var(--gold)'); launchConfetti(); } else { setStatus(`Winner: ${winner?.name||'?'}`,'var(--muted)'); } updateBuzzer(); break;
-    case 'timer_start': startPlayerTimer(payload.seconds); break;
-    case 'state_sync': if(payload.playerId===myId){ myScore=payload.score||0; myStatus=payload.status||'waiting'; document.getElementById('myScoreDisplay').innerText=myScore; if(payload.isEliminated){ myStatus='eliminated'; document.getElementById('questionBox').innerText='⚡ You have been eliminated!'; } else if(payload.questionText){ document.getElementById('questionBox').innerText=payload.questionText; if(payload.isQuestionOpen && myStatus==='waiting'){ isOpen=true; } } setStatus('✅ Reconnected','var(--gold)'); updateBuzzer(); } break;
-    case 'full_game_reset': try{sessionStorage.removeItem('fr_identity');}catch(e){} location.reload(); break;
+
+function pickAvatar(el,a){
+  document.querySelectorAll('.avatar-opt').forEach(x=>x.classList.remove('selected'));
+  el.classList.add('selected'); myAvatar=a;
+}
+
+function setStatus(text, color='var(--green)'){
+  const p=document.getElementById('statusPill');
+  if(p){ p.innerText=text; p.style.color=color; p.style.borderColor=color.replace(')',',0.25)').replace('var(','rgba(').replace('--green','34,211,160').replace('--gold','245,200,66').replace('--red','244,63,94').replace('--muted','255,255,255'); }
+}
+
+function updateBuzzer(){
+  const btn=document.getElementById('buzzerBtn');
+  if(!btn) return;
+  btn.classList.remove('buzzed-state');
+  if(myStatus==='eliminated'){
+    btn.disabled=true; btn.innerText='OUT'; setStatus('⚡ Eliminated','var(--red)');
+  } else if(myStatus==='buzzed'){
+    btn.disabled=true; btn.classList.add('buzzed-state'); btn.innerText='BUZZED!'; setStatus('🎤 Answer verbally!','var(--gold)');
+  } else if(myStatus==='locked'||myStatus==='wrong'){
+    btn.disabled=true; btn.innerText='LOCKED'; setStatus('Locked out this round','var(--muted)');
+  } else if(isOpen&&myStatus==='waiting'&&globalBuzzerEnabled){
+    btn.disabled=false; btn.innerText='BUZZ!'; setStatus('🔴 BUZZ NOW!','var(--green)');
+  } else {
+    btn.disabled=true; btn.innerText='WAIT'; setStatus('Waiting...','var(--muted)');
   }
 }
-function launchConfetti(){ for(let i=0;i<80;i++){ let c=document.createElement('div'); c.style.cssText=`position:fixed;width:8px;height:8px;background:${['#fbbf24','#ef4444','#10b981','#3b82f6'][Math.floor(Math.random()*4)]};left:${Math.random()*100}vw;top:-10px;border-radius:2px;pointer-events:none;z-index:9999;animation:confettiFall 2s linear forwards;`; document.body.appendChild(c); setTimeout(()=>c.remove(),2000); } }
-function saveIdentity(){ try{ sessionStorage.setItem('fr_identity',JSON.stringify({myId,myName,myAvatar,roomCode})); }catch(e){} }
-function loadIdentity(){ try{ let s=sessionStorage.getItem('fr_identity'); return s?JSON.parse(s):null; }catch(e){ return null; } }
-function subscribeChannel(){
-  if(ch) sb.removeChannel(ch);
-  ch=sb.channel(`fr-${roomCode}`);
-  ch.on('broadcast',{event:'round_started'},({payload})=>handleEvent('round_started',payload))
-    .on('broadcast',{event:'question_open'},({payload})=>handleEvent('question_open',payload))
-    .on('broadcast',{event:'buzz_confirmed'},({payload})=>handleEvent('buzz_confirmed',payload))
-    .on('broadcast',{event:'correct'},({payload})=>handleEvent('correct',payload))
-    .on('broadcast',{event:'wrong'},({payload})=>handleEvent('wrong',payload))
-    .on('broadcast',{event:'next_question'},({payload})=>handleEvent('next_question',payload))
-    .on('broadcast',{event:'reset_buzzers'},({payload})=>handleEvent('reset_buzzers',payload))
-    .on('broadcast',{event:'reset_for_next_question'},({payload})=>handleEvent('reset_for_next_question',payload))
-    .on('broadcast',{event:'buzzers_reopen'},({payload})=>handleEvent('buzzers_reopen',payload))
-    .on('broadcast',{event:'buzzer_toggle'},({payload})=>handleEvent('buzzer_toggle',payload))
-    .on('broadcast',{event:'eliminated'},({payload})=>handleEvent('eliminated',payload))
-    .on('broadcast',{event:'round_ended'},({payload})=>handleEvent('round_ended',payload))
-    .on('broadcast',{event:'timer_start'},({payload})=>handleEvent('timer_start',payload))
-    .on('broadcast',{event:'state_sync'},({payload})=>handleEvent('state_sync',payload))
-    .on('broadcast',{event:'full_game_reset'},({payload})=>handleEvent('full_game_reset',payload))
-    .subscribe(async(status)=>{
-      if(status==='SUBSCRIBED'){
-        ch.send({type:'broadcast',event:'player_join',payload:{id:myId,name:myName,avatar:myAvatar}});
-        document.getElementById('joinScreen').style.display='none';
-        document.getElementById('gameScreen').style.display='flex';
-        document.getElementById('myAvatarDisplay').innerText=myAvatar;
-        document.getElementById('myNameDisplay').innerText=myName;
+
+function buzz(){
+  if(!isOpen||myStatus!=='waiting'||!globalBuzzerEnabled) return;
+  if(navigator.vibrate) navigator.vibrate([60,20,60]);
+  // Flash
+  const flash=document.createElement('div'); flash.className='buzz-flash';
+  document.body.appendChild(flash); setTimeout(()=>flash.remove(),600);
+  myStatus='buzzed'; updateBuzzer();
+  if(ch) ch.send({type:'broadcast',event:'buzz',payload:{id:myId,name:myName,avatar:myAvatar}});
+}
+
+function startPlayerTimer(seconds){
+  if(timerInterval) clearInterval(timerInterval);
+  const d=document.getElementById('playerTimer');
+  let remaining=seconds;
+  d.innerText=`⏱ ${remaining}s`;
+  timerInterval=setInterval(()=>{
+    remaining--;
+    if(remaining<=0){ clearInterval(timerInterval); d.innerText=''; }
+    else { d.innerText=`⏱ ${remaining}s`; d.style.color=remaining<=3?'var(--red)':'var(--gold)'; }
+  },1000);
+}
+
+function showResetNotification(message){
+  const n=document.createElement('div'); n.className='reset-notification'; n.innerText=message;
+  document.body.appendChild(n); setTimeout(()=>n.remove(),4000);
+}
+
+function resetToJoinScreen(newRoomCode=null){
+  if(ch){ try{sb.removeChannel(ch);}catch(e){} ch=null; }
+  if(timerInterval) clearInterval(timerInterval);
+  myId=null; myName=''; myAvatar='😎'; myScore=0; roomCode=null;
+  isOpen=false; myStatus='waiting'; globalBuzzerEnabled=true;
+  try{sessionStorage.removeItem('fr_identity');}catch(e){}
+  document.getElementById('roomInput').value=newRoomCode||'';
+  document.getElementById('nameInput').value='';
+  document.getElementById('joinError').innerText='';
+  document.querySelectorAll('.avatar-opt').forEach((opt,idx)=>{
+    if(idx===0) opt.classList.add('selected'); else opt.classList.remove('selected');
+  }); myAvatar='😎';
+  document.getElementById('joinScreen').style.display='flex';
+  document.getElementById('gameScreen').style.display='none';
+  if(newRoomCode) showResetNotification(`🔄 New game! Join with code: ${newRoomCode}`);
+  else showResetNotification('🔄 Game reset — please re-join with the room code from the host.');
+}
+
+function handleEvent(event, payload){
+  if(event==='full_game_reset'){ resetToJoinScreen(payload?.newRoomCode||null); return; }
+  if(!ch&&event!=='full_game_reset') return;
+  switch(event){
+    case 'round_started': setStatus('Round started!'); break;
+    case 'question_open':
+      isOpen=true; myStatus='waiting';
+      document.getElementById('questionBox').innerText=payload.question;
+      updateBuzzer(); break;
+    case 'buzz_confirmed':
+      isOpen=false;
+      if(payload.playerId===myId){ myStatus='buzzed'; setStatus('You buzzed!','var(--gold)'); }
+      else { if(myStatus==='waiting') myStatus='locked'; setStatus(`${payload.playerName} buzzed first`,'var(--muted)'); }
+      updateBuzzer(); break;
+    case 'correct':
+      if(payload.playerId===myId){
+        myScore=payload.newScore;
         document.getElementById('myScoreDisplay').innerText=myScore;
-        setStatus('Joined! Waiting for host'); updateBuzzer();
-      } else if(status==='CHANNEL_ERROR'){
-        document.getElementById('joinError').innerText='Connection failed';
-      }
-    });
+        myStatus='correct'; setStatus(`✅ +${payload.points||100} pts!`,'var(--gold)');
+        launchConfetti();
+      } else { if(myStatus!=='eliminated') myStatus='waiting'; }
+      updateBuzzer(); break;
+    case 'reset_for_next_question':
+      isOpen=false; myStatus='waiting';
+      document.getElementById('questionBox').innerText='Next question coming...';
+      updateBuzzer(); break;
+    case 'wrong':
+      if(payload.playerId===myId){ myStatus='wrong'; setStatus('❌ Wrong! Locked out','var(--red)'); }
+      else { if(myStatus==='locked') setTimeout(()=>{ if(myStatus!=='eliminated'&&myStatus!=='correct'){ myStatus='waiting'; isOpen=true; setStatus('Ready!','var(--green)'); updateBuzzer(); }},5000); }
+      updateBuzzer(); break;
+    case 'next_question':
+      isOpen=false; myStatus='waiting';
+      document.getElementById('questionBox').innerText='Next question coming...';
+      updateBuzzer(); break;
+    case 'reset_buzzers':
+      if(myStatus!=='eliminated'){ myStatus='waiting'; isOpen=true; } updateBuzzer(); break;
+    case 'buzzers_reopen':
+      if(myStatus!=='eliminated'&&myStatus!=='correct'&&myStatus!=='wrong'){ myStatus='waiting'; isOpen=true; updateBuzzer(); setStatus('Buzzers OPEN!','var(--green)'); } break;
+    case 'buzzer_toggle':
+      globalBuzzerEnabled=payload.enabled;
+      if(!globalBuzzerEnabled&&myStatus==='waiting') setStatus('🔕 Buzzers OFF','var(--muted)');
+      else if(globalBuzzerEnabled&&myStatus==='waiting'&&isOpen) setStatus('🔴 BUZZ NOW!','var(--green)');
+      updateBuzzer(); break;
+    case 'eliminated':
+      if(payload.playerId===myId){ myStatus='eliminated'; isOpen=false; document.getElementById('questionBox').innerText='⚡ You have been eliminated!'; setStatus('ELIMINATED','var(--red)'); }
+      updateBuzzer(); break;
+    case 'round_ended':
+      isOpen=false;
+      const winner=payload.winner;
+      if(winner&&winner.id===myId){ document.getElementById('questionBox').innerHTML='🏆 YOU ARE THE CHAMPION!'; setStatus('CHAMPION!','var(--gold)'); launchConfetti(); }
+      else { setStatus(`Winner: ${winner?.name||'?'}`,'var(--muted)'); }
+      updateBuzzer(); break;
+    case 'timer_start': startPlayerTimer(payload.seconds); break;
+    case 'state_sync':
+      if(payload.playerId===myId){
+        myScore=payload.score||0; myStatus=payload.status||'waiting';
+        document.getElementById('myScoreDisplay').innerText=myScore;
+        if(payload.isEliminated){ myStatus='eliminated'; document.getElementById('questionBox').innerText='⚡ You have been eliminated!'; }
+        else if(payload.questionText){ document.getElementById('questionBox').innerText=payload.questionText; if(payload.isQuestionOpen&&myStatus==='waiting') isOpen=true; }
+        setStatus('✅ Reconnected','var(--gold)'); updateBuzzer();
+      } break;
+  }
 }
+
+function launchConfetti(){
+  for(let i=0;i<80;i++){
+    const c=document.createElement('div');
+    c.style.cssText=`position:fixed;width:8px;height:8px;background:${['#f5c842','#f43f5e','#22d3a0','#6366f1','#a78bfa'][Math.floor(Math.random()*5)]};left:${Math.random()*100}vw;top:-10px;border-radius:2px;pointer-events:none;z-index:9999;animation:confettiFall 2s linear ${Math.random()*0.5}s forwards;`;
+    document.body.appendChild(c); setTimeout(()=>c.remove(),2500);
+  }
+}
+
+function saveIdentity(){ try{sessionStorage.setItem('fr_identity',JSON.stringify({myId,myName,myAvatar,roomCode}));}catch(e){} }
+function loadIdentity(){ try{const s=sessionStorage.getItem('fr_identity'); return s?JSON.parse(s):null;}catch(e){return null;} }
+
+function subscribeChannel(){
+  if(ch){ try{sb.removeChannel(ch);}catch(e){} ch=null; }
+  ch=sb.channel(`fr-${roomCode}`);
+  ['round_started','question_open','buzz_confirmed','correct','wrong','next_question','reset_buzzers',
+   'reset_for_next_question','buzzers_reopen','buzzer_toggle','eliminated','round_ended','timer_start','state_sync','full_game_reset'].forEach(ev=>{
+    ch.on('broadcast',{event:ev},({payload})=>handleEvent(ev,payload));
+  });
+  ch.subscribe(async(status)=>{
+    if(status==='SUBSCRIBED'){
+      ch.send({type:'broadcast',event:'player_join',payload:{id:myId,name:myName,avatar:myAvatar}});
+      document.getElementById('joinScreen').style.display='none';
+      document.getElementById('gameScreen').style.display='flex';
+      document.getElementById('myAvatarDisplay').innerText=myAvatar;
+      document.getElementById('myNameDisplay').innerText=myName;
+      document.getElementById('myScoreDisplay').innerText=myScore;
+      setStatus('Joined! Waiting for host'); updateBuzzer();
+    } else if(status==='CHANNEL_ERROR'){
+      document.getElementById('joinError').innerText='Connection failed — please check room code';
+    }
+  });
+}
+
 async function joinGame(){
-  let room=document.getElementById('roomInput').value.trim().toUpperCase();
-  let name=document.getElementById('nameInput').value.trim();
-  if(!room||name.length<2){ document.getElementById('joinError').innerText='Enter valid room code and name'; return; }
+  const room=document.getElementById('roomInput').value.trim().toUpperCase();
+  const name=document.getElementById('nameInput').value.trim();
+  if(!room||name.length<2){ document.getElementById('joinError').innerText='Enter valid room code and name (min 2 characters)'; return; }
+  if(ch){ try{sb.removeChannel(ch);}catch(e){} ch=null; }
   myId='p_'+Date.now()+'_'+Math.random().toString(36).substring(2,6);
-  myName=name; roomCode=room; myScore=0;
-  saveIdentity();
-  subscribeChannel();
+  myName=name; roomCode=room; myScore=0; isOpen=false; myStatus='waiting'; globalBuzzerEnabled=true;
+  saveIdentity(); subscribeChannel();
 }
+
 (function checkRejoin(){
-  let saved=loadIdentity();
-  if(!saved) return;
-  myId=saved.myId; myName=saved.myName; myAvatar=saved.myAvatar; roomCode=saved.roomCode; myScore=0;
-  document.getElementById('roomInput').value=roomCode;
-  document.getElementById('nameInput').value=myName;
-  subscribeChannel();
-  setStatus('Reconnecting...','var(--gold)');
+  const saved=loadIdentity();
+  if(saved&&saved.roomCode){
+    myId=saved.myId; myName=saved.myName; myAvatar=saved.myAvatar; roomCode=saved.roomCode; myScore=0;
+    document.getElementById('roomInput').value=roomCode;
+    document.getElementById('nameInput').value=myName;
+    subscribeChannel(); setStatus('Reconnecting...','var(--gold)');
+  }
 })();
+
 window.joinGame=joinGame; window.pickAvatar=pickAvatar; window.buzz=buzz;
 </script>
 </body>
