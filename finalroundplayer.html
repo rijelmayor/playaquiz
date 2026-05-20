@@ -402,6 +402,10 @@ let myId = null, myName = '', myAvatar = '😎', myScore = 0, roomCode = null, c
 let isOpen = false, myStatus = 'waiting', globalBuzzerEnabled = true, timerInterval = null;
 let reconnectAttempts = 0, reconnectTimeout = null, reconnectInterval = null;
 
+// Debug logging (can be removed in production)
+const DEBUG = true;
+function logEvent(event, payload) { if(DEBUG) console.log(`[Player] ${event}`, payload); }
+
 // Build avatar grid
 document.getElementById('avatarGrid').innerHTML = AVATARS.map((a,i) => `<div class="avatar-opt ${i===0?'selected':''}" onclick="pickAvatar(this,'${a}')">${a}</div>`).join('');
 
@@ -446,12 +450,15 @@ function updateBuzzerUI() {
   } else {
     btn.disabled = true; btn.innerText = 'WAIT'; setStatus('Waiting...', 'var(--muted)');
   }
+  if(DEBUG) console.log(`[UI] isOpen=${isOpen}, myStatus=${myStatus}, globalEnabled=${globalBuzzerEnabled}, btnDisabled=${btn.disabled}`);
 }
 
 function buzz() {
-  if(!isOpen || myStatus !== 'waiting' || !globalBuzzerEnabled) return;
+  if(!isOpen || myStatus !== 'waiting' || !globalBuzzerEnabled) {
+    if(DEBUG) console.log(`[Buzz] blocked: isOpen=${isOpen}, status=${myStatus}, enabled=${globalBuzzerEnabled}`);
+    return;
+  }
   if(navigator.vibrate) navigator.vibrate([60,20,60]);
-  // Flash effect
   const flash = document.createElement('div'); flash.className = 'buzz-flash';
   document.body.appendChild(flash); setTimeout(() => flash.remove(), 600);
   myStatus = 'buzzed';
@@ -504,29 +511,48 @@ function startReconnectLoop() {
 }
 
 function handleEvent(event, payload) {
+  logEvent(event, payload);
   switch(event) {
     case 'full_game_reset':
       resetToJoinScreen(payload?.newRoomCode || null);
       break;
     case 'round_started':
+      // Reset all states for new round
+      isOpen = false;
+      myStatus = 'waiting';
+      globalBuzzerEnabled = true;
+      document.getElementById('questionBox').innerText = 'Round started! Get ready...';
+      updateBuzzerUI();
       setStatus('Round started!', 'var(--green)');
       break;
     case 'question_open':
-      isOpen = false; myStatus = 'waiting';
+      isOpen = false;
+      myStatus = 'waiting';
+      // Do NOT reset globalBuzzerEnabled here; host will send buzzers_reopen later
       document.getElementById('questionBox').innerText = payload.question;
       updateBuzzerUI();
+      setStatus('Question displayed', 'var(--muted)');
       break;
     case 'buzzers_reopen':
       if(myStatus !== 'eliminated' && myStatus !== 'correct' && myStatus !== 'wrong') {
-        isOpen = true; myStatus = 'waiting'; globalBuzzerEnabled = true;
+        isOpen = true;
+        myStatus = 'waiting';
+        globalBuzzerEnabled = true; // Ensure buzzers are enabled when reopened
         updateBuzzerUI();
         setStatus('🔴 BUZZ NOW!', 'var(--green)');
+      } else {
+        if(DEBUG) console.log(`[buzzers_reopen] ignored because status=${myStatus}`);
       }
       break;
     case 'buzz_confirmed':
       isOpen = false;
-      if(payload.playerId === myId) { myStatus = 'buzzed'; setStatus('You buzzed!', 'var(--gold)'); }
-      else { if(myStatus === 'waiting') myStatus = 'locked'; setStatus(`${payload.playerName} buzzed first`, 'var(--muted)'); }
+      if(payload.playerId === myId) {
+        myStatus = 'buzzed';
+        setStatus('You buzzed!', 'var(--gold)');
+      } else {
+        if(myStatus === 'waiting') myStatus = 'locked';
+        setStatus(`${payload.playerName} buzzed first`, 'var(--muted)');
+      }
       updateBuzzerUI();
       break;
     case 'correct':
@@ -536,33 +562,64 @@ function handleEvent(event, payload) {
         myStatus = 'correct';
         setStatus(`✅ +${payload.points || 100} pts!`, 'var(--gold)');
         launchConfetti();
-      } else { if(myStatus !== 'eliminated') myStatus = 'waiting'; }
+      } else {
+        if(myStatus !== 'eliminated') myStatus = 'waiting';
+      }
       isOpen = false;
       updateBuzzerUI();
       break;
     case 'reset_for_next_question':
-      if(myStatus !== 'eliminated') { myStatus = 'waiting'; isOpen = false; }
+      if(myStatus !== 'eliminated') {
+        myStatus = 'waiting';
+        isOpen = false;
+        globalBuzzerEnabled = true; // Reset buzzer enable for next question
+      }
       document.getElementById('questionBox').innerText = 'Next question coming...';
       updateBuzzerUI();
       break;
     case 'wrong':
       if(payload.playerId === myId) {
-        myStatus = 'wrong'; setStatus('❌ Wrong! Locked out', 'var(--red)');
+        myStatus = 'wrong';
+        setStatus('❌ Wrong! Locked out', 'var(--red)');
         updateBuzzerUI();
-        setTimeout(() => { if(myStatus !== 'eliminated') { myStatus = 'waiting'; isOpen = true; setStatus('Ready!', 'var(--green)'); updateBuzzerUI(); } }, 5000);
+        // Auto-unlock after 5 seconds if not eliminated
+        setTimeout(() => {
+          if(myStatus !== 'eliminated' && myStatus !== 'correct') {
+            myStatus = 'waiting';
+            isOpen = true; // Host might have reopened buzzers, but we assume they will send another buzzers_reopen; safer to set isOpen false and wait for host
+            isOpen = false; // Wait for explicit buzzers_reopen from host
+            updateBuzzerUI();
+            setStatus('Ready for next round', 'var(--green)');
+          }
+        }, 5000);
       } else {
+        // Another player got it wrong; we remain locked if we were locked, but host will reset
         if(myStatus === 'locked') {
-          setTimeout(() => { if(myStatus !== 'eliminated' && myStatus !== 'correct') { myStatus = 'waiting'; isOpen = true; setStatus('Ready!', 'var(--green)'); updateBuzzerUI(); } }, 5000);
+          setTimeout(() => {
+            if(myStatus !== 'eliminated' && myStatus !== 'correct') {
+              myStatus = 'waiting';
+              isOpen = false;
+              updateBuzzerUI();
+            }
+          }, 5000);
         }
       }
       break;
     case 'next_question':
-      isOpen = false; myStatus = 'waiting';
+      if(myStatus !== 'eliminated') {
+        myStatus = 'waiting';
+        isOpen = false;
+        globalBuzzerEnabled = true;
+      }
       document.getElementById('questionBox').innerText = 'Next question coming...';
       updateBuzzerUI();
       break;
     case 'reset_buzzers':
-      if(myStatus !== 'eliminated') { myStatus = 'waiting'; isOpen = false; }
+      if(myStatus !== 'eliminated') {
+        myStatus = 'waiting';
+        isOpen = false;
+        globalBuzzerEnabled = true;
+      }
       updateBuzzerUI();
       break;
     case 'buzzer_toggle':
@@ -573,7 +630,8 @@ function handleEvent(event, payload) {
       break;
     case 'eliminated':
       if(payload.playerId === myId) {
-        myStatus = 'eliminated'; isOpen = false;
+        myStatus = 'eliminated';
+        isOpen = false;
         document.getElementById('questionBox').innerText = '⚡ You have been eliminated!';
         setStatus('ELIMINATED', 'var(--red)');
         updateBuzzerUI();
@@ -602,14 +660,14 @@ function handleEvent(event, payload) {
         if(payload.isEliminated) {
           myStatus = 'eliminated';
           document.getElementById('questionBox').innerText = '⚡ You have been eliminated!';
+          isOpen = false;
         } else if(payload.questionText) {
           document.getElementById('questionBox').innerText = payload.questionText;
-          if(payload.isQuestionOpen && myStatus === 'waiting') isOpen = true;
-          else isOpen = false;
+          isOpen = payload.isQuestionOpen || false;
         }
-        if(payload.isQuestionOpen && myStatus === 'waiting') isOpen = true;
-        setStatus('✅ Reconnected', 'var(--gold)');
+        globalBuzzerEnabled = true; // Assume buzzers enabled on rejoin
         updateBuzzerUI();
+        setStatus('✅ Reconnected', 'var(--gold)');
         showReconnectToast('Reconnected to the game!');
       }
       break;
