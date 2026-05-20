@@ -245,7 +245,6 @@
       padding: 10px 8px;
       text-align: center;
       transition: 0.15s;
-      position: relative;
     }
     .player-card.buzzed {
       border-color: var(--gold);
@@ -258,11 +257,10 @@
     .player-avatar { font-size: 28px; }
     .player-name { font-weight: 700; font-size: 11px; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .player-pts { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: var(--gold); }
-    .player-badge { font-size: 10px; color: var(--muted); margin-top: 2px; display: flex; align-items: center; justify-content: center; gap: 4px; }
-    .player-status-indicator { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
-    .player-status-indicator.online { background: var(--green); box-shadow: 0 0 4px var(--green); }
-    .player-status-indicator.offline { background: var(--red); }
-    
+    .player-badge { font-size: 10px; color: var(--muted); margin-top: 2px; display: flex; align-items: center; justify-content: center; gap: 5px; }
+    .status-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+    .status-dot.online { background: var(--green); box-shadow: 0 0 4px var(--green); }
+    .status-dot.offline { background: var(--red); }
     .eliminate-btn {
       margin-top: 5px;
       font-size: 9px;
@@ -294,13 +292,8 @@
     }
     .cat-filter-btn.active { background: var(--blue); color: white; border-color: transparent; }
     .cat-filter-btn:hover:not(.active) { color: var(--text); }
-    .question-list {
-      max-height: 200px;
-      overflow-y: auto;
-      border-radius: 10px;
-      overflow: hidden;
-      border: 1px solid var(--border);
-    }
+
+    .question-list { max-height: 200px; overflow-y: auto; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
     .q-item {
       padding: 9px 12px;
       border-bottom: 1px solid var(--border);
@@ -316,7 +309,6 @@
     .q-item:hover { background: rgba(255,255,255,0.03); }
     .q-item.selected-q { background: rgba(99,102,241,0.08); }
     .q-text-truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 320px; font-weight: 500; }
-    
     .fire-btn {
       background: var(--red);
       color: white;
@@ -343,391 +335,535 @@
     .question-area-text { font-size: 14px; font-weight: 700; line-height: 1.4; }
 
     /* === BUZZER CARD === */
-    .buzzer-card { border: 2px solid var(--gold) !important; background: rgba(245,200,66,0.04) !important; display: none; }
-    .buzzed-name { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; color: #fff; margin-bottom: 4px; }
-    .toast {
-      position: fixed; bottom: 20px; right: 20px;
-      background: #101525; border: 1px solid var(--border2);
-      padding: 10px 16px; border-radius: 10px; color: #fff;
-      font-size: 13px; font-weight: 500; z-index: 9999;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-      animation: toastIn 0.2s ease-out;
+    .buzzer-card {
+      border: 2px solid var(--gold) !important;
+      background: rgba(245,200,66,0.04) !important;
     }
-    @keyframes toastIn { from { transform: translateY(10px); opacity: 0; } to { transform: none; opacity: 1; } }
+    .buzzed-name {
+      font-family: 'Syne', sans-serif;
+      font-size: 32px;
+      font-weight: 800;
+      text-align: center;
+      margin-bottom: 14px;
+    }
+
+    /* === TOAST === */
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: var(--surface);
+      border: 1px solid var(--border2);
+      border-radius: 12px;
+      padding: 10px 16px;
+      animation: toastIn 0.25s cubic-bezier(0.22,1,0.36,1);
+      z-index: 1000;
+      font-size: 13px;
+      font-weight: 500;
+      max-width: 280px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    @keyframes toastIn { from { opacity:0; transform: translateX(20px) translateY(4px); } to { opacity:1; transform: none; } }
+
+    .reset-warning {
+      background: rgba(244,63,94,0.08);
+      border: 1px solid rgba(244,63,94,0.2);
+      border-radius: 10px;
+      padding: 8px 12px;
+      margin-top: 8px;
+      font-size: 11px;
+      color: var(--red);
+      text-align: center;
+    }
+
+    .hidden { display: none !important; }
+
+    /* player setup list */
+    .player-setup-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 10px;
+      background: var(--surface2);
+      border-radius: 10px;
+      margin-bottom: 5px;
+      font-size: 13px;
+    }
+
+    /* Divider */
+    .divider { height: 1px; background: var(--border); margin: 12px 0; }
   </style>
 </head>
 <body>
+<div class="app">
 
-  <div class="app">
-    <div class="sidebar">
-      <div class="sidebar-header">
-        <div class="logo">PLAYAQUIZ</div>
-        <div class="logo-sub">Final Round Control</div>
-      </div>
-
-      <div class="room-box">
-        <div class="room-code-label">Room Code</div>
-        <div class="room-code" id="roomCodeDisplay">----</div>
-        <input type="hidden" id="roomCodeInput">
-      </div>
-
-      <div class="info-row">
-        <span>Supabase Sync</span>
-        <span class="info-val"><span class="conn-dot" id="syncDot"></span><span id="syncText">Offline</span></span>
-      </div>
-
-      <div class="sidebar-section" style="flex:1;">
-        <div class="section-title">Leaderboard</div>
-        <div class="lb-list" id="sidebarLeaderboard">
-          </div>
-      </div>
-      
-      <div class="sidebar-section" style="border-top: 1px solid var(--border); padding: 14px;">
-        <button class="btn btn-danger style-btn" style="width:100%; justify-content:center;" onclick="endFinalRound()">End Final Round</button>
-      </div>
+  <!-- === SIDEBAR === -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">PLAYAQUIZ</div>
+      <div class="logo-sub">Control Panel</div>
     </div>
 
-    <div class="main">
-      <div class="page-header">
-        <h1 class="page-title">Live Host Panel</h1>
-        <div class="page-badge" id="gamePhaseBadge">Phase: Setup</div>
+    <div class="room-box">
+      <div class="room-code-label">Room Code</div>
+      <div class="room-code" id="roomCodeDisplay">——</div>
+    </div>
+
+    <div class="info-row" style="margin-top:8px;">
+      <span style="color:var(--muted);font-size:12px;">Connection</span>
+      <span>
+        <span class="conn-dot" id="connDot"></span>
+        <span id="connText" style="font-size:11px;font-weight:700;">Offline</span>
+      </span>
+    </div>
+    <div class="info-row">
+      <span style="color:var(--muted);font-size:12px;">Players</span>
+      <span class="info-val" id="playerCount">0</span>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="section-title">🏆 Standings</div>
+      <div class="lb-list" id="sidebarLeaderboard">
+        <div style="color:var(--muted);padding:16px;text-align:center;font-size:12px;">No players yet</div>
       </div>
-
-      <div class="card buzzer-card" id="buzzerCard">
-        <div class="card-title">
-          <span class="card-title-icon">🔔</span>
-          <span class="card-title-text">Active Buzzer Lock-in</span>
-        </div>
-        <div style="text-align: center; padding: 6px 0;">
-          <div class="buzzed-name" id="buzzedPlayerName">Player Name</div>
-          <p style="color: var(--muted); font-size:12px; margin-bottom:12px;">Pressed the buzzer first!</p>
-          <div style="display:flex; gap:10px; justify-content:center;">
-            <button class="btn btn-green btn-lg" onclick="markCorrect()">✓ Correct (+10pts)</button>
-            <button class="btn btn-red btn-lg" onclick="markWrong()">✗ Wrong (Lock out)</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="grid-2">
-        <div>
-          <div class="card" style="height:100%;">
-            <div class="card-title">
-              <span class="card-title-icon">📂</span>
-              <span class="card-title-text">Question Bank</span>
-            </div>
-            
-            <div class="cat-filter" id="categoryTabs">
-              <button class="cat-filter-btn active" onclick="filterByCategory('ALL')">All</button>
-            </div>
-
-            <div class="question-list" id="questionsContainer">
-              </div>
-
-            <div id="selectedQuestionArea" style="display:none; margin-top:14px;">
-              <div class="input-label">Staged / Selected Question</div>
-              <div class="question-area">
-                <p class="question-area-text" id="selectedQuestionText">Select a question from above to stage it...</p>
-              </div>
-              <div style="display:flex; gap:8px;">
-                <button class="btn btn-blue btn-lg" style="flex:1; justify-content:center;" id="fireBtn" onclick="fireQuestion()">🚀 Send to FOH Screen</button>
-                <button class="btn btn-ghost btn-lg" onclick="showCategoryPickerOnFOH()">📋 Show Categories Grid</button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <div class="card">
-            <div class="card-title">
-              <span class="card-title-icon">⚙️</span>
-              <span class="card-title-text">Buzzer Actions & Flow</span>
-            </div>
-            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
-              <button class="btn btn-violet" onclick="openQuestion()">🔓 Open Buzzers</button>
-              <button class="btn btn-amber" onclick="resetBuzzers()">↺ Reset Buzzers</button>
-              <button class="btn btn-ghost" onclick="nextQuestion()">⏭ Clear / Next Question</button>
-            </div>
-            <div style="display:flex; gap:8px;">
-              <button class="btn btn-gold" style="flex:1; justify-content:center;" onclick="broadcast('timer_start',{duration:10})">⏱ Start 10s Timer</button>
-            </div>
-          </div>
-
-          <div class="card" style="min-height: 200px;">
-            <div class="card-title">
-              <span class="card-title-icon">👥</span>
-              <span class="card-title-text">Connected Finalists</span>
-            </div>
-            <div class="players-grid" id="playersGridContainer">
-              </div>
-          </div>
-        </div>
-      </div>
-
     </div>
   </div>
 
-  <script>
-    // Supabase configuration
-    const SUPABASE_URL = window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1') ? 'http://localhost:54321' : ''; 
-    const SUPABASE_KEY = ''; 
-    let supabaseClient = supabase.createClient(SUPABASE_URL || window.location.origin, SUPABASE_KEY);
+  <!-- === MAIN CONTENT === -->
+  <div class="main">
 
-    let roomCode = '';
-    let realtimeChannel = null;
-    let frPlayers = new Map(); 
-    let selectedCategory = 'ALL';
-    let questionsData = [];
-    let selectedQuestionForGame = null;
-    let buzzedPlayerId = null;
-    let lockedPlayers = new Set();
-    let eliminatedPlayers = new Set();
-    let isQuestionOpen = false;
+    <!-- SETUP PANEL -->
+    <div id="setupPanel">
+      <div class="page-header">
+        <div class="page-title">FINAL ROUND</div>
+        <div class="page-badge">Setup</div>
+      </div>
 
-    // Load ALL questions (no limits)
-    async function loadQuestionsFromDB(){
-      try {
-        const res = await fetch('/api/final-round-questions'); 
-        if(!res.ok) throw new Error('No api endpoint');
-        questionsData = await res.json();
-      } catch(e) {
-        questionsData = [
-          { id: 1, category: "Pop Culture", question: "Which movie won the Best Picture Oscar in 2024?", options: ["Oppenheimer", "Barbie", "Poor Things", "The Past"], answer: "Oppenheimer" },
-          { id: 2, category: "Pop Culture", question: "What is the name of Taylor Swift's 11th studio album released in 2024?", options: ["Midnights", "The Tortured Poets Department", "Renaissance", "Hit Me Hard and Soft"], answer: "The Tortured Poets Department" },
-          { id: 3, category: "Pop Culture", question: "Who plays the lead character in the 2024 film 'Dune: Part Two'?", options: ["Timothée Chalamet", "Austin Butler", "Tom Holland", "Zendaya"], answer: "Timothée Chalamet" },
-          { id: 4, category: "Pop Culture", question: "Which series won Outstanding Drama Series at the 2024 Emmys?", options: ["Succession", "The Bear", "Shōgun", "The Crown"], answer: "Shōgun" },
-          { id: 5, category: "Science", question: "What is the rarest naturally occurring element on Earth?", options: ["Astatine", "Francium", "Oganesson", "Radon"], answer: "Astatine" },
-          { id: 6, category: "Science", question: "Which space telescope released its first full-color images in July 2022?", options: ["Hubble", "James Webb", "Chandra", "Nancy Grace Roman"], answer: "James Webb" },
-          { id: 7, category: "Science", question: "What is the primary function of mitochondria inside a cell?", options: ["Protein Synthesis", "Energy Production", "Waste Disposal", "DNA Storage"], answer: "Energy Production" },
-          { id: 8, category: "History", question: "In which year did the Berlin Wall fall?", options: ["1985", "1989", "1991", "1993"], answer: "1989" },
-          { id: 9, category: "History", question: "Who was the first female Prime Minister of the United Kingdom?", options: ["Theresa May", "Margaret Thatcher", "Liz Truss", "Angela Merkel"], answer: "Margaret Thatcher" }
-        ];
-      }
-      buildCategoryTabs();
-      renderQuestionsList();
-    }
+      <div class="grid-2">
+        <!-- Settings Card -->
+        <div class="card">
+          <div class="card-title"><span class="card-title-icon">⚙</span><span class="card-title-text">Settings</span></div>
 
-    function buildCategoryTabs(){
-      const cats = new Set(questionsData.map(q => q.category));
-      const container = document.getElementById('categoryTabs');
-      container.innerHTML = `<button class="cat-filter-btn ${selectedCategory==='ALL'?'active':''}" onclick="filterByCategory('ALL')">All</button>`;
-      cats.forEach(cat => {
-        container.innerHTML += `<button class="cat-filter-btn ${selectedCategory===cat?'active':''}" onclick="filterByCategory('${cat}')">${cat}</button>`;
+          <label class="input-label">Points Per Correct</label>
+          <input type="number" id="pointsPerBuzz" value="100" step="10" class="input-field" style="margin-bottom:10px;">
+
+          <label class="input-label">Min Players to Start</label>
+          <input type="number" id="minPlayersInput" value="2" min="1" max="10" class="input-field" style="margin-bottom:10px;">
+
+          <label class="input-label">Room Code</label>
+          <input id="roomCodeInput" readonly class="input-field" style="font-family:'JetBrains Mono',monospace;font-size:18px;color:var(--gold);letter-spacing:4px;text-align:center;margin-bottom:10px;">
+
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-ghost" onclick="generateNewRoomCode()" style="flex:1;">↺ New Code</button>
+          </div>
+          <div class="reset-warning" id="resetWarning" style="display:none;">⚠ New code resets all players</div>
+          <div class="divider"></div>
+          <button class="btn btn-danger" style="width:100%;" onclick="resetFullGame()">⚡ NEW GAME / RESET</button>
+        </div>
+
+        <!-- Players Card -->
+        <div class="card">
+          <div class="card-title"><span class="card-title-icon">👥</span><span class="card-title-text">Players</span></div>
+          <div id="playerSetupList" style="min-height:120px;">
+            <div style="text-align:center;padding:30px 0;color:var(--muted);font-size:13px;">Waiting for players...</div>
+          </div>
+          <button class="btn btn-violet btn-xl" style="width:100%;margin-top:10px;" onclick="showCategoryToStart()">
+            SHOW CATEGORIES
+          </button>
+        </div>
+      </div>
+
+      <!-- Question Bank -->
+      <div class="card">
+        <div class="card-title"><span class="card-title-icon">📚</span><span class="card-title-text">Question Bank</span></div>
+        <div class="cat-filter" id="categoryFilter"></div>
+        <div class="question-list" id="questionBankList">
+          <div style="padding:20px;text-align:center;color:var(--muted);font-size:13px;">Loading questions...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GAME PANEL -->
+    <div id="gamePanel" class="hidden">
+      <div class="page-header" style="justify-content:space-between;">
+        <div>
+          <div class="page-title">LIVE ROUND</div>
+          <div style="font-size:11px;color:var(--muted);">Room: <span id="liveRoomCode" style="color:var(--gold);font-family:'JetBrains Mono',monospace;font-weight:700;">——</span></div>
+        </div>
+        <button class="btn btn-danger" onclick="endFinalRound()">🏁 End Round</button>
+      </div>
+
+      <!-- Categories -->
+      <div class="card">
+        <div class="card-title"><span class="card-title-icon">🎨</span><span class="card-title-text">Categories</span></div>
+        <button class="btn btn-violet btn-lg" style="width:100%;" onclick="showCategoryPickerOnFOH()">Show Categories on FOH</button>
+      </div>
+
+      <!-- Timer & Buzzers -->
+      <div class="card">
+        <div class="card-title"><span class="card-title-icon">⏱</span><span class="card-title-text">Timer & Buzzer Control</span></div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <input type="number" id="timerSeconds" value="10" min="3" max="60" class="input-field" style="width:90px;text-align:center;">
+          <button class="btn btn-blue" onclick="startTimer()">▶ Start Timer</button>
+          <button class="btn btn-amber" id="buzzerToggleBtn" onclick="toggleBuzzerGlobal()" style="min-width:120px;">🔔 Buzzers ON</button>
+        </div>
+      </div>
+
+      <!-- Select & Fire Question -->
+      <div class="card">
+        <div class="card-title"><span class="card-title-icon">📢</span><span class="card-title-text">Select & Fire Question</span></div>
+        <div class="cat-filter" id="gameCategoryFilter"></div>
+        <div class="question-list" id="gameQuestionBankList" style="max-height:160px;margin-bottom:12px;"></div>
+        <div id="selectedQuestionDisplay" class="question-area">
+          <div style="color:var(--muted);font-size:13px;">← Pick a question from the list above</div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <button class="btn btn-blue btn-lg" style="flex:1;" onclick="openQuestion()" id="openBtn" disabled>🔔 Open Buzzers</button>
+          <button class="btn btn-ghost" onclick="resetBuzzers()" id="resetBtn">↺ Reset</button>
+        </div>
+      </div>
+
+      <!-- Judge Buzzer Card -->
+      <div class="card buzzer-card" id="buzzerCard" style="display:none;">
+        <div class="card-title"><span class="card-title-icon">🎤</span><span class="card-title-text">Judge Answer</span></div>
+        <div class="buzzed-name" id="buzzedName">—</div>
+        <div id="buzzerCorrectHint" style="background:rgba(34,211,160,0.07);border:1px solid rgba(34,211,160,0.2);padding:10px 14px;border-radius:10px;margin-bottom:14px;text-align:center;">
+          <div style="font-size:11px;font-weight:700;color:var(--green);letter-spacing:1px;margin-bottom:4px;">CORRECT ANSWER</div>
+          <div id="buzzerCorrectText" style="font-size:14px;font-weight:500;"></div>
+        </div>
+        <div style="display:flex;gap:10px;justify-content:center;">
+          <button class="btn btn-green btn-xl" onclick="markCorrect()">✓ CORRECT</button>
+          <button class="btn btn-red btn-xl" onclick="markWrong()">✗ WRONG</button>
+        </div>
+        <div style="text-align:center;margin-top:10px;">
+          <button class="btn btn-ghost" onclick="nextQuestion()">⏭ Skip Question</button>
+        </div>
+      </div>
+
+      <!-- Finalists -->
+      <div class="card">
+        <div class="card-title"><span class="card-title-icon">👥</span><span class="card-title-text">Finalists</span></div>
+        <div id="playersGrid" class="players-grid"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
+const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+let roomCode='', frPlayers=new Map(), buzzedPlayerId=null, lockedPlayers=new Set(), eliminatedPlayers=new Set();
+let isQuestionOpen=false, realtimeChannel=null, pointsPerBuzz=100, allQuestions=[], categories=[];
+let selectedQuestionForGame=null, currentFilterCat='all', currentQuestionNumber=0, buzzerGlobalEnabled=true;
+
+function getAudio(){ let ctx=new(window.AudioContext||window.webkitAudioContext)(); if(ctx.state==='suspended') ctx.resume(); return ctx; }
+function playCorrectSound(){ try{ let c=getAudio();[523,659,784,1047].forEach((f,i)=>{ let n=c.currentTime+i*.09,o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(0.6,n);g.gain.exponentialRampToValueAtTime(0.001,n+.2);o.start(n);o.stop(n+.2); }); }catch(e){} }
+function playWrongSound(){ try{ let c=getAudio(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type='sawtooth';o.frequency.value=200;g.gain.setValueAtTime(0.6,c.currentTime);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+.5);o.start();o.stop(c.currentTime+.5); }catch(e){} }
+
+async function loadQuestionsFromDB(){
+  let {data:questions}=await sb.from('questions').select('*, categories(name, icon)').order('sort_order');
+  if(questions) allQuestions=questions;
+  let {data:cats}=await sb.from('categories').select('*').order('name');
+  categories=cats||[];
+  renderCategoryFilters(); renderQuestionBank();
+}
+
+function renderCategoryFilters(){
+  let html=`<button class="cat-filter-btn active" onclick="filterByCategory('all',this)">All</button>`+categories.map(c=>`<button class="cat-filter-btn" onclick="filterByCategory('${c.id}',this)">${c.icon||'📁'} ${c.name}</button>`).join('');
+  let s=document.getElementById('categoryFilter'),g=document.getElementById('gameCategoryFilter');
+  if(s) s.innerHTML=html; if(g) g.innerHTML=html;
+}
+
+function filterByCategory(catId, btn){
+  currentFilterCat=catId;
+  document.querySelectorAll('.cat-filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active'); renderQuestionBank();
+}
+
+function renderQuestionBank(){
+  let filtered=currentFilterCat==='all'?allQuestions:allQuestions.filter(q=>q.category_id===currentFilterCat);
+  let html=filtered.map(q=>`<div class="q-item" onclick="selectQuestion('${q.id}')"><div><div class="q-text-truncate">${q.question_text.substring(0,65)}</div><div style="font-size:10px;color:var(--muted);margin-top:1px;">${q.categories?.icon||'📁'} ${q.categories?.name||'General'}</div></div><button class="fire-btn" onclick="event.stopPropagation();fireQuestion('${q.id}')">🔥 Fire</button></div>`).join('');
+  if(document.getElementById('questionBankList')) document.getElementById('questionBankList').innerHTML=html||'<div style="padding:20px;color:var(--muted);font-size:13px;">No questions</div>';
+  if(document.getElementById('gameQuestionBankList')) document.getElementById('gameQuestionBankList').innerHTML=html||'<div style="padding:20px;color:var(--muted);font-size:13px;">No questions</div>';
+}
+
+function selectQuestion(qId){
+  let q=allQuestions.find(x=>x.id===qId); if(!q) return;
+  selectedQuestionForGame=q;
+  let opts=[q.option_a,q.option_b,q.option_c,q.option_d],letters=['A','B','C','D'];
+  document.getElementById('selectedQuestionDisplay').innerHTML=`
+    <div class="question-area-text">📢 ${q.question_text}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px">
+      ${opts.map((o,i)=>`<div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:7px 9px;font-size:12px;"><span style="color:var(--violet);font-weight:800;">${letters[i]}</span> ${o}</div>`).join('')}
+    </div>
+    <div style="font-size:10px;color:var(--green);margin-top:8px;font-weight:700;">✓ Correct: ${letters[q.correct_option]} — ${opts[q.correct_option]}</div>
+  `;
+  document.getElementById('openBtn').disabled=false;
+  toast(`Selected: ${q.question_text.substring(0,45)}...`);
+}
+
+function fireQuestion(qId){ selectQuestion(qId); openQuestion(); }
+
+function generateNewRoomCode(){
+  if(!confirm('Generate new room code? This resets the game and all connected players will need to re-join.')) return;
+  const newCode='FR'+Math.random().toString(36).substring(2,6).toUpperCase();
+  roomCode=newCode;
+  document.getElementById('roomCodeInput').value=roomCode;
+  document.getElementById('roomCodeDisplay').innerText=roomCode;
+  localStorage.setItem('fr_room',roomCode);
+  frPlayers.clear(); eliminatedPlayers.clear(); lockedPlayers.clear();
+  buzzedPlayerId=null; isQuestionOpen=false; selectedQuestionForGame=null; currentQuestionNumber=0;
+  renderPlayersGrid(); updateSidebar();
+  broadcast('full_game_reset',{newRoomCode:roomCode});
+  setupRealtimeChannel();
+  document.getElementById('setupPanel').classList.remove('hidden');
+  document.getElementById('gamePanel').classList.add('hidden');
+  toast(`New room code: ${roomCode}`);
+}
+
+function setupRealtimeChannel(){
+  if(realtimeChannel) sb.removeChannel(realtimeChannel);
+  realtimeChannel=sb.channel(`fr-${roomCode}`);
+  realtimeChannel
+    .on('presence', { event: 'sync' }, () => {
+      const state = realtimeChannel.presenceState();
+      const activeIds = new Set();
+      Object.keys(state).forEach(key => {
+        state[key].forEach(p => { if(p.id && p.id !== 'host') activeIds.add(p.id); });
       });
-    }
+      frPlayers.forEach((p, id) => { p.isOnline = activeIds.has(id); });
+      renderPlayersGrid(); updateSidebar();
+      broadcast('player_list_update', { players: Array.from(frPlayers.values()) });
+    })
+    .on('broadcast',{event:'player_join'},({payload})=>handlePlayerJoin(payload))
+    .on('broadcast',{event:'buzz'},({payload})=>handleBuzz(payload))
+    .subscribe(async (status)=>{
+      const dot=document.getElementById('connDot'),txt=document.getElementById('connText');
+      if(status==='SUBSCRIBED'){ dot.classList.add('connected'); txt.innerText='Live'; await realtimeChannel.track({ id: 'host', role: 'editor' }); }
+      else { dot.classList.remove('connected'); txt.innerText=status; }
+    });
+}
 
-    function filterByCategory(cat){
-      selectedCategory = cat;
-      buildCategoryTabs();
-      renderQuestionsList();
-    }
+function broadcast(event,payload){ if(realtimeChannel) realtimeChannel.send({type:'broadcast',event,payload}); }
 
-    function renderQuestionsList(){
-      const container = document.getElementById('questionsContainer');
-      container.innerHTML = '';
-      let filtered = selectedCategory === 'ALL' ? [...questionsData] : questionsData.filter(q => q.category === selectedCategory);
-      // Load ALL questions — no slice limit
-      filtered.forEach(q => {
-        const isSel = selectedQuestionForGame && selectedQuestionForGame.id === q.id;
-        const div = document.createElement('div');
-        div.className = `q-item ${isSel ? 'selected-q' : ''}`;
-        div.onclick = () => selectQuestion(q.id);
-        div.innerHTML = `
-          <div class="q-text-truncate"><strong>[${q.category}]</strong> ${q.question}</div>
-          <button class="fire-btn" onclick="event.stopPropagation(); fireQuestionWithId(${q.id})">Direct Fire</button>
-        `;
-        container.appendChild(div);
-      });
-    }
+function handlePlayerJoin(payload){
+  if(frPlayers.has(payload.id)) return;
+  let existing=Array.from(frPlayers.values()).find(p=>p.name===payload.name);
+  if(existing){
+    frPlayers.delete(existing.id);
+    if(eliminatedPlayers.has(existing.id)){ eliminatedPlayers.delete(existing.id); eliminatedPlayers.add(payload.id); }
+    if(lockedPlayers.has(existing.id)){ lockedPlayers.delete(existing.id); lockedPlayers.add(payload.id); }
+    if(buzzedPlayerId===existing.id) buzzedPlayerId=payload.id;
+    existing.id=payload.id; frPlayers.set(payload.id,existing);
+    renderPlayersGrid(); updateSidebar();
+    broadcast('state_sync',{playerId:payload.id,score:existing.score,status:existing.status,isEliminated:eliminatedPlayers.has(payload.id),isQuestionOpen,questionText:selectedQuestionForGame?selectedQuestionForGame.question_text:null,questionOptions:selectedQuestionForGame?[selectedQuestionForGame.option_a,selectedQuestionForGame.option_b,selectedQuestionForGame.option_c,selectedQuestionForGame.option_d]:[]});
+    broadcast('player_list_update',{players:Array.from(frPlayers.values())});
+    toast(`↺ ${payload.avatar} ${payload.name} reconnected`);
+    return;
+  }
+  frPlayers.set(payload.id,{id:payload.id,name:payload.name,avatar:payload.avatar,score:0,status:'waiting',isOnline:true});
+  renderPlayersGrid(); updateSidebar();
+  toast(`✨ ${payload.avatar} ${payload.name} joined`);
+  broadcast('player_list_update',{players:Array.from(frPlayers.values())});
+}
 
-    function selectQuestion(id){
-      const q = questionsData.find(x => x.id === id);
-      if(!q) return;
-      selectedQuestionForGame = q;
-      document.getElementById('selectedQuestionArea').style.display = 'block';
-      document.getElementById('selectedQuestionText').innerText = `[${q.category}] ${q.question}`;
-      renderQuestionsList();
-    }
+function handleBuzz(payload){
+  if(!isQuestionOpen||buzzedPlayerId||!buzzerGlobalEnabled) return;
+  if(lockedPlayers.has(payload.id)||eliminatedPlayers.has(payload.id)) return;
+  let player=frPlayers.get(payload.id); if(!player) return;
+  buzzedPlayerId=payload.id; isQuestionOpen=false; player.status='buzzed';
+  frPlayers.forEach((p,id)=>{ if(id!==payload.id&&!eliminatedPlayers.has(id)) p.status='locked'; });
+  document.getElementById('buzzerCard').style.display='block';
+  document.getElementById('buzzedName').innerHTML=`${player.avatar} ${player.name}`;
+  if(selectedQuestionForGame){
+    let letters=['A','B','C','D'];
+    document.getElementById('buzzerCorrectText').innerText=`${letters[selectedQuestionForGame.correct_option]}: ${[selectedQuestionForGame.option_a,selectedQuestionForGame.option_b,selectedQuestionForGame.option_c,selectedQuestionForGame.option_d][selectedQuestionForGame.correct_option]}`;
+  }
+  renderPlayersGrid(); updateSidebar();
+  broadcast('buzz_confirmed',{playerId:payload.id,playerName:player.name,playerAvatar:player.avatar});
+  toast(`🔔 ${player.name} buzzed!`);
+}
 
-    function fireQuestion(){
-      if(!selectedQuestionForGame) return;
-      isQuestionOpen = false; 
-      buzzedPlayerId = null;
-      document.getElementById('buzzerCard').style.display = 'none';
-      document.getElementById('gamePhaseBadge').innerText = "Phase: Live Question";
-      frPlayers.forEach((p, id) => { if(!eliminatedPlayers.has(id)) p.status = 'waiting'; });
-      renderPlayersGrid();
-      broadcast('question_open', { question: selectedQuestionForGame.question, options: selectedQuestionForGame.options || [], category: selectedQuestionForGame.category, id: selectedQuestionForGame.id });
-      broadcastGameStateSync(); // sync full state
-      toast('🚀 Question pushed!');
-    }
+function openQuestion(){
+  if(!selectedQuestionForGame){ toast('Select a question first'); return; }
+  isQuestionOpen=true; buzzedPlayerId=null; lockedPlayers.clear(); buzzerGlobalEnabled=true;
+  document.getElementById('buzzerToggleBtn').innerHTML='🔔 Buzzers ON';
+  document.getElementById('buzzerToggleBtn').style.background='var(--amber)';
+  frPlayers.forEach((p,id)=>{ if(!eliminatedPlayers.has(id)) p.status='waiting'; });
+  document.getElementById('openBtn').disabled=true;
+  document.getElementById('buzzerCard').style.display='none';
+  currentQuestionNumber++;
+  renderPlayersGrid();
+  let opts=[selectedQuestionForGame.option_a,selectedQuestionForGame.option_b,selectedQuestionForGame.option_c,selectedQuestionForGame.option_d];
+  broadcast('question_open',{question:selectedQuestionForGame.question_text,questionNumber:currentQuestionNumber,options:opts});
+  toast('🔔 Buzzers OPEN!');
+}
 
-    function fireQuestionWithId(id){ selectQuestion(id); fireQuestion(); }
-    function showCategoryPickerOnFOH(){
-      const cats = [...new Set(questionsData.map(q => q.category))];
-      broadcast('show_category_picker', { categories: cats });
-      toast('📋 Category screen displayed');
-    }
-    function openQuestion(){
-      if(!selectedQuestionForGame) return;
-      isQuestionOpen = true;
-      buzzedPlayerId = null;
-      document.getElementById('buzzerCard').style.display = 'none';
-      frPlayers.forEach((p, id) => { if(!eliminatedPlayers.has(id) && !lockedPlayers.has(id)) p.status = 'open'; });
-      renderPlayersGrid();
-      broadcast('buzzers_reopen', {});
-      broadcastGameStateSync();
-      toast('🔓 Buzzers active!');
-    }
-    function handlePlayerBuzz(id, name){
-      if(!isQuestionOpen || buzzedPlayerId || lockedPlayers.has(id) || eliminatedPlayers.has(id)) return;
-      buzzedPlayerId = id;
-      isQuestionOpen = false;
-      if(frPlayers.has(id)) frPlayers.get(id).status = 'buzzed';
-      document.getElementById('buzzerCard').style.display = 'block';
-      document.getElementById('buzzedPlayerName').innerText = name;
-      renderPlayersGrid();
-      broadcast('buzz_confirmed', { id, name });
-      broadcastGameStateSync();
-      toast(`🔔 Buzz from ${name}!`);
-    }
-    function markCorrect(){
-      if(!buzzedPlayerId) return;
-      const pid = buzzedPlayerId;
-      if(frPlayers.has(pid)) {
-        const p = frPlayers.get(pid);
-        p.score += 10;
-        p.status = 'correct';
-        broadcast('correct', { id: pid, name: p.name, score: p.score });
-        toast(`🏆 ${p.name} correct!`);
-      }
-      buzzedPlayerId = null;
-      document.getElementById('buzzerCard').style.display = 'none';
-      renderPlayersGrid();
-      updateSidebarLeaderboard();
-      broadcastHostState();
-      broadcastGameStateSync();
-    }
-    function markWrong(){
-      if(!buzzedPlayerId) return;
-      const pid = buzzedPlayerId;
-      lockedPlayers.add(pid);
-      if(frPlayers.has(pid)) {
-        const p = frPlayers.get(pid);
-        p.status = 'locked';
-        broadcast('wrong', { id: pid, name: p.name });
-        toast(`❌ ${p.name} locked out`);
-      }
-      buzzedPlayerId = null;
-      document.getElementById('buzzerCard').style.display = 'none';
-      renderPlayersGrid();
-      broadcastHostState();
-      broadcastGameStateSync();
-    }
-    function resetBuzzers(){
-      if(!selectedQuestionForGame) return;
-      buzzedPlayerId = null;
-      isQuestionOpen = false; 
-      frPlayers.forEach((p, id) => { if(!eliminatedPlayers.has(id)) p.status = 'waiting'; });
-      document.getElementById('buzzerCard').style.display = 'none';
-      renderPlayersGrid();
-      broadcast('reset_buzzers', {});
-      broadcastGameStateSync();
-      toast('↺ Buzzers reset');
-    }
-    function nextQuestion(){
-      selectedQuestionForGame = null;
-      buzzedPlayerId = null;
-      isQuestionOpen = false;
-      lockedPlayers.clear();
-      document.getElementById('buzzerCard').style.display = 'none';
-      document.getElementById('selectedQuestionArea').style.display = 'none';
-      document.getElementById('gamePhaseBadge').innerText = "Phase: Selection";
-      frPlayers.forEach((p, id) => { if(!eliminatedPlayers.has(id)) p.status = 'waiting'; });
-      renderPlayersGrid();
-      renderQuestionsList();
-      broadcast('next_question', {});
-      broadcastGameStateSync();
-      toast('⏭ Cleared for next question');
-    }
-    function eliminatePlayer(id){
-      eliminatedPlayers.add(id);
-      if(frPlayers.has(id)) frPlayers.get(id).status = 'eliminated';
-      renderPlayersGrid();
-      broadcast('eliminated', { id });
-      broadcastHostState();
-      broadcastGameStateSync();
-      toast('Finalist eliminated');
-    }
-    function endFinalRound(){
-      let winner = null, maxScore = -1;
-      frPlayers.forEach(p => { if(p.score > maxScore) { maxScore = p.score; winner = p; } });
-      broadcast('round_ended', { winnerName: winner ? winner.name : 'No One', winnerAvatar: winner ? winner.avatar : '🏆', winnerScore: maxScore });
-      document.getElementById('gamePhaseBadge').innerText = "Phase: Game Over";
-      toast('🏁 Final Round ended!');
-    }
-    function broadcastGameStateSync(){
-      broadcast('game_state_sync', {
-        isQuestionOpen: isQuestionOpen,
-        selectedQuestion: selectedQuestionForGame,
-        buzzedPlayerId: buzzedPlayerId,
-        lockedPlayersIds: [...lockedPlayers],
-        eliminatedIds: [...eliminatedPlayers]
-      });
-    }
-    function setupRealtimeChannel(){
-      if(realtimeChannel) supabaseClient.removeChannel(realtimeChannel);
-      realtimeChannel = supabaseClient.channel(`fr-${roomCode}`, { config: { presence: { key: 'host' } } });
-      realtimeChannel.on('presence', { event: 'sync' }, () => {
-        const state = realtimeChannel.presenceState();
-        const activeIds = new Set();
-        Object.keys(state).forEach(key => {
-          state[key].forEach(presence => { if(presence.id && presence.id !== 'host') activeIds.add(presence.id); });
-        });
-        frPlayers.forEach((p, id) => { p.isOnline = activeIds.has(id); });
-        renderPlayersGrid();
-        updateSidebarLeaderboard();
-        broadcastHostState();
-      }).on('broadcast', { event: 'player_buzz' }, ({ payload }) => handlePlayerBuzz(payload.id, payload.name))
-        .on('broadcast', { event: 'request_sync' }, () => { broadcastHostState(); broadcastGameStateSync(); });
-      realtimeChannel.subscribe(async (status) => {
-        const syncDot = document.getElementById('syncDot'), syncText = document.getElementById('syncText');
-        if(status === 'SUBSCRIBED') { syncDot.className = 'conn-dot connected'; syncText.innerText = 'Live'; await realtimeChannel.track({ id: 'host', role: 'editor', t: Date.now() }); }
-        else { syncDot.className = 'conn-dot'; syncText.innerText = status; }
-      });
-    }
-    function broadcast(event, payload){ if(realtimeChannel) realtimeChannel.send({ type: 'broadcast', event, payload }); }
-    function broadcastHostState(){
-      const plist = [];
-      frPlayers.forEach(p => { plist.push({ id: p.id, name: p.name, avatar: p.avatar, score: p.score, status: p.status, isOnline: !!p.isOnline, eliminated: eliminatedPlayers.has(p.id) }); });
-      broadcast('player_list_update', { players: plist });
-    }
-    function renderPlayersGrid(){
-      const container = document.getElementById('playersGridContainer');
-      container.innerHTML = '';
-      frPlayers.forEach(p => {
-        const isElim = eliminatedPlayers.has(p.id);
-        const div = document.createElement('div');
-        div.className = `player-card ${p.status} ${isElim ? 'eliminated' : ''}`;
-        const statusClass = p.isOnline ? 'online' : 'offline';
-        const statusLabel = p.isOnline ? 'Online' : 'Offline';
-        div.innerHTML = `<div class="player-avatar">${p.avatar}</div><div class="player-name">${p.name}</div><div class="player-pts">${p.score} pts</div><div class="player-badge"><span class="player-status-indicator ${statusClass}"></span><span>${p.status.toUpperCase()} (${statusLabel})</span></div>${!isElim ? `<button class="eliminate-btn" onclick="eliminatePlayer('${p.id}')">Eliminate</button>` : ''}`;
-        container.appendChild(div);
-      });
-    }
-    function updateSidebarLeaderboard(){
-      const container = document.getElementById('sidebarLeaderboard');
-      container.innerHTML = '';
-      [...frPlayers.values()].sort((a,b)=>b.score - a.score).forEach(p => { const div = document.createElement('div'); div.className='lb-item'; div.innerHTML=`<span>${p.avatar}</span><span class="lb-name">${p.name}</span><span class="lb-score">${p.score}p</span>`; container.appendChild(div); });
-    }
-    function toast(msg){ const el = document.createElement('div'); el.className='toast'; el.innerText=msg; document.body.appendChild(el); setTimeout(()=>el.remove(),3000); }
-    function initControl(){
-      roomCode = localStorage.getItem('fr_room') || 'FR' + Math.random().toString(36).substring(2,6).toUpperCase();
-      document.getElementById('roomCodeInput').value = roomCode;
-      document.getElementById('roomCodeDisplay').innerText = roomCode;
-      setupRealtimeChannel();
-      loadQuestionsFromDB();
-    }
-    initControl();
-  </script>
+function markCorrect(){
+  if(!buzzedPlayerId) return;
+  let player=frPlayers.get(buzzedPlayerId);
+  if(player){ player.score+=pointsPerBuzz; player.status='correct'; }
+  document.getElementById('buzzerCard').style.display='none';
+  playCorrectSound();
+  broadcast('correct',{playerId:buzzedPlayerId,newScore:player?.score,playerName:player?.name,playerAvatar:player?.avatar,points:pointsPerBuzz});
+  renderPlayersGrid(); updateSidebar();
+  toast(`✓ Correct! +${pointsPerBuzz} pts`);
+  buzzedPlayerId=null; isQuestionOpen=false;
+  setTimeout(()=>broadcast('reset_for_next_question',{}),1000);
+}
+
+function markWrong(){
+  if(!buzzedPlayerId) return;
+  let player=frPlayers.get(buzzedPlayerId);
+  if(player){ player.status='wrong'; lockedPlayers.add(buzzedPlayerId); }
+  playWrongSound();
+  let remaining=Array.from(frPlayers.keys()).filter(id=>!lockedPlayers.has(id)&&!eliminatedPlayers.has(id));
+  if(remaining.length>0){ setTimeout(()=>{ isQuestionOpen=true; buzzerGlobalEnabled=true; document.getElementById('buzzerToggleBtn').innerHTML='🔔 Buzzers ON'; broadcast('buzzers_reopen',{}); },5000); }
+  else { document.getElementById('buzzerCard').style.display='none'; }
+  broadcast('wrong',{playerId:buzzedPlayerId,playerName:player?.name});
+  renderPlayersGrid(); updateSidebar();
+  toast(`✗ Wrong — ${player?.name} locked out`);
+  buzzedPlayerId=null;
+}
+
+function startTimer(){
+  let seconds=parseInt(document.getElementById('timerSeconds').value)||10;
+  broadcast('timer_start',{seconds});
+  toast(`⏱ Timer: ${seconds}s`);
+}
+
+function toggleBuzzerGlobal(){
+  buzzerGlobalEnabled=!buzzerGlobalEnabled;
+  let btn=document.getElementById('buzzerToggleBtn');
+  if(buzzerGlobalEnabled){ btn.innerHTML='🔔 Buzzers ON'; btn.style.background='var(--amber)'; }
+  else { btn.innerHTML='🔕 Buzzers OFF'; btn.style.background='var(--red)'; }
+  broadcast('buzzer_toggle',{enabled:buzzerGlobalEnabled});
+  toast(`Buzzers ${buzzerGlobalEnabled?'ON':'OFF'}`);
+}
+
+function showCategoryPickerOnFOH(){ broadcast('show_category_picker',{categories}); toast('Categories shown on FOH'); }
+
+function showCategoryToStart(){
+  if(frPlayers.size<parseInt(document.getElementById('minPlayersInput').value)){ toast(`Need at least ${document.getElementById('minPlayersInput').value} players`); return; }
+  pointsPerBuzz=parseInt(document.getElementById('pointsPerBuzz').value)||100;
+  document.getElementById('setupPanel').classList.add('hidden');
+  document.getElementById('gamePanel').classList.remove('hidden');
+  document.getElementById('liveRoomCode').innerText=roomCode;
+  broadcast('round_started',{roomCode,pointsPerBuzz});
+  showCategoryPickerOnFOH();
+  toast('🎮 Round started!');
+}
+
+function endFinalRound(){
+  if(!confirm('End Final Round?')) return;
+  let sorted=Array.from(frPlayers.values()).filter(p=>!eliminatedPlayers.has(p.id)).sort((a,b)=>b.score-a.score);
+  let winner=sorted[0];
+  broadcast('round_ended',{winner});
+  toast(`🏆 Winner: ${winner?.name||'N/A'}`);
+}
+
+function resetFullGame(){
+  if(!confirm('⚠ NEW GAME: This resets everything. All connected players will need to re-join with the new room code. Continue?')) return;
+  const newCode='FR'+Math.random().toString(36).substring(2,6).toUpperCase();
+  roomCode=newCode;
+  document.getElementById('roomCodeInput').value=roomCode;
+  document.getElementById('roomCodeDisplay').innerText=roomCode;
+  localStorage.setItem('fr_room',roomCode);
+  frPlayers.clear(); eliminatedPlayers.clear(); lockedPlayers.clear();
+  buzzedPlayerId=null; isQuestionOpen=false; selectedQuestionForGame=null; currentQuestionNumber=0;
+  renderPlayersGrid(); updateSidebar();
+  broadcast('full_game_reset',{newRoomCode:roomCode,forceLogin:true});
+  setupRealtimeChannel();
+  document.getElementById('setupPanel').classList.remove('hidden');
+  document.getElementById('gamePanel').classList.add('hidden');
+  toast(`New game ready! Code: ${roomCode}`);
+}
+
+function renderPlayersGrid(){
+  let sorted=Array.from(frPlayers.values()).sort((a,b)=>b.score-a.score);
+  let setupList=document.getElementById('playerSetupList');
+  if(setupList) setupList.innerHTML=sorted.length===0?'<div style="padding:24px;color:var(--muted);text-align:center;font-size:13px;">Waiting for players...</div>':sorted.map(p=>`<div class="player-setup-item"><span style="font-size:20px">${p.avatar}</span><span style="flex:1;font-weight:500;">${p.name}</span><span style="color:var(--gold);font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;">${p.score} pts</span><span class="status-dot ${p.isOnline?'online':'offline'}"></span></div>`).join('');
+  let grid=document.getElementById('playersGrid'); if(!grid) return;
+  if(sorted.length===0){ grid.innerHTML='<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px;">Waiting...</div>'; return; }
+  grid.innerHTML=sorted.map(p=>{
+    let isElim=eliminatedPlayers.has(p.id);
+    let badge=''; if(p.status==='buzzed') badge='🔔 BUZZED'; else if(p.status==='correct') badge='✓ CORRECT'; else if(p.status==='wrong') badge='✗ WRONG'; else if(isElim) badge='⚡ OUT'; else badge='● READY';
+    return `<div class="player-card ${isElim?'eliminated':''} ${p.status==='buzzed'?'buzzed':''} ${p.status==='correct'?'correct':''}">
+      <div class="player-avatar">${p.avatar}</div>
+      <div class="player-name">${p.name}</div>
+      <div class="player-pts">${p.score}</div>
+      <div class="player-badge"><span class="status-dot ${p.isOnline?'online':'offline'}"></span>${badge}</div>
+      ${!isElim?`<button class="eliminate-btn" onclick="eliminatePlayer('${p.id}')">⚡ Eliminate</button>`:''}
+    </div>`;
+  }).join('');
+}
+
+function updateSidebar(){
+  let sorted=Array.from(frPlayers.values()).filter(p=>!eliminatedPlayers.has(p.id)).sort((a,b)=>b.score-a.score);
+  let lb=document.getElementById('sidebarLeaderboard');
+  lb.innerHTML=sorted.length===0?'<div style="padding:16px;color:var(--muted);text-align:center;font-size:12px;">No players</div>':sorted.slice(0,6).map((p,i)=>`<div class="lb-item"><span style="font-size:14px;">${['🥇','🥈','🥉'][i]||`${i+1}.`}</span><span class="lb-name">${p.avatar} ${p.name}</span><span class="lb-score">${p.score}</span></div>`).join('');
+  document.getElementById('playerCount').innerText=frPlayers.size;
+}
+
+function eliminatePlayer(id){
+  let player=frPlayers.get(id); if(!player||!confirm(`Eliminate ${player.name}?`)) return;
+  eliminatedPlayers.add(id); player.status='eliminated'; renderPlayersGrid(); updateSidebar();
+  broadcast('eliminated',{playerId:id,playerName:player.name});
+  toast(`⚡ ${player.name} eliminated`);
+}
+
+function nextQuestion(){
+  buzzedPlayerId=null; isQuestionOpen=false; selectedQuestionForGame=null;
+  document.getElementById('buzzerCard').style.display='none';
+  document.getElementById('openBtn').disabled=true;
+  document.getElementById('selectedQuestionDisplay').innerHTML='<div style="color:var(--muted);font-size:13px;">← Pick a question</div>';
+  frPlayers.forEach((p,id)=>{ if(!eliminatedPlayers.has(id)) p.status='waiting'; });
+  lockedPlayers.clear(); renderPlayersGrid();
+  broadcast('next_question',{});
+}
+
+function toast(msg){
+  let el=document.createElement('div'); el.className='toast'; el.innerText=msg;
+  document.body.appendChild(el); setTimeout(()=>el.remove(),3000);
+}
+
+function resetBuzzers(){
+  if(!selectedQuestionForGame) return;
+  buzzedPlayerId=null; lockedPlayers.clear(); isQuestionOpen=true; buzzerGlobalEnabled=true;
+  frPlayers.forEach((p,id)=>{ if(!eliminatedPlayers.has(id)) p.status='waiting'; });
+  document.getElementById('buzzerCard').style.display='none';
+  renderPlayersGrid(); broadcast('reset_buzzers',{}); toast('↺ Buzzers reset');
+}
+
+function initControl(){
+  roomCode='FR'+Math.random().toString(36).substring(2,6).toUpperCase();
+  document.getElementById('roomCodeInput').value=roomCode;
+  document.getElementById('roomCodeDisplay').innerText=roomCode;
+  localStorage.setItem('fr_room',roomCode);
+  setupRealtimeChannel();
+  loadQuestionsFromDB();
+}
+
+initControl();
+window.generateNewRoomCode=generateNewRoomCode;
+window.showCategoryToStart=showCategoryToStart;
+window.selectQuestion=selectQuestion;
+window.fireQuestion=fireQuestion;
+window.filterByCategory=filterByCategory;
+window.openQuestion=openQuestion;
+window.markCorrect=markCorrect;
+window.markWrong=markWrong;
+window.resetBuzzers=resetBuzzers;
+window.nextQuestion=nextQuestion;
+window.eliminatePlayer=eliminatePlayer;
+window.endFinalRound=endFinalRound;
+window.showCategoryPickerOnFOH=showCategoryPickerOnFOH;
+window.resetFullGame=resetFullGame;
+window.startTimer=startTimer;
+window.toggleBuzzerGlobal=toggleBuzzerGlobal;
+</script>
 </body>
 </html>
