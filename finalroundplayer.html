@@ -587,169 +587,196 @@ function startReconnectLoop() {
 function handleEvent(event, payload) {
   logEvent(event, payload);
   switch(event) {
+
+    // ── GAME RESET ──────────────────────────────────────────────────────────
     case 'full_game_reset':
+      // Clear saved identity so autoRejoin won't reconnect to the dead room
+      try { sessionStorage.removeItem('fr_identity'); } catch(e) {}
       resetToJoinScreen(payload?.newRoomCode || null);
       break;
+
+    // ── ROUND STARTED ────────────────────────────────────────────────────────
     case 'round_started':
-      // Reset all states for new round
-      isOpen = false;
+      if(myStatus === 'eliminated') break; // stay eliminated
       myStatus = 'waiting';
+      isOpen = false;
       globalBuzzerEnabled = true;
+      hideCorrectPlayerOverlay();
       document.getElementById('questionBox').innerText = 'Round started! Get ready...';
-      updateBuzzerUI();
       setStatus('Round started!', 'var(--green)');
+      updateBuzzerUI();
       break;
+
+    // ── QUESTION OPEN — everyone who isn't eliminated can buzz ──────────────
     case 'question_open':
+      if(myStatus === 'eliminated') break;
       myStatus = 'waiting';
       isOpen = true;
       globalBuzzerEnabled = true;
       hideCorrectPlayerOverlay();
       document.getElementById('questionBox').innerText = payload.question;
-      updateBuzzerUI();
       setStatus('🔴 BUZZ NOW!', 'var(--green)');
+      updateBuzzerUI();
       break;
-    case 'buzzers_reopen':
-      if(myStatus !== 'eliminated' && myStatus !== 'correct' && myStatus !== 'wrong') {
-        isOpen = true;
-        myStatus = 'waiting';
-        globalBuzzerEnabled = true; // Ensure buzzers are enabled when reopened
-        updateBuzzerUI();
-        setStatus('🔴 BUZZ NOW!', 'var(--green)');
-      } else {
-        if(DEBUG) console.log(`[buzzers_reopen] ignored because status=${myStatus}`);
-      }
-      break;
+
+    // ── SOMEONE BUZZED ───────────────────────────────────────────────────────
     case 'buzz_confirmed':
-      isOpen = false;
+      isOpen = false; // close buzzer for everyone while host judges
       if(payload.playerId === myId) {
         myStatus = 'buzzed';
-        setStatus('You buzzed!', 'var(--gold)');
+        setStatus('🎤 Answer verbally!', 'var(--gold)');
       } else {
+        // Lock non-eliminated players who were waiting
         if(myStatus === 'waiting') myStatus = 'locked';
-        setStatus(`${payload.playerName} buzzed first`, 'var(--muted)');
+        setStatus(`⏸ ${payload.playerName} is answering...`, 'var(--muted)');
       }
       updateBuzzerUI();
       break;
+
+    // ── CORRECT ──────────────────────────────────────────────────────────────
     case 'correct':
+      isOpen = false;
       if(payload.playerId === myId) {
-        // I got it right — update score, confetti, no overlay needed (I already know)
+        // I answered correctly
         myScore = payload.newScore;
         document.getElementById('myScoreDisplay').innerText = myScore;
         myStatus = 'correct';
         setStatus(`✅ +${payload.points || 100} pts!`, 'var(--gold)');
         launchConfetti();
       } else {
-        // Someone else got it — show who got the answer
+        // Someone else got it — show overlay to everyone else
         if(myStatus !== 'eliminated') myStatus = 'waiting';
         showCorrectPlayerOverlay(payload.playerName, payload.playerAvatar, payload.points || 100);
       }
-      isOpen = false;
       updateBuzzerUI();
       break;
-    case 'reset_for_next_question':
-      if(myStatus !== 'eliminated') {
-        myStatus = 'waiting';
-        isOpen = false;
-        globalBuzzerEnabled = true; // Reset buzzer enable for next question
-      }
-      hideCorrectPlayerOverlay();
-      document.getElementById('questionBox').innerText = 'Next question coming...';
-      updateBuzzerUI();
-      break;
+
+    // ── WRONG — loser is locked out; OTHER players get 5s delay then can steal ─
     case 'wrong':
       if(payload.playerId === myId) {
+        // I got it wrong — permanently locked out for this question
         myStatus = 'wrong';
-        setStatus('❌ Wrong! Locked out', 'var(--red)');
+        setStatus('❌ Wrong! You are locked out', 'var(--red)');
+        isOpen = false;
         updateBuzzerUI();
-        // Auto-unlock after 5 seconds if not eliminated
-        setTimeout(() => {
-          if(myStatus !== 'eliminated' && myStatus !== 'correct') {
-            myStatus = 'waiting';
-            isOpen = true; // Host might have reopened buzzers, but we assume they will send another buzzers_reopen; safer to set isOpen false and wait for host
-            isOpen = false; // Wait for explicit buzzers_reopen from host
-            updateBuzzerUI();
-            setStatus('Ready for next round', 'var(--green)');
-          }
-        }, 5000);
+        // No auto-unlock — wait for next_question or question_open from host
       } else {
-        // Another player got it wrong; we remain locked if we were locked, but host will reset
-        if(myStatus === 'locked') {
+        // Another player got it wrong — I was locked; after 5s delay I can steal
+        if(myStatus === 'locked' || myStatus === 'waiting') {
+          // Show pending steal message immediately
+          setStatus('⏳ Stand by — steal chance incoming...', 'var(--amber)');
+          // buzzers_reopen from host will arrive ~5s later and re-enable us
+          // but also handle it locally in case message is missed
           setTimeout(() => {
-            if(myStatus !== 'eliminated' && myStatus !== 'correct') {
+            // Only activate if host hasn't already sent buzzers_reopen and we're still locked
+            if((myStatus === 'locked' || myStatus === 'waiting') && myStatus !== 'eliminated' && myStatus !== 'wrong' && myStatus !== 'correct') {
+              isOpen = true;
               myStatus = 'waiting';
-              isOpen = false;
+              globalBuzzerEnabled = true;
+              setStatus('🔴 STEAL! BUZZ NOW!', 'var(--green)');
               updateBuzzerUI();
             }
-          }, 5000);
+          }, 5200); // slightly longer than host's 5s so host message arrives first if available
         }
       }
       break;
-    case 'next_question':
-      if(myStatus !== 'eliminated') {
-        myStatus = 'waiting';
-        isOpen = false;
-        globalBuzzerEnabled = true;
+
+    // ── BUZZERS REOPEN (host explicitly reopens after wrong answer) ──────────
+    case 'buzzers_reopen':
+      // Activate for everyone who isn't: eliminated, already answered correctly, or the wrong-answerer
+      if(myStatus === 'eliminated' || myStatus === 'correct' || myStatus === 'wrong') {
+        if(DEBUG) console.log(`[buzzers_reopen] skipped — myStatus=${myStatus}`);
+        break;
       }
+      isOpen = true;
+      myStatus = 'waiting';
+      globalBuzzerEnabled = true;
+      setStatus('🔴 STEAL! BUZZ NOW!', 'var(--green)');
+      updateBuzzerUI();
+      break;
+
+    // ── RESET BUZZERS (host manual reset) ────────────────────────────────────
+    case 'reset_buzzers':
+      if(myStatus === 'eliminated') break;
+      myStatus = 'waiting';
+      isOpen = true;
+      globalBuzzerEnabled = true;
+      setStatus('🔴 BUZZ NOW!', 'var(--green)');
+      updateBuzzerUI();
+      break;
+
+    // ── NEXT QUESTION / RESET FOR NEXT ───────────────────────────────────────
+    case 'next_question':
+    case 'reset_for_next_question':
+      if(myStatus === 'eliminated') { hideCorrectPlayerOverlay(); break; }
+      myStatus = 'waiting';
+      isOpen = false;
+      globalBuzzerEnabled = true;
       hideCorrectPlayerOverlay();
       document.getElementById('questionBox').innerText = 'Next question coming...';
+      setStatus('Waiting for next question...', 'var(--muted)');
       updateBuzzerUI();
       break;
-    case 'reset_buzzers':
-      if(myStatus !== 'eliminated') {
-        myStatus = 'waiting';
-        isOpen = false;
-        globalBuzzerEnabled = true;
-      }
-      updateBuzzerUI();
-      break;
+
+    // ── BUZZER TOGGLE (host on/off switch) ────────────────────────────────────
     case 'buzzer_toggle':
       globalBuzzerEnabled = payload.enabled;
-      if(!globalBuzzerEnabled && myStatus === 'waiting') setStatus('🔕 Buzzers OFF', 'var(--muted)');
-      else if(globalBuzzerEnabled && myStatus === 'waiting' && isOpen) setStatus('🔴 BUZZ NOW!', 'var(--green)');
+      if(!globalBuzzerEnabled) setStatus('🔕 Buzzers OFF', 'var(--muted)');
+      else if(isOpen && myStatus === 'waiting') setStatus('🔴 BUZZ NOW!', 'var(--green)');
       updateBuzzerUI();
       break;
+
+    // ── ELIMINATED ────────────────────────────────────────────────────────────
     case 'eliminated':
       if(payload.playerId === myId) {
         myStatus = 'eliminated';
         isOpen = false;
-        document.getElementById('questionBox').innerText = '⚡ You have been eliminated!';
-        setStatus('ELIMINATED', 'var(--red)');
+        hideCorrectPlayerOverlay();
+        document.getElementById('questionBox').innerText = '⚡ You have been eliminated from the round!';
+        setStatus('⚡ ELIMINATED', 'var(--red)');
         updateBuzzerUI();
       }
       break;
+
+    // ── ROUND ENDED ───────────────────────────────────────────────────────────
     case 'round_ended':
       isOpen = false;
+      hideCorrectPlayerOverlay();
       const winner = payload.winner;
       if(winner && winner.id === myId) {
         document.getElementById('questionBox').innerHTML = '🏆 YOU ARE THE CHAMPION!';
-        setStatus('CHAMPION!', 'var(--gold)');
+        setStatus('🏆 CHAMPION!', 'var(--gold)');
         launchConfetti();
       } else {
+        document.getElementById('questionBox').innerText = `🏆 Winner: ${winner?.name || '?'}`;
         setStatus(`Winner: ${winner?.name || '?'}`, 'var(--muted)');
       }
       updateBuzzerUI();
       break;
+
+    // ── TIMER ────────────────────────────────────────────────────────────────
     case 'timer_start':
       startPlayerTimer(payload.seconds);
       break;
+
+    // ── STATE SYNC (on reconnect) ─────────────────────────────────────────────
     case 'state_sync':
-      if(payload.playerId === myId) {
-        myScore = payload.score || 0;
-        myStatus = payload.status || 'waiting';
-        document.getElementById('myScoreDisplay').innerText = myScore;
-        if(payload.isEliminated) {
-          myStatus = 'eliminated';
-          document.getElementById('questionBox').innerText = '⚡ You have been eliminated!';
-          isOpen = false;
-        } else if(payload.questionText) {
-          document.getElementById('questionBox').innerText = payload.questionText;
-          isOpen = payload.isQuestionOpen || false;
-        }
-        globalBuzzerEnabled = true; // Assume buzzers enabled on rejoin
-        updateBuzzerUI();
-        setStatus('✅ Reconnected', 'var(--gold)');
-        showReconnectToast('Reconnected to the game!');
+      if(payload.playerId !== myId) break;
+      myScore = payload.score || 0;
+      myStatus = payload.status || 'waiting';
+      document.getElementById('myScoreDisplay').innerText = myScore;
+      if(payload.isEliminated) {
+        myStatus = 'eliminated';
+        document.getElementById('questionBox').innerText = '⚡ You have been eliminated!';
+        isOpen = false;
+      } else if(payload.questionText) {
+        document.getElementById('questionBox').innerText = payload.questionText;
+        isOpen = payload.isQuestionOpen || false;
       }
+      globalBuzzerEnabled = true;
+      updateBuzzerUI();
+      setStatus('✅ Reconnected!', 'var(--gold)');
+      showReconnectToast('Reconnected to the game!');
       break;
   }
 }
