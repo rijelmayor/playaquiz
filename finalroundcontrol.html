@@ -214,14 +214,31 @@ function setupRealtimeChannel() {
   realtimeChannel = sb.channel(`fr-${roomCode}`); 
   realtimeChannel.on('broadcast', {event:'player_join'}, ({payload})=>handlePlayerJoin(payload))
     .on('broadcast',{event:'buzz'},({payload})=>handleBuzz(payload))
+    .on('broadcast',{event:'player_heartbeat'},({payload})=>handleHeartbeat(payload))
     .subscribe((status)=>{ 
       let dot=document.getElementById('connDot'),txt=document.getElementById('connText'); 
       if(status==='SUBSCRIBED'){ dot.classList.add('connected'); txt.innerText='Live'; } 
       else { dot.classList.remove('connected'); txt.innerText=status; } 
     }); 
+  // Periodically check for stale (disconnected) players
+  if(window._connCheckInterval) clearInterval(window._connCheckInterval);
+  window._connCheckInterval = setInterval(() => {
+    const now = Date.now();
+    let changed = false;
+    frPlayers.forEach((p) => {
+      const wasConnected = p.connected;
+      p.connected = p.lastSeen ? (now - p.lastSeen < 15000) : true; // grace: new joins assumed connected
+      if(wasConnected !== p.connected) changed = true;
+    });
+    if(changed) { renderPlayersGrid(); broadcast('player_list_update', {players: Array.from(frPlayers.values())}); }
+  }, 5000);
 }
 
 function broadcast(event,payload){ if(realtimeChannel) realtimeChannel.send({type:'broadcast',event,payload}); }
+function handleHeartbeat(payload) {
+  const p = frPlayers.get(payload.id);
+  if(p) { p.lastSeen = Date.now(); p.connected = true; }
+}
 function handlePlayerJoin(payload){
   if(frPlayers.has(payload.id)) return;
   let existing = Array.from(frPlayers.values()).find(p => p.name === payload.name);
@@ -233,6 +250,7 @@ function handlePlayerJoin(payload){
     existing.id = payload.id;
     frPlayers.set(payload.id, existing);
     existing.connected = true;
+    existing.lastSeen = Date.now();
     renderPlayersGrid(); updateSidebar();
     broadcast('state_sync',{
       playerId: payload.id,
@@ -247,7 +265,7 @@ function handlePlayerJoin(payload){
     toast(`🔄 ${payload.avatar} ${payload.name} reconnected`);
     return;
   }
-  frPlayers.set(payload.id,{id:payload.id, name:payload.name, avatar:payload.avatar, score:0, status:'waiting', connected:true});
+  frPlayers.set(payload.id,{id:payload.id, name:payload.name, avatar:payload.avatar, score:0, status:'waiting', connected:true, lastSeen:Date.now()});
   renderPlayersGrid(); updateSidebar(); toast(`✨ ${payload.avatar} ${payload.name} joined`);
   broadcast('player_list_update',{players:Array.from(frPlayers.values())});
 }

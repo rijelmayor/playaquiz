@@ -300,11 +300,24 @@
       transition: all 0.3s;
     }
 
-    .timer-small {
-      font-family: 'Syne', sans-serif;
-      font-size: 24px;
-      font-weight: 800;
-      color: var(--gold);
+    /* PLAYER COUNTDOWN TIMER */
+    #playerTimerOverlay {
+      position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
+      z-index: 300; pointer-events: none;
+      display: none; flex-direction: column; align-items: center;
+    }
+    #playerTimerOverlay.active { display: flex; }
+    .player-timer-ring { position: relative; width: 80px; height: 80px; }
+    .player-timer-ring svg { width: 80px; height: 80px; transform: rotate(-90deg); }
+    .player-timer-ring .track { fill: none; stroke: rgba(255,255,255,0.07); stroke-width: 6; }
+    .player-timer-ring .progress {
+      fill: none; stroke: var(--gold); stroke-width: 6; stroke-linecap: round;
+      stroke-dasharray: 220; stroke-dashoffset: 0; transition: stroke-dashoffset 1s linear, stroke 0.3s;
+    }
+    .player-timer-number {
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; color: var(--gold);
+      transition: color 0.3s;
     }
 
     /* FLASH OVERLAY */
@@ -422,7 +435,17 @@
       <button class="buzzer-btn" id="buzzerBtn" onclick="buzz()" disabled>BUZZ!</button>
     </div>
     <div class="status-pill" id="statusPill">Waiting...</div>
-    <div id="playerTimer" class="timer-small"></div>
+  </div>
+</div>
+
+<!-- PLAYER COUNTDOWN TIMER (fixed, visible to all) -->
+<div id="playerTimerOverlay">
+  <div class="player-timer-ring">
+    <svg viewBox="0 0 80 80">
+      <circle class="track" cx="40" cy="40" r="35"/>
+      <circle class="progress" id="playerTimerProgress" cx="40" cy="40" r="35"/>
+    </svg>
+    <div class="player-timer-number" id="playerTimerNumber">—</div>
   </div>
 </div>
 
@@ -500,15 +523,32 @@ function buzz() {
   if(ch) ch.send({ type: 'broadcast', event: 'buzz', payload: { id: myId, name: myName, avatar: myAvatar } });
 }
 
+const PLAYER_TIMER_CIRC = 2 * Math.PI * 35; // r=35 → ~220
 function startPlayerTimer(seconds) {
   if(timerInterval) clearInterval(timerInterval);
-  const d = document.getElementById('playerTimer');
+  const overlay = document.getElementById('playerTimerOverlay');
+  const numEl = document.getElementById('playerTimerNumber');
+  const progressEl = document.getElementById('playerTimerProgress');
+  progressEl.style.strokeDasharray = PLAYER_TIMER_CIRC;
+  overlay.classList.add('active');
   let remaining = seconds;
-  d.innerText = `⏱ ${remaining}s`;
+  const update = () => {
+    numEl.innerText = remaining;
+    const pct = remaining / seconds;
+    progressEl.style.strokeDashoffset = PLAYER_TIMER_CIRC * (1 - pct);
+    if(remaining <= 3) { progressEl.style.stroke = 'var(--red)'; numEl.style.color = 'var(--red)'; }
+    else if(remaining <= 6) { progressEl.style.stroke = 'var(--amber)'; numEl.style.color = 'var(--amber)'; }
+    else { progressEl.style.stroke = 'var(--gold)'; numEl.style.color = 'var(--gold)'; }
+  };
+  update();
   timerInterval = setInterval(() => {
     remaining--;
-    if(remaining <= 0) { clearInterval(timerInterval); d.innerText = ''; }
-    else { d.innerText = `⏱ ${remaining}s`; d.style.color = remaining <= 3 ? 'var(--red)' : 'var(--gold)'; }
+    if(remaining <= 0) {
+      clearInterval(timerInterval); timerInterval = null;
+      numEl.innerText = '0';
+      progressEl.style.strokeDashoffset = PLAYER_TIMER_CIRC;
+      setTimeout(() => overlay.classList.remove('active'), 800);
+    } else { update(); }
   }, 1000);
 }
 
@@ -734,8 +774,14 @@ function subscribeChannel() {
       document.getElementById('myScoreDisplay').innerText = myScore;
       setStatus('Joined! Waiting for host', 'var(--muted)');
       updateBuzzerUI();
+      // Start heartbeat
+      if(window._heartbeatInterval) clearInterval(window._heartbeatInterval);
+      window._heartbeatInterval = setInterval(() => {
+        if(ch && myId) ch.send({ type: 'broadcast', event: 'player_heartbeat', payload: { id: myId } });
+      }, 8000);
     } else if(status === 'CHANNEL_ERROR' || status === 'CLOSED') {
       updateConnectionBadge('disconnected', '⚠ Disconnected');
+      if(window._heartbeatInterval) { clearInterval(window._heartbeatInterval); window._heartbeatInterval = null; }
       startReconnectLoop();
     }
   });

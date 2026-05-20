@@ -286,6 +286,31 @@
     .buzzer-open-badge .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); animation: blink 1s infinite; }
     @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.2;} }
 
+    /* FOH COUNTDOWN TIMER */
+    #fohTimerOverlay {
+      position: fixed; top: 70px; left: 50%; transform: translateX(-50%);
+      z-index: 700; pointer-events: none;
+      display: none; flex-direction: column; align-items: center;
+    }
+    #fohTimerOverlay.active { display: flex; }
+    .foh-timer-ring {
+      position: relative; width: 110px; height: 110px;
+    }
+    .foh-timer-ring svg { width: 110px; height: 110px; transform: rotate(-90deg); }
+    .foh-timer-ring .track { fill: none; stroke: rgba(255,255,255,0.07); stroke-width: 6; }
+    .foh-timer-ring .progress {
+      fill: none; stroke: var(--gold); stroke-width: 6;
+      stroke-linecap: round;
+      stroke-dasharray: 283;
+      stroke-dashoffset: 0;
+      transition: stroke-dashoffset 1s linear, stroke 0.3s;
+    }
+    .foh-timer-number {
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      font-family: 'Syne', sans-serif; font-size: 36px; font-weight: 800; color: var(--gold);
+      transition: color 0.3s;
+    }
+
     /* CATEGORIES GRID */
     .cat-pick-title { font-family: 'Syne', sans-serif; font-size: 46px; font-weight: 800; text-align: center; margin-bottom: 24px; background: linear-gradient(135deg, #fff, var(--violet)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
     .catpick-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; }
@@ -300,13 +325,14 @@
     .cat-tile-icon { font-size: 40px; margin-bottom: 6px; }
     .cat-tile-name { font-weight: 700; font-size: 14px; }
 
-    /* OVERLAYS */
-    #overlayContainer { position: absolute; inset: 0; z-index: 50; pointer-events: none; }
+    /* OVERLAYS — fixed so they're never clipped by overflow:hidden parents */
+    #overlayContainer { position: fixed; inset: 0; z-index: 600; pointer-events: none; }
     .overlay-container {
-      position: absolute; inset: 0; background: rgba(7,5,16,0.94);
+      position: fixed; inset: 0; background: rgba(7,5,16,0.94);
       backdrop-filter: blur(24px); display: flex; flex-direction: column;
       align-items: center; justify-content: center; text-align: center;
       animation: fadeOverlayIn 0.4s ease;
+      pointer-events: auto;
     }
     @keyframes fadeOverlayIn { from { opacity: 0; } to { opacity: 1; } }
 
@@ -546,6 +572,17 @@
 
   <div class="footer">PlayAQuiz — Final Round Display</div>
 
+  <!-- FOH COUNTDOWN TIMER -->
+  <div id="fohTimerOverlay">
+    <div class="foh-timer-ring">
+      <svg viewBox="0 0 100 100">
+        <circle class="track" cx="50" cy="50" r="45"/>
+        <circle class="progress" id="fohTimerProgress" cx="50" cy="50" r="45"/>
+      </svg>
+      <div class="foh-timer-number" id="fohTimerNumber">—</div>
+    </div>
+  </div>
+
   <!-- ROOM CODE DISPLAY OVERLAY -->
   <div id="roomCodeDisplayOverlay">
     <div class="rc-logo">PLAYAQUIZ</div>
@@ -700,16 +737,17 @@ function renderPlayersList() {
   }
   const sorted = [...cachedPlayers].sort((a,b) => (b.score||0) - (a.score||0));
   container.innerHTML = sorted.map(p => {
+    const isOnline = p.connected !== false; // default true unless explicitly false
     let statusClass = '', subText = '';
     if(p.status === 'buzzed') { statusClass = 'active-buzz'; subText = '💥 BUZZED'; }
     else if(p.status === 'locked') { statusClass = 'wrong-lock'; subText = '🔒 Locked Out'; }
-    else if(p.eliminated) { statusClass = 'eliminated'; subText = '❌ Eliminated'; }
-    else if(!p.isOnline) { subText = '🔌 Offline'; }
-    else { subText = 'Connected'; }
+    else if(p.eliminated || p.status === 'eliminated') { statusClass = 'eliminated'; subText = '❌ Eliminated'; }
+    else if(!isOnline) { subText = '🔌 Offline'; }
+    else { subText = '● Connected'; }
     return `<div class="p-row ${statusClass}">
       <div class="p-avatar">${p.avatar || '🎮'}</div>
       <div class="p-info">
-        <div class="p-name"><span class="conn-led ${p.isOnline ? 'online' : 'offline'}"></span>${escapeHtml(p.name)}</div>
+        <div class="p-name"><span class="conn-led ${isOnline ? 'online' : 'offline'}"></span>${escapeHtml(p.name)}</div>
         <div class="p-status-sub">${subText}</div>
       </div>
       <div class="p-score">${p.score || 0}</div>
@@ -757,6 +795,7 @@ function handleBroadcast(event, payload) {
     case 'buzz_confirmed':
       buzzerOpenVisible = false;
       document.getElementById('fohBuzzerOpenIndicator').style.display = 'none';
+      if(fohTimerInterval) { clearInterval(fohTimerInterval); fohTimerInterval = null; document.getElementById('fohTimerOverlay').classList.remove('active'); }
       showBuzzOverlay(payload.playerName, payload.playerAvatar);
       playBeep(392, 'sawtooth', 0.4);
       // Update local player status to show buzzed
@@ -801,7 +840,7 @@ function handleBroadcast(event, payload) {
       stopBackgroundMusic();
       break;
     case 'timer_start':
-      // optional timer display can be added
+      startFohTimer(payload.seconds);
       break;
     case 'show_room_code':
       showRoomCodeOverlay(payload.roomCode);
@@ -845,6 +884,47 @@ function submitFohRoom() {
 }
 
 function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, m => m==='&'?'&amp;':m==='<'?'&lt;':'&gt;'); }
+
+// ===== FOH COUNTDOWN TIMER =====
+let fohTimerInterval = null;
+const TIMER_CIRCUMFERENCE = 2 * Math.PI * 45; // r=45 → ~283
+function startFohTimer(seconds) {
+  if(fohTimerInterval) clearInterval(fohTimerInterval);
+  const overlay = document.getElementById('fohTimerOverlay');
+  const numEl = document.getElementById('fohTimerNumber');
+  const progressEl = document.getElementById('fohTimerProgress');
+  progressEl.style.strokeDasharray = TIMER_CIRCUMFERENCE;
+  overlay.classList.add('active');
+  let remaining = seconds;
+  const update = () => {
+    numEl.innerText = remaining;
+    const pct = remaining / seconds;
+    progressEl.style.strokeDashoffset = TIMER_CIRCUMFERENCE * (1 - pct);
+    if(remaining <= 3) {
+      progressEl.style.stroke = 'var(--red)';
+      numEl.style.color = 'var(--red)';
+    } else if(remaining <= 6) {
+      progressEl.style.stroke = 'var(--amber)';
+      numEl.style.color = 'var(--amber)';
+    } else {
+      progressEl.style.stroke = 'var(--gold)';
+      numEl.style.color = 'var(--gold)';
+    }
+  };
+  update();
+  fohTimerInterval = setInterval(() => {
+    remaining--;
+    if(remaining <= 0) {
+      clearInterval(fohTimerInterval);
+      fohTimerInterval = null;
+      numEl.innerText = '0';
+      progressEl.style.strokeDashoffset = TIMER_CIRCUMFERENCE;
+      setTimeout(() => overlay.classList.remove('active'), 800);
+    } else {
+      update();
+    }
+  }, 1000);
+}
 
 // ===== ROOM CODE DISPLAY OVERLAY =====
 let roomCodeOverlayTimer = null;
