@@ -809,7 +809,7 @@ function handleBroadcast(event, payload) {
       clearOverlay();
       showCorrectOverlay(payload.playerName, payload.playerAvatar, payload.points || 100);
       playBeep(659.25, 'sine', 0.5);
-      launchConfetti(20000);
+      launchConfetti(5000);
       const cP = cachedPlayers.find(p => p.id === payload.playerId);
       if(cP) { cP.score = payload.newScore; cP.status = 'correct'; renderPlayersList(); }
       break;
@@ -838,7 +838,7 @@ function handleBroadcast(event, payload) {
       const winner = payload.winner;
       document.getElementById('podiumWinnerName').innerHTML = `${winner?.avatar || '🏆'} ${winner?.name || '—'}`;
       document.getElementById('podiumWinnerScore').innerHTML = `Grand Champion with ${winner?.score || 0} points!`;
-      launchConfetti(20000);
+      launchConfetti(5000);
       stopBackgroundMusic();
       break;
     case 'timer_start':
