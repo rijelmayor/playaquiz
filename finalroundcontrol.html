@@ -467,20 +467,13 @@
   </div>
 
   <script>
-    // Config configuration placeholder
+    // Supabase configuration
     const SUPABASE_URL = window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1') ? 'http://localhost:54321' : ''; 
     const SUPABASE_KEY = ''; 
-
-    let supabaseClient = null;
-    if(SUPABASE_URL && SUPABASE_KEY) {
-       supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    } else {
-       supabaseClient = supabase.createClient(window.location.origin, ''); 
-    }
+    let supabaseClient = supabase.createClient(SUPABASE_URL || window.location.origin, SUPABASE_KEY);
 
     let roomCode = '';
     let realtimeChannel = null;
-
     let frPlayers = new Map(); 
     let selectedCategory = 'ALL';
     let questionsData = [];
@@ -489,113 +482,14 @@
     let lockedPlayers = new Set();
     let eliminatedPlayers = new Set();
     let isQuestionOpen = false;
-    let buzzerGlobalEnabled = true;
 
-    // Supabase Realtime Setup
-    function setupRealtimeChannel(){
-      const syncDot = document.getElementById('syncDot');
-      const syncText = document.getElementById('syncText');
-      
-      if(realtimeChannel) {
-        supabaseClient.removeChannel(realtimeChannel);
-      }
-
-      realtimeChannel = supabaseClient.channel(`fr-${roomCode}`, {
-        config: { presence: { key: 'host' } }
-      });
-
-      realtimeChannel
-        .on('presence', { event: 'sync' }, () => {
-          const state = realtimeChannel.presenceState();
-          // Track connected state profiles
-          const activeIds = new Set();
-          Object.keys(state).forEach(key => {
-            state[key].forEach(presence => {
-              if (presence.id && presence.id !== 'host') {
-                activeIds.add(presence.id);
-                if (!frPlayers.has(presence.id)) {
-                  frPlayers.set(presence.id, {
-                    id: presence.id,
-                    name: presence.name || 'Unknown',
-                    avatar: presence.avatar || '🦊',
-                    score: presence.score || 0,
-                    status: 'waiting'
-                  });
-                }
-                frPlayers.get(presence.id).isOnline = true;
-              }
-            });
-          });
-          
-          // Mark players offline if not in current presence sync track
-          frPlayers.forEach((p, id) => {
-            if (!activeIds.has(id)) {
-              p.isOnline = false;
-            }
-          });
-
-          renderPlayersGrid();
-          updateSidebarLeaderboard();
-          broadcastHostState();
-        })
-        .on('presence', { event: 'join' }, ({ key, newPresences }) => {
-          newPresences.forEach(p => {
-            if(p.id && p.id !== 'host') {
-              toast(`👋 ${p.name || 'Player'} joined`);
-            }
-          });
-        })
-        .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
-          leftPresences.forEach(p => {
-            if(p.id && p.id !== 'host') {
-              toast(`🔌 ${p.name || 'Player'} disconnected`);
-            }
-          });
-        })
-        .on('broadcast', { event: 'player_buzz' }, ({ payload }) => {
-          handlePlayerBuzz(payload.id, payload.name);
-        })
-        .on('broadcast', { event: 'request_sync' }, () => {
-          broadcastHostState();
-        });
-
-      realtimeChannel.subscribe(async (status) => {
-        if(status === 'SUBSCRIBED') {
-          syncDot.className = 'conn-dot connected';
-          syncText.innerText = 'Live';
-          await realtimeChannel.track({ id: 'host', role: 'editor', t: Date.now() });
-        } else {
-          syncDot.className = 'conn-dot';
-          syncText.innerText = status;
-        }
-      });
-    }
-
-    function broadcast(event, payload){
-      if(realtimeChannel) {
-        realtimeChannel.send({ type: 'broadcast', event, payload });
-      }
-    }
-
-    function broadcastHostState(){
-      const plist = [];
-      frPlayers.forEach(p => {
-        plist.push({
-          id: p.id, name: p.name, avatar: p.avatar, score: p.score,
-          status: p.status, isOnline: !!p.isOnline, eliminated: eliminatedPlayers.has(p.id)
-        });
-      });
-      broadcast('player_list_update', { players: plist });
-    }
-
-    // Load Local Questions
+    // Load ALL questions (no limits)
     async function loadQuestionsFromDB(){
       try {
         const res = await fetch('/api/final-round-questions'); 
-        if(!res.ok) throw new Error('No api endpoint found');
+        if(!res.ok) throw new Error('No api endpoint');
         questionsData = await res.json();
       } catch(e) {
-        // Safe robust production client fallback questions stack setup
         questionsData = [
           { id: 1, category: "Pop Culture", question: "Which movie won the Best Picture Oscar in 2024?", options: ["Oppenheimer", "Barbie", "Poor Things", "The Past"], answer: "Oppenheimer" },
           { id: 2, category: "Pop Culture", question: "What is the name of Taylor Swift's 11th studio album released in 2024?", options: ["Midnights", "The Tortured Poets Department", "Renaissance", "Hit Me Hard and Soft"], answer: "The Tortured Poets Department" },
@@ -630,15 +524,8 @@
     function renderQuestionsList(){
       const container = document.getElementById('questionsContainer');
       container.innerHTML = '';
-      
-      // Filter questions matching current chosen tab
-      let filtered = questionsData;
-      if(selectedCategory !== 'ALL') {
-        filtered = questionsData.filter(q => q.category === selectedCategory);
-      }
-      
-      // FIX IMPLEMENTED: Removed any limiting array slicing (.slice(0, 3)). 
-      // It now loads ALL existing matching loaded database questions structurally.
+      let filtered = selectedCategory === 'ALL' ? [...questionsData] : questionsData.filter(q => q.category === selectedCategory);
+      // Load ALL questions — no slice limit
       filtered.forEach(q => {
         const isSel = selectedQuestionForGame && selectedQuestionForGame.id === q.id;
         const div = document.createElement('div');
@@ -667,67 +554,42 @@
       buzzedPlayerId = null;
       document.getElementById('buzzerCard').style.display = 'none';
       document.getElementById('gamePhaseBadge').innerText = "Phase: Live Question";
-      
-      frPlayers.forEach((p, id) => {
-        if(!eliminatedPlayers.has(id)) p.status = 'waiting';
-      });
+      frPlayers.forEach((p, id) => { if(!eliminatedPlayers.has(id)) p.status = 'waiting'; });
       renderPlayersGrid();
-
-      broadcast('question_open', {
-        question: selectedQuestionForGame.question,
-        options: selectedQuestionForGame.options || [],
-        category: selectedQuestionForGame.category,
-        id: selectedQuestionForGame.id
-      });
-      toast('🚀 Question pushed to displays!');
+      broadcast('question_open', { question: selectedQuestionForGame.question, options: selectedQuestionForGame.options || [], category: selectedQuestionForGame.category, id: selectedQuestionForGame.id });
+      broadcastGameStateSync(); // sync full state
+      toast('🚀 Question pushed!');
     }
 
-    function fireQuestionWithId(id){
-      selectQuestion(id);
-      fireQuestion();
-    }
-
+    function fireQuestionWithId(id){ selectQuestion(id); fireQuestion(); }
     function showCategoryPickerOnFOH(){
       const cats = [...new Set(questionsData.map(q => q.category))];
-      document.getElementById('gamePhaseBadge').innerText = "Phase: Category Select";
       broadcast('show_category_picker', { categories: cats });
-      toast('📋 Displaying category screen');
+      toast('📋 Category screen displayed');
     }
-
     function openQuestion(){
       if(!selectedQuestionForGame) return;
       isQuestionOpen = true;
       buzzedPlayerId = null;
       document.getElementById('buzzerCard').style.display = 'none';
-      
-      frPlayers.forEach((p, id) => {
-        if(!eliminatedPlayers.has(id) && !lockedPlayers.has(id)) {
-          p.status = 'open';
-        }
-      });
+      frPlayers.forEach((p, id) => { if(!eliminatedPlayers.has(id) && !lockedPlayers.has(id)) p.status = 'open'; });
       renderPlayersGrid();
       broadcast('buzzers_reopen', {});
-      toast('🔓 Buzzers are now active!');
+      broadcastGameStateSync();
+      toast('🔓 Buzzers active!');
     }
-
     function handlePlayerBuzz(id, name){
       if(!isQuestionOpen || buzzedPlayerId || lockedPlayers.has(id) || eliminatedPlayers.has(id)) return;
-      
       buzzedPlayerId = id;
       isQuestionOpen = false;
-      
-      if(frPlayers.has(id)) {
-        frPlayers.get(id).status = 'buzzed';
-      }
-      
+      if(frPlayers.has(id)) frPlayers.get(id).status = 'buzzed';
       document.getElementById('buzzerCard').style.display = 'block';
       document.getElementById('buzzedPlayerName').innerText = name;
-      
       renderPlayersGrid();
-      broadcast('buzz_confirmed', { id: id, name: name });
-      toast(`🔔 Buzz captured from ${name}!`);
+      broadcast('buzz_confirmed', { id, name });
+      broadcastGameStateSync();
+      toast(`🔔 Buzz from ${name}!`);
     }
-
     function markCorrect(){
       if(!buzzedPlayerId) return;
       const pid = buzzedPlayerId;
@@ -736,15 +598,15 @@
         p.score += 10;
         p.status = 'correct';
         broadcast('correct', { id: pid, name: p.name, score: p.score });
-        toast(`🏆 ${p.name} was correct!`);
+        toast(`🏆 ${p.name} correct!`);
       }
       buzzedPlayerId = null;
       document.getElementById('buzzerCard').style.display = 'none';
       renderPlayersGrid();
       updateSidebarLeaderboard();
       broadcastHostState();
+      broadcastGameStateSync();
     }
-
     function markWrong(){
       if(!buzzedPlayerId) return;
       const pid = buzzedPlayerId;
@@ -759,132 +621,105 @@
       document.getElementById('buzzerCard').style.display = 'none';
       renderPlayersGrid();
       broadcastHostState();
+      broadcastGameStateSync();
     }
-
     function resetBuzzers(){
       if(!selectedQuestionForGame) return;
       buzzedPlayerId = null;
       isQuestionOpen = false; 
-      
-      frPlayers.forEach((p, id) => {
-        if(!eliminatedPlayers.has(id)) {
-          p.status = 'waiting';
-        }
-      });
-      
+      frPlayers.forEach((p, id) => { if(!eliminatedPlayers.has(id)) p.status = 'waiting'; });
       document.getElementById('buzzerCard').style.display = 'none';
       renderPlayersGrid();
       broadcast('reset_buzzers', {});
-      toast('↺ Buzzers reset to waiting state');
+      broadcastGameStateSync();
+      toast('↺ Buzzers reset');
     }
-
     function nextQuestion(){
       selectedQuestionForGame = null;
       buzzedPlayerId = null;
       isQuestionOpen = false;
       lockedPlayers.clear();
-      
       document.getElementById('buzzerCard').style.display = 'none';
       document.getElementById('selectedQuestionArea').style.display = 'none';
       document.getElementById('gamePhaseBadge').innerText = "Phase: Selection";
-      
-      frPlayers.forEach((p, id) => {
-        if(!eliminatedPlayers.has(id)) p.status = 'waiting';
-      });
-      
+      frPlayers.forEach((p, id) => { if(!eliminatedPlayers.has(id)) p.status = 'waiting'; });
       renderPlayersGrid();
       renderQuestionsList();
       broadcast('next_question', {});
-      toast('⏭ Screen cleared for next question');
+      broadcastGameStateSync();
+      toast('⏭ Cleared for next question');
     }
-
     function eliminatePlayer(id){
       eliminatedPlayers.add(id);
-      if(frPlayers.has(id)) {
-        frPlayers.get(id).status = 'eliminated';
-      }
+      if(frPlayers.has(id)) frPlayers.get(id).status = 'eliminated';
       renderPlayersGrid();
       broadcast('eliminated', { id });
-      toast('👤 Finalist eliminated');
       broadcastHostState();
+      broadcastGameStateSync();
+      toast('Finalist eliminated');
     }
-
     function endFinalRound(){
-      let winner = null;
-      let maxScore = -1;
-      frPlayers.forEach(p => {
-        if(p.score > maxScore) {
-          maxScore = p.score;
-          winner = p;
-        }
-      });
-      
-      broadcast('round_ended', {
-        winnerName: winner ? winner.name : 'No One',
-        winnerAvatar: winner ? winner.avatar : '🏆',
-        winnerScore: maxScore
-      });
+      let winner = null, maxScore = -1;
+      frPlayers.forEach(p => { if(p.score > maxScore) { maxScore = p.score; winner = p; } });
+      broadcast('round_ended', { winnerName: winner ? winner.name : 'No One', winnerAvatar: winner ? winner.avatar : '🏆', winnerScore: maxScore });
       document.getElementById('gamePhaseBadge').innerText = "Phase: Game Over";
-      toast('🏁 Final Round terminated! Winner displayed.');
+      toast('🏁 Final Round ended!');
     }
-
+    function broadcastGameStateSync(){
+      broadcast('game_state_sync', {
+        isQuestionOpen: isQuestionOpen,
+        selectedQuestion: selectedQuestionForGame,
+        buzzedPlayerId: buzzedPlayerId,
+        lockedPlayersIds: [...lockedPlayers],
+        eliminatedIds: [...eliminatedPlayers]
+      });
+    }
+    function setupRealtimeChannel(){
+      if(realtimeChannel) supabaseClient.removeChannel(realtimeChannel);
+      realtimeChannel = supabaseClient.channel(`fr-${roomCode}`, { config: { presence: { key: 'host' } } });
+      realtimeChannel.on('presence', { event: 'sync' }, () => {
+        const state = realtimeChannel.presenceState();
+        const activeIds = new Set();
+        Object.keys(state).forEach(key => {
+          state[key].forEach(presence => { if(presence.id && presence.id !== 'host') activeIds.add(presence.id); });
+        });
+        frPlayers.forEach((p, id) => { p.isOnline = activeIds.has(id); });
+        renderPlayersGrid();
+        updateSidebarLeaderboard();
+        broadcastHostState();
+      }).on('broadcast', { event: 'player_buzz' }, ({ payload }) => handlePlayerBuzz(payload.id, payload.name))
+        .on('broadcast', { event: 'request_sync' }, () => { broadcastHostState(); broadcastGameStateSync(); });
+      realtimeChannel.subscribe(async (status) => {
+        const syncDot = document.getElementById('syncDot'), syncText = document.getElementById('syncText');
+        if(status === 'SUBSCRIBED') { syncDot.className = 'conn-dot connected'; syncText.innerText = 'Live'; await realtimeChannel.track({ id: 'host', role: 'editor', t: Date.now() }); }
+        else { syncDot.className = 'conn-dot'; syncText.innerText = status; }
+      });
+    }
+    function broadcast(event, payload){ if(realtimeChannel) realtimeChannel.send({ type: 'broadcast', event, payload }); }
+    function broadcastHostState(){
+      const plist = [];
+      frPlayers.forEach(p => { plist.push({ id: p.id, name: p.name, avatar: p.avatar, score: p.score, status: p.status, isOnline: !!p.isOnline, eliminated: eliminatedPlayers.has(p.id) }); });
+      broadcast('player_list_update', { players: plist });
+    }
     function renderPlayersGrid(){
       const container = document.getElementById('playersGridContainer');
       container.innerHTML = '';
-      
       frPlayers.forEach(p => {
         const isElim = eliminatedPlayers.has(p.id);
         const div = document.createElement('div');
         div.className = `player-card ${p.status} ${isElim ? 'eliminated' : ''}`;
-        
-        // Dynamic color dots representing online channel profile presence tracks
         const statusClass = p.isOnline ? 'online' : 'offline';
         const statusLabel = p.isOnline ? 'Online' : 'Offline';
-
-        div.innerHTML = `
-          <div class="player-avatar">${p.avatar}</div>
-          <div class="player-name">${p.name}</div>
-          <div class="player-pts">${p.score} pts</div>
-          <div class="player-badge">
-            <span class="player-status-indicator ${statusClass}"></span>
-            <span>${p.status.toUpperCase()} (${statusLabel})</span>
-          </div>
-          ${!isElim ? `<button class="eliminate-btn" onclick="eliminatePlayer('${p.id}')">Eliminate</button>` : ''}
-        `;
+        div.innerHTML = `<div class="player-avatar">${p.avatar}</div><div class="player-name">${p.name}</div><div class="player-pts">${p.score} pts</div><div class="player-badge"><span class="player-status-indicator ${statusClass}"></span><span>${p.status.toUpperCase()} (${statusLabel})</span></div>${!isElim ? `<button class="eliminate-btn" onclick="eliminatePlayer('${p.id}')">Eliminate</button>` : ''}`;
         container.appendChild(div);
       });
     }
-
     function updateSidebarLeaderboard(){
       const container = document.getElementById('sidebarLeaderboard');
       container.innerHTML = '';
-      
-      const sorted = [...frPlayers.values()].sort((a,b) => b.score - a.score);
-      sorted.forEach(p => {
-        const div = document.createElement('div');
-        div.className = 'lb-item';
-        div.innerHTML = `
-          <span>${p.avatar}</span>
-          <span class="lb-name">${p.name}</span>
-          <span class="lb-score">${p.score}p</span>
-        `;
-        container.appendChild(div);
-      });
+      [...frPlayers.values()].sort((a,b)=>b.score - a.score).forEach(p => { const div = document.createElement('div'); div.className='lb-item'; div.innerHTML=`<span>${p.avatar}</span><span class="lb-name">${p.name}</span><span class="lb-score">${p.score}p</span>`; container.appendChild(div); });
     }
-
-    function toast(msg){
-      const el = document.createElement('div'); el.className = 'toast'; el.innerText = msg;
-      document.body.appendChild(el); setTimeout(() => el.remove(), 3000);
-    }
-
-    function generateNewRoomCode(){
-      roomCode = 'FR' + Math.random().toString(36).substring(2,6).toUpperCase();
-      document.getElementById('roomCodeInput').value = roomCode;
-      document.getElementById('roomCodeDisplay').innerText = roomCode;
-      localStorage.setItem('fr_room', roomCode);
-      setupRealtimeChannel();
-    }
-
+    function toast(msg){ const el = document.createElement('div'); el.className='toast'; el.innerText=msg; document.body.appendChild(el); setTimeout(()=>el.remove(),3000); }
     function initControl(){
       roomCode = localStorage.getItem('fr_room') || 'FR' + Math.random().toString(36).substring(2,6).toUpperCase();
       document.getElementById('roomCodeInput').value = roomCode;
@@ -892,7 +727,6 @@
       setupRealtimeChannel();
       loadQuestionsFromDB();
     }
-
     initControl();
   </script>
 </body>
