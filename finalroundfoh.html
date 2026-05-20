@@ -6,6 +6,7 @@
   <title>PlayAQuiz — Final Round Display</title>
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
@@ -33,7 +34,6 @@
       overflow: hidden;
     }
 
-    /* Ambient background */
     body::before {
       content: '';
       position: fixed;
@@ -46,7 +46,6 @@
       z-index: 0;
     }
 
-    /* Subtle scanlines */
     body::after {
       content: '';
       position: fixed;
@@ -110,9 +109,7 @@
       padding: 5px 14px;
       border-radius: 20px;
       transition: 0.2s;
-      letter-spacing: 0.5px;
     }
-    .audio-control:hover { color: var(--text); background: rgba(255,255,255,0.1); }
 
     .conn-badge {
       font-size: 11px;
@@ -121,18 +118,16 @@
       border-radius: 20px;
       background: rgba(0,0,0,0.4);
       color: var(--muted);
-      letter-spacing: 0.5px;
     }
 
     /* MAIN LAYOUT */
     .main-grid {
       flex: 1;
       display: grid;
-      grid-template-columns: 1fr 260px;
+      grid-template-columns: 1fr 280px;
       overflow: hidden;
     }
 
-    /* GAME CONTENT */
     .game-content {
       display: flex;
       flex-direction: column;
@@ -147,797 +142,524 @@
     .screen.active { display: flex; flex-direction: column; align-items: center; justify-content: center; animation: screenIn 0.45s cubic-bezier(0.22, 1, 0.36, 1); }
     @keyframes screenIn { from { opacity: 0; transform: translateY(18px) scale(0.98); } to { opacity: 1; transform: none; } }
 
-    /* WAITING SCREEN */
-    .waiting-hero { text-align: center; }
-    .waiting-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background: rgba(245,200,66,0.08);
-      border: 1px solid rgba(245,200,66,0.2);
-      padding: 6px 18px;
-      border-radius: 40px;
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 2px;
-      color: var(--gold);
-      margin-bottom: 20px;
-      animation: gentlePulse 2.5s ease-in-out infinite;
+    /* WARM UP / WELCOME SETUP SCREEN */
+    .warmup-container {
+      text-align: center;
+      animation: zoomIntro 1s ease-out;
     }
-    @keyframes gentlePulse { 0%,100%{ opacity: 1; } 50%{ opacity: 0.6; } }
-
-    .waiting-title {
+    @keyframes zoomIntro { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    
+    .warmup-logo {
       font-family: 'Syne', sans-serif;
-      font-size: clamp(52px, 7vw, 90px);
+      font-size: 70px;
       font-weight: 800;
-      line-height: 0.9;
-      letter-spacing: -1px;
-      margin-bottom: 8px;
-    }
-    .waiting-title .line1 { display: block; color: #fff; }
-    .waiting-title .line2 {
-      display: block;
-      background: linear-gradient(135deg, var(--gold), var(--amber));
+      letter-spacing: 6px;
+      margin-bottom: 10px;
+      background: linear-gradient(135deg, #fff 40%, var(--gold));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
+      animation: pulseGlow 2s infinite alternate;
     }
+    @keyframes pulseGlow { from { filter: drop-shadow(0 0 5px rgba(245,200,66,0.1)); } to { filter: drop-shadow(0 0 25px rgba(245,200,66,0.4)); } }
 
-    .waiting-code-wrap {
-      margin: 24px auto;
-      display: inline-flex;
-      align-items: center;
-      gap: 12px;
-      background: rgba(245,200,66,0.05);
-      border: 2px solid rgba(245,200,66,0.3);
-      border-radius: 20px;
-      padding: 16px 32px;
-    }
-    .waiting-code {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: clamp(36px, 5vw, 58px);
+    .warmup-banner {
+      font-size: 16px;
       font-weight: 700;
-      color: var(--gold);
-      letter-spacing: 10px;
-    }
-
-    .waiting-sub { font-size: 14px; color: var(--muted); letter-spacing: 1px; }
-
-    /* QUESTION SCREEN */
-    .question-number {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 3px;
-      color: var(--violet);
-      margin-bottom: 14px;
+      letter-spacing: 6px;
       text-transform: uppercase;
+      color: var(--violet);
+      margin-bottom: 30px;
     }
 
+    .warmup-pulse-circle {
+      width: 140px; height: 140px;
+      border-radius: 50%;
+      background: rgba(167,139,250,0.05);
+      border: 2px dashed rgba(167,139,250,0.3);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 24px;
+      position: relative;
+      animation: spinRing 20s linear infinite;
+    }
+    @keyframes spinRing { to { transform: rotate(300deg); } }
+    .warmup-pulse-circle .inner-text {
+      font-family: 'Syne', sans-serif;
+      font-size: 28px; font-weight: 800; color: #fff;
+      animation: unspin 20s linear infinite;
+    }
+    @keyframes unspin { to { transform: rotate(-300deg); } }
+
+    /* SIDE PANEL LEADERBOARD */
+    .side-panel {
+      background: rgba(13,17,32,0.6);
+      backdrop-filter: blur(16px);
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 18px 16px;
+    }
+    .side-title {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--muted);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+    }
+    .player-list { display: flex; flex-direction: column; gap: 8px; flex: 1; overflow-y: auto; }
+    .p-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      transition: all 0.25s;
+    }
+    .p-row.active-buzz { border-color: var(--gold); background: rgba(245,200,66,0.08); box-shadow: 0 0 14px rgba(245,200,66,0.15); }
+    .p-row.wrong-lock { opacity: 0.4; filter: grayscale(0.8); border-color: var(--red); }
+    .p-row.eliminated { opacity: 0.15; filter: grayscale(1); text-decoration: line-through; }
+    .p-avatar { font-size: 28px; }
+    .p-info { flex: 1; min-width: 0; }
+    .p-name { font-weight: 700; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .p-status-sub { font-size: 10px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+    .p-score { font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 700; color: var(--gold); }
+
+    /* QUESTION STRUCTURE */
     .question-text {
       font-family: 'Syne', sans-serif;
-      font-size: clamp(20px, 2.8vw, 38px);
+      font-size: clamp(22px, 3vw, 42px);
       font-weight: 700;
       text-align: center;
-      line-height: 1.3;
-      padding: 28px 32px;
-      border-radius: 24px;
+      line-height: 1.35;
+      padding: 36px 40px;
+      border-radius: 28px;
       background: rgba(255,255,255,0.03);
       border: 1.5px solid rgba(255,255,255,0.09);
-      margin-bottom: 18px;
+      margin-bottom: 24px;
       position: relative;
-      overflow: hidden;
     }
-    .question-text::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(135deg, rgba(99,102,241,0.06), transparent);
-      border-radius: inherit;
-    }
-
-    .options-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      width: 100%;
-    }
+    .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; width: 100%; }
     .opt-tile {
       background: var(--surface);
       border: 1.5px solid var(--border);
-      border-radius: 16px;
-      padding: 14px 16px;
+      border-radius: 18px;
+      padding: 16px 20px;
       display: flex;
       align-items: center;
-      gap: 12px;
-      transition: 0.2s;
-      animation: optIn 0.4s cubic-bezier(0.22,1,0.36,1) backwards;
-    }
-    .opt-tile:nth-child(1) { animation-delay: 0.05s; }
-    .opt-tile:nth-child(2) { animation-delay: 0.1s; }
-    .opt-tile:nth-child(3) { animation-delay: 0.15s; }
-    .opt-tile:nth-child(4) { animation-delay: 0.2s; }
-    @keyframes optIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
-
-    .opt-letter {
-      width: 36px;
-      height: 36px;
-      flex-shrink: 0;
-      border-radius: 10px;
-      background: rgba(99,102,241,0.18);
-      border: 1px solid rgba(99,102,241,0.35);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: 'Syne', sans-serif;
-      font-weight: 800;
-      font-size: 16px;
-      color: var(--violet);
-    }
-    .opt-text { font-size: 15px; font-weight: 500; line-height: 1.3; }
-
-    .buzzer-open-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background: rgba(34,211,160,0.08);
-      border: 1px solid rgba(34,211,160,0.3);
-      padding: 8px 20px;
-      border-radius: 40px;
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: 1px;
-      color: var(--green);
-      margin-top: 16px;
-    }
-    .buzzer-open-badge .dot {
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      background: var(--green);
-      animation: blink 1s ease-in-out infinite;
-    }
-    @keyframes blink { 0%,100%{ opacity:1; } 50%{ opacity:0.2; } }
-
-    /* CATEGORY SCREEN */
-    .cat-pick-title {
-      font-family: 'Syne', sans-serif;
-      font-size: clamp(36px, 4.5vw, 56px);
-      font-weight: 800;
-      text-align: center;
-      margin-bottom: 28px;
-      background: linear-gradient(135deg, #fff, var(--violet));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    .catpick-grid {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
       gap: 14px;
     }
-    .cat-tile {
-      background: rgba(167,139,250,0.06);
-      border: 2px solid rgba(167,139,250,0.2);
-      border-radius: 20px;
-      padding: 20px 22px;
-      text-align: center;
-      min-width: 130px;
-      backdrop-filter: blur(8px);
-      transition: border-color 0.2s;
-      animation: catPop 0.5s cubic-bezier(0.22,1,0.36,1) backwards;
+    .opt-letter {
+      width: 40px; height: 40px; border-radius: 12px;
+      background: rgba(99,102,241,0.18); border: 1px solid rgba(99,102,241,0.35);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Syne', sans-serif; font-weight: 800; font-size: 18px; color: var(--violet);
     }
-    @keyframes catPop { from { opacity: 0; transform: scale(0.85) translateY(10px); } to { opacity: 1; transform: none; } }
-    .cat-tile:hover { border-color: rgba(167,139,250,0.5); }
-    .cat-tile-icon { font-size: 38px; margin-bottom: 8px; }
-    .cat-tile-name { font-weight: 700; font-size: 13px; letter-spacing: 0.5px; }
+    .opt-text { font-size: 17px; font-weight: 500; }
 
-    /* ENDED SCREEN */
-    .ended-hero { text-align: center; }
-    .winner-trophy {
-      font-size: 80px;
-      margin-bottom: 16px;
-      display: block;
-      animation: trophyBounce 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+    .buzzer-open-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(34,211,160,0.08); border: 1px solid rgba(34,211,160,0.3);
+      padding: 8px 24px; border-radius: 40px; font-size: 14px; font-weight: 700;
+      color: var(--green); margin-top: 20px;
     }
-    @keyframes trophyBounce { from { transform: scale(0) rotate(-20deg); } to { transform: none; } }
-    .winner-label {
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 4px;
-      color: var(--muted);
-      text-transform: uppercase;
-      margin-bottom: 10px;
+    .buzzer-open-badge .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); animation: blink 1s infinite; }
+    @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.2;} }
+
+    /* CATEGORIES GRID */
+    .cat-pick-title { font-family: 'Syne', sans-serif; font-size: 46px; font-weight: 800; text-align: center; margin-bottom: 24px; }
+    .catpick-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; }
+    .cat-tile {
+      background: rgba(167,139,250,0.06); border: 2px solid rgba(167,139,250,0.2);
+      border-radius: 20px; padding: 24px; text-align: center; min-width: 150px;
     }
-    .winner-title {
-      font-family: 'Syne', sans-serif;
-      font-size: clamp(36px, 5vw, 68px);
-      font-weight: 800;
-      background: linear-gradient(135deg, var(--gold), var(--amber), #fff);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    .winner-name {
-      font-size: clamp(22px, 3vw, 40px);
-      font-weight: 700;
-      color: var(--text);
-      margin-top: 12px;
-    }
+    .cat-tile-icon { font-size: 40px; margin-bottom: 6px; }
+    .cat-tile-name { font-weight: 700; font-size: 14px; }
 
     /* OVERLAYS */
     #overlayContainer { position: absolute; inset: 0; z-index: 50; pointer-events: none; }
     .overlay-container {
-      position: absolute;
-      inset: 0;
-      background: rgba(7,5,16,0.92);
-      backdrop-filter: blur(24px);
-      border-radius: 28px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      animation: overlayIn 0.3s cubic-bezier(0.22,1,0.36,1);
-      pointer-events: auto;
+      position: absolute; inset: 0; background: rgba(7,5,16,0.94);
+      backdrop-filter: blur(24px); display: flex; flex-direction: column;
+      align-items: center; justify-content: center; text-align: center;
+      animation: fadeOverlayIn 0.4s ease;
     }
-    @keyframes overlayIn { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
+    @keyframes fadeOverlayIn { from { opacity: 0; } to { opacity: 1; } }
 
-    .overlay-emoji { font-size: 72px; margin-bottom: 14px; animation: emojiPop 0.5s cubic-bezier(0.34,1.56,0.64,1); }
-    @keyframes emojiPop { from { transform: scale(0); } to { transform: scale(1); } }
-    .overlay-heading {
-      font-family: 'Syne', sans-serif;
-      font-size: 52px;
-      font-weight: 800;
-      line-height: 1;
-      margin-bottom: 12px;
+    .buzz-banner {
+      background: linear-gradient(135deg, #1e1b4b, #311042);
+      border: 3px solid var(--gold); border-radius: 32px;
+      padding: 40px 60px; max-width: 680px; width: 90%;
+      box-shadow: 0 25px 70px rgba(0,0,0,0.8);
     }
-    .overlay-player { font-size: 42px; margin: 8px 0; }
-    .overlay-points {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 28px;
-      font-weight: 700;
-      color: var(--gold);
-      margin-top: 8px;
-    }
-    .overlay-sub {
-      font-size: 16px;
-      color: var(--muted);
-      margin-top: 12px;
-      font-weight: 500;
+    .buzz-avatar { font-size: 90px; margin-bottom: 12px; display: block; }
+    .buzz-title { font-family: 'Syne', sans-serif; font-size: 48px; font-weight: 800; color: #fff; }
+    .buzz-subtitle { font-size: 16px; color: var(--gold); letter-spacing: 4px; text-transform: uppercase; margin-top: 6px; }
+
+    /* CELEBRATION WINNER BANNER VIEW */
+    .winner-banner {
+      background: linear-gradient(135deg, #0f172a, #1e1b4b);
+      border: 3px solid var(--green); border-radius: 32px;
+      padding: 50px 70px; max-width: 750px; width: 90%;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.9);
     }
 
-    /* PLAYERS SIDEBAR */
-    .players-column {
-      background: rgba(7,5,16,0.7);
-      border-left: 1px solid rgba(255,255,255,0.06);
-      backdrop-filter: blur(12px);
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
+    #fohRoomSetup {
+      position: fixed; inset: 0; background: var(--bg); z-index: 99999;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
     }
-    .players-header {
-      padding: 16px 16px 10px;
-      border-bottom: 1px solid var(--border);
+    .setup-card {
+      background: rgba(255,255,255,0.03); border: 1px solid var(--border2);
+      border-radius: 24px; padding: 32px; width: 100%; max-width: 400px; text-align: center;
     }
-    .players-header-label {
-      font-size: 9px;
-      font-weight: 700;
-      letter-spacing: 2.5px;
-      color: var(--muted);
-      text-transform: uppercase;
+    .setup-input {
+      background: rgba(0,0,0,0.4); border: 1.5px solid var(--border2);
+      padding: 12px; border-radius: 12px; width: 100%; color: #fff;
+      font-size: 20px; font-family: 'JetBrains Mono', monospace; text-align: center; outline: none; margin-bottom: 14px;
     }
-    .players-header-title {
-      font-family: 'Syne', sans-serif;
-      font-size: 18px;
-      font-weight: 800;
-      color: var(--gold);
-      margin-top: 2px;
+    .setup-btn {
+      width: 100%; padding: 14px; background: var(--gold); border: none;
+      border-radius: 12px; font-family: 'Syne', sans-serif; font-weight: 800; font-size: 15px; cursor: pointer;
     }
-    .players-list { flex: 1; overflow-y: auto; padding: 10px 12px; display: flex; flex-direction: column; gap: 7px; }
-    .players-list::-webkit-scrollbar { width: 3px; }
-    .players-list::-webkit-scrollbar-track { background: transparent; }
-    .players-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
-
-    .player-block {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 8px 10px;
-      transition: all 0.2s;
-      position: relative;
-      overflow: hidden;
-    }
-    .player-block::before {
-      content: '';
-      position: absolute;
-      left: 0; top: 0; bottom: 0;
-      width: 3px;
-      background: transparent;
-      transition: 0.2s;
-    }
-    .player-block.buzzed {
-      background: rgba(245,200,66,0.1);
-      border-color: rgba(245,200,66,0.4);
-      animation: buzzPulse 0.5s cubic-bezier(0.22,1,0.36,1);
-    }
-    .player-block.buzzed::before { background: var(--gold); }
-    @keyframes buzzPulse { 0%{ transform: scale(1); } 50%{ transform: scale(1.03); } 100%{ transform: scale(1); } }
-
-    .player-block.locked { opacity: 0.45; }
-    .player-block.eliminated { opacity: 0.22; filter: grayscale(0.8); }
-    .player-block.correct::before { background: var(--green); }
-    .player-block.correct { background: rgba(34,211,160,0.06); border-color: rgba(34,211,160,0.2); }
-
-    .player-avatar-circle {
-      width: 42px;
-      height: 42px;
-      flex-shrink: 0;
-      border-radius: 12px;
-      background: rgba(255,255,255,0.05);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 26px;
-      border: 1px solid var(--border2);
-    }
-    .player-info { flex: 1; min-width: 0; }
-    .player-name { font-weight: 700; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .player-score {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--gold);
-    }
-
-    /* TIMER */
-    .timer-display {
-      position: fixed;
-      top: 80px;
-      right: 280px;
-      z-index: 200;
-      text-align: center;
-    }
-    .timer-ring {
-      position: relative;
-      width: 100px;
-      height: 100px;
-    }
-    .timer-ring svg { transform: rotate(-90deg); }
-    .timer-ring-bg { fill: none; stroke: rgba(255,255,255,0.08); stroke-width: 4; }
-    .timer-ring-fill { fill: none; stroke: var(--gold); stroke-width: 4; stroke-linecap: round; transition: stroke-dashoffset 0.9s linear; }
-    .timer-number {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: 'Syne', sans-serif;
-      font-size: 34px;
-      font-weight: 800;
-      color: var(--gold);
-    }
-
-    /* ENTRY OVERLAY */
-    #roomEntryOverlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(7,5,16,0.98);
-      backdrop-filter: blur(24px);
-      z-index: 1000;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 32px;
-    }
-    .entry-card {
-      background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 28px;
-      padding: 44px 48px;
-      text-align: center;
-      max-width: 520px;
-      width: 90%;
-      backdrop-filter: blur(12px);
-    }
-    .entry-logo {
-      font-family: 'Syne', sans-serif;
-      font-size: 48px;
-      font-weight: 800;
-      letter-spacing: 6px;
-      background: linear-gradient(135deg, #fff 30%, var(--gold));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin-bottom: 6px;
-    }
-    .entry-sub { color: var(--muted); font-size: 13px; margin-bottom: 28px; }
-    .entry-label { font-size: 9px; font-weight: 700; letter-spacing: 2px; color: var(--muted); text-align: left; margin-bottom: 6px; text-transform: uppercase; }
-    .entry-input {
-      background: rgba(255,255,255,0.05);
-      border: 1.5px solid rgba(245,200,66,0.35);
-      border-radius: 16px;
-      padding: 16px 24px;
-      color: #fff;
-      font-size: 28px;
-      font-family: 'JetBrains Mono', monospace;
-      letter-spacing: 8px;
-      text-align: center;
-      outline: none;
-      text-transform: uppercase;
-      width: 100%;
-      margin-bottom: 20px;
-      transition: 0.2s;
-    }
-    .entry-input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(245,200,66,0.12); }
-    .entry-btn {
-      width: 100%;
-      padding: 16px;
-      background: linear-gradient(135deg, var(--gold), var(--amber));
-      border: none;
-      border-radius: 14px;
-      font-family: 'Syne', sans-serif;
-      font-size: 18px;
-      font-weight: 800;
-      letter-spacing: 1px;
-      color: #111;
-      cursor: pointer;
-      transition: transform 0.1s, box-shadow 0.1s;
-    }
-    .entry-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 24px rgba(245,200,66,0.25); }
-    .entry-btn:active { transform: translateY(0); }
-    .entry-error { color: var(--red); font-size: 12px; margin-top: 10px; font-weight: 500; }
-
-    /* FOOTER */
-    .footer {
-      padding: 5px 20px;
-      text-align: center;
-      font-size: 9px;
-      font-weight: 700;
-      letter-spacing: 2px;
-      color: rgba(255,255,255,0.1);
-      border-top: 1px solid var(--border);
-      text-transform: uppercase;
-    }
-
-    /* CONFETTI */
-    .confetti-piece { position: fixed; pointer-events: none; z-index: 9999; border-radius: 2px; }
-    @keyframes confettiFall { 0%{ opacity:1; transform: translateY(-10px) rotate(0deg); } 100%{ opacity:0; transform: translateY(100vh) rotate(720deg); } }
-
-    .hidden { display: none !important; }
   </style>
 </head>
 <body>
-<div class="app">
-  <div class="top-bar">
-    <div class="logo">PLAYAQUIZ</div>
-    <div style="display:flex; align-items:center; gap:10px;">
-      <button class="audio-control" id="bgmToggleBtn" onclick="toggleBackgroundMusic()">▶ BGM</button>
-      <div class="conn-badge" id="fohConnBadge">⏳ Not connected</div>
-      <div class="room-display" id="roomDisplay">——</div>
+
+  <div id="fohRoomSetup">
+    <div class="setup-card">
+      <div class="logo" style="font-size:28px; margin-bottom:12px;">PLAYAQUIZ</div>
+      <p style="color:var(--muted); font-size:13px; margin-bottom:20px;">Front of House Display Activation Panel</p>
+      <input type="text" id="fohRoomInput" class="setup-input" placeholder="ROOM CODE" maxlength="8">
+      <button class="setup-btn" onclick="submitFohRoom()">Connect Monitor Screen</button>
+      <div id="fohRoomError" style="color:var(--red); font-size:12px; margin-top:10px; font-weight:500;"></div>
     </div>
   </div>
 
-  <div class="main-grid">
-    <div class="game-content">
-      <!-- WAITING -->
-      <div id="waitingScreen" class="screen">
-        <div class="waiting-hero">
-          <div class="waiting-badge">
-            <span class="dot" style="width:7px;height:7px;border-radius:50%;background:var(--gold);animation:blink 1s infinite;display:inline-block;"></span>
-            FINAL ROUND
-          </div>
-          <div class="waiting-title">
-            <span class="line1">GET</span>
-            <span class="line2">READY</span>
-          </div>
-          <div class="waiting-code-wrap">
-            <div class="waiting-code" id="waitingRoomCode">——</div>
-          </div>
-          <div class="waiting-sub">Scan the room code above to join</div>
-        </div>
+  <div class="app">
+    <div class="top-bar">
+      <div class="logo">PLAYAQUIZ</div>
+      <div class="room-display" id="fohRoomLabel">ROOM: ----</div>
+      <div style="display:flex; gap:12px; align-items:center;">
+        <button class="audio-control" onclick="toggleAudio()">🎵 Sound On</button>
+        <div class="conn-badge" id="fohConnBadge">● DISCONNECTED</div>
       </div>
+    </div>
 
-      <!-- QUESTION -->
-      <div id="questionScreen" class="screen">
-        <div class="question-hero" style="width:100%;position:relative;">
-          <div class="question-number" id="questionNumber">QUESTION</div>
-          <div class="question-text" id="questionText">Loading...</div>
-          <div class="options-grid" id="optionsGrid"></div>
-          <div style="text-align:center;margin-top:14px;">
-            <div class="buzzer-open-badge">
-              <span class="dot"></span>
-              BUZZERS ARE OPEN
+    <div class="main-grid">
+      <div class="game-content">
+        <div id="overlayContainer"></div>
+
+        <div class="screen active" id="screenWarmup">
+          <div class="warmup-container">
+            <div class="warmup-logo">PLAYAQUIZ</div>
+            <div class="warmup-banner">The Grand Final Arena</div>
+            <div class="warmup-pulse-circle">
+              <div class="inner-text">READY</div>
             </div>
+            <p style="color: var(--muted); font-size:15px; letter-spacing:1px;">Waiting for the host to present the stage questions...</p>
           </div>
-          <div id="overlayContainer"></div>
         </div>
-      </div>
 
-      <!-- CATEGORY PICK -->
-      <div id="catPickScreen" class="screen">
-        <div class="cat-pick-title">PICK A CATEGORY</div>
-        <div class="catpick-grid" id="catPickGrid"></div>
-      </div>
-
-      <!-- ENDED -->
-      <div id="endedScreen" class="screen">
-        <div class="ended-hero">
-          <span class="winner-trophy">🏆</span>
-          <div class="winner-label">CHAMPION</div>
-          <div class="winner-title">GAME OVER</div>
-          <div class="winner-name" id="winnerName">—</div>
+        <div class="screen" id="screenCategories">
+          <h2 class="cat-pick-title" id="catPickTitle">Available Categories</h2>
+          <div class="catpick-grid" id="fohCategoriesContainer">
+            </div>
         </div>
-      </div>
-    </div>
 
-    <!-- PLAYERS SIDEBAR -->
-    <div class="players-column">
-      <div class="players-header">
-        <div class="players-header-label">Live</div>
-        <div class="players-header-title">CONTESTANTS</div>
+        <div class="screen" id="screenQuestion">
+          <div class="question-number" id="fohQuestionMeta">CATEGORY SELECT</div>
+          <div class="question-text" id="fohQuestionText">Question presentation body text loaded dynamically here?</div>
+          <div class="options-grid" id="fohOptionsContainer">
+            </div>
+          <div id="fohBuzzerOpenIndicator" style="display:none;">
+            <div class="buzzer-open-badge"><span class="dot"></span>BUZZERS ACTIVE — PRESS NOW!</div>
+          </div>
+        </div>
+
+        <div class="screen" id="screenPodium">
+          <div style="text-align:center;">
+            <span style="font-size:90px; display:block; margin-bottom:10px;">👑</span>
+            <h2 class="cat-pick-title" style="margin-bottom:6px;">Final Match Champions</h2>
+            <div id="podiumWinnerName" style="font-size:42px; font-weight:800; color:var(--gold);">Player Name</div>
+            <div id="podiumWinnerScore" style="font-size:20px; color:var(--muted); margin-top:4px;">With a score of 0 points</div>
+          </div>
+        </div>
+
       </div>
-      <div class="players-list" id="playersBlocksContainer">
-        <div style="text-align:center;color:var(--muted);padding:20px;font-size:13px;">Waiting for players...</div>
+
+      <div class="side-panel">
+        <div class="side-title">Live Finalists</div>
+        <div class="player-list" id="fohPlayersList">
+          </div>
       </div>
     </div>
   </div>
 
-  <div class="footer">PlayAQuiz — Final Round Display</div>
-
-  <!-- ROOM ENTRY OVERLAY -->
-  <div id="roomEntryOverlay">
-    <div class="entry-card">
-      <div class="entry-logo">PLAYAQUIZ</div>
-      <div class="entry-sub">Enter the room code from the Control Panel</div>
-      <div class="entry-label">Room Code</div>
-      <input type="text" id="fohRoomInput" class="entry-input" placeholder="FR4X7K" maxlength="8" autocomplete="off" onkeydown="if(event.key==='Enter') submitFohRoom()">
-      <button class="entry-btn" onclick="submitFohRoom()">CONNECT TO ROOM</button>
-      <div id="fohRoomError" class="entry-error"></div>
-    </div>
-  </div>
-
-  <!-- TIMER WIDGET -->
-  <div id="timerWidget" class="timer-display" style="display:none;">
-    <div class="timer-ring">
-      <svg viewBox="0 0 100 100" width="100" height="100">
-        <circle class="timer-ring-bg" cx="50" cy="50" r="44"/>
-        <circle class="timer-ring-fill" id="timerRingFill" cx="50" cy="50" r="44" stroke-dasharray="276" stroke-dashoffset="0"/>
-      </svg>
-      <div class="timer-number" id="timerNumber">0</div>
-    </div>
-  </div>
-</div>
-
-<script>
-const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
-const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
-let roomCode = null, realtimeChannel = null, currentPlayers = [], timerInterval = null;
-let bgmAudio = null, bgmEnabled = true, audioCtx = null;
-let currentQuestionText = '';
-let timerTotal = 10;
-
-function initBackgroundMusic() {
-  bgmAudio = new Audio();
-  bgmAudio.src = 'countdownbg.mp3';
-  bgmAudio.loop = true;
-  bgmAudio.volume = 0.35;
-  bgmAudio.load();
-}
-function playBackgroundMusic() { if(bgmAudio && bgmEnabled) bgmAudio.play().catch(()=>{}); }
-function stopBackgroundMusic() { if(bgmAudio) { bgmAudio.pause(); bgmAudio.currentTime = 0; } }
-function toggleBackgroundMusic() {
-  if(!bgmAudio) initBackgroundMusic();
-  const btn = document.getElementById('bgmToggleBtn');
-  if(bgmAudio.paused) { bgmAudio.play().catch(()=>{}); bgmEnabled = true; btn.innerHTML = '‖ BGM'; }
-  else { bgmAudio.pause(); bgmEnabled = false; btn.innerHTML = '▶ BGM'; }
-}
-
-function getAudio() { if(!audioCtx) audioCtx = new(window.AudioContext||window.webkitAudioContext)(); if(audioCtx.state==='suspended') audioCtx.resume(); return audioCtx; }
-function playTickSound() { try { const c=getAudio(),o=c.createOscillator(),g=c.createGain(); o.connect(g);g.connect(c.destination);o.type='sine';o.frequency.value=880;g.gain.setValueAtTime(0.2,c.currentTime);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+0.07);o.start();o.stop(c.currentTime+0.07); } catch(e){} }
-function playBuzzSound() { try { const c=getAudio(),o=c.createOscillator(),g=c.createGain(); o.connect(g);g.connect(c.destination);o.type='square';o.frequency.value=880;g.gain.setValueAtTime(0.55,c.currentTime);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+0.15);o.start();o.stop(c.currentTime+0.15); } catch(e){} }
-function playCorrectSound() { try { const c=getAudio();[523,659,784,1047].forEach((f,i)=>{ const o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(0.5,c.currentTime+i*.09);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+i*.09+.2);o.start(c.currentTime+i*.09);o.stop(c.currentTime+i*.09+.2); }); } catch(e){} }
-function playWrongSound() { try { const c=getAudio(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type='sawtooth';o.frequency.value=200;g.gain.setValueAtTime(0.5,c.currentTime);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+0.5);o.start();o.stop(c.currentTime+0.5); } catch(e){} }
-function playCategorySound() { try { const c=getAudio();[392,523,659].forEach((f,i)=>{ const o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(0.4,c.currentTime+i*.12);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+i*.12+.2);o.start(c.currentTime+i*.12);o.stop(c.currentTime+i*.12+.2); }); } catch(e){} }
-
-function showScreen(id) {
-  document.querySelectorAll('.game-content .screen').forEach(s=>s.classList.remove('active'));
-  const el=document.getElementById(`${id}Screen`);
-  if(el) el.classList.add('active');
-}
-function clearOverlay() { const c=document.getElementById('overlayContainer'); if(c) c.innerHTML=''; }
-
-function showCorrectOverlay(playerName, playerAvatar, points) {
-  clearOverlay();
-  const container=document.getElementById('overlayContainer'); if(!container) return;
-  const d=document.createElement('div'); d.className='overlay-container';
-  d.innerHTML=`
-    <div class="overlay-emoji">🎉</div>
-    <div class="overlay-heading" style="background:linear-gradient(135deg,var(--green),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">CORRECT!</div>
-    <div class="overlay-player">${playerAvatar||'🏆'} ${escapeHtml(playerName)}</div>
-    <div class="overlay-points">+${points||100} POINTS</div>
-    <div class="overlay-sub">CONGRATULATIONS</div>
-  `;
-  container.appendChild(d);
-  setTimeout(()=>{ if(d.parentNode) d.remove(); }, 15000);
-}
-function showWrongOverlay(playerName) {
-  clearOverlay();
-  const container=document.getElementById('overlayContainer'); if(!container) return;
-  const d=document.createElement('div'); d.className='overlay-container';
-  d.innerHTML=`
-    <div class="overlay-emoji">❌</div>
-    <div class="overlay-heading" style="background:linear-gradient(135deg,var(--red),#be123c);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">WRONG</div>
-    <div class="overlay-player">${escapeHtml(playerName)}</div>
-    <div class="overlay-sub" style="color:var(--red);">Locked out this round</div>
-  `;
-  container.appendChild(d);
-  setTimeout(()=>{ if(d.parentNode) d.remove(); }, 5000);
-}
-function showBuzzOverlay(playerName, playerAvatar) {
-  clearOverlay();
-  const container=document.getElementById('overlayContainer'); if(!container) return;
-  const d=document.createElement('div'); d.className='overlay-container';
-  d.innerHTML=`
-    <div class="overlay-emoji">🔔</div>
-    <div class="overlay-heading" style="background:linear-gradient(135deg,var(--gold),var(--amber));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">BUZZED IN!</div>
-    <div class="overlay-player">${playerAvatar||'🎤'} ${escapeHtml(playerName)}</div>
-    <div class="overlay-sub">Ready to answer...</div>
-  `;
-  container.appendChild(d);
-  setTimeout(()=>{ if(d.parentNode) d.remove(); }, 5000);
-}
-
-function renderPlayersBlocks(players) {
-  const container=document.getElementById('playersBlocksContainer'); if(!container) return;
-  if(!players||players.length===0) { container.innerHTML='<div style="padding:20px;color:var(--muted);font-size:13px;text-align:center;">Waiting...</div>'; return; }
-  const sorted=[...players].sort((a,b)=>(b.score||0)-(a.score||0));
-  container.innerHTML=sorted.map((p,i)=>{
-    let cls='';
-    if(p.status==='buzzed') cls='buzzed';
-    else if(p.status==='correct') cls='correct';
-    else if(p.status==='locked'||p.status==='wrong') cls='locked';
-    else if(p.status==='eliminated') cls='eliminated';
-    const medal=['🥇','🥈','🥉'][i]||'';
-    return `<div class="player-block ${cls}">
-      <div class="player-avatar-circle">${p.avatar||'🎮'}</div>
-      <div class="player-info">
-        <div class="player-name">${medal} ${escapeHtml(p.name)}</div>
-        <div class="player-score">${p.score||0} pts</div>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function escapeHtml(s){ if(!s) return ''; return s.replace(/[&<>]/g,m=>m==='&'?'&amp;':m==='<'?'&lt;':'&gt;'); }
-
-function launchConfetti(){
-  for(let i=0;i<200;i++){
-    const c=document.createElement('div'); c.className='confetti-piece';
-    c.style.cssText=`width:${5+Math.random()*9}px;height:${5+Math.random()*9}px;background:${['#f5c842','#f43f5e','#22d3a0','#6366f1','#a78bfa','#f97316'][Math.floor(Math.random()*6)]};left:${Math.random()*100}vw;top:-10px;border-radius:${Math.random()>.5?'50%':'2px'};animation:confettiFall ${2.5+Math.random()*2.5}s linear ${Math.random()*0.5}s forwards;`;
-    document.body.appendChild(c); setTimeout(()=>c.remove(),5500);
-  }
-}
-
-function startTimer(seconds){
-  if(timerInterval) clearInterval(timerInterval);
-  timerTotal=seconds;
-  const timerDiv=document.getElementById('timerWidget');
-  const timerNum=document.getElementById('timerNumber');
-  const fill=document.getElementById('timerRingFill');
-  const circumference=276;
-  let remaining=seconds;
-  timerDiv.style.display='block';
-  timerNum.innerText=remaining;
-  fill.style.strokeDashoffset=0;
-  playTickSound();
-  timerInterval=setInterval(()=>{
-    remaining--;
-    if(remaining<=0){ clearInterval(timerInterval); timerDiv.style.display='none'; }
-    else {
-      timerNum.innerText=remaining;
-      fill.style.strokeDashoffset=circumference*(1-remaining/timerTotal);
-      playTickSound();
-      if(remaining<=3) fill.style.stroke='var(--red)';
-      else fill.style.stroke='var(--gold)';
+  <script>
+    const SUPABASE_URL = window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1') ? 'http://localhost:54321' : '';
+    const SUPABASE_KEY = '';
+    
+    let sb = null;
+    if(SUPABASE_URL && SUPABASE_KEY) {
+      sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    } else {
+      sb = supabase.createClient(window.location.origin, '');
     }
-  },1000);
-}
 
-function handleBroadcast(event, payload) {
-  switch(event) {
-    case 'round_started': showScreen('waiting'); break;
-    case 'player_list_update': currentPlayers=payload.players||[]; renderPlayersBlocks(currentPlayers); break;
-    case 'question_open':
-      currentQuestionText=payload.question;
-      document.getElementById('questionText').innerText=payload.question;
-      const opts=payload.options||[];
-      document.getElementById('optionsGrid').innerHTML=opts.map((o,i)=>`<div class="opt-tile"><div class="opt-letter">${String.fromCharCode(65+i)}</div><div class="opt-text">${escapeHtml(o)}</div></div>`).join('');
-      clearOverlay(); showScreen('question'); break;
-    case 'buzz_confirmed':
-      playBuzzSound(); showBuzzOverlay(payload.playerName, payload.playerAvatar);
-      const buzzP=currentPlayers.find(p=>p.id===payload.playerId);
-      if(buzzP){ currentPlayers.forEach(p=>{if(p.status!=='eliminated') p.status='locked';}); buzzP.status='buzzed'; renderPlayersBlocks(currentPlayers); }
-      break;
-    case 'correct':
-      playCorrectSound(); showCorrectOverlay(payload.playerName, payload.playerAvatar, payload.points||100);
-      const cP=currentPlayers.find(p=>p.id===payload.playerId);
-      if(cP){ cP.score=payload.newScore; cP.status='correct'; renderPlayersBlocks(currentPlayers); }
-      launchConfetti(); break;
-    case 'wrong':
-      playWrongSound(); showWrongOverlay(payload.playerName);
-      const wP=currentPlayers.find(p=>p.id===payload.playerId);
-      if(wP){ wP.status='wrong'; renderPlayersBlocks(currentPlayers); } break;
-    case 'next_question':
-      clearOverlay(); currentPlayers.forEach(p=>{if(p.status!=='eliminated') p.status='waiting';}); renderPlayersBlocks(currentPlayers); showScreen('waiting'); break;
-    case 'reset_for_next_question':
-      clearOverlay(); currentPlayers.forEach(p=>{if(p.status!=='eliminated') p.status='waiting';}); renderPlayersBlocks(currentPlayers); break;
-    case 'reset_buzzers':
-      clearOverlay(); currentPlayers.forEach(p=>{if(p.status!=='eliminated'&&p.status!=='correct') p.status='waiting';}); renderPlayersBlocks(currentPlayers); break;
-    case 'buzzers_reopen':
-      clearOverlay(); currentPlayers.forEach(p=>{if(p.status!=='eliminated'&&p.status!=='correct'&&p.status!=='wrong') p.status='waiting';}); renderPlayersBlocks(currentPlayers); break;
-    case 'eliminated':
-      const eP=currentPlayers.find(p=>p.id===payload.playerId); if(eP){ eP.status='eliminated'; renderPlayersBlocks(currentPlayers); } break;
-    case 'show_category_picker':
-      playCategorySound();
-      const cats=payload.categories||[];
-      document.getElementById('catPickGrid').innerHTML=cats.map((c,i)=>`<div class="cat-tile" style="animation-delay:${i*0.05}s;"><div class="cat-tile-icon">${c.icon||'📁'}</div><div class="cat-tile-name">${c.name}</div></div>`).join('');
-      clearOverlay(); showScreen('catPick'); playBackgroundMusic(); break;
-    case 'round_ended':
-      const winner=payload.winner;
-      document.getElementById('winnerName').innerHTML=`${winner?.avatar||'🏆'} ${winner?.name||'—'} — ${winner?.score||0} pts`;
-      showScreen('ended'); launchConfetti(); stopBackgroundMusic(); break;
-    case 'timer_start': startTimer(payload.seconds); break;
-    case 'full_game_reset':
+    let roomCode = '';
+    let realtimeChannel = null;
+    let cachedPlayers = [];
+    let isBuzzerSignStateAllowed = false; 
+
+    // Sound Synthesizer Node Assets
+    let audioCtx = null;
+    function initAudio(){
+      if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    function playBeep(freq, type, duration){
+      try {
+        initAudio(); if(!audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type; osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(); osc.stop(audioCtx.currentTime + duration);
+      } catch(e){}
+    }
+
+    function toggleAudio(){
+      initAudio();
+      const btn = document.querySelector('.audio-control');
+      if(audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume(); btn.innerText = "🎵 Sound Active";
+      } else {
+        btn.innerText = "🎵 Sound Initialized";
+      }
+    }
+
+    function connectToRoom(code){
+      roomCode = code.toUpperCase();
+      document.getElementById('fohRoomLabel').innerText = `ROOM: ${roomCode}`;
+      document.getElementById('fohRoomSetup').style.display = 'none';
+      
       if(realtimeChannel) sb.removeChannel(realtimeChannel);
-      document.getElementById('roomEntryOverlay').style.display='flex';
-      document.getElementById('roomDisplay').innerText='——';
-      document.getElementById('waitingRoomCode').innerText='——';
-      document.getElementById('fohRoomInput').value='';
-      showScreen('waiting'); break;
-  }
-}
+      
+      realtimeChannel = sb.channel(`fr-${roomCode}`);
+      
+      const events = [
+        'question_open','buzz_confirmed','correct','wrong','next_question',
+        'reset_buzzers','buzzers_reopen','eliminated','show_category_picker',
+        'round_ended','player_list_update'
+      ];
+      
+      events.forEach(ev => {
+        realtimeChannel.on('broadcast', { event: ev }, ({ payload }) => handleBroadcast(ev, payload));
+      });
 
-function connectToRoom(code) {
-  roomCode=code.trim().toUpperCase();
-  document.getElementById('roomDisplay').innerText=roomCode;
-  document.getElementById('waitingRoomCode').innerText=roomCode;
-  document.getElementById('roomEntryOverlay').style.display='none';
-  if(realtimeChannel) sb.removeChannel(realtimeChannel);
-  realtimeChannel=sb.channel(`fr-${roomCode}`);
-  ['round_started','player_list_update','question_open','buzz_confirmed','correct','wrong','next_question',
-   'reset_for_next_question','reset_buzzers','buzzers_reopen','eliminated','show_category_picker',
-   'round_ended','timer_start','full_game_reset'].forEach(ev=>{
-    realtimeChannel.on('broadcast',{event:ev},({payload})=>handleBroadcast(ev,payload));
-  });
-  realtimeChannel.subscribe((status)=>{
-    const badge=document.getElementById('fohConnBadge');
-    if(badge){
-      if(status==='SUBSCRIBED'){ badge.innerText='● LIVE'; badge.style.color='#22d3a0'; }
-      else { badge.innerText='● '+status; badge.style.color='#f43f5e'; }
+      realtimeChannel.subscribe((status) => {
+        const badge = document.getElementById('fohConnBadge');
+        if(status === 'SUBSCRIBED') {
+          badge.innerText = '● LIVE VIEW'; badge.style.color = '#22d3a0';
+          realtimeChannel.send({ type: 'broadcast', event: 'request_sync', payload: {} });
+        } else {
+          badge.innerText = '● CONNECTING'; badge.style.color = '#f43f5e';
+        }
+      });
     }
-  });
-}
 
-function submitFohRoom(){
-  const code=document.getElementById('fohRoomInput').value.trim().toUpperCase();
-  if(code.length<4){ document.getElementById('fohRoomError').innerText='Enter a valid room code (4-8 characters)'; return; }
-  document.getElementById('fohRoomError').innerText='';
-  connectToRoom(code);
-}
+    function handleBroadcast(event, payload){
+      switch(event){
+        case 'player_list_update':
+          cachedPlayers = payload.players || [];
+          renderPlayersList();
+          break;
+          
+        case 'show_category_picker':
+          switchScreen('screenCategories');
+          isBuzzerSignStateAllowed = false;
+          document.getElementById('fohBuzzerOpenIndicator').style.display = 'none';
+          
+          const catsContainer = document.getElementById('fohCategoriesContainer');
+          catsContainer.innerHTML = '';
+          payload.categories.forEach(cat => {
+            catsContainer.innerHTML += `
+              <div class="cat-tile">
+                <div class="cat-tile-icon">📂</div>
+                <div class="cat-tile-name">${cat}</div>
+              </div>
+            `;
+          });
+          playBeep(440, 'triangle', 0.2);
+          break;
 
-function init(){
-  initBackgroundMusic();
-  document.body.addEventListener('click',()=>{
-    if(audioCtx&&audioCtx.state==='suspended') audioCtx.resume();
-    if(bgmAudio&&bgmAudio.paused&&bgmEnabled) bgmAudio.play().catch(()=>{});
-  },{once:true});
-}
-init();
-window.submitFohRoom=submitFohRoom;
-window.toggleBackgroundMusic=toggleBackgroundMusic;
-window.connectToRoom=connectToRoom;
-</script>
+        case 'question_open':
+          switchScreen('screenQuestion');
+          isBuzzerSignStateAllowed = false; 
+          document.getElementById('fohBuzzerOpenIndicator').style.display = 'none';
+          
+          document.getElementById('fohQuestionMeta').innerText = `Category: ${payload.category || 'Finals'}`;
+          document.getElementById('fohQuestionText').innerText = payload.question;
+          
+          const optContainer = document.getElementById('fohOptionsContainer');
+          optContainer.innerHTML = '';
+          if(payload.options && payload.options.length > 0) {
+            const letters = ['A','B','C','D'];
+            payload.options.forEach((opt, idx) => {
+              optContainer.innerHTML += `
+                <div class="opt-tile">
+                  <div class="opt-letter">${letters[idx]}</div>
+                  <div class="opt-text">${opt}</div>
+                </div>
+              `;
+            });
+          }
+          playBeep(523.25, 'sine', 0.35);
+          break;
+
+        case 'buzzers_reopen':
+          isBuzzerSignStateAllowed = true;
+          document.getElementById('fohBuzzerOpenIndicator').style.display = 'block';
+          playBeep(880, 'sine', 0.1);
+          break;
+
+        case 'buzz_confirmed':
+          isBuzzerSignStateAllowed = false;
+          document.getElementById('fohBuzzerOpenIndicator').style.display = 'none';
+          triggerBuzzOverlay(payload.name);
+          playBeep(392, 'sawtooth', 0.4);
+          break;
+
+        case 'correct':
+          clearOverlay();
+          // FIX ENHANCEMENT: Extended duration configuration for confetti loops to run longer (30 seconds)
+          triggerConfettiBurst(30000); 
+          triggerCelebrationOverlay(payload.name, `CORRECT! ANSWER LOCKED IN.`, true);
+          playBeep(659.25, 'sine', 0.5);
+          break;
+
+        case 'wrong':
+          clearOverlay();
+          triggerCelebrationOverlay(payload.name, `LOCKED OUT / WRONG ANSWER.`, false);
+          playBeep(180, 'sawtooth', 0.6);
+          break;
+
+        case 'reset_buzzers':
+          isBuzzerSignStateAllowed = false; 
+          document.getElementById('fohBuzzerOpenIndicator').style.display = 'none';
+          clearOverlay();
+          break;
+
+        case 'next_question':
+          isBuzzerSignStateAllowed = false;
+          document.getElementById('fohBuzzerOpenIndicator').style.display = 'none';
+          clearOverlay();
+          switchScreen('screenWarmup');
+          break;
+
+        case 'round_ended':
+          isBuzzerSignStateAllowed = false;
+          document.getElementById('fohBuzzerOpenIndicator').style.display = 'none';
+          clearOverlay();
+          switchScreen('screenPodium');
+          document.getElementById('podiumWinnerName').innerText = `${payload.winnerAvatar} ${payload.winnerName}`;
+          document.getElementById('podiumWinnerScore').innerText = `Grand Champion with ${payload.winnerScore} points!`;
+          triggerConfettiBurst(30000);
+          break;
+      }
+    }
+
+    function switchScreen(id){
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+
+    function renderPlayersList(){
+      const container = document.getElementById('fohPlayersList');
+      container.innerHTML = '';
+      
+      cachedPlayers.forEach(p => {
+        let statusClass = '';
+        let subText = 'Connected';
+        
+        if(p.status === 'buzzed') { statusClass = 'active-buzz'; subText = '💥 BUZZED'; }
+        else if(p.status === 'locked') { statusClass = 'wrong-lock'; subText = '🔒 Locked Out'; }
+        else if(p.eliminated) { statusClass = 'eliminated'; subText = '❌ Eliminated'; }
+        else if(!p.isOnline) { subText = '🔌 Offline'; }
+
+        container.innerHTML += `
+          <div class="p-row ${statusClass}">
+            <div class="p-avatar">${p.avatar}</div>
+            <div class="p-info">
+              <div class="p-name">${p.name}</div>
+              <div class="p-status-sub">${subText}</div>
+            </div>
+            <div class="p-score">${p.score}</div>
+          </div>
+        `;
+      });
+    }
+
+    function triggerBuzzOverlay(name) {
+      const container = document.getElementById('overlayContainer');
+      container.innerHTML = `
+        <div class="overlay-container">
+          <div class="buzz-banner">
+            <span class="buzz-avatar">⚡</span>
+            <div class="buzz-title">${name}</div>
+            <div class="buzz-subtitle">Is Responding...</div>
+          </div>
+        </div>
+      `;
+    }
+
+    function triggerCelebrationOverlay(name, msg, isCorrect) {
+      const container = document.getElementById('overlayContainer');
+      const borderColor = isCorrect ? 'var(--green)' : 'var(--red)';
+      container.innerHTML = `
+        <div class="overlay-container">
+          <div class="winner-banner" style="border-color: ${borderColor}">
+            <span style="font-size:70px; display:block; margin-bottom:10px;">${isCorrect ? '💎' : '⚠️'}</span>
+            <div class="buzz-title" style="font-size:36px;">${name}</div>
+            <div style="font-size:18px; margin-top:8px; font-weight:700; color:#fff; letter-spacing:1px;">${msg}</div>
+          </div>
+        </div>
+      `;
+      
+      // FIX IMPLEMENTED: Banner overlays now stay persistently alive for a full 30 seconds
+      setTimeout(() => {
+        const currentOverlay = container.querySelector('.winner-banner');
+        if(currentOverlay) clearOverlay();
+      }, 30000);
+    }
+
+    function clearOverlay(){
+      document.getElementById('overlayContainer').innerHTML = '';
+    }
+
+    function triggerConfettiBurst(durationMs) {
+      const end = Date.now() + durationMs;
+      (function frame() {
+        confetti({ particleCount: 4, angle: 60, spread: 55, origin: { x: 0, y: 0.8 } });
+        confetti({ particleCount: 4, angle: 120, spread: 55, origin: { x: 1, y: 0.8 } });
+        if (Date.now() < end) {
+          requestAnimationFrame(frame);
+        }
+      }());
+    }
+
+    function submitFohRoom(){
+      const code = document.getElementById('fohRoomInput').value.trim().toUpperCase();
+      if(code.length < 4) { 
+        document.getElementById('fohRoomError').innerText = 'Enter a valid room code'; 
+        return; 
+      }
+      connectToRoom(code);
+    }
+  </script>
 </body>
 </html>
