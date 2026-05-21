@@ -331,33 +331,22 @@ function handleHeartbeat(payload) {
 }
 
 function handlePlayerJoin(payload) {
-  // ─── Safety Guard: Identify Background Verification Probe Handshakes ───
-  if (payload && payload.id && payload.id.startsWith('probe_')) {
-    // DO NOT add to frPlayers, DO NOT toast, but DO broadcast back so player portal knows room exists!
-    broadcast('player_list_update', { players: Array.from(frPlayers.values()) });
-    return;
-  }
-
   // Reconnect case: same name, different session ID
   const existing = Array.from(frPlayers.values()).find(p => p.name === payload.name);
   if(existing && existing.id !== payload.id) {
-    // Migrate to new ID cleanly without breaking game rules
+    // Migrate to new ID
     const oldId = existing.id;
     frPlayers.delete(oldId);
     if(eliminatedPlayers.has(oldId)) { eliminatedPlayers.delete(oldId); eliminatedPlayers.add(payload.id); }
     if(lockedPlayers.has(oldId))     { lockedPlayers.delete(oldId);     lockedPlayers.add(payload.id); }
     if(buzzedPlayerId === oldId)       buzzedPlayerId = payload.id;
-    
     existing.id = payload.id;
     existing.connected = true;
     existing.lastSeen = Date.now();
     frPlayers.set(payload.id, existing);
-    
-    // Restore UI components specific to your dashboard
-    renderPlayersGrid(); 
-    updateSidebar();
+    renderPlayersGrid(); updateSidebar();
 
-    // Send full live state back to the reconnected player portal
+    // Send full state back to reconnected player
     broadcast('state_sync', {
       playerId: payload.id,
       score: existing.score,
@@ -369,7 +358,6 @@ function handlePlayerJoin(payload) {
         ? [selectedQuestionForGame.option_a, selectedQuestionForGame.option_b, selectedQuestionForGame.option_c, selectedQuestionForGame.option_d]
         : []
     });
-    
     broadcast('player_list_update', { players: Array.from(frPlayers.values()) });
     toast(`🔄 ${payload.avatar} ${payload.name} reconnected`);
     return;
@@ -377,28 +365,18 @@ function handlePlayerJoin(payload) {
 
   // Duplicate join guard
   if(frPlayers.has(payload.id)) {
-    // Already known — just refresh their heartbeat and sync connectivity status
+    // Already known — just refresh their heartbeat
     const p = frPlayers.get(payload.id);
-    p.connected = true; 
-    p.lastSeen = Date.now();
+    p.connected = true; p.lastSeen = Date.now();
     return;
   }
 
   // Fresh join
   frPlayers.set(payload.id, {
-    id: payload.id, 
-    name: payload.name, 
-    avatar: payload.avatar,
-    score: 0, 
-    status: 'waiting', 
-    connected: true, 
-    lastSeen: Date.now()
+    id: payload.id, name: payload.name, avatar: payload.avatar,
+    score: 0, status: 'waiting', connected: true, lastSeen: Date.now()
   });
-  
-  // Re-link your specific view refresh methods
-  renderPlayersGrid(); 
-  updateSidebar();
-  
+  renderPlayersGrid(); updateSidebar();
   toast(`✨ ${payload.avatar} ${payload.name} joined`);
   broadcast('player_list_update', { players: Array.from(frPlayers.values()) });
 }
