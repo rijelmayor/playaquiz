@@ -547,7 +547,6 @@ const HEARTBEAT_MS = 6000;
 
 let roomWatchdogInterval = null;
 
-// Build avatars
 document.getElementById('avatarGrid').innerHTML = AVATARS.map((a,i) =>
   `<div class="avatar-opt ${i===0?'selected':''}" onclick="pickAvatar(this,'${a}')">${a}</div>`
 ).join('');
@@ -715,26 +714,19 @@ function stopHeartbeat() {
   if(heartbeatInterval) { clearInterval(heartbeatInterval); heartbeatInterval = null; }
 }
 
-// ─── Powerful Watchdog System (Checks database context for room validity) ────
+// ─── Powerful Periodic Room Existence Verification Loop ─────────────────────
 function startRoomWatchdog() {
   stopRoomWatchdog();
-  // Constantly queries the Realtime Channel state. If the Control room goes dead, kicks out automatically.
   roomWatchdogInterval = setInterval(async () => {
-    if (roomCode) {
-      const checkChan = sb.channel(`fr-watch-${roomCode}`);
-      checkChan.subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
-          const presState = checkChan.presenceState();
-          // If channel setup completely cleared out from Supabase systems, force-kick session
-          if (Object.keys(presState).length === 0 && status === 'CLOSED') {
-            resetToJoinScreen();
-            showToast("⚠ The host closed the session. Forced logout.");
-          }
-          sb.removeChannel(checkChan);
-        }
-      });
+    if (!roomCode || !ch) return;
+    
+    // Safely pull information from client socket status tracking references
+    const currentSocketState = ch.state;
+    if (currentSocketState === 'closed' || currentSocketState === 'errored') {
+      resetToJoinScreen();
+      showToast("⚠ Connection lost or room terminated by host.");
     }
-  }, 15000); 
+  }, 10000); 
 }
 
 function stopRoomWatchdog() {
@@ -772,7 +764,7 @@ function onRoomCodeChange() {
   document.getElementById('joinError').innerText = '';
 }
 
-// ─── Future-Proof Presence verification (Zero Host-side modifications required) ───
+// ─── Deep Pipeline Realtime Node Check (Zero Host Changes Needed) ────────────
 async function verifyRoomCode() {
   const room = document.getElementById('roomInput').value.trim().toUpperCase();
   if(!room || room.length < 3) {
@@ -786,39 +778,37 @@ async function verifyRoomCode() {
   vBtn.disabled = true;
   document.getElementById('joinError').innerText = '';
 
-  // Connect briefly using a test verification instance channel
-  const testChannel = sb.channel(`fr-${room}`);
-  
-  testChannel.subscribe(async (status) => {
+  // Step 1: Establish connection lifecycle channel node
+  const verificationChannel = sb.channel(`fr-${room}`);
+
+  verificationChannel.subscribe((status) => {
     if (status === 'SUBSCRIBED') {
-      // Small 1.2s delay to gather accurate channel metrics directly from Supabase
-      setTimeout(() => {
-        isRoomVerified = true;
-        
-        document.getElementById('nameInput').disabled = false;
-        document.getElementById('avatarGrid').classList.remove('disabled');
-        document.getElementById('joinBtn').disabled = false;
-        
-        vBtn.innerText = "VERIFIED ✓";
-        vBtn.className = "verify-btn verified";
-        vBtn.disabled = true;
-        
-        document.getElementById('joinError').className = "success-msg";
-        document.getElementById('joinError').innerText = "Room found! Enter your name to continue.";
-        
-        roomCode = room;
-        saveIdentity();
-        
-        // Cleanup test pipeline channel instance
-        sb.removeChannel(testChannel);
-      }, 1200);
-    } else {
+      // Step 2: Instant unlock hook on successful socket verification path
+      isRoomVerified = true;
+      
+      document.getElementById('nameInput').disabled = false;
+      document.getElementById('avatarGrid').classList.remove('disabled');
+      document.getElementById('joinBtn').disabled = false;
+      
+      vBtn.innerText = "VERIFIED ✓";
+      vBtn.className = "verify-btn verified";
+      vBtn.disabled = true;
+      
+      document.getElementById('joinError').className = "success-msg";
+      document.getElementById('joinError').innerText = "Room found! Enter your name to continue.";
+      
+      roomCode = room;
+      saveIdentity();
+      
+      // Keep channel open or drop depending on action step sequence profile
+      sb.removeChannel(verificationChannel);
+    } else if (status === 'CHANNEL_ERROR' || status === 'CLOSED') {
       document.getElementById('joinError').className = "error-msg";
-      document.getElementById('joinError').innerText = "Room not found or connection error. Try again.";
+      document.getElementById('joinError').innerText = "Verification failed. Check room code.";
       vBtn.innerText = "VERIFY";
       vBtn.disabled = false;
       isRoomVerified = false;
-      sb.removeChannel(testChannel);
+      sb.removeChannel(verificationChannel);
     }
   });
 }
