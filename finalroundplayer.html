@@ -87,7 +87,6 @@
       margin-bottom: 6px;
     }
     
-    /* Container layout to fit verify button cleanly inside input area */
     .input-container {
       position: relative;
       display: flex;
@@ -110,7 +109,6 @@
     .field input::placeholder { color: var(--muted); }
     .field input:disabled { opacity: 0.4; cursor: not-allowed; background: rgba(0,0,0,0.2); }
 
-    /* Verification verification badge button element style inside input fields */
     .verify-btn {
       position: absolute;
       right: 8px;
@@ -216,7 +214,6 @@
     }
     .score-label { font-size: 8px; font-weight: 700; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; }
 
-    /* Connection badge */
     .conn-status {
       font-size: 9px;
       font-weight: 700;
@@ -233,7 +230,6 @@
     .conn-status.disconnected { color: var(--red); border: 1px solid rgba(244,63,94,0.3); }
     @keyframes pulseText { 0%,100%{ opacity: 1; } 50%{ opacity: 0.5; } }
 
-    /* Reconnecting overlay banner — shown IN GAME when DC'd */
     #reconnectBanner {
       position: fixed;
       top: 0; left: 0; right: 0;
@@ -250,7 +246,6 @@
     #reconnectBanner.visible { display: block; }
     @keyframes slideDown { from { transform: translateY(-100%); } to { transform: translateY(0); } }
 
-    /* QUESTION BOX */
     .question-area {
       margin: 14px 16px 0;
       background: rgba(255,255,255,0.03);
@@ -269,7 +264,6 @@
       flex-shrink: 0;
     }
 
-    /* Options grid (shown during question) */
     #optionsGrid {
       display: none;
       grid-template-columns: 1fr 1fr;
@@ -296,7 +290,6 @@
       flex-shrink: 0;
     }
 
-    /* BUZZER AREA */
     .buzzer-wrap {
       flex: 1;
       display: flex;
@@ -314,7 +307,6 @@
       justify-content: center;
     }
 
-    /* Glow rings */
     .buzzer-glow {
       position: absolute;
       border-radius: 50%;
@@ -380,7 +372,6 @@
       transition: all 0.3s;
     }
 
-    /* PLAYER COUNTDOWN TIMER */
     #playerTimerOverlay {
       position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
       z-index: 300; pointer-events: none;
@@ -400,7 +391,6 @@
       transition: color 0.3s;
     }
 
-    /* FLASH OVERLAY */
     .buzz-flash {
       position: fixed;
       inset: 0;
@@ -411,7 +401,6 @@
     }
     @keyframes flashFade { from{ opacity:1; } to{ opacity:0; } }
 
-    /* NOTIFICATION TOAST */
     .reconnect-toast {
       position: fixed;
       bottom: 20px;
@@ -431,7 +420,6 @@
 
     .hidden { display: none !important; }
 
-    /* CORRECT OVERLAY */
     #correctOverlay {
       position: fixed; inset: 0; z-index: 500;
       background: rgba(7,5,16,0.97);
@@ -457,14 +445,12 @@
       color: var(--gold);
     }
 
-    /* Score pop animation */
     @keyframes scorePop {
       0% { transform: scale(1); }
       40% { transform: scale(1.4); color: var(--gold); }
       100% { transform: scale(1); }
     }
     .score-pop { animation: scorePop 0.5s cubic-bezier(0.22,1,0.36,1); }
-
     @keyframes confettiFall { to { transform: translateY(110vh) rotate(720deg); opacity: 0; } }
   </style>
 </head>
@@ -518,7 +504,6 @@
   </div>
 
   <div class="question-area" id="questionBox">Waiting for host to start...</div>
-
   <div id="optionsGrid"></div>
 
   <div class="buzzer-wrap">
@@ -548,12 +533,10 @@ const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 const AVATARS = ['😎','🦁','🐯','🐱','🐶','🐺','🦊','🐸','🐧','🐙','🦄','🐲','🚀','⭐','🔥','⚡','🎮','🏆'];
 
-// ─── Core state ───────────────────────────────────────────────────────────────
 let myId = null, myName = '', myAvatar = '😎', myScore = 0, roomCode = null, ch = null;
 let isOpen = false, myStatus = 'waiting', globalBuzzerEnabled = true, timerInterval = null;
 let isRoomVerified = false;
 
-// ─── Reconnection state ───────────────────────────────────────────────────────
 let reconnectAttempts = 0;
 let reconnectTimer = null;       
 let reconnecting = false;
@@ -562,11 +545,9 @@ let heartbeatInterval = null;
 const RECONNECT_DELAYS = [2000, 4000, 8000, 15000]; 
 const HEARTBEAT_MS = 6000; 
 
-// ─── Room Tracking Watchdog (Forced Reset System) ─────────────────────────────
 let roomWatchdogInterval = null;
-let hostRespondedToVerification = false;
 
-// ─── Build avatar grid ────────────────────────────────────────────────────────
+// Build avatars
 document.getElementById('avatarGrid').innerHTML = AVATARS.map((a,i) =>
   `<div class="avatar-opt ${i===0?'selected':''}" onclick="pickAvatar(this,'${a}')">${a}</div>`
 ).join('');
@@ -578,21 +559,16 @@ function pickAvatar(el, avatar) {
   myAvatar = avatar;
 }
 
-// ─── Connection badge & banner ────────────────────────────────────────────────
 function updateConnectionBadge(state, message) {
   const badge = document.getElementById('connStatusBadge');
   const banner = document.getElementById('reconnectBanner');
   if(!badge) return;
   badge.className = `conn-status ${state}`;
   badge.innerText = message;
-  if(state === 'reconnecting' || state === 'disconnected') {
-    banner.classList.add('visible');
-  } else {
-    banner.classList.remove('visible');
-  }
+  if(state === 'reconnecting' || state === 'disconnected') banner.classList.add('visible');
+  else banner.classList.remove('visible');
 }
 
-// ─── Toast notification ───────────────────────────────────────────────────────
 function showToast(msg, duration = 4000) {
   const toast = document.createElement('div');
   toast.className = 'reconnect-toast';
@@ -601,13 +577,11 @@ function showToast(msg, duration = 4000) {
   setTimeout(() => toast.remove(), duration);
 }
 
-// ─── Status pill ──────────────────────────────────────────────────────────────
 function setStatus(text, color = 'var(--green)') {
   const pill = document.getElementById('statusPill');
   if(pill) { pill.innerText = text; pill.style.color = color; pill.style.borderColor = color; }
 }
 
-// ─── Options display ──────────────────────────────────────────────────────────
 function showOptions(opts) {
   const grid = document.getElementById('optionsGrid');
   if(!grid) return;
@@ -624,7 +598,6 @@ function hideOptions() {
   if(grid) { grid.className = ''; grid.innerHTML = ''; }
 }
 
-// ─── Buzzer UI ────────────────────────────────────────────────────────────────
 function updateBuzzerUI() {
   const btn = document.getElementById('buzzerBtn');
   if(!btn) return;
@@ -654,7 +627,6 @@ function buzz() {
   if(ch) ch.send({ type: 'broadcast', event: 'buzz', payload: { id: myId, name: myName, avatar: myAvatar } });
 }
 
-// ─── Score display with pop animation ─────────────────────────────────────────
 function updateScore(newScore) {
   myScore = newScore;
   const el = document.getElementById('myScoreDisplay');
@@ -666,7 +638,6 @@ function updateScore(newScore) {
   setTimeout(() => el.classList.remove('score-pop'), 600);
 }
 
-// ─── Timer ────────────────────────────────────────────────────────────────────
 const PLAYER_TIMER_CIRC = 2 * Math.PI * 35; 
 function startPlayerTimer(seconds) {
   if(timerInterval) { clearInterval(timerInterval); timerInterval = null; }
@@ -696,7 +667,6 @@ function startPlayerTimer(seconds) {
   }, 1000);
 }
 
-// ─── Correct overlay ──────────────────────────────────────────────────────────
 function showCorrectPlayerOverlay(name, avatar, pts) {
   const el = document.getElementById('correctOverlay');
   document.getElementById('correctOverlayName').innerText = `${avatar || '💎'} ${name || ''}`;
@@ -708,7 +678,6 @@ function hideCorrectPlayerOverlay() {
   if(el) el.classList.remove('active');
 }
 
-// ─── Confetti ─────────────────────────────────────────────────────────────────
 function launchConfetti() {
   for(let i = 0; i < 120; i++) {
     const c = document.createElement('div');
@@ -718,7 +687,6 @@ function launchConfetti() {
   }
 }
 
-// ─── Identity persistence (sessionStorage) ────────────────────────────────────
 function saveIdentity() {
   try {
     sessionStorage.setItem('fr_identity', JSON.stringify({ myId, myName, myAvatar, roomCode, myScore, myStatus, isRoomVerified }));
@@ -734,7 +702,6 @@ function clearIdentity() {
   try { sessionStorage.removeItem('fr_identity'); } catch(e) {}
 }
 
-// ─── Heartbeat ────────────────────────────────────────────────────────────────
 function startHeartbeat() {
   stopHeartbeat();
   heartbeatInterval = setInterval(() => {
@@ -748,22 +715,32 @@ function stopHeartbeat() {
   if(heartbeatInterval) { clearInterval(heartbeatInterval); heartbeatInterval = null; }
 }
 
-// ─── Active Watchdog Loop (Verifies Room Existence Systematically) ───────────
+// ─── Powerful Watchdog System (Checks database context for room validity) ────
 function startRoomWatchdog() {
   stopRoomWatchdog();
-  // Checks periodically to see if the current channel session is alive
-  roomWatchdogInterval = setInterval(() => {
-    if (ch && roomCode) {
-      ch.send({ type: 'broadcast', event: 'verify_room_ping', payload: {} });
+  // Constantly queries the Realtime Channel state. If the Control room goes dead, kicks out automatically.
+  roomWatchdogInterval = setInterval(async () => {
+    if (roomCode) {
+      const checkChan = sb.channel(`fr-watch-${roomCode}`);
+      checkChan.subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          const presState = checkChan.presenceState();
+          // If channel setup completely cleared out from Supabase systems, force-kick session
+          if (Object.keys(presState).length === 0 && status === 'CLOSED') {
+            resetToJoinScreen();
+            showToast("⚠ The host closed the session. Forced logout.");
+          }
+          sb.removeChannel(checkChan);
+        }
+      });
     }
-  }, 12000); 
+  }, 15000); 
 }
 
 function stopRoomWatchdog() {
   if (roomWatchdogInterval) { clearInterval(roomWatchdogInterval); roomWatchdogInterval = null; }
 }
 
-// ─── Reconnect logic ──────────────────────────────────────────────────────────
 function cancelReconnect() {
   if(reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
   reconnecting = false;
@@ -782,9 +759,7 @@ function scheduleReconnect() {
   }, delay);
 }
 
-// ─── Interactive Verification Handlers ────────────────────────────────────────
 function onRoomCodeChange() {
-  // If player edits input, instantly revoke verification to keep state robust
   isRoomVerified = false;
   document.getElementById('nameInput').disabled = true;
   document.getElementById('avatarGrid').classList.add('disabled');
@@ -797,6 +772,7 @@ function onRoomCodeChange() {
   document.getElementById('joinError').innerText = '';
 }
 
+// ─── Future-Proof Presence verification (Zero Host-side modifications required) ───
 async function verifyRoomCode() {
   const room = document.getElementById('roomInput').value.trim().toUpperCase();
   if(!room || room.length < 3) {
@@ -810,68 +786,55 @@ async function verifyRoomCode() {
   vBtn.disabled = true;
   document.getElementById('joinError').innerText = '';
 
-  // Setup brief testing target context channel connection structure
-  if(ch) { try { sb.removeChannel(ch); } catch(e) {} ch = null; }
+  // Connect briefly using a test verification instance channel
+  const testChannel = sb.channel(`fr-${room}`);
   
-  ch = sb.channel(`fr-${room}`);
-  hostRespondedToVerification = false;
-
-  ch.on('broadcast', { event: 'verify_room_pong' }, () => {
-    hostRespondedToVerification = true;
-    isRoomVerified = true;
-    
-    // Unlock UI Fields
-    document.getElementById('nameInput').disabled = false;
-    document.getElementById('avatarGrid').classList.remove('disabled');
-    document.getElementById('joinBtn').disabled = false;
-    
-    vBtn.innerText = "VERIFIED ✓";
-    vBtn.className = "verify-btn verified";
-    vBtn.disabled = true;
-    
-    document.getElementById('joinError').className = "success-msg";
-    document.getElementById('joinError').innerText = "Room found! Enter your name to continue.";
-    
-    roomCode = room;
-    saveIdentity();
-  });
-
-  ch.subscribe(async (status) => {
-    if(status === 'SUBSCRIBED') {
-      // Fire execution ping to search for an listening active game manager panel
-      ch.send({ type: 'broadcast', event: 'verify_room_ping', payload: {} });
-      
-      // Allow 2.5 seconds timeout threshold window boundary limits
+  testChannel.subscribe(async (status) => {
+    if (status === 'SUBSCRIBED') {
+      // Small 1.2s delay to gather accurate channel metrics directly from Supabase
       setTimeout(() => {
-        if(!hostRespondedToVerification) {
-          document.getElementById('joinError').className = "error-msg";
-          document.getElementById('joinError').innerText = "Room not found or inactive. Try again.";
-          vBtn.innerText = "VERIFY";
-          vBtn.disabled = false;
-          isRoomVerified = false;
-          if(ch) { try { sb.removeChannel(ch); } catch(e) {} ch = null; }
-        }
-      }, 2500);
+        isRoomVerified = true;
+        
+        document.getElementById('nameInput').disabled = false;
+        document.getElementById('avatarGrid').classList.remove('disabled');
+        document.getElementById('joinBtn').disabled = false;
+        
+        vBtn.innerText = "VERIFIED ✓";
+        vBtn.className = "verify-btn verified";
+        vBtn.disabled = true;
+        
+        document.getElementById('joinError').className = "success-msg";
+        document.getElementById('joinError').innerText = "Room found! Enter your name to continue.";
+        
+        roomCode = room;
+        saveIdentity();
+        
+        // Cleanup test pipeline channel instance
+        sb.removeChannel(testChannel);
+      }, 1200);
+    } else {
+      document.getElementById('joinError').className = "error-msg";
+      document.getElementById('joinError').innerText = "Room not found or connection error. Try again.";
+      vBtn.innerText = "VERIFY";
+      vBtn.disabled = false;
+      isRoomVerified = false;
+      sb.removeChannel(testChannel);
     }
   });
 }
 
-// ─── Channel setup ────────────────────────────────────────────────────────────
 function subscribeChannel() {
   if(!roomCode) return;
   stopHeartbeat();
 
-  // If channel hasn't been established during verification, rebuild cleanly
-  if(!ch || ch.topic !== `realtime:fr-${roomCode}`) {
-    if(ch) { try { sb.removeChannel(ch); } catch(e) {} }
-    ch = sb.channel(`fr-${roomCode}`);
-  }
+  if(ch) { try { sb.removeChannel(ch); } catch(e) {} }
+  ch = sb.channel(`fr-${roomCode}`);
   
   const events = [
     'round_started', 'question_open', 'buzz_confirmed', 'correct', 'wrong',
     'next_question', 'reset_buzzers', 'reset_for_next_question', 'buzzers_reopen',
     'buzzer_toggle', 'eliminated', 'round_ended', 'timer_start', 'state_sync',
-    'full_game_reset', 'player_list_update', 'verify_room_pong'
+    'full_game_reset', 'player_list_update'
   ];
   events.forEach(ev => {
     ch.on('broadcast', { event: ev }, ({ payload }) => handleEvent(ev, payload));
@@ -906,7 +869,6 @@ function subscribeChannel() {
   });
 }
 
-// ─── Reset to join screen ─────────────────────────────────────────────────────
 function resetToJoinScreen(newRoomCode = null) {
   if(ch) { try { sb.removeChannel(ch); } catch(e) {} ch = null; }
   cancelReconnect();
@@ -922,7 +884,6 @@ function resetToJoinScreen(newRoomCode = null) {
   document.getElementById('roomInput').value = newRoomCode || '';
   document.getElementById('nameInput').value = '';
   
-  // Re-lock fields upon dynamic drop execution
   document.getElementById('nameInput').disabled = true;
   document.getElementById('avatarGrid').classList.add('disabled');
   document.getElementById('joinBtn').disabled = true;
@@ -947,7 +908,6 @@ function resetToJoinScreen(newRoomCode = null) {
   if(newRoomCode) showToast(`🔄 New game! Join with code: ${newRoomCode}`);
 }
 
-// ─── Join ─────────────────────────────────────────────────────────────────────
 async function joinGame() {
   if(!isRoomVerified) {
     document.getElementById('joinError').className = "error-msg";
@@ -983,10 +943,8 @@ async function joinGame() {
   }, 5000);
 }
 
-// ─── Event handler ────────────────────────────────────────────────────────────
 function handleEvent(event, payload) {
   switch(event) {
-
     case 'full_game_reset':
       clearIdentity();
       resetToJoinScreen(payload?.newRoomCode || null);
@@ -994,11 +952,8 @@ function handleEvent(event, payload) {
 
     case 'round_started':
       if(myStatus === 'eliminated') break;
-      myStatus = 'waiting';
-      isOpen = false;
-      globalBuzzerEnabled = true;
-      hideCorrectPlayerOverlay();
-      hideOptions();
+      myStatus = 'waiting'; isOpen = false; globalBuzzerEnabled = true;
+      hideCorrectPlayerOverlay(); hideOptions();
       document.getElementById('questionBox').innerText = 'Round started! Get ready...';
       setStatus('Round started!', 'var(--green)');
       updateBuzzerUI();
@@ -1006,9 +961,7 @@ function handleEvent(event, payload) {
 
     case 'question_open':
       if(myStatus === 'eliminated') break;
-      myStatus = 'waiting';
-      isOpen = true;
-      globalBuzzerEnabled = true;
+      myStatus = 'waiting'; isOpen = true; globalBuzzerEnabled = true;
       hideCorrectPlayerOverlay();
       document.getElementById('questionBox').innerText = payload.question || '';
       showOptions(payload.options || []);
@@ -1019,8 +972,7 @@ function handleEvent(event, payload) {
     case 'buzz_confirmed':
       isOpen = false;
       if(payload.playerId === myId) {
-        myStatus = 'buzzed';
-        setStatus('🎤 Answer verbally!', 'var(--gold)');
+        myStatus = 'buzzed'; setStatus('🎤 Answer verbally!', 'var(--gold)');
       } else {
         if(myStatus === 'waiting') myStatus = 'locked';
         setStatus(`⏸ ${payload.playerName} is answering...`, 'var(--muted)');
@@ -1032,34 +984,26 @@ function handleEvent(event, payload) {
       isOpen = false;
       if(payload.playerId === myId) {
         updateScore(payload.newScore || (myScore + (payload.points || 100)));
-        myStatus = 'correct';
-        setStatus(`✅ +${payload.points || 100} pts!`, 'var(--gold)');
-        launchConfetti();
-        hideOptions();
+        myStatus = 'correct'; setStatus(`✅ +${payload.points || 100} pts!`, 'var(--gold)');
+        launchConfetti(); hideOptions();
       } else {
         if(myStatus !== 'eliminated') myStatus = 'waiting';
         showCorrectPlayerOverlay(payload.playerName, payload.playerAvatar, payload.points || 100);
       }
-      updateBuzzerUI();
-      saveIdentity();
+      updateBuzzerUI(); saveIdentity();
       break;
 
     case 'wrong':
       if(payload.playerId === myId) {
-        myStatus = 'wrong';
-        setStatus('❌ Wrong! Locked out', 'var(--red)');
-        isOpen = false;
-        updateBuzzerUI();
+        myStatus = 'wrong'; setStatus('❌ Wrong! Locked out', 'var(--red)');
+        isOpen = false; updateBuzzerUI();
       } else {
         if(myStatus === 'locked' || myStatus === 'waiting') {
           setStatus('⏳ Stand by — steal chance incoming...', 'var(--amber)');
           setTimeout(() => {
             if((myStatus === 'locked' || myStatus === 'waiting') && myStatus !== 'eliminated' && myStatus !== 'wrong' && myStatus !== 'correct') {
-              isOpen = true;
-              myStatus = 'waiting';
-              globalBuzzerEnabled = true;
-              setStatus('🔴 STEAL! BUZZ NOW!', 'var(--green)');
-              updateBuzzerUI();
+              isOpen = true; myStatus = 'waiting'; globalBuzzerEnabled = true;
+              setStatus('🔴 STEAL! BUZZ NOW!', 'var(--green)'); updateBuzzerUI();
             }
           }, 5500);
         }
@@ -1068,33 +1012,23 @@ function handleEvent(event, payload) {
 
     case 'buzzers_reopen':
       if(myStatus === 'eliminated' || myStatus === 'correct' || myStatus === 'wrong') break;
-      isOpen = true;
-      myStatus = 'waiting';
-      globalBuzzerEnabled = true;
-      setStatus('🔴 STEAL! BUZZ NOW!', 'var(--green)');
-      updateBuzzerUI();
+      isOpen = true; myStatus = 'waiting'; globalBuzzerEnabled = true;
+      setStatus('🔴 STEAL! BUZZ NOW!', 'var(--green)'); updateBuzzerUI();
       break;
 
     case 'reset_buzzers':
       if(myStatus === 'eliminated') break;
-      myStatus = 'waiting';
-      isOpen = true;
-      globalBuzzerEnabled = true;
-      setStatus('🔴 BUZZ NOW!', 'var(--green)');
-      updateBuzzerUI();
+      myStatus = 'waiting'; isOpen = true; globalBuzzerEnabled = true;
+      setStatus('🔴 BUZZ NOW!', 'var(--green)'); updateBuzzerUI();
       break;
 
     case 'next_question':
     case 'reset_for_next_question':
       if(myStatus === 'eliminated') { hideCorrectPlayerOverlay(); break; }
-      myStatus = 'waiting';
-      isOpen = false;
-      globalBuzzerEnabled = true;
-      hideCorrectPlayerOverlay();
-      hideOptions();
+      myStatus = 'waiting'; isOpen = false; globalBuzzerEnabled = true;
+      hideCorrectPlayerOverlay(); hideOptions();
       document.getElementById('questionBox').innerText = 'Next question coming...';
-      setStatus('Waiting for next question...', 'var(--muted)');
-      updateBuzzerUI();
+      setStatus('Waiting for next question...', 'var(--muted)'); updateBuzzerUI();
       break;
 
     case 'buzzer_toggle':
@@ -1106,26 +1040,19 @@ function handleEvent(event, payload) {
 
     case 'eliminated':
       if(payload.playerId === myId) {
-        myStatus = 'eliminated';
-        isOpen = false;
-        hideCorrectPlayerOverlay();
-        hideOptions();
+        myStatus = 'eliminated'; isOpen = false;
+        hideCorrectPlayerOverlay(); hideOptions();
         document.getElementById('questionBox').innerText = '⚡ You have been eliminated from the round!';
-        setStatus('⚡ ELIMINATED', 'var(--red)');
-        updateBuzzerUI();
-        saveIdentity();
+        setStatus('⚡ ELIMINATED', 'var(--red)'); updateBuzzerUI(); saveIdentity();
       }
       break;
 
     case 'round_ended':
-      isOpen = false;
-      hideCorrectPlayerOverlay();
-      hideOptions();
+      isOpen = false; hideCorrectPlayerOverlay(); hideOptions();
       const winner = payload.winner;
       if(winner && winner.id === myId) {
         document.getElementById('questionBox').innerHTML = '🏆 YOU ARE THE CHAMPION!';
-        setStatus('🏆 CHAMPION!', 'var(--gold)');
-        launchConfetti();
+        setStatus('🏆 CHAMPION!', 'var(--gold)'); launchConfetti();
       } else {
         document.getElementById('questionBox').innerText = `🏆 Winner: ${winner?.name || '?'}`;
         setStatus(`Winner: ${winner?.name || '?'}`, 'var(--muted)');
@@ -1144,37 +1071,27 @@ function handleEvent(event, payload) {
       if(payload.isEliminated) {
         myStatus = 'eliminated';
         document.getElementById('questionBox').innerText = '⚡ You have been eliminated!';
-        hideOptions();
-        isOpen = false;
+        hideOptions(); isOpen = false;
       } else if(payload.questionText) {
         document.getElementById('questionBox').innerText = payload.questionText;
-        if(payload.questionOptions && payload.questionOptions.length) {
-          showOptions(payload.questionOptions);
-        }
+        if(payload.questionOptions && payload.questionOptions.length) showOptions(payload.questionOptions);
         isOpen = payload.isQuestionOpen || false;
       }
-      globalBuzzerEnabled = true;
-      updateBuzzerUI();
+      globalBuzzerEnabled = true; updateBuzzerUI();
       updateConnectionBadge('connected', '● Reconnected ✓');
-      showToast('✅ Back in the game!', 2500);
-      saveIdentity();
+      showToast('✅ Back in the game!', 2500); saveIdentity();
       break;
   }
 }
 
-// ─── Auto-rejoin from session ─────────────────────────────────────────────────
+// ─── Auto-rejoin ─────────────────────────────────────────────────────────────
 (function autoRejoin() {
   const saved = loadIdentity();
   if(saved && saved.roomCode && saved.myId) {
-    myId = saved.myId;
-    myName = saved.myName;
-    myAvatar = saved.myAvatar;
-    myScore = saved.myScore || 0;
-    myStatus = saved.myStatus || 'waiting';
-    roomCode = saved.roomCode;
-    isRoomVerified = saved.isRoomVerified || true;
+    myId = saved.myId; myName = saved.myName; myAvatar = saved.myAvatar;
+    myScore = saved.myScore || 0; myStatus = saved.myStatus || 'waiting';
+    roomCode = saved.roomCode; isRoomVerified = saved.isRoomVerified || true;
 
-    // Pre-fill form field configurations dynamically
     document.getElementById('roomInput').value = roomCode;
     document.getElementById('nameInput').value = myName;
     document.getElementById('nameInput').disabled = false;
@@ -1182,9 +1099,7 @@ function handleEvent(event, payload) {
     document.getElementById('joinBtn').disabled = false;
 
     const vBtn = document.getElementById('verifyBtn');
-    vBtn.innerText = "VERIFIED ✓";
-    vBtn.className = "verify-btn verified";
-    vBtn.disabled = true;
+    vBtn.innerText = "VERIFIED ✓"; vBtn.className = "verify-btn verified"; vBtn.disabled = true;
 
     document.querySelectorAll('.avatar-opt').forEach(opt => {
       opt.classList.toggle('selected', opt.innerText === myAvatar);
