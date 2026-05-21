@@ -649,7 +649,12 @@ function renderPlayersList() {
 function handleBroadcast(event, payload) {
   switch(event) {
     case 'player_list_update':
-      cachedPlayers = payload.players || [];
+      // 👇 FILTER OUT ANY DIAGNOSTIC PROBE CHARACTERS FROM THE LIVE SCREEN
+      if (payload && payload.players) {
+        cachedPlayers = payload.players.filter(p => p && p.id && !p.id.startsWith('probe_'));
+      } else {
+        cachedPlayers = [];
+      }
       renderPlayersList();
       break;
 

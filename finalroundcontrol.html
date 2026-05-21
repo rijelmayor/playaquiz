@@ -331,6 +331,9 @@ function handleHeartbeat(payload) {
 }
 
 function handlePlayerJoin(payload) {
+  // ─── Safety Guard: Ignore Background Verification Probe Handshakes ───
+  if (payload && payload.id && payload.id.startsWith('probe_')) return;
+
   // Reconnect case: same name, different session ID
   const existing = Array.from(frPlayers.values()).find(p => p.name === payload.name);
   if(existing && existing.id !== payload.id) {
