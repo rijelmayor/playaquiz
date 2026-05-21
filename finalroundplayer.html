@@ -761,7 +761,6 @@ function onRoomCodeChange() {
   document.getElementById('joinError').innerText = '';
 }
 
-// ─── Direct Passroom Validation Fix ──────────────────────────────────────────
 async function verifyRoomCode() {
   const room = document.getElementById('roomInput').value.trim().toUpperCase();
   if(!room || room.length < 3) {
@@ -772,7 +771,6 @@ async function verifyRoomCode() {
 
   const vBtn = document.getElementById('verifyBtn');
   
-  // Instantly lock validation variables to avoid race conditions or network latency errors
   isRoomVerified = true;
   roomCode = room;
   
@@ -911,6 +909,14 @@ async function joinGame() {
 
 function handleEvent(event, payload) {
   switch(event) {
+    case 'player_list_update':
+      // Active handshake link back from host dashboard configuration
+      if (window.autoRejoinTimeout) {
+        clearTimeout(window.autoRejoinTimeout);
+        window.autoRejoinTimeout = null;
+      }
+      break;
+
     case 'full_game_reset':
       clearIdentity();
       resetToJoinScreen(payload?.newRoomCode || null);
@@ -1032,6 +1038,7 @@ function handleEvent(event, payload) {
 
     case 'state_sync':
       if(payload.playerId !== myId) break;
+      if (window.autoRejoinTimeout) { clearTimeout(window.autoRejoinTimeout); window.autoRejoinTimeout = null; }
       myStatus = payload.status || 'waiting';
       if(payload.score !== undefined) updateScore(payload.score);
       if(payload.isEliminated) {
@@ -1050,7 +1057,7 @@ function handleEvent(event, payload) {
   }
 }
 
-// ─── Auto-rejoin from session ─────────────────────────────────────────────────
+// ─── Auto-rejoin from session (with Active Validation Handshake) ─────────────
 (function autoRejoin() {
   const saved = loadIdentity();
   if(saved && saved.roomCode && saved.myId) {
@@ -1073,6 +1080,14 @@ function handleEvent(event, payload) {
 
     updateConnectionBadge('reconnecting', '⟳ Reconnecting...');
     subscribeChannel();
+
+    // Start a 2.5 second handshake timer. If the room is dead or code changed, 
+    // the host will ignore our request and we'll automatically clear memory.
+    window.autoRejoinTimeout = setTimeout(() => {
+      console.log("Auto-rejoin handshake timed out. Room no longer active.");
+      resetToJoinScreen();
+      showToast("ℹ Game session has expired or room closed.");
+    }, 2500);
   }
 })();
 
