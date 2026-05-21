@@ -331,8 +331,12 @@ function handleHeartbeat(payload) {
 }
 
 function handlePlayerJoin(payload) {
-  // ─── Safety Guard: Ignore Background Verification Probe Handshakes ───
-  if (payload && payload.id && payload.id.startsWith('probe_')) return;
+  // ─── Safety Guard: Identify Background Verification Probe Handshakes ───
+  if (payload && payload.id && payload.id.startsWith('probe_')) {
+    // DO NOT add to frPlayers, DO NOT toast, but DO broadcast back so player knows room exists!
+    broadcast('player_list_update', { players: Array.from(frPlayers.values()) });
+    return;
+  }
 
   // Reconnect case: same name, different session ID
   const existing = Array.from(frPlayers.values()).find(p => p.name === payload.name);
@@ -368,7 +372,6 @@ function handlePlayerJoin(payload) {
 
   // Duplicate join guard
   if(frPlayers.has(payload.id)) {
-    // Already known — just refresh their heartbeat
     const p = frPlayers.get(payload.id);
     p.connected = true; p.lastSeen = Date.now();
     return;
