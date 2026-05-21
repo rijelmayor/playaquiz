@@ -649,9 +649,16 @@ function renderPlayersList() {
 function handleBroadcast(event, payload) {
   switch(event) {
     case 'player_list_update':
-      // 👇 FILTER OUT ANY DIAGNOSTIC PROBE CHARACTERS FROM THE LIVE SCREEN
-      if (payload && payload.players) {
-        cachedPlayers = payload.players.filter(p => p && p.id && !p.id.startsWith('probe_'));
+      // Safe fallback guard to ensure we have a valid array of players
+      if (payload && Array.isArray(payload.players)) {
+        cachedPlayers = payload.players.filter(p => {
+          // If a player object is broken or lacks an ID, skip it safely
+          if (!p || !p.id) return false;
+          // Ignore diagnostic background pings
+          if (typeof p.id === 'string' && p.id.startsWith('probe_')) return false;
+          // Keep all authentic contestants
+          return true;
+        });
       } else {
         cachedPlayers = [];
       }
