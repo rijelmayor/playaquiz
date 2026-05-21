@@ -761,6 +761,7 @@ function onRoomCodeChange() {
   document.getElementById('joinError').innerText = '';
 }
 
+// ─── Realtime Handshake Room Verification Fix ───────────────────────────────
 async function verifyRoomCode() {
   const room = document.getElementById('roomInput').value.trim().toUpperCase();
   if(!room || room.length < 3) {
@@ -770,21 +771,55 @@ async function verifyRoomCode() {
   }
 
   const vBtn = document.getElementById('verifyBtn');
-  
-  isRoomVerified = true;
-  roomCode = room;
-  
-  document.getElementById('nameInput').disabled = false;
-  document.getElementById('avatarGrid').classList.remove('disabled');
-  document.getElementById('joinBtn').disabled = false;
-  
-  vBtn.innerText = "VERIFIED ✓";
-  vBtn.className = "verify-btn verified";
+  vBtn.innerText = "CHECKING...";
   vBtn.disabled = true;
-  
-  document.getElementById('joinError').className = "success-msg";
-  document.getElementById('joinError').innerText = "Room locked! Enter your name and click join.";
-  saveIdentity();
+  document.getElementById('joinError').innerText = '';
+
+  // Spin up a brief tracking channel to find active hosts
+  const testCh = sb.channel(`fr-${room}`);
+  let hostFound = false;
+
+  // Listen explicitly for the state sync or list requests issued by hosts
+  testCh.on('broadcast', { event: 'player_list_update' }, () => { hostFound = true; });
+  testCh.on('broadcast', { event: 'state_sync' }, () => { hostFound = true; });
+
+  testCh.subscribe(async (status) => {
+    if (status === 'SUBSCRIBED') {
+      // Fire an inspection ping over the network channel
+      await testCh.send({ type: 'broadcast', event: 'player_join', payload: { id: 'probe_' + Date.now(), name: 'PROBE', avatar: '🔍' } });
+      
+      // Allow 1.2 seconds for an active host topic instance to respond or register presence
+      setTimeout(() => {
+        // Fallback: If host tracker responds OR presence records exist, room is real
+        const presenceCount = Object.keys(testCh.presenceState()).length;
+        
+        if (hostFound || presenceCount > 0) {
+          isRoomVerified = true;
+          roomCode = room;
+          
+          document.getElementById('nameInput').disabled = false;
+          document.getElementById('avatarGrid').classList.remove('disabled');
+          document.getElementById('joinBtn').disabled = false;
+          
+          vBtn.innerText = "VERIFIED ✓";
+          vBtn.className = "verify-btn verified";
+          vBtn.disabled = true;
+          
+          document.getElementById('joinError').className = "success-msg";
+          document.getElementById('joinError').innerText = "Room found! Enter your name and click join.";
+          saveIdentity();
+        } else {
+          // No tracking feedback or host found
+          isRoomVerified = false;
+          vBtn.innerText = "VERIFY";
+          vBtn.disabled = false;
+          document.getElementById('joinError').className = "error-msg";
+          document.getElementById('joinError').innerText = "Verification failed. Active room not found.";
+        }
+        sb.removeChannel(testCh);
+      }, 1200);
+    }
+  });
 }
 
 function subscribeChannel() {
@@ -910,7 +945,6 @@ async function joinGame() {
 function handleEvent(event, payload) {
   switch(event) {
     case 'player_list_update':
-      // Active handshake link back from host dashboard configuration
       if (window.autoRejoinTimeout) {
         clearTimeout(window.autoRejoinTimeout);
         window.autoRejoinTimeout = null;
@@ -1057,7 +1091,7 @@ function handleEvent(event, payload) {
   }
 }
 
-// ─── Auto-rejoin from session (with Active Validation Handshake) ─────────────
+// ─── Auto-rejoin from session (with Validation Handshake Check) ──────────────
 (function autoRejoin() {
   const saved = loadIdentity();
   if(saved && saved.roomCode && saved.myId) {
@@ -1081,8 +1115,7 @@ function handleEvent(event, payload) {
     updateConnectionBadge('reconnecting', '⟳ Reconnecting...');
     subscribeChannel();
 
-    // Start a 2.5 second handshake timer. If the room is dead or code changed, 
-    // the host will ignore our request and we'll automatically clear memory.
+    // Verification handshake check: Wipes local tracking variables cleanly if host channel is non-responsive
     window.autoRejoinTimeout = setTimeout(() => {
       console.log("Auto-rejoin handshake timed out. Room no longer active.");
       resetToJoinScreen();
