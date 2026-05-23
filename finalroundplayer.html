@@ -381,7 +381,7 @@
       <div class="avatar-grid" id="avatarGrid"></div>
     </div>
     
-    <button class="join-btn" id="joinBtn" onclick="joinGame()" disabled>⚡ ENTER FINAL ROUND</button>
+    <button class="join-btn" id="joinBtn" onclick="joinGame()" disabled style="opacity:0.5; pointer-events:none;">⚡ ENTER FINAL ROUND</button>
     <div id="joinError" class="error-msg"></div>
   </div>
 </div>
@@ -553,6 +553,7 @@ async function verifyRoomCode() {
 }
 
 // Enable/disable name section with animation
+// Enable/disable name section with animation
 function enableNameSection(enabled) {
   const nameField = document.getElementById('nameField');
   const nameInput = document.getElementById('nameInput');
@@ -565,14 +566,25 @@ function enableNameSection(enabled) {
     avatarField.classList.remove('disabled');
     avatarField.classList.add('enabled');
     nameInput.disabled = false;
+    
+    // IMPORTANT: Enable the join button
+    joinBtn.disabled = false;
     joinBtn.classList.add('active');
+    joinBtn.style.opacity = '1';
+    joinBtn.style.pointerEvents = 'auto';
+    
   } else {
     nameField.classList.add('disabled');
     nameField.classList.remove('enabled');
     avatarField.classList.add('disabled');
     avatarField.classList.remove('enabled');
     nameInput.disabled = true;
+    
+    // IMPORTANT: Disable the join button
+    joinBtn.disabled = true;
     joinBtn.classList.remove('active');
+    joinBtn.style.opacity = '0.5';
+    joinBtn.style.pointerEvents = 'none';
   }
 }
 
