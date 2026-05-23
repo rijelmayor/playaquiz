@@ -210,7 +210,7 @@ function generateNewRoomCode() {
   document.getElementById('roomCodeDisplay').innerText = roomCode;
   localStorage.setItem('fr_room', roomCode);
   
-  // IMPORTANT: Register in database
+  // THIS IS THE IMPORTANT LINE - makes it work
   registerRoomInDatabase(newCode);
   
   frPlayers.clear(); eliminatedPlayers.clear(); lockedPlayers.clear();
@@ -629,7 +629,7 @@ function resetFullGame() {
     document.getElementById('roomCodeDisplay').innerText = roomCode;
     localStorage.setItem('fr_room', roomCode);
     
-    // Register new room
+    // IMPORTANT: Register the new room
     registerRoomInDatabase(newCode);
     
     frPlayers.clear(); eliminatedPlayers.clear(); lockedPlayers.clear();
