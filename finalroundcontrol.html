@@ -224,6 +224,53 @@ function generateNewRoomCode() {
   toast(`🆕 New room: ${roomCode}`);
 }
 
+
+// Add this debug function
+async function debugRoomRegistration() {
+  console.log('=== DEBUG: Checking room registration ===');
+  console.log('Current roomCode:', roomCode);
+  
+  try {
+    const { data, error } = await sb
+      .from('game_rooms')
+      .select('*')
+      .eq('room_code', roomCode);
+    
+    if (error) {
+      console.error('Database query error:', error);
+    } else {
+      console.log('Rooms found in database:', data);
+      if (data.length === 0) {
+        console.log('⚠️ Room NOT found in database! Registration failed.');
+      } else {
+        console.log('✅ Room found in database!');
+      }
+    }
+  } catch (err) {
+    console.error('Debug error:', err);
+  }
+}
+
+// Also add this to check table existence
+async function checkTableExists() {
+  console.log('=== Checking game_rooms table ===');
+  try {
+    const { data, error, count } = await sb
+      .from('game_rooms')
+      .select('*', { count: 'exact', head: true });
+    
+    if (error) {
+      console.error('Table error:', error);
+      console.log('❌ game_rooms table may not exist or RLS is blocking');
+    } else {
+      console.log('✅ game_rooms table exists');
+      console.log('Total rooms:', count);
+    }
+  } catch (err) {
+    console.error('Check failed:', err);
+  }
+}
+
 // ─── Audio Functions ──────────────────────────────────────────────────────────
 function getAudio() {
   const ctx = new (window.AudioContext||window.webkitAudioContext)();
