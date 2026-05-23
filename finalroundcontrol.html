@@ -200,7 +200,6 @@ async function registerRoomInDatabase(roomCode) {
   }
 }
 
-// Then modify generateNewRoomCode to call it:
 function generateNewRoomCode() {
   if(!confirm('Generate new room code? All players must re-join.')) return;
   const newCode = 'FR' + Math.random().toString(36).substring(2,6).toUpperCase();
@@ -209,7 +208,7 @@ function generateNewRoomCode() {
   document.getElementById('roomCodeDisplay').innerText = roomCode;
   localStorage.setItem('fr_room', roomCode);
   
-  // NEW: Register in database
+  // IMPORTANT: Register in database
   registerRoomInDatabase(newCode);
   
   frPlayers.clear(); eliminatedPlayers.clear(); lockedPlayers.clear();
@@ -316,24 +315,7 @@ function selectQuestion(qId) {
 
 function fireQuestion(qId) { selectQuestion(qId); openQuestion(); }
 
-// ─── Room code ────────────────────────────────────────────────────────────────
-function generateNewRoomCode() {
-  if(!confirm('Generate new room code? All players must re-join.')) return;
-  const newCode = 'FR' + Math.random().toString(36).substring(2,6).toUpperCase();
-  roomCode = newCode;
-  document.getElementById('roomCodeInput').value = roomCode;
-  document.getElementById('roomCodeDisplay').innerText = roomCode;
-  localStorage.setItem('fr_room', roomCode);
-  frPlayers.clear(); eliminatedPlayers.clear(); lockedPlayers.clear();
-  buzzedPlayerId = null; isQuestionOpen = false; selectedQuestionForGame = null;
-  currentQuestionNumber = 0; usedQuestionIds.clear();
-  renderPlayersGrid(); updateSidebar();
-  broadcast('full_game_reset', { newRoomCode: roomCode });
-  setupRealtimeChannel();
-  document.getElementById('setupPanel').classList.remove('hidden');
-  document.getElementById('gamePanel').classList.add('hidden');
-  toast(`🆕 New room: ${roomCode}`);
-}
+
 
 // ─── Realtime ─────────────────────────────────────────────────────────────────
 function setupRealtimeChannel() {
