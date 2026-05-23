@@ -57,6 +57,123 @@
 
     .app { height: 100vh; display: flex; flex-direction: column; position: relative; z-index: 2; }
 
+    /* ═══════════════════════════════════════════════════════════════════ */
+    /* ROOM CODE ENTRY SCREEN (NEW GATE) */
+    /* ═══════════════════════════════════════════════════════════════════ */
+    #roomEntryGate {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(7,5,16,0.95), rgba(16,8,24,0.95));
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(8px);
+    }
+    #roomEntryGate.hidden { display: none !important; }
+
+    .entry-card {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(245,200,66,0.25);
+      border-radius: 32px;
+      padding: 40px 32px;
+      width: 100%;
+      max-width: 480px;
+      backdrop-filter: blur(20px);
+      text-align: center;
+      animation: slideUp 0.6s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
+
+    .entry-logo {
+      font-family: 'Syne', sans-serif;
+      font-size: 48px;
+      font-weight: 800;
+      letter-spacing: 6px;
+      background: linear-gradient(135deg, #fff 30%, var(--gold));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 12px;
+    }
+
+    .entry-subtitle {
+      font-size: 13px;
+      color: var(--muted);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 32px;
+    }
+
+    .entry-field {
+      margin-bottom: 18px;
+    }
+    .entry-field label {
+      display: block;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--muted);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .entry-field input {
+      width: 100%;
+      background: rgba(255,255,255,0.06);
+      border: 1.5px solid rgba(245,200,66,0.3);
+      border-radius: 14px;
+      padding: 14px 18px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 18px;
+      letter-spacing: 2px;
+      color: var(--text);
+      text-align: center;
+      text-transform: uppercase;
+      outline: none;
+      transition: all 0.3s;
+    }
+    .entry-field input:focus {
+      border-color: var(--gold);
+      box-shadow: 0 0 0 4px rgba(245,200,66,0.15);
+      background: rgba(255,255,255,0.1);
+    }
+    .entry-field input::placeholder { color: rgba(240,238,255,0.3); }
+
+    .entry-btn {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, var(--gold), var(--amber));
+      border: none;
+      border-radius: 14px;
+      font-family: 'Syne', sans-serif;
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      color: #111;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-top: 8px;
+    }
+    .entry-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(245,200,66,0.3); }
+    .entry-btn:active { transform: translateY(0); }
+    .entry-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .entry-error {
+      color: var(--red);
+      font-size: 12px;
+      margin-top: 12px;
+      text-align: center;
+      min-height: 20px;
+      animation: shake 0.4s;
+    }
+    @keyframes shake { 0%,100%{ transform: translateX(0); } 25%{ transform: translateX(-6px); } 75%{ transform: translateX(6px); } }
+
+    .entry-hint {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 16px;
+      line-height: 1.6;
+    }
+
     /* TOP BAR */
     .top-bar {
       display: flex;
@@ -206,533 +323,362 @@
       display: flex;
       align-items: flex-start;
       gap: 12px;
-      animation: optIn 0.4s cubic-bezier(0.22,1,0.36,1) both;
-    }
-    .opt-tile:nth-child(1) { animation-delay: 0.05s; }
-    .opt-tile:nth-child(2) { animation-delay: 0.1s; }
-    .opt-tile:nth-child(3) { animation-delay: 0.15s; }
-    .opt-tile:nth-child(4) { animation-delay: 0.2s; }
-    @keyframes optIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:none; } }
-    .opt-letter {
-      font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800;
-      color: var(--gold); flex-shrink: 0; min-width: 24px;
-    }
-    .opt-text {
-      font-size: clamp(14px, 2vw, 20px);
+      font-size: 14px;
       font-weight: 600;
       line-height: 1.4;
     }
+    .opt-letter { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; color: var(--gold); flex-shrink: 0; }
 
-    /* BUZZER OPEN BADGE */
-    .buzzer-open-badge {
-      display: inline-flex; align-items: center; gap: 10px;
-      background: rgba(244,63,94,0.12);
-      border: 1.5px solid rgba(244,63,94,0.4);
-      border-radius: 40px;
-      padding: 10px 24px;
-      font-family: 'Syne', sans-serif;
-      font-size: 14px; font-weight: 800; letter-spacing: 2px;
-      color: var(--red);
-      animation: buzzerPulse 1s ease-in-out infinite;
-    }
-    .buzzer-open-badge .dot {
-      width: 10px; height: 10px; border-radius: 50%;
-      background: var(--red); display: inline-block;
-      animation: dotBlink 0.8s step-end infinite;
-    }
-    @keyframes buzzerPulse { 0%,100%{ box-shadow: 0 0 0 rgba(244,63,94,0); } 50%{ box-shadow: 0 0 20px rgba(244,63,94,0.3); } }
-    @keyframes dotBlink { 0%,100%{ opacity:1; } 50%{ opacity:0; } }
-
-    /* CATEGORY PICKER */
-    .cat-pick-title {
-      font-family: 'Syne', sans-serif; font-size: clamp(22px,4vw,40px); font-weight: 800;
-      letter-spacing: 3px; margin-bottom: 32px; color: var(--gold);
-    }
-    .catpick-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-      gap: 16px;
-      width: 100%;
-      max-width: 900px;
-    }
-    .cat-tile {
-      background: rgba(255,255,255,0.04);
-      border: 1.5px solid rgba(255,255,255,0.1);
-      border-radius: 20px;
-      padding: 24px 16px;
-      text-align: center;
-      animation: catTileIn 0.4s cubic-bezier(0.22,1,0.36,1) both;
-      cursor: default;
-    }
-    @keyframes catTileIn { from { opacity:0; transform:scale(0.9); } to { opacity:1; transform:none; } }
-    .cat-tile-icon { font-size: 40px; margin-bottom: 10px; }
-    .cat-tile-name { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 800; letter-spacing: 1px; }
-
-    /* OVERLAY BANNERS */
-    .overlay-container {
-      position: absolute; inset: 0; z-index: 200;
-      display: flex; align-items: center; justify-content: center;
-      padding: 24px;
-      background: rgba(7,5,16,0.75);
-      backdrop-filter: blur(8px);
-      animation: overlayIn 0.35s cubic-bezier(0.22,1,0.36,1);
-    }
-    @keyframes overlayIn { from { opacity:0; } to { opacity:1; } }
-    .buzz-banner {
-      background: rgba(245,200,66,0.08);
-      border: 2px solid rgba(245,200,66,0.4);
-      border-radius: 28px;
-      padding: 40px 56px;
-      text-align: center;
-      max-width: 600px;
-    }
-    .winner-banner {
-      background: rgba(7,5,16,0.95);
-      border: 2px solid var(--green);
-      border-radius: 28px;
-      padding: 40px 56px;
-      text-align: center;
-      max-width: 600px;
-    }
-    .buzz-avatar { font-size: 56px; display: block; margin-bottom: 10px; }
-    .buzz-title {
-      font-family: 'Syne', sans-serif; font-size: clamp(28px, 5vw, 52px); font-weight: 800;
-      color: var(--text); line-height: 1.1; margin-bottom: 8px;
-    }
-    .buzz-subtitle { font-size: 16px; color: var(--muted); letter-spacing: 2px; font-weight: 600; }
-
-    /* END SCREEN */
-    #endedScreen { text-align: center; }
-
-    /* SIDE PANEL */
-    .side-panel {
-      background: rgba(0,0,0,0.3);
+    /* RIGHT SIDEBAR */
+    .sidebar {
+      width: 260px;
+      background: rgba(7,5,16,0.6);
       border-left: 1px solid var(--border);
       display: flex;
       flex-direction: column;
-      overflow: hidden;
+      overflow-y: auto;
+      padding: 16px 12px;
     }
-    .side-title {
-      font-size: 10px; font-weight: 700; letter-spacing: 2px; color: var(--muted);
-      text-transform: uppercase; padding: 14px 16px 10px;
-      border-bottom: 1px solid var(--border);
-      flex-shrink: 0;
-    }
-    .player-list { flex: 1; overflow-y: auto; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
-    .p-row {
-      display: flex; align-items: center; gap: 10px;
-      background: rgba(255,255,255,0.035);
-      border: 1px solid var(--border);
-      border-radius: 12px; padding: 8px 10px;
-      transition: border-color 0.3s;
-    }
-    .p-row.active-buzz { border-color: var(--gold); background: rgba(245,200,66,0.06); }
-    .p-row.wrong-lock  { border-color: rgba(244,63,94,0.3); }
-    .p-row.eliminated  { opacity: 0.35; filter: grayscale(0.8); }
-    .p-avatar { font-size: 22px; flex-shrink: 0; }
-    .p-info { flex: 1; min-width: 0; }
-    .p-name { font-size: 12px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 5px; }
-    .p-status-sub { font-size: 10px; color: var(--muted); }
-    .p-score { font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 700; color: var(--gold); flex-shrink: 0; }
-    .conn-led { width: 6px; height: 6px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
-    .conn-led.online  { background: var(--green); box-shadow: 0 0 4px var(--green); }
-    .conn-led.offline { background: var(--red); }
+    .sidebar-title { font-size: 9px; font-weight: 700; letter-spacing: 1.5px; color: var(--muted); text-transform: uppercase; margin-bottom: 10px; }
+    .sidebar-item { background: rgba(255,255,255,0.04); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; font-size: 12px; display: flex; align-items: center; gap: 8px; }
+    .sidebar-item.active { background: rgba(245,200,66,0.12); border: 1px solid rgba(245,200,66,0.3); }
+    .avatar-badge { font-size: 20px; flex-shrink: 0; }
+    .player-name { font-weight: 600; flex: 1; }
+    .player-points { color: var(--gold); font-weight: 700; font-family: monospace; }
 
-    /* FOOTER */
-    .footer {
-      padding: 6px 24px;
-      font-size: 10px; color: var(--muted); letter-spacing: 1px;
-      border-top: 1px solid var(--border);
-      flex-shrink: 0;
-      background: rgba(7,5,16,0.6);
-    }
+    /* OVERLAYS */
+    .overlay { position: fixed; inset: 0; z-index: 500; opacity: 0; transition: opacity 0.4s; pointer-events: none; }
+    .overlay.active { opacity: 1; pointer-events: auto; }
 
-    /* FOH COUNTDOWN TIMER */
-    #fohTimerOverlay {
-      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      z-index: 300; pointer-events: none;
-      display: none;
-    }
-    #fohTimerOverlay.active { display: block; }
-    .foh-timer-ring { position: relative; width: 160px; height: 160px; }
-    .foh-timer-ring svg { width: 160px; height: 160px; transform: rotate(-90deg); }
-    .foh-timer-ring .track { fill: none; stroke: rgba(255,255,255,0.06); stroke-width: 8; }
-    .foh-timer-ring .progress {
-      fill: none; stroke: var(--gold); stroke-width: 8; stroke-linecap: round;
-      stroke-dasharray: 283; stroke-dashoffset: 0; transition: stroke-dashoffset 1s linear, stroke 0.3s;
-    }
-    .foh-timer-number {
-      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-      font-family: 'Syne', sans-serif; font-size: 56px; font-weight: 800; color: var(--gold);
-    }
-
-    /* ROOM CODE DISPLAY OVERLAY */
     #roomCodeDisplayOverlay {
-      position: fixed; inset: 0; z-index: 600;
-      background: rgba(7,5,16,0.97);
-      display: none;
-      flex-direction: column;
+      background: rgba(0,0,0,0.7);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .room-code-display-card {
+      background: rgba(255,255,255,0.12);
+      border: 2px solid var(--gold);
+      border-radius: 24px;
+      padding: 48px;
+      text-align: center;
+      backdrop-filter: blur(20px);
+      animation: zoomIn 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes zoomIn { from { opacity: 0; transform: scale(0.7); } to { opacity: 1; transform: scale(1); } }
+    .rcd-label { font-size: 12px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 16px; }
+    .rcd-code { font-family: 'JetBrains Mono', monospace; font-size: 64px; font-weight: 700; color: var(--gold); letter-spacing: 8px; }
+    .rcd-hint { font-size: 11px; color: var(--muted); margin-top: 16px; }
+
+    #matrixWelcome {
+      background: rgba(0,0,0,0.85);
+      display: flex; align-items: center; justify-content: center;
+    }
+    #matrixCanvas {
+      position: absolute;
+      inset: 0;
+      opacity: 0.8;
+    }
+    .matrix-content {
+      position: relative;
+      z-index: 10;
+      text-align: center;
+    }
+    .matrix-welcome-logo {
+      font-family: 'Syne', sans-serif;
+      font-size: 72px;
+      font-weight: 800;
+      letter-spacing: 8px;
+      background: linear-gradient(135deg, #fff, var(--gold));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 24px;
+      animation: glow 1.5s ease-in-out infinite;
+    }
+    @keyframes glow { 0%,100%{ text-shadow: 0 0 0 transparent; } 50%{ text-shadow: 0 0 30px rgba(245,200,66,0.5); } }
+    .matrix-badge {
+      display: inline-block;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 24px;
+      letter-spacing: 3px;
+      color: var(--green);
+      padding: 12px 24px;
+      border: 2px solid var(--green);
+      border-radius: 12px;
+      margin-top: 20px;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100%{ transform: scale(1); } 50%{ transform: scale(1.05); } }
+
+    #fohTimerOverlay {
+      background: rgba(0,0,0,0.8);
+      display: none; align-items: center; justify-content: center;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    #fohTimerOverlay.active {
+      display: flex;
+      opacity: 1;
+    }
+    .timer-circle {
+      width: 280px;
+      height: 280px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.04);
+      border: 3px solid rgba(245,200,66,0.3);
+      display: flex;
       align-items: center;
       justify-content: center;
-      animation: rcOverlayIn 0.4s cubic-bezier(0.22,1,0.36,1);
+      position: relative;
     }
-    #roomCodeDisplayOverlay.active { display: flex; }
-    @keyframes rcOverlayIn { from { opacity:0; transform: scale(0.94); } to { opacity:1; transform:none; } }
-    .rc-label { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 800; letter-spacing: 8px; text-transform: uppercase; color: rgba(245,200,66,0.5); margin-bottom: 18px; }
-    .rc-logo { font-family: 'Syne', sans-serif; font-size: clamp(22px, 4vw, 38px); font-weight: 800; letter-spacing: 5px; background: linear-gradient(135deg, #fff 30%, var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 32px; }
-    .rc-code-box { background: rgba(245,200,66,0.06); border: 2px solid rgba(245,200,66,0.4); border-radius: 24px; padding: 28px 56px; margin-bottom: 24px; box-shadow: 0 0 60px rgba(245,200,66,0.12); }
-    .rc-code { font-family: 'JetBrains Mono', monospace; font-size: clamp(52px, 12vw, 110px); font-weight: 700; letter-spacing: 16px; color: var(--gold); text-shadow: 0 0 40px rgba(245,200,66,0.6), 0 0 80px rgba(245,200,66,0.3); animation: rcPulse 2s ease-in-out infinite alternate; }
-    @keyframes rcPulse { from { text-shadow: 0 0 40px rgba(245,200,66,0.5); } to { text-shadow: 0 0 60px rgba(245,200,66,0.9), 0 0 120px rgba(245,200,66,0.5); } }
-    .rc-instruction { font-size: 15px; color: var(--muted); letter-spacing: 2px; font-weight: 500; margin-top: 8px; }
-    .rc-dismiss-hint { margin-top: 36px; font-size: 11px; letter-spacing: 3px; color: rgba(255,255,255,0.15); text-transform: uppercase; animation: blink 1.5s step-end infinite; }
-    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+    .timer-circle svg {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+    .timer-circle-progress {
+      stroke: var(--gold);
+      fill: none;
+      stroke-width: 8;
+      stroke-linecap: round;
+    }
+    .timer-number {
+      font-family: 'Syne', sans-serif;
+      font-size: 96px;
+      font-weight: 800;
+      color: var(--gold);
+      position: relative;
+      z-index: 2;
+    }
 
-    /* MATRIX WELCOME SCREEN */
-    #matrixWelcome { position: fixed; inset: 0; z-index: 900; background: #000; display: none; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; }
-    #matrixWelcome.active { display: flex; }
-    #matrixCanvas { position: absolute; inset: 0; width: 100%; height: 100%; }
-    .matrix-center { position: relative; z-index: 2; text-align: center; animation: matrixFadeIn 0.8s ease 0.5s both; }
-    @keyframes matrixFadeIn { from { opacity:0; transform: scale(0.9); } to { opacity:1; transform:none; } }
-    .matrix-logo-text { font-family: 'Syne', sans-serif; font-size: clamp(40px, 9vw, 88px); font-weight: 800; letter-spacing: 8px; color: #00ff41; text-shadow: 0 0 20px #00ff41, 0 0 60px #00ff41; animation: matrixGlitch 3s infinite; }
-    @keyframes matrixGlitch { 0%,92%,100%{ text-shadow: 0 0 20px #00ff41, 0 0 60px #00ff41; transform:none; } 93%{ text-shadow: -3px 0 #f43f5e, 3px 0 #6366f1; transform: translateX(2px); } 95%{ text-shadow: 3px 0 #f43f5e, -3px 0 #6366f1; transform: translateX(-2px); } 97%{ text-shadow: 0 0 20px #00ff41, 0 0 60px #00ff41; transform:none; } }
-    .matrix-sub { font-family: 'JetBrains Mono', monospace; font-size: 14px; letter-spacing: 6px; color: rgba(0,255,65,0.6); margin-top: 10px; text-transform: uppercase; animation: matrixTypeIn 1.2s steps(24,end) 1s both; overflow: hidden; white-space: nowrap; }
-    @keyframes matrixTypeIn { from{width:0} to{width:100%} }
-    .matrix-room-badge { margin-top: 28px; font-family: 'JetBrains Mono', monospace; font-size: 22px; color: #fff; background: rgba(0,255,65,0.08); border: 1px solid rgba(0,255,65,0.35); padding: 10px 28px; border-radius: 8px; letter-spacing: 6px; }
-    .matrix-enter-msg { margin-top: 20px; font-size: 12px; color: rgba(0,255,65,0.4); letter-spacing: 3px; animation: blink 1.2s step-end infinite; }
+    /* ENDED SCREEN */
+    .podium-area {
+      text-align: center;
+      animation: podiumEnter 0.6s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes podiumEnter { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .podium-emoji { font-size: 120px; margin-bottom: 20px; }
+    .podium-name { font-family: 'Syne', sans-serif; font-size: clamp(32px, 6vw, 56px); font-weight: 800; letter-spacing: 2px; margin-bottom: 12px; color: var(--gold); }
+    .podium-score { font-size: 18px; color: var(--muted); }
+    .podium-confetti-zone { position: absolute; top: 0; left: 0; right: 0; width: 100%; height: 400px; }
 
-    /* ROOM ENTRY */
-    #roomEntryOverlay { position: fixed; inset: 0; z-index: 800; background: rgba(7,5,16,0.98); backdrop-filter: blur(12px); display: flex; align-items: center; justify-content: center; }
-    .entry-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 28px; padding: 40px 36px; width: 100%; max-width: 400px; text-align: center; }
-    .entry-logo { font-family: 'Syne', sans-serif; font-size: 32px; font-weight: 800; letter-spacing: 6px; background: linear-gradient(135deg, #fff 30%, var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 10px; }
-    .entry-sub { font-size: 13px; color: var(--muted); margin-bottom: 28px; letter-spacing: 0.5px; }
-    .entry-label { font-size: 10px; font-weight: 700; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
-    .entry-input { background: rgba(255,255,255,0.05); border: 1.5px solid rgba(255,255,255,0.15); border-radius: 14px; padding: 14px 20px; color: var(--text); font-size: 24px; font-family: 'JetBrains Mono', monospace; width: 100%; outline: none; text-align: center; letter-spacing: 6px; text-transform: uppercase; margin-bottom: 16px; }
-    .entry-input:focus { border-color: var(--gold); }
-    .entry-btn { width: 100%; padding: 15px; background: linear-gradient(135deg, var(--gold), var(--amber)); border: none; border-radius: 14px; font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 800; letter-spacing: 2px; color: #111; cursor: pointer; }
-    .entry-error { margin-top: 12px; font-size: 12px; color: var(--red); }
+    .hidden { display: none !important; }
   </style>
 </head>
 <body>
+
+<!-- ROOM ENTRY GATE (BEFORE MAIN APP) -->
+<div id="roomEntryGate">
+  <div class="entry-card">
+    <div class="entry-logo">PLAYAQUIZ</div>
+    <div class="entry-subtitle">Final Round Display</div>
+    <div class="entry-field">
+      <label for="entryRoomInput">Enter Room Code</label>
+      <input type="text" id="entryRoomInput" placeholder="e.g., FR7A2B" maxlength="8" autocomplete="off">
+    </div>
+    <button class="entry-btn" onclick="submitEntryRoom()">📡 Connect to Room</button>
+    <div id="entryError" class="entry-error"></div>
+    <div class="entry-hint">
+      ℹ️ Ask the host for the room code to join the final round display.
+    </div>
+  </div>
+</div>
+
 <div class="app">
+  <!-- TOP BAR -->
   <div class="top-bar">
     <div class="logo">PLAYAQUIZ</div>
-    <div style="display:flex; align-items:center; gap:10px;">
-      <button class="audio-control" id="bgmToggleBtn" onclick="toggleBackgroundMusic()">▶ BGM</button>
-      <div class="conn-badge" id="fohConnBadge">⏳ Not connected</div>
-      <div class="room-display" id="roomDisplay">——</div>
+    <div class="room-display">Room: <span id="roomDisplay">——</span></div>
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <span class="conn-badge" id="fohConnBadge">⏳ Not connected</span>
+      <span class="audio-control" onclick="toggleBackgroundMusic()" id="audioToggle">🔊 Audio</span>
     </div>
   </div>
 
+  <!-- MAIN GRID -->
   <div class="main-grid">
+    <!-- GAME CONTENT -->
     <div class="game-content">
-      <!-- WARMUP / WAITING SCREEN -->
       <div id="waitingScreen" class="screen active">
         <div class="warmup-container">
           <div class="warmup-logo">PLAYAQUIZ</div>
-          <div class="warmup-banner">The Grand Final Arena</div>
-          <div class="warmup-pulse-circle"><div class="inner-text">READY</div></div>
-          <div class="warmup-message">Waiting for the host to start the round...</div>
+          <div class="warmup-banner">Final Round</div>
+          <div class="warmup-pulse-circle">
+            <div class="inner-text">⏳</div>
+          </div>
+          <div class="warmup-message">Waiting for round to start...</div>
         </div>
       </div>
 
-      <!-- QUESTION SCREEN -->
+      <div id="categoryScreen" class="screen">
+        <div style="text-align: center;">
+          <div class="warmup-banner">Select a Category:</div>
+          <div id="categoriesList" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 24px; max-width: 600px;"></div>
+        </div>
+      </div>
+
       <div id="questionScreen" class="screen">
-        <div class="question-number" id="fohQuestionMeta">CATEGORY SELECT</div>
-        <div class="question-text" id="fohQuestionText"></div>
-        <div class="options-grid" id="fohOptionsContainer"></div>
-        <div id="fohBuzzerOpenIndicator" style="display:none;margin-top:20px;">
-          <div class="buzzer-open-badge"><span class="dot"></span>BUZZERS ACTIVE — PRESS NOW!</div>
+        <div class="question-number" id="questionNumber">Question 1</div>
+        <div class="question-text" id="questionText">Loading question...</div>
+        <div class="options-grid" id="optionsGrid"></div>
+      </div>
+
+      <div id="endedScreen" class="screen">
+        <div class="podium-confetti-zone"></div>
+        <div class="podium-area">
+          <div class="podium-emoji">🏆</div>
+          <div class="podium-name" id="podiumWinnerName">Champion</div>
+          <div class="podium-score" id="podiumWinnerScore">0 points</div>
         </div>
       </div>
-
-      <!-- CATEGORY PICKER SCREEN -->
-      <div id="categoriesScreen" class="screen">
-        <h2 class="cat-pick-title" id="catPickTitle">Available Categories</h2>
-        <div class="catpick-grid" id="fohCategoriesContainer"></div>
-      </div>
-
-      <!-- END SCREEN -->
-      <div id="endedScreen" class="screen">
-        <span style="font-size:90px; display:block; margin-bottom:10px;">👑</span>
-        <h2 class="cat-pick-title" style="margin-bottom:6px;">Final Match Champion</h2>
-        <div id="podiumWinnerName" style="font-size:clamp(32px,6vw,56px); font-weight:800; color:var(--gold);">—</div>
-        <div id="podiumWinnerScore" style="font-size:20px; color:var(--muted); margin-top:8px;"></div>
-      </div>
-
-      <div id="overlayContainer"></div>
     </div>
 
-    <div class="side-panel">
-      <div class="side-title">Live Finalists</div>
-      <div class="player-list" id="fohPlayersList"></div>
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <div class="sidebar-title">Players</div>
+      <div id="playersList" style="flex: 1; overflow-y: auto;"></div>
     </div>
   </div>
 
-  <div class="footer">PlayAQuiz — Final Round Display &nbsp;·&nbsp; <span id="fohFooterCode" style="color:var(--gold);">——</span></div>
-
-  <!-- FOH COUNTDOWN TIMER -->
-  <div id="fohTimerOverlay">
-    <div class="foh-timer-ring">
-      <svg viewBox="0 0 100 100">
-        <circle class="track" cx="50" cy="50" r="45"/>
-        <circle class="progress" id="fohTimerProgress" cx="50" cy="50" r="45"/>
-      </svg>
-      <div class="foh-timer-number" id="fohTimerNumber">—</div>
+  <!-- OVERLAYS -->
+  <div id="roomCodeDisplayOverlay" class="overlay">
+    <div class="room-code-display-card">
+      <div class="rcd-label">Room Code</div>
+      <div class="rcd-code" id="rcCodeText">——</div>
+      <div class="rcd-hint">Share this with players to join!</div>
     </div>
   </div>
 
-  <!-- ROOM CODE DISPLAY OVERLAY -->
-  <div id="roomCodeDisplayOverlay">
-    <div class="rc-logo">PLAYAQUIZ</div>
-    <div class="rc-label">Join the Final Round</div>
-    <div class="rc-code-box"><div class="rc-code" id="rcCodeText">——</div></div>
-    <div class="rc-instruction">Enter this code on your device to join</div>
-    <div class="rc-dismiss-hint">Tap anywhere to dismiss</div>
-  </div>
-
-  <!-- MATRIX WELCOME SCREEN -->
-  <div id="matrixWelcome">
+  <div id="matrixWelcome" class="overlay">
     <canvas id="matrixCanvas"></canvas>
-    <div class="matrix-center">
-      <div class="matrix-logo-text">PLAYAQUIZ</div>
-      <div class="matrix-sub">THE GRAND FINAL ARENA</div>
-      <div class="matrix-room-badge" id="matrixRoomBadge">——</div>
-      <div class="matrix-enter-msg">PRESS ANYWHERE TO CONTINUE</div>
+    <div class="matrix-content">
+      <div class="matrix-welcome-logo">PLAYAQUIZ</div>
+      <div class="matrix-badge" id="matrixRoomBadge">FR0000</div>
     </div>
   </div>
 
-  <!-- ROOM ENTRY OVERLAY -->
-  <div id="roomEntryOverlay">
-    <div class="entry-card">
-      <div class="entry-logo">PLAYAQUIZ</div>
-      <div class="entry-sub">Enter the room code from the Control Panel</div>
-      <div class="entry-label">Room Code</div>
-      <input type="text" id="fohRoomInput" class="entry-input" placeholder="FR4X7K" maxlength="8"
-        autocomplete="off" onkeydown="if(event.key==='Enter') submitFohRoom()">
-      <button class="entry-btn" onclick="submitFohRoom()">CONNECT TO ROOM</button>
-      <div id="fohRoomError" class="entry-error"></div>
+  <div id="fohTimerOverlay" class="overlay">
+    <div class="timer-circle">
+      <svg viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="45" class="timer-circle-progress" id="fohTimerProgress"></circle>
+      </svg>
+      <div class="timer-number" id="fohTimerNumber">10</div>
     </div>
   </div>
 </div>
 
 <script>
-const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
-const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+// ─── Config ───────────────────────────────────────────────────────────────────
+const SUPABASE_URL = 'https://ldejfqfxdwhqkwqnquya.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkZWpmcWZ4ZHdocWt3cW5xdXlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDAwMDAwMDAsImV4cCI6MTkwMDAwMDAwMH0.x1Hx1vNxgZWxlKWMxjL9h8Gm-OvL3Mq4K_Zq8T9oO8c';
+const FOH_RECONNECT_DELAYS = [1000, 2000, 4000, 8000, 16000];
 
-let roomCode = null, realtimeChannel = null, cachedPlayers = [];
-let buzzerOpenVisible = false;
-let bgmAudio = null, bgmEnabled = true;
-let confettiTimer = null, overlayTimer = null;
+// ─── State ────────────────────────────────────────────────────────────────────
+let sb = null;
+let realtimeChannel = null;
+let roomCode = null;
+let cachedPlayers = [];
+let fohReconnectTimer = null;
+let fohReconnectAttempts = 0;
+let bgmAudio = null;
+let bgmEnabled = false;
 let fohTimerInterval = null;
 let roomCodeOverlayTimer = null;
 let matrixRAF = null;
 
-// ─── Reconnect state ──────────────────────────────────────────────────────────
-let fohReconnectTimer = null;
-let fohReconnectAttempts = 0;
-const FOH_RECONNECT_DELAYS = [3000, 6000, 12000, 20000];
-
-// ─── Background music ─────────────────────────────────────────────────────────
-function initBackgroundMusic() {
-  bgmAudio = new Audio();
-  bgmAudio.src = 'countdownbg.mp3';
-  bgmAudio.loop = true;
-  bgmAudio.volume = 0.3;
-  bgmAudio.load();
+// ─── Supabase Init ────────────────────────────────────────────────────────────
+function initSupabase() {
+  sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 }
-function playBackgroundMusic() { if(bgmAudio && bgmEnabled) bgmAudio.play().catch(()=>{}); }
-function stopBackgroundMusic() { if(bgmAudio) { bgmAudio.pause(); bgmAudio.currentTime = 0; } }
-function toggleBackgroundMusic() {
-  if(!bgmAudio) initBackgroundMusic();
-  const btn = document.getElementById('bgmToggleBtn');
-  if(bgmAudio.paused) { bgmAudio.play().catch(()=>{}); bgmEnabled = true; btn.innerHTML = '‖ BGM'; }
-  else { bgmAudio.pause(); bgmEnabled = false; btn.innerHTML = '▶ BGM'; }
-}
+initSupabase();
 
-// ─── Beep sounds ──────────────────────────────────────────────────────────────
-function playBeep(freq, type, duration) {
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    if(ctx.state === 'suspended') ctx.resume();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = type; osc.frequency.value = freq;
-    gain.gain.setValueAtTime(0.15, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
-    osc.connect(gain); gain.connect(ctx.destination);
-    osc.start(); osc.stop(ctx.currentTime + duration);
-  } catch(e) {}
-}
-
-// ─── Screen management ────────────────────────────────────────────────────────
-function showScreen(id) {
-  document.querySelectorAll('.game-content .screen').forEach(s => s.classList.remove('active'));
-  const el = document.getElementById(id);
-  if(el) el.classList.add('active');
-}
-
-// ─── Overlay banners ──────────────────────────────────────────────────────────
-function clearOverlay() {
-  document.getElementById('overlayContainer').innerHTML = '';
-  if(overlayTimer) { clearTimeout(overlayTimer); overlayTimer = null; }
-}
-
-function showBuzzOverlay(name, avatar) {
-  clearOverlay();
-  const div = document.createElement('div');
-  div.className = 'overlay-container';
-  div.innerHTML = `<div class="buzz-banner"><span class="buzz-avatar">⚡</span><div class="buzz-title">${avatar || '🔔'} ${escapeHtml(name)}</div><div class="buzz-subtitle">Is Responding...</div></div>`;
-  document.getElementById('overlayContainer').appendChild(div);
-  overlayTimer = setTimeout(() => clearOverlay(), 6000);
-}
-
-function showCorrectOverlay(name, avatar, points) {
-  clearOverlay();
-  const div = document.createElement('div');
-  div.className = 'overlay-container';
-  div.innerHTML = `<div class="winner-banner"><span style="font-size:70px;display:block;margin-bottom:10px;">💎</span><div class="buzz-title" style="font-size:clamp(28px,5vw,48px);">${avatar || '🏆'} ${escapeHtml(name)}</div><div style="font-size:18px;margin-top:8px;font-weight:700;color:var(--green);">CORRECT! +${points} POINTS</div></div>`;
-  document.getElementById('overlayContainer').appendChild(div);
-  overlayTimer = setTimeout(() => clearOverlay(), 20000);
-}
-
-function showWrongOverlay(name) {
-  clearOverlay();
-  const div = document.createElement('div');
-  div.className = 'overlay-container';
-  div.innerHTML = `<div class="winner-banner" style="border-color:var(--red);"><span style="font-size:70px;display:block;margin-bottom:10px;">⚠️</span><div class="buzz-title" style="font-size:clamp(28px,5vw,48px);">${escapeHtml(name)}</div><div style="font-size:18px;margin-top:8px;font-weight:700;color:var(--red);">LOCKED OUT / WRONG ANSWER</div></div>`;
-  document.getElementById('overlayContainer').appendChild(div);
-  overlayTimer = setTimeout(() => clearOverlay(), 5000);
-}
-
-// ─── Confetti ─────────────────────────────────────────────────────────────────
-function launchConfetti(durationMs = 5000) {
-  try {
-    const end = Date.now() + durationMs;
-    (function frame() {
-      confetti({ particleCount: 4, angle: 60, spread: 60, origin: { x: 0, y: 0.75 } });
-      confetti({ particleCount: 4, angle: 120, spread: 60, origin: { x: 1, y: 0.75 } });
-      if(Date.now() < end) requestAnimationFrame(frame);
-    }());
-  } catch(e) {}
-}
-
-// ─── Player list ──────────────────────────────────────────────────────────────
-function renderPlayersList() {
-  const container = document.getElementById('fohPlayersList');
-  if(!container) return;
-  if(!cachedPlayers.length) {
-    container.innerHTML = '<div style="padding:20px;color:var(--muted);font-size:13px;text-align:center;">Waiting for players...</div>';
+// ─── Room Entry Gate (NEW) ────────────────────────────────────────────────────
+function submitEntryRoom() {
+  const code = document.getElementById('entryRoomInput').value.trim().toUpperCase();
+  const errorEl = document.getElementById('entryError');
+  
+  if(code.length < 4) {
+    errorEl.innerText = '❌ Room code must be 4-8 characters';
     return;
   }
-  const sorted = [...cachedPlayers].sort((a,b) => (b.score||0) - (a.score||0));
-  container.innerHTML = sorted.map(p => {
-    const isOnline = p.connected !== false;
-    let statusClass = '', subText = '';
-    if(p.status === 'buzzed')                          { statusClass = 'active-buzz'; subText = '💥 BUZZED'; }
-    else if(p.status === 'locked' || p.status==='wrong') { statusClass = 'wrong-lock'; subText = '🔒 Locked Out'; }
-    else if(p.eliminated || p.status === 'eliminated')  { statusClass = 'eliminated'; subText = '❌ Eliminated'; }
-    else if(!isOnline)                                  { subText = '🔌 Offline'; }
-    else                                                { subText = '● Connected'; }
-    return `<div class="p-row ${statusClass}">
-      <div class="p-avatar">${p.avatar || '🎮'}</div>
-      <div class="p-info">
-        <div class="p-name"><span class="conn-led ${isOnline?'online':'offline'}"></span>${escapeHtml(p.name)}</div>
-        <div class="p-status-sub">${subText}</div>
-      </div>
-      <div class="p-score">${p.score || 0}</div>
-    </div>`;
-  }).join('');
+  
+  // Validate code format (e.g., FR7A2B)
+  if(!/^[A-Z0-9]{4,8}$/.test(code)) {
+    errorEl.innerText = '❌ Invalid code format. Use letters and numbers only.';
+    return;
+  }
+  
+  errorEl.innerText = '';
+  const btn = event.target;
+  btn.disabled = true;
+  btn.innerText = '⟳ Connecting...';
+  
+  // Simulate validation (in real scenario, verify with Control backend)
+  setTimeout(() => {
+    document.getElementById('roomEntryGate').classList.add('hidden');
+    connectToRoom(code);
+    btn.disabled = false;
+    btn.innerText = '📡 Connect to Room';
+  }, 800);
 }
 
-// ─── Event handler ────────────────────────────────────────────────────────────
+// ─── Show screen ──────────────────────────────────────────────────────────────
+function showScreen(screenId) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const screen = document.getElementById(screenId);
+  if(screen) screen.classList.add('active');
+}
+
+// ─── Broadcast handler ────────────────────────────────────────────────────────
 function handleBroadcast(event, payload) {
   switch(event) {
+    case 'round_started':
+      showScreen('waitingScreen');
+      break;
+
+    case 'show_category_picker':
+      if(payload.categories && payload.categories.length > 0) {
+        const list = document.getElementById('categoriesList');
+        list.innerHTML = payload.categories.map(cat => 
+          `<div style="background: rgba(255,255,255,0.08); border: 1px solid rgba(245,200,66,0.3); border-radius: 12px; padding: 20px; text-align: center; font-size: 16px; font-weight: 600;">${cat}</div>`
+        ).join('');
+        showScreen('categoryScreen');
+      }
+      break;
+
+    case 'question_open':
+      document.getElementById('questionNumber').innerText = `Question ${payload.qNum || 1}`;
+      document.getElementById('questionText').innerText = payload.question || 'Question';
+      const optGrid = document.getElementById('optionsGrid');
+      optGrid.innerHTML = (payload.options || []).map(opt => 
+        `<div class="opt-tile"><span class="opt-letter">${opt.letter}</span><span>${opt.text}</span></div>`
+      ).join('');
+      showScreen('questionScreen');
+      break;
+
+    case 'buzz_confirmed':
+      break;
+
+    case 'correct':
+      break;
+
+    case 'wrong':
+      break;
+
+    case 'next_question':
+      document.getElementById('questionText').innerText = 'Next question...';
+      break;
+
     case 'player_list_update':
       cachedPlayers = payload.players || [];
       renderPlayersList();
       break;
 
-    case 'round_started':
-      showScreen('waitingScreen');
-      playBackgroundMusic();
-      break;
-
-    case 'show_category_picker':
-      clearOverlay();
-      showScreen('categoriesScreen');
-      buzzerOpenVisible = false;
-      document.getElementById('fohBuzzerOpenIndicator').style.display = 'none';
-      const cats = payload.categories || [];
-      document.getElementById('fohCategoriesContainer').innerHTML =
-        cats.map((c, i) => `<div class="cat-tile" style="animation-delay:${i*0.06}s;"><div class="cat-tile-icon">${c.icon || '📂'}</div><div class="cat-tile-name">${c.name}</div></div>`).join('');
-      playBeep(440, 'triangle', 0.2);
-      break;
-
-    case 'question_open':
-      showScreen('questionScreen');
-      buzzerOpenVisible = false;
-      document.getElementById('fohBuzzerOpenIndicator').style.display = 'none';
-      document.getElementById('fohQuestionMeta').innerText = `QUESTION ${payload.questionNumber || ''}`;
-      document.getElementById('fohQuestionText').innerText = payload.question || '';
-      const opts = payload.options || [];
-      const letters = ['A','B','C','D'];
-      document.getElementById('fohOptionsContainer').innerHTML =
-        opts.map((opt, idx) => `<div class="opt-tile"><div class="opt-letter">${letters[idx]}</div><div class="opt-text">${escapeHtml(opt)}</div></div>`).join('');
-      playBeep(523.25, 'sine', 0.35);
-      break;
-
-    case 'buzzers_reopen':
-      buzzerOpenVisible = true;
-      document.getElementById('fohBuzzerOpenIndicator').style.display = 'block';
-      playBeep(880, 'sine', 0.1);
-      break;
-
-    case 'buzz_confirmed':
-      buzzerOpenVisible = false;
-      document.getElementById('fohBuzzerOpenIndicator').style.display = 'none';
-      if(fohTimerInterval) { clearInterval(fohTimerInterval); fohTimerInterval = null; document.getElementById('fohTimerOverlay').classList.remove('active'); }
-      showBuzzOverlay(payload.playerName, payload.playerAvatar);
-      playBeep(392, 'sawtooth', 0.4);
-      { const p = cachedPlayers.find(p => p.id === payload.playerId); if(p) { p.status = 'buzzed'; renderPlayersList(); } }
-      break;
-
-    case 'correct':
-      clearOverlay();
-      showCorrectOverlay(payload.playerName, payload.playerAvatar, payload.points || 100);
-      playBeep(659.25, 'sine', 0.5);
-      launchConfetti(5000);
-      { const p = cachedPlayers.find(p => p.id === payload.playerId); if(p) { p.score = payload.newScore; p.status = 'correct'; renderPlayersList(); } }
-      break;
-
-    case 'wrong':
-      clearOverlay();
-      showWrongOverlay(payload.playerName);
-      playBeep(180, 'sawtooth', 0.6);
-      { const p = cachedPlayers.find(p => p.id === payload.playerId); if(p) { p.status = 'wrong'; renderPlayersList(); } }
-      break;
-
-    case 'reset_buzzers':
-    case 'next_question':
-    case 'reset_for_next_question':
-      buzzerOpenVisible = false;
-      document.getElementById('fohBuzzerOpenIndicator').style.display = 'none';
-      clearOverlay();
-      cachedPlayers.forEach(p => { if(p.status !== 'eliminated') p.status = 'waiting'; });
-      renderPlayersList();
-      if(event === 'next_question') showScreen('waitingScreen');
-      break;
-
     case 'round_ended':
-      buzzerOpenVisible = false;
-      document.getElementById('fohBuzzerOpenIndicator').style.display = 'none';
-      clearOverlay();
-      showScreen('endedScreen');
       const winner = payload.winner;
       document.getElementById('podiumWinnerName').innerHTML = `${winner?.avatar || '🏆'} ${winner?.name || '—'}`;
       document.getElementById('podiumWinnerScore').innerHTML = `Grand Champion with ${winner?.score || 0} points!`;
       launchConfetti(8000);
-      stopBackgroundMusic();
+      showScreen('endedScreen');
       break;
 
     case 'timer_start':
@@ -744,15 +690,14 @@ function handleBroadcast(event, payload) {
       break;
 
     case 'full_game_reset':
-      // Disconnect and go back to room entry
       if(realtimeChannel) { sb.removeChannel(realtimeChannel); realtimeChannel = null; }
       cancelFohReconnect();
       roomCode = null;
       cachedPlayers = [];
-      document.getElementById('roomEntryOverlay').style.display = 'flex';
+      document.getElementById('roomEntryGate').classList.remove('hidden');
+      document.getElementById('entryRoomInput').value = '';
+      document.getElementById('entryError').innerText = '';
       document.getElementById('roomDisplay').innerText = '——';
-      document.getElementById('fohFooterCode').innerText = '——';
-      document.getElementById('fohRoomInput').value = '';
       document.getElementById('fohConnBadge').className = 'conn-badge';
       document.getElementById('fohConnBadge').innerText = '⏳ Not connected';
       showScreen('waitingScreen');
@@ -761,7 +706,7 @@ function handleBroadcast(event, payload) {
   }
 }
 
-// ─── FOH Reconnection ─────────────────────────────────────────────────────────
+// ─── Reconnection ─────────────────────────────────────────────────────────────
 function cancelFohReconnect() {
   if(fohReconnectTimer) { clearTimeout(fohReconnectTimer); fohReconnectTimer = null; }
   fohReconnectAttempts = 0;
@@ -784,8 +729,6 @@ function scheduleFohReconnect() {
 function connectToRoom(code) {
   roomCode = code.trim().toUpperCase();
   document.getElementById('roomDisplay').innerText = roomCode;
-  document.getElementById('fohFooterCode').innerText = roomCode;
-  document.getElementById('roomEntryOverlay').style.display = 'none';
   showMatrixWelcome(roomCode);
 
   if(realtimeChannel) { sb.removeChannel(realtimeChannel); realtimeChannel = null; }
@@ -814,20 +757,18 @@ function connectToRoom(code) {
   });
 }
 
-function submitFohRoom() {
-  const code = document.getElementById('fohRoomInput').value.trim().toUpperCase();
-  if(code.length < 4) { document.getElementById('fohRoomError').innerText = 'Enter a valid room code (4-8 characters)'; return; }
-  document.getElementById('fohRoomError').innerText = '';
-  connectToRoom(code);
+// ─── Players List ──────────────────────────────────────────────────────────────
+function renderPlayersList() {
+  const list = document.getElementById('playersList');
+  if(!cachedPlayers.length) { list.innerHTML = '<div style="color:var(--muted);text-align:center;padding:16px;font-size:12px;">No players yet</div>'; return; }
+  const sorted = [...cachedPlayers].sort((a,b)=>b.score-a.score).slice(0,10);
+  list.innerHTML = sorted.map(p => 
+    `<div class="sidebar-item ${p.connected?'active':''}"><span class="avatar-badge">${p.avatar}</span><span class="player-name">${p.name}</span><span class="player-points">${p.score}</span></div>`
+  ).join('');
 }
 
-function escapeHtml(str) {
-  if(!str) return '';
-  return str.replace(/[&<>]/g, m => m==='&'?'&amp;':m==='<'?'&lt;':'&gt;');
-}
-
-// ─── FOH Timer ────────────────────────────────────────────────────────────────
-const TIMER_CIRCUMFERENCE = 2 * Math.PI * 45; // r=45 → ~283
+// ─── Timer ────────────────────────────────────────────────────────────────────
+const TIMER_CIRCUMFERENCE = 2 * Math.PI * 45;
 function startFohTimer(seconds) {
   if(fohTimerInterval) clearInterval(fohTimerInterval);
   const overlay = document.getElementById('fohTimerOverlay');
@@ -866,6 +807,7 @@ function showRoomCodeOverlay(code) {
   const dismiss = () => { hideRoomCodeOverlay(); el.removeEventListener('click', dismiss); };
   el.addEventListener('click', dismiss);
 }
+
 function hideRoomCodeOverlay() {
   const el = document.getElementById('roomCodeDisplayOverlay');
   el.style.transition = 'opacity 0.4s';
@@ -884,12 +826,14 @@ function showMatrixWelcome(code) {
   el.addEventListener('click', dismiss);
   setTimeout(dismiss, 5500);
 }
+
 function hideMatrixWelcome() {
   const el = document.getElementById('matrixWelcome');
   el.style.transition = 'opacity 0.6s';
   el.style.opacity = '0';
   setTimeout(() => { el.classList.remove('active'); el.style.opacity = ''; el.style.transition = ''; if(matrixRAF) cancelAnimationFrame(matrixRAF); }, 650);
 }
+
 function startMatrixCanvas() {
   const canvas = document.getElementById('matrixCanvas');
   const ctx = canvas.getContext('2d');
@@ -916,6 +860,40 @@ function startMatrixCanvas() {
   draw();
 }
 
+// ─── Confetti ─────────────────────────────────────────────────────────────────
+function launchConfetti(duration = 3000) {
+  const end = Date.now() + duration;
+  (function frame() {
+    confetti({
+      particleCount: 2,
+      angle: 60,
+      spread: 55,
+      origin: { x: 0 },
+      colors: ['#f5c842', '#f97316', '#22d3a0']
+    });
+    confetti({
+      particleCount: 2,
+      angle: 120,
+      spread: 55,
+      origin: { x: 1 },
+      colors: ['#f5c842', '#f97316', '#22d3a0']
+    });
+    if(Date.now() < end) requestAnimationFrame(frame);
+  })();
+}
+
+// ─── Background music ─────────────────────────────────────────────────────────
+function initBackgroundMusic() {
+  // Can add BGM URL if needed
+}
+
+function toggleBackgroundMusic() {
+  bgmEnabled = !bgmEnabled;
+  const ctrl = document.getElementById('audioToggle');
+  ctrl.innerText = bgmEnabled ? '🔊 Audio' : '🔇 Muted';
+  if(bgmAudio) bgmAudio[bgmEnabled ? 'play' : 'pause']().catch(()=>{});
+}
+
 // ─── Init ─────────────────────────────────────────────────────────────────────
 function init() {
   initBackgroundMusic();
@@ -927,7 +905,7 @@ function init() {
 }
 init();
 
-window.submitFohRoom = submitFohRoom;
+window.submitEntryRoom = submitEntryRoom;
 window.toggleBackgroundMusic = toggleBackgroundMusic;
 </script>
 </body>

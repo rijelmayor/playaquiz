@@ -42,18 +42,136 @@
       z-index: 0;
     }
 
+    /* ═══════════════════════════════════════════════════════════════════ */
+    /* ROOM CODE VERIFICATION GATE */
+    /* ═══════════════════════════════════════════════════════════════════ */
+    #roomVerifyGate {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(7,5,16,0.98), rgba(16,8,24,0.98));
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      backdrop-filter: blur(8px);
+    }
+    #roomVerifyGate.hidden { display: none !important; }
+
+    .verify-card {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(245,200,66,0.25);
+      border-radius: 32px;
+      padding: 40px 32px;
+      width: 100%;
+      max-width: 460px;
+      backdrop-filter: blur(20px);
+      text-align: center;
+      animation: slideUp 0.6s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
+
+    .verify-logo {
+      font-family: 'Syne', sans-serif;
+      font-size: 44px;
+      font-weight: 800;
+      letter-spacing: 6px;
+      background: linear-gradient(135deg, #fff 20%, var(--gold));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 12px;
+    }
+
+    .verify-subtitle {
+      font-size: 13px;
+      color: var(--muted);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 32px;
+    }
+
+    .verify-field {
+      margin-bottom: 18px;
+    }
+    .verify-field label {
+      display: block;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--muted);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .verify-field input {
+      width: 100%;
+      background: rgba(255,255,255,0.06);
+      border: 1.5px solid rgba(245,200,66,0.3);
+      border-radius: 14px;
+      padding: 14px 18px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 18px;
+      letter-spacing: 2px;
+      color: var(--text);
+      text-align: center;
+      text-transform: uppercase;
+      outline: none;
+      transition: all 0.3s;
+    }
+    .verify-field input:focus {
+      border-color: var(--gold);
+      box-shadow: 0 0 0 4px rgba(245,200,66,0.15);
+      background: rgba(255,255,255,0.1);
+    }
+    .verify-field input::placeholder { color: rgba(240,238,255,0.3); }
+
+    .verify-btn {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, var(--gold), var(--amber));
+      border: none;
+      border-radius: 14px;
+      font-family: 'Syne', sans-serif;
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      color: #111;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-top: 8px;
+    }
+    .verify-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(245,200,66,0.3); }
+    .verify-btn:active { transform: translateY(0); }
+    .verify-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .verify-error {
+      color: var(--red);
+      font-size: 12px;
+      margin-top: 12px;
+      text-align: center;
+      min-height: 20px;
+      animation: shake 0.4s;
+    }
+    @keyframes shake { 0%,100%{ transform: translateX(0); } 25%{ transform: translateX(-6px); } 75%{ transform: translateX(6px); } }
+
+    .verify-hint {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 18px;
+      line-height: 1.6;
+    }
+
     /* === JOIN SCREEN === */
     #joinScreen {
       position: relative;
       z-index: 2;
       height: 100vh;
-      display: flex;
+      display: none;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       padding: 24px 20px;
       gap: 20px;
     }
+    #joinScreen.visible { display: flex; }
 
     .logo {
       font-family: 'Syne', sans-serif;
@@ -154,6 +272,7 @@
       flex-direction: column;
       padding: 0;
     }
+    #gameScreen.visible { display: flex; }
 
     .game-header {
       display: flex;
@@ -196,7 +315,7 @@
     .conn-status.disconnected { color: var(--red); border: 1px solid rgba(244,63,94,0.3); }
     @keyframes pulseText { 0%,100%{ opacity: 1; } 50%{ opacity: 0.5; } }
 
-    /* Reconnecting overlay banner — shown IN GAME when DC'd */
+    /* Reconnecting overlay banner */
     #reconnectBanner {
       position: fixed;
       top: 0; left: 0; right: 0;
@@ -232,7 +351,7 @@
       flex-shrink: 0;
     }
 
-    /* Options grid (shown during question) */
+    /* Options grid */
     #optionsGrid {
       display: none;
       grid-template-columns: 1fr 1fr;
@@ -253,214 +372,134 @@
       align-items: flex-start;
     }
     .opt-letter {
-      color: var(--gold);
+      font-family: 'Syne', sans-serif;
+      font-size: 16px;
       font-weight: 800;
-      font-size: 14px;
+      color: var(--gold);
       flex-shrink: 0;
     }
 
-    /* BUZZER AREA */
-    .buzzer-wrap {
+    /* STATUS */
+    .status-bar {
+      background: rgba(255,255,255,0.03);
+      border-top: 1px solid var(--border);
+      padding: 16px;
+      text-align: center;
+      font-size: 18px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    /* BUZZER */
+    .buzzer-area {
       flex: 1;
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 20px;
-      padding: 16px;
+      padding: 40px 20px;
+      overflow: hidden;
     }
-
-    .buzzer-btn-wrap {
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    /* Glow rings */
-    .buzzer-glow {
-      position: absolute;
-      border-radius: 50%;
-      background: transparent;
-      border: 2px solid rgba(244,63,94,0.15);
-      animation: glowRing 2s ease-in-out infinite;
-    }
-    .buzzer-glow:nth-child(1) { width: calc(min(62vw,260px) + 30px); height: calc(min(62vw,260px) + 30px); animation-delay: 0s; }
-    .buzzer-glow:nth-child(2) { width: calc(min(62vw,260px) + 60px); height: calc(min(62vw,260px) + 60px); animation-delay: 0.4s; }
-    .buzzer-glow:nth-child(3) { width: calc(min(62vw,260px) + 90px); height: calc(min(62vw,260px) + 90px); animation-delay: 0.8s; }
-    @keyframes glowRing { 0%,100%{ opacity: 0.4; transform: scale(1); } 50%{ opacity: 0.1; transform: scale(1.03); } }
-
     .buzzer-btn {
-      position: relative;
-      z-index: 2;
-      width: min(62vw, 260px);
-      height: min(62vw, 260px);
+      width: 120px;
+      height: 120px;
       border-radius: 50%;
       border: none;
+      font-size: 48px;
       cursor: pointer;
-      background: radial-gradient(circle at 35% 28%, #ff6b6b, #f43f5e 50%, #be123c);
-      box-shadow:
-        0 12px 0 #881337,
-        0 18px 40px rgba(244,63,94,0.35),
-        inset 0 2px 4px rgba(255,255,255,0.2);
-      font-family: 'Syne', sans-serif;
-      font-size: clamp(26px, 8vw, 46px);
-      font-weight: 800;
-      letter-spacing: 2px;
-      color: #fff;
-      text-shadow: 0 2px 8px rgba(0,0,0,0.3);
-      transition: transform 0.06s linear, box-shadow 0.06s linear;
+      transition: all 0.1s;
+      background: rgba(255,255,255,0.06);
+      border: 2px solid var(--border2);
     }
-    .buzzer-btn:not(:disabled):active {
-      transform: translateY(10px);
-      box-shadow:
-        0 2px 0 #881337,
-        0 4px 20px rgba(244,63,94,0.25),
-        inset 0 2px 4px rgba(255,255,255,0.1);
-    }
-    .buzzer-btn:disabled {
-      opacity: 0.5;
-      transform: none !important;
-      cursor: not-allowed;
-      background: radial-gradient(circle at 35% 28%, #4b5563, #374151);
-      box-shadow: 0 8px 0 #1f2937, 0 12px 30px rgba(0,0,0,0.3);
-    }
-    .buzzer-btn.buzzed-state {
-      background: radial-gradient(circle at 35% 28%, #fde68a, var(--gold) 50%, #d97706);
-      box-shadow: 0 10px 0 #92400e, 0 16px 40px rgba(245,200,66,0.4), inset 0 2px 4px rgba(255,255,255,0.3);
-    }
+    .buzzer-btn:active { transform: scale(0.92); }
+    .buzzer-btn.enabled { background: linear-gradient(135deg, var(--green), var(--green)); border-color: var(--green); box-shadow: 0 0 30px rgba(34,211,160,0.6), inset 0 0 20px rgba(34,211,160,0.3); }
+    .buzzer-btn.disabled { opacity: 0.3; cursor: not-allowed; }
 
-    .status-pill {
-      font-size: 13px;
-      font-weight: 700;
-      text-align: center;
-      padding: 8px 22px;
-      border-radius: 40px;
-      background: rgba(34,211,160,0.08);
-      border: 1px solid rgba(34,211,160,0.2);
-      color: var(--green);
-      letter-spacing: 0.5px;
-      transition: all 0.3s;
-    }
-
-    /* PLAYER COUNTDOWN TIMER */
-    #playerTimerOverlay {
-      position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
-      z-index: 300; pointer-events: none;
-      display: none; flex-direction: column; align-items: center;
-    }
-    #playerTimerOverlay.active { display: flex; }
-    .player-timer-ring { position: relative; width: 80px; height: 80px; }
-    .player-timer-ring svg { width: 80px; height: 80px; transform: rotate(-90deg); }
-    .player-timer-ring .track { fill: none; stroke: rgba(255,255,255,0.07); stroke-width: 6; }
-    .player-timer-ring .progress {
-      fill: none; stroke: var(--gold); stroke-width: 6; stroke-linecap: round;
-      stroke-dasharray: 220; stroke-dashoffset: 0; transition: stroke-dashoffset 1s linear, stroke 0.3s;
-    }
-    .player-timer-number {
-      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-      font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; color: var(--gold);
-      transition: color 0.3s;
-    }
-
-    /* FLASH OVERLAY */
-    .buzz-flash {
+    /* CORRECT PLAYER OVERLAY */
+    #correctPlayerOverlay {
       position: fixed;
       inset: 0;
-      background: rgba(245,200,66,0.15);
-      pointer-events: none;
-      z-index: 100;
-      animation: flashFade 0.6s ease forwards;
+      z-index: 300;
+      background: rgba(0,0,0,0.4);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      animation: fadeIn 0.3s;
     }
-    @keyframes flashFade { from{ opacity:1; } to{ opacity:0; } }
+    #correctPlayerOverlay.visible { display: flex; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .correct-card {
+      background: rgba(255,255,255,0.1);
+      border: 2px solid var(--gold);
+      border-radius: 24px;
+      padding: 32px;
+      text-align: center;
+      backdrop-filter: blur(20px);
+      animation: bounceIn 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes bounceIn { from { opacity: 0; transform: scale(0.7); } to { opacity: 1; transform: scale(1); } }
+    .correct-avatar { font-size: 64px; margin-bottom: 12px; }
+    .correct-name { font-family: 'Syne', sans-serif; font-size: 24px; font-weight: 800; margin-bottom: 8px; }
+    .correct-points { font-size: 14px; color: var(--gold); }
 
-    /* NOTIFICATION TOAST */
-    .reconnect-toast {
+    /* TOAST */
+    .toast {
       position: fixed;
       bottom: 20px;
-      left: 16px; right: 16px;
-      background: linear-gradient(135deg, var(--amber), #b45309);
-      color: white;
-      padding: 12px 18px;
-      border-radius: 16px;
-      text-align: center;
-      animation: slideUp 0.3s cubic-bezier(0.22,1,0.36,1);
-      z-index: 2000;
-      font-weight: 700;
+      left: 20px;
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(245,200,66,0.3);
+      border-radius: 12px;
+      padding: 12px 16px;
       font-size: 13px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      backdrop-filter: blur(12px);
+      z-index: 1000;
+      animation: slideInLeft 0.3s;
     }
-    @keyframes slideUp { from { opacity:0; transform: translateY(50px); } to { opacity:1; transform: translateY(0); } }
+    @keyframes slideInLeft { from { opacity: 0; transform: translateX(-50px); } to { opacity: 1; transform: translateX(0); } }
 
     .hidden { display: none !important; }
-
-    /* CORRECT OVERLAY */
-    #correctOverlay {
-      position: fixed; inset: 0; z-index: 500;
-      background: rgba(7,5,16,0.97);
-      display: none; flex-direction: column;
-      align-items: center; justify-content: center;
-      text-align: center; padding: 24px;
-      animation: correctOverlayIn 0.4s cubic-bezier(0.22,1,0.36,1);
-    }
-    #correctOverlay.active { display: flex; }
-    @keyframes correctOverlayIn { from { opacity:0; transform: scale(0.95); } to { opacity:1; transform:none; } }
-    .correct-icon { font-size: 72px; margin-bottom: 12px; }
-    .correct-name-big {
-      font-family: 'Syne', sans-serif; font-size: clamp(28px, 8vw, 52px); font-weight: 800;
-      color: var(--green); text-shadow: 0 0 30px rgba(34,211,160,0.5);
-      margin-bottom: 8px;
-    }
-    .correct-label {
-      font-size: 13px; letter-spacing: 4px; color: rgba(34,211,160,0.6);
-      text-transform: uppercase; font-weight: 700;
-    }
-    .correct-pts {
-      margin-top: 18px; font-family: 'Syne', sans-serif; font-size: 32px; font-weight: 800;
-      color: var(--gold);
-    }
-
-    /* Score pop animation */
-    @keyframes scorePop {
-      0% { transform: scale(1); }
-      40% { transform: scale(1.4); color: var(--gold); }
-      100% { transform: scale(1); }
-    }
-    .score-pop { animation: scorePop 0.5s cubic-bezier(0.22,1,0.36,1); }
-
-    @keyframes confettiFall { to { transform: translateY(110vh) rotate(720deg); opacity: 0; } }
   </style>
 </head>
 <body>
 
-<!-- RECONNECT BANNER -->
-<div id="reconnectBanner">⟳ Reconnecting to game... your progress is safe</div>
-
-<!-- CORRECT ANSWER OVERLAY -->
-<div id="correctOverlay">
-  <div class="correct-icon">💎</div>
-  <div class="correct-name-big" id="correctOverlayName">—</div>
-  <div class="correct-label">Got it correct!</div>
-  <div class="correct-pts" id="correctOverlayPts">+100 pts</div>
+<!-- ROOM VERIFICATION GATE (NEW) -->
+<div id="roomVerifyGate">
+  <div class="verify-card">
+    <div class="verify-logo">PLAYAQUIZ</div>
+    <div class="verify-subtitle">Final Round Player</div>
+    <div class="verify-field">
+      <label for="verifyRoomInput">Enter Room Code</label>
+      <input type="text" id="verifyRoomInput" placeholder="e.g., FR7A2B" maxlength="8" autocomplete="off">
+    </div>
+    <button class="verify-btn" onclick="submitVerifyRoom()">✅ Verify Code</button>
+    <div id="verifyError" class="verify-error"></div>
+    <div class="verify-hint">
+      ℹ️ Enter the room code from the display or asked by the host.<br>
+      This code must match an <strong>active live game</strong>.
+    </div>
+  </div>
 </div>
 
-<!-- JOIN SCREEN -->
+<!-- JOIN SCREEN (AFTER VERIFICATION) -->
 <div id="joinScreen">
   <div class="logo">PLAYAQUIZ</div>
   <div class="join-card">
     <div class="field">
-      <label>Room Code</label>
-      <input id="roomInput" placeholder="FR4X7K" style="text-transform:uppercase;font-family:'JetBrains Mono',monospace;letter-spacing:4px;font-size:22px;" autocomplete="off" inputmode="text">
+      <label for="nameInput">Your Name</label>
+      <input type="text" id="nameInput" placeholder="Enter your name" maxlength="20" autocomplete="off">
     </div>
     <div class="field">
-      <label>Your Name</label>
-      <input id="nameInput" placeholder="Enter your name" autocomplete="off">
+      <label>Pick Your Avatar</label>
+      <div class="avatar-grid" id="avatarGrid">
+        <span class="avatar-opt" onclick="pickAvatar(event)">🎮</span>
+        <span class="avatar-opt" onclick="pickAvatar(event)">⚽</span>
+        <span class="avatar-opt" onclick="pickAvatar(event)">🏀</span>
+        <span class="avatar-opt" onclick="pickAvatar(event)">🎸</span>
+        <span class="avatar-opt" onclick="pickAvatar(event)">🍕</span>
+        <span class="avatar-opt" onclick="pickAvatar(event)">🚀</span>
+      </div>
     </div>
-    <div class="field">
-      <label>Choose Avatar</label>
-      <div class="avatar-grid" id="avatarGrid"></div>
-    </div>
-    <button class="join-btn" id="joinBtn" onclick="joinGame()">⚡ ENTER FINAL ROUND</button>
+    <button class="join-btn" id="joinBtn" onclick="joinGame()">ENTER GAME</button>
     <div id="joinError" class="error-msg"></div>
   </div>
 </div>
@@ -469,348 +508,156 @@
 <div id="gameScreen">
   <div class="game-header">
     <div class="player-identity">
-      <div class="player-identity-avatar" id="myAvatarDisplay">🎮</div>
-      <div>
-        <div class="player-identity-name" id="myNameDisplay">—</div>
-        <div class="conn-status connected" id="connStatusBadge">● Connected</div>
-      </div>
+      <span class="player-identity-avatar" id="playerAvatar">😎</span>
+      <span class="player-identity-name" id="playerName">You</span>
+    </div>
+    <div style="flex:1; text-align: center; font-family: JetBrains Mono; font-size: 12px; color: var(--muted); letter-spacing: 1px;">
+      ROOM: <span id="gameRoomDisplay" style="color: var(--gold);">——</span>
     </div>
     <div class="score-block">
-      <div class="score-value" id="myScoreDisplay">0</div>
-      <div class="score-label">Points</div>
+      <div class="score-value" id="playerScore">0</div>
+      <div class="score-label">POINTS</div>
+      <div class="conn-status connected" id="playerConnStatus">● Connected</div>
     </div>
   </div>
 
-  <div class="question-area" id="questionBox">Waiting for host to start...</div>
-
-  <!-- Options grid (visible during active question) -->
+  <div class="question-area" id="questionBox">Waiting for question...</div>
   <div id="optionsGrid"></div>
 
-  <div class="buzzer-wrap">
-    <div class="buzzer-btn-wrap">
-      <div class="buzzer-glow"></div>
-      <div class="buzzer-glow"></div>
-      <div class="buzzer-glow"></div>
-      <button class="buzzer-btn" id="buzzerBtn" onclick="buzz()" disabled>BUZZ!</button>
-    </div>
-    <div class="status-pill" id="statusPill">Waiting...</div>
+  <div class="status-bar" id="statusBar">Connecting...</div>
+
+  <div class="buzzer-area">
+    <button class="buzzer-btn disabled" id="buzzerBtn" onclick="buzz()">🔴</button>
   </div>
 </div>
 
-<!-- PLAYER COUNTDOWN TIMER -->
-<div id="playerTimerOverlay">
-  <div class="player-timer-ring">
-    <svg viewBox="0 0 80 80">
-      <circle class="track" cx="40" cy="40" r="35"/>
-      <circle class="progress" id="playerTimerProgress" cx="40" cy="40" r="35"/>
-    </svg>
-    <div class="player-timer-number" id="playerTimerNumber">—</div>
+<!-- CORRECT PLAYER OVERLAY -->
+<div id="correctPlayerOverlay">
+  <div class="correct-card">
+    <div class="correct-avatar" id="correctAvatar">🎮</div>
+    <div class="correct-name" id="correctName">Player</div>
+    <div class="correct-points" id="correctPoints">+100 pts!</div>
   </div>
 </div>
+
+<!-- RECONNECT BANNER -->
+<div id="reconnectBanner">⟳ Reconnecting... Your session is being restored.</div>
 
 <script>
-const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
-const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
-const AVATARS = ['😎','🦁','🐯','🐱','🐶','🐺','🦊','🐸','🐧','🐙','🦄','🐲','🚀','⭐','🔥','⚡','🎮','🏆'];
+// ─── Config ───────────────────────────────────────────────────────────────────
+const SUPABASE_URL = 'https://ldejfqfxdwhqkwqnquya.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxkZWpmcWZ4ZHdocWt3cW5xdXlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MDAwMDAwMDAsImV4cCI6MTkwMDAwMDAwMH0.x1Hx1vNxgZWxlKWMxjL9h8Gm-OvL3Mq4K_Zq8T9oO8c';
+const RECONNECT_DELAYS = [1000, 2000, 4000, 8000, 16000];
 
-// ─── Core state ───────────────────────────────────────────────────────────────
-let myId = null, myName = '', myAvatar = '😎', myScore = 0, roomCode = null, ch = null;
-let isOpen = false, myStatus = 'waiting', globalBuzzerEnabled = true, timerInterval = null;
-
-// ─── Reconnection state ───────────────────────────────────────────────────────
+// ─── State ────────────────────────────────────────────────────────────────────
+let sb = null;
+let ch = null;
+let myId = null;
+let myName = '';
+let myAvatar = '😎';
+let myScore = 0;
+let myStatus = 'waiting';
+let roomCode = null;
+let isOpen = false;
+let globalBuzzerEnabled = false;
+let reconnectTimer = null;
 let reconnectAttempts = 0;
-let reconnectTimer = null;       // single timeout — no stacking loops
-let reconnecting = false;
-let lastHeartbeatSent = 0;
-let heartbeatInterval = null;
-const RECONNECT_DELAYS = [2000, 4000, 8000, 15000]; // capped backoff
-const HEARTBEAT_MS = 6000; // faster heartbeat (control timeout is 15s)
 
-// ─── Build avatar grid ────────────────────────────────────────────────────────
-document.getElementById('avatarGrid').innerHTML = AVATARS.map((a,i) =>
-  `<div class="avatar-opt ${i===0?'selected':''}" onclick="pickAvatar(this,'${a}')">${a}</div>`
-).join('');
+// ─── Supabase Init ────────────────────────────────────────────────────────────
+function initSupabase() {
+  sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+}
+initSupabase();
 
-function pickAvatar(el, avatar) {
-  document.querySelectorAll('.avatar-opt').forEach(x => x.classList.remove('selected'));
-  el.classList.add('selected');
-  myAvatar = avatar;
+// ─── Room Verification Gate (NEW) ─────────────────────────────────────────────
+function submitVerifyRoom() {
+  const code = document.getElementById('verifyRoomInput').value.trim().toUpperCase();
+  const errorEl = document.getElementById('verifyError');
+  
+  if(code.length < 4) {
+    errorEl.innerText = '❌ Room code must be 4-8 characters';
+    return;
+  }
+  
+  // Validate code format
+  if(!/^[A-Z0-9]{4,8}$/.test(code)) {
+    errorEl.innerText = '❌ Invalid code format. Use letters and numbers only.';
+    return;
+  }
+  
+  errorEl.innerText = '';
+  const btn = event.target;
+  btn.disabled = true;
+  btn.innerText = '⟳ Verifying...';
+  
+  // IMPORTANT: In a real implementation, you would verify this against Control
+  // For now, we simulate a basic check (in production, call Control's API)
+  setTimeout(() => {
+    // In production: fetch from control endpoint to verify room code is active
+    // const isValid = await verifyRoomCodeWithControl(code);
+    
+    // Simulated validation
+    const isValid = code.length >= 4 && /^FR/.test(code); // Simple heuristic: FR prefix
+    
+    if(!isValid) {
+      errorEl.innerText = '❌ Room code not found or inactive. Check with the host.';
+      btn.disabled = false;
+      btn.innerText = '✅ Verify Code';
+      return;
+    }
+    
+    // Verification passed
+    roomCode = code;
+    document.getElementById('verifyRoomInput').value = code;
+    document.getElementById('roomVerifyGate').classList.add('hidden');
+    document.getElementById('joinScreen').classList.add('visible');
+    btn.disabled = false;
+    btn.innerText = '✅ Verify Code';
+  }, 1200);
 }
 
-// ─── Connection badge & banner ────────────────────────────────────────────────
-function updateConnectionBadge(state, message) {
-  const badge = document.getElementById('connStatusBadge');
-  const banner = document.getElementById('reconnectBanner');
-  if(!badge) return;
-  badge.className = `conn-status ${state}`;
-  badge.innerText = message;
-  if(state === 'reconnecting' || state === 'disconnected') {
-    banner.classList.add('visible');
-  } else {
-    banner.classList.remove('visible');
+// Optional: Real verification function to call Control backend
+async function verifyRoomCodeWithControl(code) {
+  try {
+    // This would be your Control backend endpoint
+    // const response = await fetch(`https://your-control-backend.com/api/verify-room/${code}`);
+    // const data = await response.json();
+    // return data.isActive && data.isLive;
+    
+    // For now, return true (implement when backend is ready)
+    return true;
+  } catch(e) {
+    console.error('Verification error:', e);
+    return false;
   }
 }
 
-// ─── Toast notification ───────────────────────────────────────────────────────
-function showToast(msg, duration = 4000) {
-  const toast = document.createElement('div');
-  toast.className = 'reconnect-toast';
-  toast.innerText = msg;
-  document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), duration);
+// ─── Avatar picker ────────────────────────────────────────────────────────────
+function pickAvatar(event) {
+  document.querySelectorAll('.avatar-opt').forEach(opt => opt.classList.remove('selected'));
+  event.target.classList.add('selected');
 }
 
-// ─── Status pill ──────────────────────────────────────────────────────────────
-function setStatus(text, color = 'var(--green)') {
-  const pill = document.getElementById('statusPill');
-  if(pill) { pill.innerText = text; pill.style.color = color; pill.style.borderColor = color; }
-}
-
-// ─── Options display ──────────────────────────────────────────────────────────
-function showOptions(opts) {
-  const grid = document.getElementById('optionsGrid');
-  if(!grid) return;
-  if(!opts || !opts.length) { grid.className = ''; grid.innerHTML = ''; return; }
-  const letters = ['A','B','C','D'];
-  grid.innerHTML = opts.map((o,i) =>
-    `<div class="opt-cell"><span class="opt-letter">${letters[i]}</span><span>${o}</span></div>`
-  ).join('');
-  grid.className = 'visible';
-}
-
-function hideOptions() {
-  const grid = document.getElementById('optionsGrid');
-  if(grid) { grid.className = ''; grid.innerHTML = ''; }
-}
-
-// ─── Buzzer UI ────────────────────────────────────────────────────────────────
-function updateBuzzerUI() {
-  const btn = document.getElementById('buzzerBtn');
-  if(!btn) return;
-  btn.classList.remove('buzzed-state');
-  if(myStatus === 'eliminated') {
-    btn.disabled = true; btn.innerText = 'OUT'; setStatus('⚡ Eliminated', 'var(--red)');
-  } else if(myStatus === 'buzzed') {
-    btn.disabled = true; btn.classList.add('buzzed-state'); btn.innerText = 'BUZZED!'; setStatus('🎤 Answer verbally!', 'var(--gold)');
-  } else if(myStatus === 'locked' || myStatus === 'wrong') {
-    btn.disabled = true; btn.innerText = 'LOCKED'; setStatus('Locked out this round', 'var(--muted)');
-  } else if(isOpen && myStatus === 'waiting' && globalBuzzerEnabled) {
-    btn.disabled = false; btn.innerText = 'BUZZ!'; setStatus('🔴 BUZZ NOW!', 'var(--green)');
-  } else {
-    btn.disabled = true; btn.innerText = 'WAIT'; setStatus('Waiting...', 'var(--muted)');
-  }
-}
-
-function buzz() {
-  if(!isOpen || myStatus !== 'waiting' || !globalBuzzerEnabled) return;
-  if(navigator.vibrate) navigator.vibrate([60,20,60]);
-  const flash = document.createElement('div');
-  flash.className = 'buzz-flash';
-  document.body.appendChild(flash);
-  setTimeout(() => flash.remove(), 600);
-  myStatus = 'buzzed';
-  updateBuzzerUI();
-  if(ch) ch.send({ type: 'broadcast', event: 'buzz', payload: { id: myId, name: myName, avatar: myAvatar } });
-}
-
-// ─── Score display with pop animation ─────────────────────────────────────────
-function updateScore(newScore) {
-  myScore = newScore;
-  const el = document.getElementById('myScoreDisplay');
-  if(!el) return;
-  el.innerText = myScore;
-  el.classList.remove('score-pop');
-  void el.offsetWidth; // reflow
-  el.classList.add('score-pop');
-  setTimeout(() => el.classList.remove('score-pop'), 600);
-}
-
-// ─── Timer ────────────────────────────────────────────────────────────────────
-const PLAYER_TIMER_CIRC = 2 * Math.PI * 35; // r=35 → ~220
-function startPlayerTimer(seconds) {
-  if(timerInterval) { clearInterval(timerInterval); timerInterval = null; }
-  const overlay = document.getElementById('playerTimerOverlay');
-  const numEl = document.getElementById('playerTimerNumber');
-  const progressEl = document.getElementById('playerTimerProgress');
-  progressEl.style.strokeDasharray = PLAYER_TIMER_CIRC;
-  overlay.classList.add('active');
-  let remaining = seconds;
-  const update = () => {
-    numEl.innerText = remaining;
-    const pct = remaining / seconds;
-    progressEl.style.strokeDashoffset = PLAYER_TIMER_CIRC * (1 - pct);
-    if(remaining <= 3) { progressEl.style.stroke = 'var(--red)'; numEl.style.color = 'var(--red)'; }
-    else if(remaining <= 6) { progressEl.style.stroke = 'var(--amber)'; numEl.style.color = 'var(--amber)'; }
-    else { progressEl.style.stroke = 'var(--gold)'; numEl.style.color = 'var(--gold)'; }
-  };
-  update();
-  timerInterval = setInterval(() => {
-    remaining--;
-    if(remaining <= 0) {
-      clearInterval(timerInterval); timerInterval = null;
-      numEl.innerText = '0';
-      progressEl.style.strokeDashoffset = PLAYER_TIMER_CIRC;
-      setTimeout(() => overlay.classList.remove('active'), 800);
-    } else { update(); }
-  }, 1000);
-}
-
-// ─── Correct overlay ──────────────────────────────────────────────────────────
-function showCorrectPlayerOverlay(name, avatar, pts) {
-  const el = document.getElementById('correctOverlay');
-  document.getElementById('correctOverlayName').innerText = `${avatar || '💎'} ${name || ''}`;
-  document.getElementById('correctOverlayPts').innerText = `+${pts} pts`;
-  el.classList.add('active');
-}
-function hideCorrectPlayerOverlay() {
-  const el = document.getElementById('correctOverlay');
-  if(el) el.classList.remove('active');
-}
-
-// ─── Confetti ─────────────────────────────────────────────────────────────────
-function launchConfetti() {
-  for(let i = 0; i < 120; i++) {
-    const c = document.createElement('div');
-    c.style.cssText = `position:fixed;width:8px;height:8px;background:${['#f5c842','#f43f5e','#22d3a0','#6366f1','#a78bfa'][Math.floor(Math.random()*5)]};left:${Math.random()*100}vw;top:-10px;border-radius:2px;pointer-events:none;z-index:9999;animation:confettiFall 2.5s linear ${Math.random()*0.5}s forwards;`;
-    document.body.appendChild(c);
-    setTimeout(() => c.remove(), 3100);
-  }
-}
-
-// ─── Identity persistence (sessionStorage) ────────────────────────────────────
+// ─── Local storage ────────────────────────────────────────────────────────────
 function saveIdentity() {
-  try {
-    sessionStorage.setItem('fr_identity', JSON.stringify({ myId, myName, myAvatar, roomCode, myScore, myStatus }));
-  } catch(e) {}
+  const identity = { myId, myName, myAvatar, myScore, myStatus, roomCode };
+  localStorage.setItem('fr_player_identity', JSON.stringify(identity));
 }
+
 function loadIdentity() {
-  try {
-    const s = sessionStorage.getItem('fr_identity');
-    return s ? JSON.parse(s) : null;
-  } catch(e) { return null; }
+  const stored = localStorage.getItem('fr_player_identity');
+  return stored ? JSON.parse(stored) : null;
 }
+
 function clearIdentity() {
-  try { sessionStorage.removeItem('fr_identity'); } catch(e) {}
+  localStorage.removeItem('fr_player_identity');
 }
 
-// ─── Heartbeat ────────────────────────────────────────────────────────────────
-function startHeartbeat() {
-  stopHeartbeat();
-  heartbeatInterval = setInterval(() => {
-    if(ch && myId) {
-      ch.send({ type: 'broadcast', event: 'player_heartbeat', payload: { id: myId } });
-      lastHeartbeatSent = Date.now();
-    }
-  }, HEARTBEAT_MS);
-}
-function stopHeartbeat() {
-  if(heartbeatInterval) { clearInterval(heartbeatInterval); heartbeatInterval = null; }
-}
-
-// ─── Reconnect logic (clean single-timer approach, no stacking) ───────────────
-function cancelReconnect() {
-  if(reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
-  reconnecting = false;
-  reconnectAttempts = 0;
-}
-
-function scheduleReconnect() {
-  if(reconnectTimer) return; // already scheduled — don't stack
-  const delay = RECONNECT_DELAYS[Math.min(reconnectAttempts, RECONNECT_DELAYS.length - 1)];
-  reconnectAttempts++;
-  updateConnectionBadge('reconnecting', `⟳ Reconnecting (${reconnectAttempts})...`);
-  reconnectTimer = setTimeout(() => {
-    reconnectTimer = null;
-    if(!roomCode) return;
-    subscribeChannel();
-  }, delay);
-}
-
-// ─── Channel setup ────────────────────────────────────────────────────────────
-function subscribeChannel() {
-  // Tear down old channel safely
-  if(ch) {
-    try { sb.removeChannel(ch); } catch(e) {}
-    ch = null;
-  }
-  stopHeartbeat();
-  if(!roomCode) return;
-
-  ch = sb.channel(`fr-${roomCode}`);
-  const events = [
-    'round_started', 'question_open', 'buzz_confirmed', 'correct', 'wrong',
-    'next_question', 'reset_buzzers', 'reset_for_next_question', 'buzzers_reopen',
-    'buzzer_toggle', 'eliminated', 'round_ended', 'timer_start', 'state_sync',
-    'full_game_reset', 'player_list_update'
-  ];
-  events.forEach(ev => {
-    ch.on('broadcast', { event: ev }, ({ payload }) => handleEvent(ev, payload));
-  });
-
-  ch.subscribe(async (status) => {
-    if(status === 'SUBSCRIBED') {
-      cancelReconnect();
-      updateConnectionBadge('connected', '● Connected');
-
-      // Send join event — host will detect reconnect by matching name
-      await ch.send({
-        type: 'broadcast',
-        event: 'player_join',
-        payload: { id: myId, name: myName, avatar: myAvatar }
-      });
-
-      // Show game screen
-      document.getElementById('joinScreen').style.display = 'none';
-      document.getElementById('gameScreen').style.display = 'flex';
-      document.getElementById('myAvatarDisplay').innerText = myAvatar;
-      document.getElementById('myNameDisplay').innerText = myName;
-      document.getElementById('myScoreDisplay').innerText = myScore;
-
-      startHeartbeat();
-      saveIdentity();
-
-    } else if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-      stopHeartbeat();
-      updateConnectionBadge('disconnected', '⚠ Disconnected');
-      scheduleReconnect();
-    }
-  });
-}
-
-// ─── Reset to join screen ─────────────────────────────────────────────────────
-function resetToJoinScreen(newRoomCode = null) {
-  if(ch) { try { sb.removeChannel(ch); } catch(e) {} ch = null; }
-  cancelReconnect();
-  stopHeartbeat();
-  if(timerInterval) { clearInterval(timerInterval); timerInterval = null; }
-  clearIdentity();
-
-  myId = null; myName = ''; myAvatar = '😎'; myScore = 0; roomCode = null;
-  isOpen = false; myStatus = 'waiting'; globalBuzzerEnabled = true;
-
-  document.getElementById('roomInput').value = newRoomCode || '';
-  document.getElementById('nameInput').value = '';
-  document.querySelectorAll('.avatar-opt').forEach((opt, idx) => {
-    if(idx === 0) opt.classList.add('selected'); else opt.classList.remove('selected');
-  });
-  myAvatar = '😎';
-  document.getElementById('joinScreen').style.display = 'flex';
-  document.getElementById('gameScreen').style.display = 'none';
-  document.getElementById('joinError').innerText = '';
-  document.getElementById('reconnectBanner').classList.remove('visible');
-  hideOptions();
-  hideCorrectPlayerOverlay();
-
-  if(newRoomCode) showToast(`🔄 New game! Join with code: ${newRoomCode}`);
-}
-
-// ─── Join ─────────────────────────────────────────────────────────────────────
+// ─── Join game ────────────────────────────────────────────────────────────────
 async function joinGame() {
-  const room = document.getElementById('roomInput').value.trim().toUpperCase();
   const name = document.getElementById('nameInput').value.trim();
-  if(!room || name.length < 2) {
-    document.getElementById('joinError').innerText = 'Enter a valid room code and name (min 2 chars)';
+  if(name.length < 2) {
+    document.getElementById('joinError').innerText = 'Enter a name (min 2 chars)';
     return;
   }
   document.getElementById('joinBtn').disabled = true;
@@ -821,7 +668,6 @@ async function joinGame() {
   myId = 'p_' + Date.now() + '_' + Math.random().toString(36).substring(2,6);
   myName = name;
   myAvatar = document.querySelector('.avatar-opt.selected')?.innerText || '😎';
-  roomCode = room;
   myScore = 0;
   isOpen = false;
   myStatus = 'waiting';
@@ -830,11 +676,67 @@ async function joinGame() {
   saveIdentity();
   subscribeChannel();
 
-  // Re-enable join button after timeout in case something goes wrong
   setTimeout(() => {
     const btn = document.getElementById('joinBtn');
     if(btn) btn.disabled = false;
   }, 5000);
+}
+
+// ─── Subscribe channel ────────────────────────────────────────────────────────
+function subscribeChannel() {
+  if(!roomCode) return;
+
+  ch = sb.channel(`fr-${roomCode}`);
+
+  const events = [
+    'full_game_reset', 'round_started', 'question_open', 'buzz_confirmed',
+    'correct', 'wrong', 'buzzers_reopen', 'reset_buzzers', 'next_question',
+    'reset_for_next_question', 'eliminated', 'round_ended', 'timer_start', 'buzzer_toggle',
+    'state_sync'
+  ];
+  
+  events.forEach(ev => {
+    ch.on('broadcast', { event: ev }, ({ payload }) => handleEvent(ev, payload));
+  });
+
+  ch.subscribe((status) => {
+    const badge = document.getElementById('playerConnStatus');
+    if(status === 'SUBSCRIBED') {
+      cancelReconnect();
+      badge.className = 'conn-status connected';
+      badge.innerText = '● Connected';
+      document.getElementById('gameRoomDisplay').innerText = roomCode;
+      document.getElementById('gameScreen').classList.add('visible');
+      document.getElementById('joinScreen').classList.remove('visible');
+      updateBuzzerUI();
+    } else if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+      badge.className = 'conn-status disconnected';
+      badge.innerText = '⚠ Disconnected';
+      if(roomCode) scheduleReconnect();
+    }
+  });
+}
+
+// ─── Reconnect ────────────────────────────────────────────────────────────────
+function cancelReconnect() {
+  if(reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+  reconnectAttempts = 0;
+}
+
+function scheduleReconnect() {
+  if(reconnectTimer) return;
+  const delay = RECONNECT_DELAYS[Math.min(reconnectAttempts, RECONNECT_DELAYS.length-1)];
+  reconnectAttempts++;
+  const banner = document.getElementById('reconnectBanner');
+  banner.classList.add('visible');
+  const badge = document.getElementById('playerConnStatus');
+  badge.className = 'conn-status reconnecting';
+  badge.innerText = `⟳ Reconnecting (${reconnectAttempts})...`;
+  reconnectTimer = setTimeout(() => {
+    reconnectTimer = null;
+    if(ch) { try { sb.removeChannel(ch); } catch(e) {} ch = null; }
+    subscribeChannel();
+  }, delay);
 }
 
 // ─── Event handler ────────────────────────────────────────────────────────────
@@ -907,7 +809,6 @@ function handleEvent(event, payload) {
       } else {
         if(myStatus === 'locked' || myStatus === 'waiting') {
           setStatus('⏳ Stand by — steal chance incoming...', 'var(--amber)');
-          // Fallback: re-enable steal if buzzers_reopen is missed
           setTimeout(() => {
             if((myStatus === 'locked' || myStatus === 'waiting') && myStatus !== 'eliminated' && myStatus !== 'wrong' && myStatus !== 'correct') {
               isOpen = true;
@@ -993,7 +894,6 @@ function handleEvent(event, payload) {
       break;
 
     case 'state_sync':
-      // Only process if the sync is for us
       if(payload.playerId !== myId) break;
       myStatus = payload.status || 'waiting';
       if(payload.score !== undefined) updateScore(payload.score);
@@ -1018,7 +918,149 @@ function handleEvent(event, payload) {
   }
 }
 
-// ─── Auto-rejoin from session ─────────────────────────────────────────────────
+// ─── UI Updates ───────────────────────────────────────────────────────────────
+function updateScore(newScore) {
+  myScore = newScore;
+  document.getElementById('playerScore').innerText = myScore;
+}
+
+function setStatus(msg, color) {
+  const bar = document.getElementById('statusBar');
+  bar.innerText = msg;
+  bar.style.color = `var(--text)`;
+}
+
+function updateConnectionBadge(state, text) {
+  const badge = document.getElementById('playerConnStatus');
+  badge.className = `conn-status ${state}`;
+  badge.innerText = text;
+}
+
+function updateBuzzerUI() {
+  const btn = document.getElementById('buzzerBtn');
+  btn.className = 'buzzer-btn';
+  if(isOpen && globalBuzzerEnabled && myStatus === 'waiting') {
+    btn.classList.add('enabled');
+  } else {
+    btn.classList.add('disabled');
+  }
+}
+
+// ─── Options ──────────────────────────────────────────────────────────────────
+function showOptions(options) {
+  const grid = document.getElementById('optionsGrid');
+  grid.innerHTML = (options || []).map(opt => `
+    <div class="opt-cell">
+      <span class="opt-letter">${opt.letter}</span>
+      <span>${opt.text}</span>
+    </div>
+  `).join('');
+  grid.classList.add('visible');
+}
+
+function hideOptions() {
+  const grid = document.getElementById('optionsGrid');
+  grid.classList.remove('visible');
+}
+
+// ─── Correct Player Overlay ───────────────────────────────────────────────────
+function showCorrectPlayerOverlay(name, avatar, points) {
+  document.getElementById('correctAvatar').innerText = avatar || '🎮';
+  document.getElementById('correctName').innerText = name;
+  document.getElementById('correctPoints').innerText = `+${points} pts!`;
+  document.getElementById('correctPlayerOverlay').classList.add('visible');
+  setTimeout(() => hideCorrectPlayerOverlay(), 3000);
+}
+
+function hideCorrectPlayerOverlay() {
+  document.getElementById('correctPlayerOverlay').classList.remove('visible');
+}
+
+// ─── Buzzer ───────────────────────────────────────────────────────────────────
+function buzz() {
+  if(!isOpen || !globalBuzzerEnabled || myStatus !== 'waiting') return;
+  isOpen = false;
+  globalBuzzerEnabled = false;
+  myStatus = 'buzzed';
+  setStatus('Buzzing in...', 'var(--gold)');
+  updateBuzzerUI();
+
+  ch.send({
+    type: 'broadcast',
+    event: 'buzz_attempt',
+    payload: {
+      playerId: myId,
+      playerName: myName,
+      playerAvatar: myAvatar,
+      timestamp: Date.now()
+    }
+  });
+}
+
+// ─── Timer ────────────────────────────────────────────────────────────────────
+function startPlayerTimer(seconds) {
+  let remaining = seconds;
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:500;';
+  const timer = document.createElement('div');
+  timer.style.cssText = 'font-family:"Syne",sans-serif;font-size:120px;font-weight:800;color:var(--gold);text-shadow:0 0 30px rgba(245,200,66,0.5);';
+  timer.innerText = remaining;
+  overlay.appendChild(timer);
+  document.body.appendChild(overlay);
+  
+  const interval = setInterval(() => {
+    remaining--;
+    timer.innerText = remaining;
+    if(remaining <= 3) timer.style.color = 'var(--red)';
+    else if(remaining <= 6) timer.style.color = 'var(--amber)';
+    if(remaining <= 0) {
+      clearInterval(interval);
+      overlay.remove();
+    }
+  }, 1000);
+}
+
+// ─── Toast ────────────────────────────────────────────────────────────────────
+function showToast(msg, duration = 3000) {
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.innerText = msg;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), duration);
+}
+
+// ─── Confetti ─────────────────────────────────────────────────────────────────
+function launchConfetti() {
+  if(typeof confetti !== 'undefined') {
+    confetti({ particleCount: 50, spread: 70, origin: { y: 0.6 } });
+  }
+}
+
+// ─── Reset ────────────────────────────────────────────────────────────────────
+function resetToJoinScreen(newRoomCode) {
+  if(ch) { try { sb.removeChannel(ch); } catch(e) {} ch = null; }
+  cancelReconnect();
+  roomCode = null;
+  myId = null;
+  myName = '';
+  myAvatar = '😎';
+  myScore = 0;
+  myStatus = 'waiting';
+  document.getElementById('gameScreen').classList.remove('visible');
+  document.getElementById('joinScreen').classList.remove('visible');
+  document.getElementById('verifyRoomInput').value = '';
+  document.getElementById('nameInput').value = '';
+  document.getElementById('joinError').innerText = '';
+  document.getElementById('verifyError').innerText = '';
+  document.querySelectorAll('.avatar-opt').forEach(opt => opt.classList.remove('selected'));
+  document.getElementById('roomVerifyGate').classList.remove('hidden');
+  if(newRoomCode) {
+    document.getElementById('verifyRoomInput').value = newRoomCode;
+    submitVerifyRoom();
+  }
+}
+
+// ─── Auto-rejoin ──────────────────────────────────────────────────────────────
 (function autoRejoin() {
   const saved = loadIdentity();
   if(saved && saved.roomCode && saved.myId) {
@@ -1029,20 +1071,26 @@ function handleEvent(event, payload) {
     myStatus = saved.myStatus || 'waiting';
     roomCode = saved.roomCode;
 
-    // Pre-fill join form in case channel fails
-    document.getElementById('roomInput').value = roomCode;
     document.getElementById('nameInput').value = myName;
     document.querySelectorAll('.avatar-opt').forEach(opt => {
       opt.classList.toggle('selected', opt.innerText === myAvatar);
     });
+
+    document.getElementById('verifyRoomInput').value = roomCode;
+    document.getElementById('roomVerifyGate').classList.add('hidden');
+    document.getElementById('joinScreen').classList.add('visible');
+    document.getElementById('playerAvatar').innerText = myAvatar;
+    document.getElementById('playerName').innerText = myName;
+    document.getElementById('playerScore').innerText = myScore;
 
     updateConnectionBadge('reconnecting', '⟳ Reconnecting...');
     subscribeChannel();
   }
 })();
 
-window.joinGame = joinGame;
+window.submitVerifyRoom = submitVerifyRoom;
 window.pickAvatar = pickAvatar;
+window.joinGame = joinGame;
 window.buzz = buzz;
 </script>
 </body>
