@@ -7,6 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;600;700;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
+    /* Your existing styles - keep them */
     * { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
       --bg: #03050b; --surface: #0d1120; --surface2: #111827;
@@ -72,7 +73,6 @@
     .reset-warning { background: rgba(239,68,68,0.15); border: 1px solid var(--red); border-radius: 8px; padding: 8px; margin-top: 8px; font-size: 11px; color: var(--red); text-align: center; }
     .buzzer-card { border: 2px solid var(--gold) !important; }
     .buzzed-name { font-size: 36px; font-weight: 800; }
-    /* DC player row highlight */
     .player-card.disconnected { border-color: var(--red); background: rgba(239,68,68,0.05); }
   </style>
 </head>
@@ -177,7 +177,7 @@ let roomCode = '', frPlayers = new Map(), buzzedPlayerId = null, lockedPlayers =
     currentFilterCat = 'all', currentQuestionNumber = 0, buzzerGlobalEnabled = true,
     usedQuestionIds = new Set();
 
-    // Add this function to Control HTML
+// ─── Database Registration Function ───────────────────────────────────────────
 async function registerRoomInDatabase(roomCode) {
   try {
     const { error } = await sb
@@ -196,10 +196,12 @@ async function registerRoomInDatabase(roomCode) {
     return true;
   } catch (error) {
     console.error('Failed to register room:', error);
+    toast('⚠️ Could not register room in database');
     return false;
   }
 }
 
+// ─── Room code generation (WITH database registration) ────────────────────────
 function generateNewRoomCode() {
   if(!confirm('Generate new room code? All players must re-join.')) return;
   const newCode = 'FR' + Math.random().toString(36).substring(2,6).toUpperCase();
@@ -222,8 +224,7 @@ function generateNewRoomCode() {
   toast(`🆕 New room: ${roomCode}`);
 }
 
-
-// ─── Audio ────────────────────────────────────────────────────────────────────
+// ─── Audio Functions ──────────────────────────────────────────────────────────
 function getAudio() {
   const ctx = new (window.AudioContext||window.webkitAudioContext)();
   if(ctx.state==='suspended') ctx.resume();
@@ -270,7 +271,6 @@ function renderCategoryFilters() {
 function filterByCategory(catId, btn) {
   currentFilterCat = catId;
   document.querySelectorAll('.cat-filter-btn').forEach(b=>b.classList.remove('active'));
-  // Activate all buttons with this category (there are two filter bars)
   document.querySelectorAll('.cat-filter-btn').forEach(b => {
     if(b.innerText.startsWith(catId==='all'?'📚':'') && b.onclick?.toString().includes(`'${catId}'`)) b.classList.add('active');
   });
@@ -315,8 +315,6 @@ function selectQuestion(qId) {
 
 function fireQuestion(qId) { selectQuestion(qId); openQuestion(); }
 
-
-
 // ─── Realtime ─────────────────────────────────────────────────────────────────
 function setupRealtimeChannel() {
   if(realtimeChannel) sb.removeChannel(realtimeChannel);
@@ -333,7 +331,6 @@ function setupRealtimeChannel() {
       else { dot.classList.remove('connected'); txt.innerText=status; }
     });
 
-  // Check for stale players every 5s (threshold: 18s — give slow connections a fair chance)
   window._connCheckInterval = setInterval(() => {
     const now = Date.now();
     let changed = false;
@@ -360,10 +357,8 @@ function handleHeartbeat(payload) {
 }
 
 function handlePlayerJoin(payload) {
-  // Reconnect case: same name, different session ID
   const existing = Array.from(frPlayers.values()).find(p => p.name === payload.name);
   if(existing && existing.id !== payload.id) {
-    // Migrate to new ID
     const oldId = existing.id;
     frPlayers.delete(oldId);
     if(eliminatedPlayers.has(oldId)) { eliminatedPlayers.delete(oldId); eliminatedPlayers.add(payload.id); }
@@ -375,7 +370,6 @@ function handlePlayerJoin(payload) {
     frPlayers.set(payload.id, existing);
     renderPlayersGrid(); updateSidebar();
 
-    // Send full state back to reconnected player
     broadcast('state_sync', {
       playerId: payload.id,
       score: existing.score,
@@ -392,15 +386,12 @@ function handlePlayerJoin(payload) {
     return;
   }
 
-  // Duplicate join guard
   if(frPlayers.has(payload.id)) {
-    // Already known — just refresh their heartbeat
     const p = frPlayers.get(payload.id);
     p.connected = true; p.lastSeen = Date.now();
     return;
   }
 
-  // Fresh join
   frPlayers.set(payload.id, {
     id: payload.id, name: payload.name, avatar: payload.avatar,
     score: 0, status: 'waiting', connected: true, lastSeen: Date.now()
@@ -455,7 +446,7 @@ function openQuestion() {
     questionNumber: currentQuestionNumber,
     options: opts
   });
-  renderQuestionBank(); // refresh used styling
+  renderQuestionBank();
   toast('🔔 Buzzers OPEN!');
 }
 
@@ -590,6 +581,10 @@ function resetFullGame() {
     document.getElementById('roomCodeInput').value = roomCode;
     document.getElementById('roomCodeDisplay').innerText = roomCode;
     localStorage.setItem('fr_room', roomCode);
+    
+    // Register new room
+    registerRoomInDatabase(newCode);
+    
     frPlayers.clear(); eliminatedPlayers.clear(); lockedPlayers.clear();
     buzzedPlayerId = null; isQuestionOpen = false; selectedQuestionForGame = null;
     currentQuestionNumber = 0; usedQuestionIds.clear();
@@ -619,7 +614,6 @@ function eliminatePlayer(id) {
 function renderPlayersGrid() {
   const sorted = Array.from(frPlayers.values()).sort((a,b)=>b.score-a.score);
 
-  // Setup list
   const setupList = document.getElementById('playerSetupList');
   if(setupList) {
     setupList.innerHTML = sorted.length === 0
@@ -635,7 +629,6 @@ function renderPlayersGrid() {
         </div>`).join('');
   }
 
-  // Game grid
   const grid = document.getElementById('playersGrid');
   if(!grid) return;
   if(sorted.length === 0) { grid.innerHTML='<div style="padding:24px;text-align:center;">Waiting...</div>'; return; }
@@ -700,6 +693,10 @@ function initControl() {
   document.getElementById('roomCodeInput').value = roomCode;
   document.getElementById('roomCodeDisplay').innerText = roomCode;
   localStorage.setItem('fr_room', roomCode);
+  
+  // Register initial room
+  registerRoomInDatabase(roomCode);
+  
   setupRealtimeChannel();
   loadQuestionsFromDB();
 }
