@@ -9,17 +9,25 @@
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     :root {
-      --bg: #070510;
-      --surface: rgba(255,255,255,0.04);
-      --border: rgba(255,255,255,0.09);
-      --border2: rgba(255,255,255,0.15);
+      --bg: #050410;
+      --glass: rgba(255,255,255,0.05);
+      --glass-border: rgba(255,255,255,0.12);
+      --glass-border-strong: rgba(255,255,255,0.2);
+      --glass-blur: blur(24px);
       --gold: #f5c842;
+      --gold-dim: rgba(245,200,66,0.15);
+      --gold-glow: rgba(245,200,66,0.4);
       --amber: #f97316;
       --green: #22d3a0;
+      --green-dim: rgba(34,211,160,0.15);
       --red: #f43f5e;
+      --red-dim: rgba(244,63,94,0.15);
       --violet: #a78bfa;
+      --blue: #6366f1;
       --text: #f0eeff;
       --muted: rgba(240,238,255,0.4);
+      --shadow-lg: 0 20px 60px rgba(0,0,0,0.6), 0 8px 24px rgba(0,0,0,0.4);
+      --shadow-gold: 0 0 40px rgba(245,200,66,0.2), 0 0 80px rgba(245,200,66,0.1);
     }
 
     html, body { height: 100%; }
@@ -31,314 +39,592 @@
       overflow: hidden;
     }
 
+    /* ── Animated mesh background ── */
     body::before {
       content: '';
-      position: fixed;
-      inset: 0;
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
       background:
-        radial-gradient(ellipse 80% 60% at 50% 100%, rgba(99,102,241,0.12) 0%, transparent 60%),
-        radial-gradient(ellipse 50% 40% at 80% 0%, rgba(245,200,66,0.06) 0%, transparent 50%);
-      pointer-events: none;
-      z-index: 0;
+        radial-gradient(ellipse 100% 80% at 15% 0%, rgba(99,102,241,0.18) 0%, transparent 55%),
+        radial-gradient(ellipse 70% 60% at 85% 100%, rgba(167,139,250,0.14) 0%, transparent 50%),
+        radial-gradient(ellipse 60% 50% at 50% 50%, rgba(245,200,66,0.06) 0%, transparent 60%);
     }
 
-    /* === JOIN SCREEN === */
+    /* Subtle grid overlay */
+    body::after {
+      content: '';
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
+
+    /* ══════════════════════════════════════════
+       JOIN SCREEN
+    ══════════════════════════════════════════ */
     #joinScreen {
-      position: relative;
-      z-index: 2;
+      position: relative; z-index: 2;
       height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 24px 20px;
-      gap: 20px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 20px 16px;
+      gap: 16px;
+      overflow-y: auto;
     }
 
-    .logo {
+    /* Floating orbs behind the card */
+    #joinScreen::before {
+      content: '';
+      position: fixed; width: 300px; height: 300px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(99,102,241,0.25) 0%, transparent 70%);
+      top: -80px; left: -80px; pointer-events: none;
+      animation: floatOrb 8s ease-in-out infinite alternate;
+    }
+    #joinScreen::after {
+      content: '';
+      position: fixed; width: 250px; height: 250px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(245,200,66,0.15) 0%, transparent 70%);
+      bottom: -60px; right: -60px; pointer-events: none;
+      animation: floatOrb 10s ease-in-out infinite alternate-reverse;
+    }
+    @keyframes floatOrb {
+      from { transform: translate(0,0) scale(1); }
+      to   { transform: translate(30px,20px) scale(1.1); }
+    }
+
+    /* Logo */
+    .login-logo-wrap { text-align: center; }
+    .login-logo {
       font-family: 'Syne', sans-serif;
-      font-size: 28px;
+      font-size: clamp(26px,8vw,36px);
       font-weight: 800;
-      letter-spacing: 5px;
-      background: linear-gradient(135deg, #fff 20%, var(--gold));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      text-align: center;
+      letter-spacing: 6px;
+      background: linear-gradient(135deg, #fff 20%, var(--gold) 70%, var(--amber));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .login-tagline {
+      font-size: 11px; font-weight: 700;
+      letter-spacing: 4px; color: var(--muted);
+      text-transform: uppercase; margin-top: 4px;
     }
 
+    /* ── Glass Card ── */
     .join-card {
-      background: rgba(255,255,255,0.035);
-      border: 1px solid rgba(255,255,255,0.09);
+      position: relative; z-index: 1;
+      background: rgba(255,255,255,0.04);
+      backdrop-filter: var(--glass-blur);
+      -webkit-backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--glass-border);
       border-radius: 28px;
-      padding: 28px 22px;
-      width: 100%;
-      max-width: 420px;
-      backdrop-filter: blur(12px);
+      padding: 28px 22px 24px;
+      width: 100%; max-width: 400px;
+      box-shadow: var(--shadow-lg), inset 0 1px 0 rgba(255,255,255,0.08);
+      overflow: hidden;
     }
 
-    /* Room Code Input Group with Verification */
-    .room-input-group {
+    /* shimmer top edge */
+    .join-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.25) 50%, transparent 100%);
+    }
+
+    /* ── Step indicators ── */
+    .steps-bar {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      margin-bottom: 22px;
+    }
+    .step-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: rgba(255,255,255,0.15);
+      transition: all 0.4s cubic-bezier(0.34,1.56,0.64,1);
       position: relative;
-      margin-bottom: 20px;
     }
-    
-    .room-input-group label {
-      font-size: 9px;
-      font-weight: 700;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 2px;
-      display: block;
-      margin-bottom: 6px;
+    .step-dot.active {
+      width: 24px; border-radius: 4px;
+      background: var(--gold);
+      box-shadow: 0 0 10px var(--gold-glow);
     }
-    
-    .room-input-wrapper {
-      position: relative;
-      display: flex;
-      align-items: center;
+    .step-dot.done {
+      background: var(--green);
+      box-shadow: 0 0 8px rgba(34,211,160,0.4);
     }
-    
-    .room-input-wrapper input {
-      background: rgba(255,255,255,0.05);
-      border: 1.5px solid var(--border2);
-      border-radius: 14px;
-      padding: 13px 50px 13px 16px;
-      color: var(--text);
-      font-size: 18px;
-      font-family: 'JetBrains Mono', monospace;
+
+    /* ── Step panels ── */
+    .step-panel { display: none; animation: stepIn 0.4s cubic-bezier(0.22,1,0.36,1) both; }
+    .step-panel.active { display: block; }
+    @keyframes stepIn {
+      from { opacity: 0; transform: translateX(20px); }
+      to   { opacity: 1; transform: none; }
+    }
+
+    /* ── Field labels ── */
+    .field-label {
+      font-size: 9px; font-weight: 700;
+      color: var(--muted); text-transform: uppercase;
+      letter-spacing: 2px; display: flex; align-items: center; gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    /* ── Room Code Input ── */
+    .room-input-block { position: relative; margin-bottom: 6px; }
+
+    .room-code-input {
       width: 100%;
-      outline: none;
-      text-align: center;
-      letter-spacing: 4px;
-      transition: all 0.3s;
+      background: rgba(255,255,255,0.06);
+      border: 1.5px solid var(--glass-border-strong);
+      border-radius: 16px;
+      padding: 16px 56px 16px 20px;
+      color: var(--text);
+      font-size: 22px;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 6px; text-align: center; text-transform: uppercase;
+      outline: none; transition: all 0.3s ease;
+      caret-color: var(--gold);
     }
-    
-    .room-input-wrapper input:focus {
-      border-color: var(--gold);
+    .room-code-input::placeholder { color: rgba(240,238,255,0.2); letter-spacing: 3px; font-size: 16px; }
+    .room-code-input:focus {
+      border-color: rgba(245,200,66,0.5);
+      background: rgba(245,200,66,0.04);
+      box-shadow: 0 0 0 3px rgba(245,200,66,0.12), inset 0 1px 0 rgba(255,255,255,0.05);
+    }
+    .room-code-input.state-verifying {
+      border-color: rgba(167,139,250,0.5);
+      box-shadow: 0 0 0 3px rgba(167,139,250,0.1);
+    }
+    .room-code-input.state-ok {
+      border-color: rgba(34,211,160,0.6);
+      background: rgba(34,211,160,0.04);
+      box-shadow: 0 0 0 3px rgba(34,211,160,0.12);
+    }
+    .room-code-input.state-error {
+      border-color: rgba(244,63,94,0.6);
+      background: rgba(244,63,94,0.04);
+      box-shadow: 0 0 0 3px rgba(244,63,94,0.1);
+      animation: inputShake 0.45s ease;
+    }
+    @keyframes inputShake {
+      0%,100% { transform: translateX(0); }
+      20% { transform: translateX(-6px); }
+      40% { transform: translateX(6px); }
+      60% { transform: translateX(-4px); }
+      80% { transform: translateX(4px); }
+    }
+
+    /* Status icon in input */
+    .room-verify-icon {
+      position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+      width: 32px; height: 32px;
+      display: flex; align-items: center; justify-content: center;
+      pointer-events: none;
+    }
+    .verify-spinner {
+      width: 20px; height: 20px;
+      border: 2px solid rgba(167,139,250,0.3);
+      border-top-color: var(--violet);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      display: none;
+    }
+    .verify-checkmark, .verify-cross { font-size: 20px; display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Inline room status message */
+    .room-status-msg {
+      min-height: 20px; font-size: 11px; font-weight: 600;
+      text-align: center; letter-spacing: 0.5px;
+      transition: all 0.3s; padding: 4px 0;
+    }
+    .room-status-msg.ok    { color: var(--green); }
+    .room-status-msg.error { color: var(--red); }
+    .room-status-msg.info  { color: var(--violet); }
+
+    /* ── Name input ── */
+    .text-input {
+      width: 100%;
+      background: rgba(255,255,255,0.05);
+      border: 1.5px solid var(--glass-border-strong);
+      border-radius: 14px;
+      padding: 13px 16px; color: var(--text);
+      font-size: 16px; font-family: inherit;
+      outline: none; text-align: center;
+      transition: all 0.25s; caret-color: var(--gold);
+    }
+    .text-input::placeholder { color: var(--muted); }
+    .text-input:focus {
+      border-color: rgba(245,200,66,0.5);
+      background: rgba(245,200,66,0.04);
       box-shadow: 0 0 0 3px rgba(245,200,66,0.1);
     }
-    
-    .room-input-wrapper input.verified {
-      border-color: var(--green);
-      box-shadow: 0 0 0 3px rgba(34,211,160,0.2);
-    }
-    
-    .room-input-wrapper input.error {
-      border-color: var(--red);
-      animation: shake 0.5s ease;
-    }
-    
-    @keyframes shake {
-      0%, 100% { transform: translateX(0); }
-      25% { transform: translateX(-5px); }
-      75% { transform: translateX(5px); }
-    }
-    
-    .verify-status {
-      position: absolute;
-      right: 12px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 28px;
-      height: 28px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      pointer-events: none;
-    }
-    
-    .status-icon {
-      font-size: 18px;
-      transition: all 0.3s;
-    }
-    
-    .status-icon.loading {
-      animation: spin 1s linear infinite;
-      display: inline-block;
-    }
-    
-    @keyframes spin {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
-    }
-    
-    /* Verification Success Animation */
-    .verification-success {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: linear-gradient(135deg, rgba(34,211,160,0.95), rgba(16,185,129,0.95));
-      backdrop-filter: blur(20px);
-      border-radius: 24px;
-      padding: 30px 50px;
-      text-align: center;
-      z-index: 1000;
-      animation: successPop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-      box-shadow: 0 20px 40px rgba(0,0,0,0.4), 0 0 0 2px rgba(34,211,160,0.5);
-    }
-    
-    @keyframes successPop {
-      0% {
-        opacity: 0;
-        transform: translate(-50%, -50%) scale(0.5);
-      }
-      50% {
-        transform: translate(-50%, -50%) scale(1.1);
-      }
-      100% {
-        opacity: 1;
-        transform: translate(-50%, -50%) scale(1);
-      }
-    }
-    
-    .verification-success .check-icon {
-      font-size: 64px;
-      display: block;
-      margin-bottom: 10px;
-      animation: checkBounce 0.5s ease 0.2s both;
-    }
-    
-    @keyframes checkBounce {
-      0% { transform: scale(0); }
-      80% { transform: scale(1.2); }
-      100% { transform: scale(1); }
-    }
-    
-    .verification-success h3 {
-      font-family: 'Syne', sans-serif;
-      font-size: 24px;
-      margin-bottom: 5px;
-      color: white;
-    }
-    
-    .verification-success p {
-      font-size: 14px;
-      opacity: 0.9;
-    }
-    
-    /* Name Field - Initially Disabled */
-    .field.disabled {
-      opacity: 0.5;
-      pointer-events: none;
-    }
-    
-    .field.disabled input {
-      background: rgba(255,255,255,0.02);
-    }
-    
-    .field.enabled {
-      animation: fadeInUp 0.5s ease;
-    }
-    
-    @keyframes fadeInUp {
-      from {
-        opacity: 0;
-        transform: translateY(20px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-    
-    .field {
-      margin-bottom: 16px;
-      transition: all 0.3s;
-    }
-    
-    .field label {
-      font-size: 9px;
-      font-weight: 700;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 2px;
-      display: block;
-      margin-bottom: 6px;
-    }
-    
-    .field input {
-      background: rgba(255,255,255,0.05);
-      border: 1.5px solid var(--border2);
-      border-radius: 14px;
-      padding: 13px 16px;
-      color: var(--text);
-      font-size: 16px;
-      font-family: inherit;
-      width: 100%;
-      outline: none;
-      text-align: center;
-      transition: 0.2s;
-    }
-    
-    .field input:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(245,200,66,0.1); }
-    .field input::placeholder { color: var(--muted); }
 
+    /* ── Avatar grid ── */
     .avatar-grid {
-      display: grid;
-      grid-template-columns: repeat(6, 1fr);
-      gap: 7px;
-      margin-top: 6px;
+      display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px;
+      margin-top: 8px;
     }
-    
     .avatar-opt {
-      font-size: 24px;
-      text-align: center;
-      padding: 6px 4px;
-      border-radius: 12px;
-      border: 2px solid transparent;
-      cursor: pointer;
+      font-size: 26px; text-align: center;
+      padding: 8px 4px; border-radius: 12px;
+      border: 2px solid transparent; cursor: pointer;
       background: rgba(255,255,255,0.04);
-      transition: all 0.15s;
+      backdrop-filter: blur(4px);
+      transition: all 0.15s cubic-bezier(0.34,1.56,0.64,1);
+      user-select: none;
     }
+    .avatar-opt:hover  { transform: scale(1.1); background: rgba(255,255,255,0.08); }
     .avatar-opt:active { transform: scale(0.9); }
     .avatar-opt.selected {
       border-color: var(--gold);
-      background: rgba(245,200,66,0.1);
+      background: rgba(245,200,66,0.12);
+      box-shadow: 0 0 12px rgba(245,200,66,0.3);
+      transform: scale(1.08);
     }
 
-    .join-btn {
+    /* ── Buttons ── */
+    .btn-primary {
+      width: 100%; padding: 15px;
+      background: linear-gradient(135deg, var(--gold) 0%, var(--amber) 100%);
+      border: none; border-radius: 16px;
+      font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 800;
+      letter-spacing: 1.5px; color: #111;
+      cursor: pointer; margin-top: 18px;
+      position: relative; overflow: hidden;
+      transition: all 0.2s; box-shadow: 0 4px 20px rgba(245,200,66,0.2);
+    }
+    .btn-primary::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 60%);
+      opacity: 0; transition: opacity 0.2s;
+    }
+    .btn-primary:hover::before { opacity: 1; }
+    .btn-primary:active { transform: scale(0.98); }
+    .btn-primary:disabled {
+      opacity: 0.4; cursor: not-allowed; transform: none;
+      box-shadow: none;
+    }
+    .btn-primary:not(:disabled):hover {
+      box-shadow: 0 8px 30px rgba(245,200,66,0.35);
+      transform: translateY(-1px);
+    }
+
+    .btn-ghost {
+      background: none; border: 1.5px solid var(--glass-border);
+      border-radius: 12px; padding: 10px 20px;
+      color: var(--muted); font-size: 13px; font-family: inherit;
+      cursor: pointer; transition: all 0.2s; margin-top: 10px;
       width: 100%;
-      padding: 16px;
-      background: linear-gradient(135deg, var(--gold), var(--amber));
-      border: none;
-      border-radius: 16px;
-      font-family: 'Syne', sans-serif;
-      font-size: 17px;
-      font-weight: 800;
-      letter-spacing: 1px;
-      color: #111;
-      cursor: pointer;
-      margin-top: 18px;
-      transition: transform 0.1s, box-shadow 0.1s;
-      opacity: 0.5;
-      pointer-events: none;
     }
-    
-    .join-btn.active {
-      opacity: 1;
-      pointer-events: auto;
+    .btn-ghost:hover { border-color: var(--glass-border-strong); color: var(--text); }
+
+    /* char counter */
+    .char-counter {
+      font-size: 10px; color: var(--muted);
+      text-align: right; margin-top: 4px;
     }
-    
-    .join-btn:active { transform: scale(0.98); }
-    .join-btn:hover { box-shadow: 0 8px 24px rgba(245,200,66,0.3); }
-    .join-btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
-    .error-msg { color: var(--red); font-size: 12px; text-align: center; margin-top: 10px; font-weight: 500; }
+    /* Error under join button */
+    .join-error {
+      color: var(--red); font-size: 12px;
+      text-align: center; margin-top: 10px;
+      font-weight: 600; min-height: 18px;
+    }
 
-    /* Rest of your existing game screen styles - keep them */
+    /* ══════════════════════════════════════════
+       ROOM VERIFIED BANNER (inline, inside card)
+    ══════════════════════════════════════════ */
+    .room-verified-pill {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--green-dim);
+      border: 1px solid rgba(34,211,160,0.3);
+      border-radius: 40px; padding: 8px 16px;
+      margin-bottom: 16px;
+      animation: pillIn 0.5s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes pillIn {
+      from { opacity: 0; transform: scale(0.8) translateY(-8px); }
+      to   { opacity: 1; transform: none; }
+    }
+    .room-verified-pill .pill-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--green); box-shadow: 0 0 8px var(--green); flex-shrink: 0;
+    }
+    .room-verified-pill span {
+      font-size: 12px; font-weight: 700; color: var(--green); letter-spacing: 0.5px;
+    }
+    .room-verified-pill .pill-code {
+      font-family: 'JetBrains Mono', monospace;
+      color: #fff; letter-spacing: 2px;
+    }
+
+    /* ══════════════════════════════════════════
+       FULL-SCREEN VERIFICATION FLASH
+    ══════════════════════════════════════════ */
+    #verifyFlash {
+      position: fixed; inset: 0; z-index: 9999;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(5,4,16,0.85);
+      backdrop-filter: blur(20px);
+      pointer-events: none; opacity: 0;
+      transition: opacity 0.35s;
+    }
+    #verifyFlash.show { opacity: 1; }
+    .flash-card {
+      background: rgba(34,211,160,0.1);
+      border: 1px solid rgba(34,211,160,0.4);
+      border-radius: 24px;
+      padding: 36px 56px; text-align: center;
+      box-shadow: 0 0 60px rgba(34,211,160,0.2), var(--shadow-lg);
+      transform: scale(0.8);
+      transition: transform 0.45s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    #verifyFlash.show .flash-card { transform: scale(1); }
+    .flash-icon { font-size: 60px; display: block; margin-bottom: 12px; }
+    .flash-title {
+      font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800;
+      color: var(--green); margin-bottom: 6px;
+    }
+    .flash-sub { font-size: 14px; color: rgba(255,255,255,0.6); }
+
+    /* ══════════════════════════════════════════
+       RECONNECT BANNER
+    ══════════════════════════════════════════ */
+    #reconnectBanner {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      background: linear-gradient(90deg, rgba(249,115,22,0.95), rgba(245,200,66,0.95));
+      color: #111; font-size: 13px; font-weight: 700;
+      text-align: center; padding: 10px 16px;
+      transform: translateY(-100%);
+      transition: transform 0.4s cubic-bezier(0.22,1,0.36,1);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 4px 20px rgba(249,115,22,0.4);
+    }
+    #reconnectBanner.visible { transform: translateY(0); }
+
+    /* ══════════════════════════════════════════
+       CORRECT ANSWER OVERLAY
+    ══════════════════════════════════════════ */
+    #correctOverlay {
+      position: fixed; inset: 0; z-index: 500;
+      display: none; flex-direction: column;
+      align-items: center; justify-content: center;
+      background: rgba(5,4,16,0.88);
+      backdrop-filter: blur(20px);
+    }
+    #correctOverlay.active { display: flex; animation: overlayIn 0.4s ease; }
+    @keyframes overlayIn { from { opacity:0; } to { opacity:1; } }
+    .correct-icon { font-size: 72px; animation: iconPop 0.5s cubic-bezier(0.34,1.56,0.64,1); }
+    .correct-name-big {
+      font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800;
+      margin-top: 12px; text-align: center; padding: 0 20px;
+    }
+    .correct-label { font-size: 14px; color: var(--muted); margin-top: 6px; letter-spacing: 2px; }
+    .correct-pts {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 36px; font-weight: 700; color: var(--gold);
+      margin-top: 8px; text-shadow: 0 0 30px var(--gold-glow);
+    }
+    @keyframes iconPop { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+    /* ══════════════════════════════════════════
+       GAME SCREEN
+    ══════════════════════════════════════════ */
     #gameScreen {
-      display: none;
-      position: relative;
-      z-index: 2;
-      height: 100vh;
-      flex-direction: column;
-      padding: 0;
+      display: none; position: relative; z-index: 2;
+      height: 100vh; flex-direction: column; padding: 0;
     }
-    /* ... keep all your existing game screen styles ... */
+
+    /* Header bar */
+    .game-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 16px;
+      background: rgba(5,4,16,0.6);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--glass-border);
+      flex-shrink: 0; position: relative;
+    }
+    .game-header::after {
+      content: '';
+      position: absolute; bottom: -1px; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(245,200,66,0.3), transparent);
+    }
+
+    .player-identity { display: flex; align-items: center; gap: 10px; }
+    .player-identity-avatar {
+      font-size: 32px; width: 44px; height: 44px;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--glass); border-radius: 12px;
+      border: 1px solid var(--glass-border);
+      flex-shrink: 0;
+    }
+    .player-identity-name {
+      font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 800;
+      letter-spacing: 0.5px;
+    }
+    .conn-status {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.5px;
+      padding: 3px 10px; border-radius: 20px;
+      border: 1px solid var(--glass-border); display: inline-block; margin-top: 2px;
+    }
+    .conn-status.connected    { color: var(--green); border-color: rgba(34,211,160,0.3); }
+    .conn-status.disconnected { color: var(--red);   border-color: rgba(244,63,94,0.3); }
+    .conn-status.reconnecting { color: var(--amber);  border-color: rgba(249,115,22,0.3); animation: pulseBadge 1.2s infinite; }
+    @keyframes pulseBadge { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    .score-block { text-align: right; }
+    .score-value {
+      font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800;
+      color: var(--gold); line-height: 1;
+      text-shadow: 0 0 20px rgba(245,200,66,0.4);
+      transition: all 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    .score-value.bump { transform: scale(1.3); }
+    .score-label { font-size: 9px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; }
+
+    /* Question area */
+    .question-area {
+      flex: 1; display: flex; align-items: center; justify-content: center;
+      padding: 24px 20px 16px;
+      font-family: 'Syne', sans-serif; font-size: clamp(16px, 5vw, 22px);
+      font-weight: 700; line-height: 1.4; text-align: center;
+      color: var(--text);
+    }
+
+    /* Options */
+    #optionsGrid { padding: 0 16px 12px; display: none; }
+    #optionsGrid.visible { display: grid; gap: 8px; }
+    .opt-cell {
+      display: flex; align-items: center; gap: 12px;
+      background: var(--glass); backdrop-filter: blur(12px);
+      border: 1px solid var(--glass-border);
+      border-radius: 14px; padding: 12px 16px;
+      font-size: 14px; font-weight: 600; line-height: 1.35;
+      animation: optCellIn 0.3s cubic-bezier(0.22,1,0.36,1) both;
+    }
+    .opt-cell:nth-child(1) { animation-delay: 0.04s; }
+    .opt-cell:nth-child(2) { animation-delay: 0.08s; }
+    .opt-cell:nth-child(3) { animation-delay: 0.12s; }
+    .opt-cell:nth-child(4) { animation-delay: 0.16s; }
+    @keyframes optCellIn { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform:none; } }
+    .opt-letter {
+      font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 800;
+      color: var(--gold); flex-shrink: 0; width: 20px;
+    }
+
+    /* ── Buzzer ── */
+    .buzzer-wrap {
+      flex-shrink: 0; padding: 12px 20px 24px;
+      display: flex; flex-direction: column; align-items: center; gap: 14px;
+    }
+
+    .buzzer-btn-wrap {
+      position: relative; width: 160px; height: 160px;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    /* glow rings */
+    .buzzer-glow {
+      position: absolute; border-radius: 50%;
+      border: 1px solid rgba(244,63,94,0.3);
+      animation: buzzerRing 2s ease-out infinite;
+    }
+    .buzzer-glow:nth-child(1) { inset: -8px;  animation-delay: 0s; }
+    .buzzer-glow:nth-child(2) { inset: -20px; animation-delay: 0.4s; }
+    .buzzer-glow:nth-child(3) { inset: -34px; animation-delay: 0.8s; }
+    @keyframes buzzerRing { 0%{opacity:0.6;transform:scale(1)} 100%{opacity:0;transform:scale(1.15)} }
+
+    .buzzer-btn:not(:disabled) ~ .buzzer-glow,
+    .buzzer-btn:not(:disabled) + .buzzer-glow { border-color: rgba(244,63,94,0.5); }
+
+    .buzzer-btn {
+      width: 140px; height: 140px; border-radius: 50%;
+      background: linear-gradient(145deg, #2a2640, #16132a);
+      border: 3px solid rgba(255,255,255,0.1);
+      font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800;
+      letter-spacing: 2px; color: rgba(240,238,255,0.3);
+      cursor: not-allowed; position: relative; z-index: 1;
+      transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06);
+    }
+    .buzzer-btn:not(:disabled) {
+      background: linear-gradient(145deg, #f43f5e, #c0192a);
+      border-color: rgba(244,63,94,0.6);
+      color: #fff; cursor: pointer;
+      box-shadow: 0 8px 32px rgba(244,63,94,0.4), 0 0 60px rgba(244,63,94,0.2),
+                  inset 0 1px 0 rgba(255,255,255,0.2);
+      animation: buzzerReadyPulse 1.5s ease-in-out infinite;
+    }
+    .buzzer-btn:not(:disabled):active {
+      transform: scale(0.9);
+      box-shadow: 0 4px 16px rgba(244,63,94,0.3), 0 0 30px rgba(244,63,94,0.1);
+    }
+    @keyframes buzzerReadyPulse {
+      0%,100% { box-shadow: 0 8px 32px rgba(244,63,94,0.4), 0 0 60px rgba(244,63,94,0.15), inset 0 1px 0 rgba(255,255,255,0.2); }
+      50%      { box-shadow: 0 8px 32px rgba(244,63,94,0.6), 0 0 90px rgba(244,63,94,0.3), inset 0 1px 0 rgba(255,255,255,0.2); }
+    }
+    .buzzer-btn.buzzed-state {
+      background: linear-gradient(145deg, var(--gold), var(--amber));
+      border-color: var(--gold-glow);
+      color: #111; cursor: not-allowed;
+      box-shadow: 0 8px 32px rgba(245,200,66,0.4), 0 0 60px rgba(245,200,66,0.2);
+      animation: none;
+    }
+
+    .status-pill {
+      font-size: 13px; font-weight: 700; letter-spacing: 0.5px;
+      padding: 8px 20px; border-radius: 30px;
+      border: 1.5px solid currentColor;
+      background: rgba(0,0,0,0.2);
+      color: var(--muted);
+      transition: all 0.3s; text-align: center;
+      backdrop-filter: blur(8px);
+    }
+
+    /* ── Player timer overlay ── */
+    #playerTimerOverlay {
+      position: fixed; top: 50%; left: 50%;
+      transform: translate(-50%,-50%);
+      z-index: 300; pointer-events: none; display: none;
+    }
+    #playerTimerOverlay.active { display: block; }
+    .player-timer-ring { position: relative; width: 100px; height: 100px; }
+    .player-timer-ring svg { width: 100px; height: 100px; transform: rotate(-90deg); filter: drop-shadow(0 0 16px var(--gold)); }
+    .player-timer-ring .track  { fill: none; stroke: rgba(255,255,255,0.06); stroke-width: 6; }
+    .player-timer-ring .progress {
+      fill: none; stroke: var(--gold); stroke-width: 6; stroke-linecap: round;
+      stroke-dashoffset: 0; transition: stroke-dashoffset 1s linear, stroke 0.3s;
+    }
+    .player-timer-number {
+      position: absolute; inset: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Syne', sans-serif; font-size: 36px; font-weight: 800;
+      color: var(--gold);
+    }
+
+    /* ── Toast ── */
+    .reconnect-toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: rgba(20,18,40,0.9); backdrop-filter: blur(16px);
+      border: 1px solid var(--glass-border); border-radius: 30px;
+      padding: 10px 22px; font-size: 13px; font-weight: 600;
+      color: var(--text); z-index: 999; white-space: nowrap;
+      box-shadow: var(--shadow-lg);
+      animation: toastIn 0.4s cubic-bezier(0.22,1,0.36,1), toastOut 0.35s ease 3.65s forwards;
+    }
+    @keyframes toastIn  { from { opacity:0; transform: translateX(-50%) translateY(16px); } }
+    @keyframes toastOut { to   { opacity:0; transform: translateX(-50%) translateY(8px); } }
   </style>
 </head>
 <body>
+
+<!-- VERIFY FLASH -->
+<div id="verifyFlash">
+  <div class="flash-card">
+    <span class="flash-icon">✅</span>
+    <div class="flash-title" id="flashTitle">Room Verified!</div>
+    <div class="flash-sub" id="flashSub">You're good to go</div>
+  </div>
+</div>
 
 <!-- RECONNECT BANNER -->
 <div id="reconnectBanner">⟳ Reconnecting to game... your progress is safe</div>
@@ -351,42 +637,76 @@
   <div class="correct-pts" id="correctOverlayPts">+100 pts</div>
 </div>
 
-<!-- JOIN SCREEN -->
+<!-- ═══════════════════════════════════
+     JOIN SCREEN  (3-step flow)
+═══════════════════════════════════ -->
 <div id="joinScreen">
-  <div class="logo">PLAYAQUIZ</div>
+  <div class="login-logo-wrap">
+    <div class="login-logo">PLAYAQUIZ</div>
+    <div class="login-tagline">The Grand Final Arena</div>
+  </div>
+
   <div class="join-card">
-    
-    <!-- Room Code Input with Verification -->
-    <div class="room-input-group">
-      <label>🔑 ROOM CODE</label>
-      <div class="room-input-wrapper">
-        <input type="text" id="roomInput" placeholder="Enter Room Code" maxlength="8" 
-               autocomplete="off" style="text-transform:uppercase;font-family:'JetBrains Mono',monospace;letter-spacing:4px;font-size:20px;">
-        <div class="verify-status" id="verifyStatus">
-          <span class="status-icon" id="statusIcon">⏳</span>
+    <!-- Step progress dots -->
+    <div class="steps-bar">
+      <div class="step-dot active"  id="dot1"></div>
+      <div class="step-dot"         id="dot2"></div>
+      <div class="step-dot"         id="dot3"></div>
+    </div>
+
+    <!-- ── STEP 1: Room Code ── -->
+    <div class="step-panel active" id="step1">
+      <div class="field-label">🔑 &nbsp;Enter Room Code</div>
+      <div class="room-input-block">
+        <input
+          type="text" id="roomInput" class="room-code-input"
+          placeholder="e.g. QUIZ4X" maxlength="8"
+          autocomplete="off" inputmode="text"
+          oninput="onRoomInput(this)"
+          onkeydown="if(event.key==='Enter') tryAdvanceFromRoom()"
+        >
+        <div class="room-verify-icon">
+          <div class="verify-spinner"   id="verifySpinner"></div>
+          <span class="verify-checkmark" id="verifyCheck">✅</span>
+          <span class="verify-cross"     id="verifyCross">❌</span>
         </div>
       </div>
-      <div id="roomVerifyError" class="error-msg" style="font-size:11px; margin-top:6px;"></div>
+      <div class="room-status-msg" id="roomStatusMsg">Type your room code above</div>
+      <button class="btn-primary" id="roomNextBtn" disabled onclick="tryAdvanceFromRoom()">
+        Continue →
+      </button>
     </div>
-    
-    <!-- Name Field - Initially Disabled -->
-    <div class="field disabled" id="nameField">
-      <label>👤 YOUR NAME</label>
-      <input type="text" id="nameInput" placeholder="Enter your name" autocomplete="off" disabled>
+
+    <!-- ── STEP 2: Name ── -->
+    <div class="step-panel" id="step2">
+      <div id="verifiedPill" class="room-verified-pill" style="display:none;">
+        <div class="pill-dot"></div>
+        <span>Room <span class="pill-code" id="pillCode">——</span> verified ✓</span>
+      </div>
+      <div class="field-label" style="margin-top:4px;">👤 &nbsp;Your Display Name</div>
+      <input type="text" id="nameInput" class="text-input"
+        placeholder="Enter your name" maxlength="20" autocomplete="off"
+        oninput="onNameInput(this)"
+        onkeydown="if(event.key==='Enter') goToStep3()">
+      <div class="char-counter"><span id="nameLen">0</span>/20</div>
+      <button class="btn-primary" id="nameNextBtn" disabled onclick="goToStep3()">Continue →</button>
+      <button class="btn-ghost" onclick="goToStep(1)">← Back</button>
     </div>
-    
-    <!-- Avatar Grid - Initially Disabled -->
-    <div class="field disabled" id="avatarField">
-      <label>🎨 CHOOSE AVATAR</label>
+
+    <!-- ── STEP 3: Avatar + Join ── -->
+    <div class="step-panel" id="step3">
+      <div class="field-label">🎨 &nbsp;Pick Your Avatar</div>
       <div class="avatar-grid" id="avatarGrid"></div>
+      <button class="btn-primary" id="joinBtn" onclick="joinGame()">⚡ Enter Final Round</button>
+      <button class="btn-ghost" onclick="goToStep(2)">← Back</button>
+      <div class="join-error" id="joinError"></div>
     </div>
-    
-    <button class="join-btn" id="joinBtn" onclick="joinGame()" disabled style="opacity:0.5; pointer-events:none;">⚡ ENTER FINAL ROUND</button>
-    <div id="joinError" class="error-msg"></div>
   </div>
 </div>
 
-<!-- GAME SCREEN (keep your existing game screen HTML) -->
+<!-- ═══════════════════════════════════
+     GAME SCREEN
+═══════════════════════════════════ -->
 <div id="gameScreen">
   <div class="game-header">
     <div class="player-identity">
@@ -428,16 +748,20 @@
 </div>
 
 <script>
-const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
+const SUPABASE_URL  = 'https://efgirqbaayfjwswnwbop.supabase.co';
 const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
 const AVATARS = ['😎','🦁','🐯','🐱','🐶','🐺','🦊','🐸','🐧','🐙','🦄','🐲','🚀','⭐','🔥','⚡','🎮','🏆'];
 
 // ─── Core state ───────────────────────────────────────────────────────────────
-let myId = null, myName = '', myAvatar = '😎', myScore = 0, roomCode = null, ch = null;
-let isOpen = false, myStatus = 'waiting', globalBuzzerEnabled = true, timerInterval = null;
-let reconnectAttempts = 0, reconnectTimer = null, heartbeatInterval = null;
-let roomVerified = false;  // Track if room is verified
+let myId = null, myName = '', myAvatar = '😎', myScore = 0;
+let roomCode = null, ch = null;
+let isOpen = false, myStatus = 'waiting', globalBuzzerEnabled = true;
+let timerInterval = null, reconnectAttempts = 0, reconnectTimer = null, heartbeatInterval = null;
+let roomVerified = false;
+let currentVerifyCode = '';
+let verifyDebounce = null;
 const RECONNECT_DELAYS = [2000, 4000, 8000, 15000];
 const HEARTBEAT_MS = 6000;
 
@@ -452,366 +776,298 @@ function pickAvatar(el, avatar) {
   myAvatar = avatar;
 }
 
-// ─── Room Verification with Animation ─────────────────────────────────────────
-let verificationTimeout = null;
-let currentVerificationCode = '';
+// ─── Step navigation ──────────────────────────────────────────────────────────
+let currentStep = 1;
 
-async function verifyRoomCode() {
-  const input = document.getElementById('roomInput');
-  const code = input.value.trim().toUpperCase();
-  const statusIcon = document.getElementById('statusIcon');
-  const roomVerifyError = document.getElementById('roomVerifyError');
-  const nameField = document.getElementById('nameField');
-  const avatarField = document.getElementById('avatarField');
-  const joinBtn = document.getElementById('joinBtn');
-  
-  // Clear previous timeout
-  if (verificationTimeout) clearTimeout(verificationTimeout);
-  
-  // Reset UI
-  input.classList.remove('verified', 'error');
-  roomVerifyError.innerText = '';
-  
-  // Validate format
-  if (code.length < 4 || code.length > 8) {
-    statusIcon.innerHTML = '⌛';
-    enableNameSection(false);
-    roomVerified = false;
+function goToStep(n) {
+  document.getElementById(`step${currentStep}`).classList.remove('active');
+  currentStep = n;
+  document.getElementById(`step${currentStep}`).classList.add('active');
+  // Update dots
+  [1,2,3].forEach(i => {
+    const dot = document.getElementById(`dot${i}`);
+    dot.className = 'step-dot' + (i === n ? ' active' : (i < n ? ' done' : ''));
+  });
+  // Focus relevant input
+  setTimeout(() => {
+    if (n===1) document.getElementById('roomInput').focus();
+    if (n===2) document.getElementById('nameInput').focus();
+  }, 150);
+}
+
+function goToStep3() {
+  const name = document.getElementById('nameInput').value.trim();
+  if (name.length < 2) {
+    document.getElementById('nameInput').focus();
     return;
   }
-  
-  if (!/^[A-Z0-9]{4,8}$/.test(code)) {
-    statusIcon.innerHTML = '❌';
-    enableNameSection(false);
-    roomVerified = false;
-    return;
+  myName = name;
+  goToStep(3);
+}
+
+// ─── Room Code Verification ───────────────────────────────────────────────────
+function setVerifyUI(state) {
+  const spinner   = document.getElementById('verifySpinner');
+  const check     = document.getElementById('verifyCheck');
+  const cross     = document.getElementById('verifyCross');
+  const input     = document.getElementById('roomInput');
+  const nextBtn   = document.getElementById('roomNextBtn');
+  const statusMsg = document.getElementById('roomStatusMsg');
+
+  spinner.style.display = 'none';
+  check.style.display   = 'none';
+  cross.style.display   = 'none';
+  input.className = 'room-code-input';
+  statusMsg.className = 'room-status-msg';
+  nextBtn.disabled = true;
+
+  if (state === 'idle') {
+    statusMsg.textContent = 'Type your room code above';
+  } else if (state === 'typing') {
+    statusMsg.textContent = 'Keep typing...';
+    statusMsg.classList.add('info');
+  } else if (state === 'verifying') {
+    spinner.style.display = 'block';
+    input.classList.add('state-verifying');
+    statusMsg.textContent = 'Checking room...';
+    statusMsg.classList.add('info');
+  } else if (state === 'ok') {
+    check.style.display = 'block';
+    input.classList.add('state-ok');
+    statusMsg.textContent = '✓ Room found! Tap Continue.';
+    statusMsg.classList.add('ok');
+    nextBtn.disabled = false;
+  } else if (state === 'not-found') {
+    cross.style.display = 'block';
+    input.classList.add('state-error');
+    statusMsg.textContent = 'Room not found. Check the code.';
+    statusMsg.classList.add('error');
+  } else if (state === 'inactive') {
+    cross.style.display = 'block';
+    input.classList.add('state-error');
+    statusMsg.textContent = 'This room is no longer active.';
+    statusMsg.classList.add('error');
+  } else if (state === 'conn-error') {
+    cross.style.display = 'block';
+    input.classList.add('state-error');
+    statusMsg.textContent = 'Connection error. Please try again.';
+    statusMsg.classList.add('error');
   }
-  
-  // Show loading
-  statusIcon.innerHTML = '⟳';
-  statusIcon.className = 'status-icon loading';
-  currentVerificationCode = code;
-  
+}
+
+function onRoomInput(el) {
+  const raw = el.value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+  el.value = raw;
+  roomVerified = false;
+  setVerifyUI(raw.length < 4 ? 'idle' : 'typing');
+  if (verifyDebounce) clearTimeout(verifyDebounce);
+  if (raw.length >= 4) {
+    verifyDebounce = setTimeout(() => verifyRoom(raw), 500);
+  }
+}
+
+async function verifyRoom(code) {
+  currentVerifyCode = code;
+  setVerifyUI('verifying');
   try {
-    // Query database
     const { data, error } = await sb
       .from('game_rooms')
       .select('room_code, is_active')
       .eq('room_code', code)
       .maybeSingle();
-    
-    // Check if this verification is still for the current code
-    if (currentVerificationCode !== code) return;
-    
-    if (error || !data) {
-      // Room not found
-      statusIcon.innerHTML = '❌';
-      statusIcon.className = 'status-icon';
-      input.classList.add('error');
-      roomVerifyError.innerText = '❌ Room not found';
-      enableNameSection(false);
-      roomVerified = false;
-      return;
-    }
-    
-    if (!data.is_active) {
-      // Room inactive
-      statusIcon.innerHTML = '⚠️';
-      statusIcon.className = 'status-icon';
-      input.classList.add('error');
-      roomVerifyError.innerText = '⚠️ This room is no longer active';
-      enableNameSection(false);
-      roomVerified = false;
-      return;
-    }
-    
-    // SUCCESS! Room verified
-    statusIcon.innerHTML = '✅';
-    statusIcon.className = 'status-icon';
-    input.classList.add('verified');
-    roomVerifyError.innerText = '';
+
+    if (currentVerifyCode !== code) return; // superseded
+
+    if (error || !data) { setVerifyUI('not-found'); roomVerified = false; return; }
+    if (!data.is_active) { setVerifyUI('inactive'); roomVerified = false; return; }
+
+    // ✅ Success
     roomVerified = true;
-    
-    // Show success animation
-    showVerificationSuccess(code);
-    
-    // Enable name section after a short delay
-    setTimeout(() => {
-      if (roomVerified && currentVerificationCode === code) {
-        enableNameSection(true);
-      }
-    }, 800);
-    
-  } catch (err) {
-    console.error('Verification error:', err);
-    statusIcon.innerHTML = '⚠️';
-    statusIcon.className = 'status-icon';
-    roomVerifyError.innerText = '❌ Connection error. Try again.';
-    enableNameSection(false);
-    roomVerified = false;
+    setVerifyUI('ok');
+    playBeep(880, 'sine', 0.25);
+  } catch(e) {
+    if (currentVerifyCode !== code) return;
+    setVerifyUI('conn-error'); roomVerified = false;
   }
 }
 
-// Enable/disable name section with animation
-// Enable/disable name section with animation
-function enableNameSection(enabled) {
-  const nameField = document.getElementById('nameField');
-  const nameInput = document.getElementById('nameInput');
-  const avatarField = document.getElementById('avatarField');
-  const joinBtn = document.getElementById('joinBtn');
-  
-  if (enabled) {
-    nameField.classList.remove('disabled');
-    nameField.classList.add('enabled');
-    avatarField.classList.remove('disabled');
-    avatarField.classList.add('enabled');
-    nameInput.disabled = false;
-    
-    // IMPORTANT: Enable the join button
-    joinBtn.disabled = false;
-    joinBtn.classList.add('active');
-    joinBtn.style.opacity = '1';
-    joinBtn.style.pointerEvents = 'auto';
-    
-  } else {
-    nameField.classList.add('disabled');
-    nameField.classList.remove('enabled');
-    avatarField.classList.add('disabled');
-    avatarField.classList.remove('enabled');
-    nameInput.disabled = true;
-    
-    // IMPORTANT: Disable the join button
-    joinBtn.disabled = true;
-    joinBtn.classList.remove('active');
-    joinBtn.style.opacity = '0.5';
-    joinBtn.style.pointerEvents = 'none';
-  }
-}
-
-// Show success animation
-function showVerificationSuccess(roomCode) {
-  // Remove existing animation if any
-  const existing = document.querySelector('.verification-success');
-  if (existing) existing.remove();
-  
-  // Create animation element
-  const animDiv = document.createElement('div');
-  animDiv.className = 'verification-success';
-  animDiv.innerHTML = `
-    <div class="check-icon">✅</div>
-    <h3>Room Verified!</h3>
-    <p>Room Code: <strong>${roomCode}</strong></p>
-  `;
-  document.body.appendChild(animDiv);
-  
-  // Play beep sound
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    if(ctx.state === 'suspended') ctx.resume();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.value = 880;
-    gain.gain.setValueAtTime(0.2, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start();
-    osc.stop(ctx.currentTime + 0.3);
-  } catch(e) {}
-  
-  // Remove animation after 2 seconds
-  setTimeout(() => {
-    if (animDiv) animDiv.remove();
-  }, 2000);
-}
-
-// ─── Join Game (only called after verification) ───────────────────────────────
-async function joinGame() {
+async function tryAdvanceFromRoom() {
+  const code = document.getElementById('roomInput').value.trim().toUpperCase();
   if (!roomVerified) {
-    document.getElementById('joinError').innerText = '❌ Please verify your room code first';
+    if (code.length >= 4) await verifyRoom(code);
     return;
   }
-  
-  const room = document.getElementById('roomInput').value.trim().toUpperCase();
-  const name = document.getElementById('nameInput').value.trim();
+  // Show flash animation then advance
+  showVerifyFlash(code, () => {
+    document.getElementById('pillCode').textContent = code;
+    document.getElementById('verifiedPill').style.display = 'flex';
+    goToStep(2);
+  });
+}
+
+function showVerifyFlash(code, cb) {
+  document.getElementById('flashTitle').textContent = 'Room Verified!';
+  document.getElementById('flashSub').textContent = `Room: ${code}`;
+  const el = document.getElementById('verifyFlash');
+  el.classList.add('show');
+  setTimeout(() => {
+    el.classList.remove('show');
+    if (cb) cb();
+  }, 1100);
+}
+
+// ─── Name input live validation ───────────────────────────────────────────────
+function onNameInput(el) {
+  const len = el.value.trim().length;
+  document.getElementById('nameLen').textContent = el.value.length;
+  document.getElementById('nameNextBtn').disabled = len < 2;
+}
+
+// ─── Join Game ────────────────────────────────────────────────────────────────
+async function joinGame() {
   const errorEl = document.getElementById('joinError');
   const joinBtn = document.getElementById('joinBtn');
-  
-  if (name.length < 2 || name.length > 20) {
-    errorEl.innerText = '❌ Name must be 2-20 characters';
-    return;
-  }
-  
+  const room = document.getElementById('roomInput').value.trim().toUpperCase();
+  const name = myName || document.getElementById('nameInput').value.trim();
+
+  if (!roomVerified) { errorEl.textContent = '❌ Room not verified'; return; }
+  if (name.length < 2) { errorEl.textContent = '❌ Name too short'; return; }
+
   joinBtn.disabled = true;
-  const originalText = joinBtn.innerText;
-  joinBtn.innerText = '⟳ Joining...';
-  errorEl.innerText = '';
-  
+  joinBtn.textContent = '⟳ Joining...';
+  errorEl.textContent = '';
+
   try {
-    // Double-check room still exists
     const { data: roomData, error: roomError } = await sb
       .from('game_rooms')
       .select('room_code, is_active, player_count')
       .eq('room_code', room)
       .maybeSingle();
-    
+
     if (roomError || !roomData) {
-      errorEl.innerText = '❌ Room no longer exists. Please refresh.';
-      joinBtn.disabled = false;
-      joinBtn.innerText = originalText;
-      roomVerified = false;
-      enableNameSection(false);
-      return;
+      errorEl.textContent = '❌ Room no longer exists.';
+      joinBtn.disabled = false; joinBtn.textContent = '⚡ Enter Final Round';
+      roomVerified = false; goToStep(1); setVerifyUI('not-found'); return;
     }
-    
     if (!roomData.is_active) {
-      errorEl.innerText = '❌ Game has ended. Please wait for a new game.';
-      joinBtn.disabled = false;
-      joinBtn.innerText = originalText;
-      roomVerified = false;
-      enableNameSection(false);
-      return;
+      errorEl.textContent = '❌ Game has ended.';
+      joinBtn.disabled = false; joinBtn.textContent = '⚡ Enter Final Round';
+      roomVerified = false; goToStep(1); setVerifyUI('inactive'); return;
     }
-    
-    // Proceed with join
+
     if (ch) { try { await sb.removeChannel(ch); } catch(e) {} ch = null; }
-    
-    myId = 'p_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
-    myName = name;
+    myId     = 'p_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
+    myName   = name;
     myAvatar = document.querySelector('.avatar-opt.selected')?.innerText || '😎';
     roomCode = room;
-    myScore = 0;
-    isOpen = false;
-    myStatus = 'waiting';
-    globalBuzzerEnabled = true;
-    
+    myScore  = 0; isOpen = false; myStatus = 'waiting'; globalBuzzerEnabled = true;
+
     saveIdentity();
     subscribeChannel();
-    
     sb.from('game_rooms').update({ player_count: (roomData.player_count || 0) + 1 }).eq('room_code', room).catch(()=>{});
-    
-    setTimeout(() => {
-      if (joinBtn && !joinBtn.disabled) {
-        joinBtn.disabled = false;
-        joinBtn.innerText = originalText;
-      }
-    }, 8000);
-    
-  } catch (error) {
-    console.error('Join error:', error);
-    errorEl.innerText = '❌ Connection failed. Please try again.';
-    joinBtn.disabled = false;
-    joinBtn.innerText = originalText;
+    setTimeout(() => { if (joinBtn && joinBtn.disabled) { joinBtn.disabled = false; joinBtn.textContent = '⚡ Enter Final Round'; }}, 10000);
+  } catch(err) {
+    console.error('Join error:', err);
+    errorEl.textContent = '❌ Connection failed. Please try again.';
+    joinBtn.disabled = false; joinBtn.textContent = '⚡ Enter Final Round';
   }
 }
 
-// ─── Auto-verify on input ─────────────────────────────────────────────────────
-let verifyDebounceTimer;
-document.getElementById('roomInput').addEventListener('input', function(e) {
-  const code = e.target.value.toUpperCase();
-  e.target.value = code;
-  
-  if (verifyDebounceTimer) clearTimeout(verifyDebounceTimer);
-  
-  // Reset verification state
-  roomVerified = false;
-  enableNameSection(false);
-  
-  // Start verification after user stops typing (500ms delay)
-  verifyDebounceTimer = setTimeout(() => {
-    if (code.length >= 4) {
-      verifyRoomCode();
-    } else {
-      document.getElementById('statusIcon').innerHTML = '⌛';
-      document.getElementById('roomVerifyError').innerText = '';
-      document.getElementById('roomInput').classList.remove('verified', 'error');
-    }
-  }, 500);
-});
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function playBeep(freq, type, duration) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (ctx.state === 'suspended') ctx.resume();
+    const osc = ctx.createOscillator(), gain = ctx.createGain();
+    osc.type = type; osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.start(); osc.stop(ctx.currentTime + duration);
+  } catch(e) {}
+}
 
-// ─── Identity persistence ─────────────────────────────────────────────────────
-function saveIdentity() { try { sessionStorage.setItem('fr_identity', JSON.stringify({ myId, myName, myAvatar, roomCode, myScore, myStatus })); } catch(e) {} }
-function loadIdentity() { try { const s = sessionStorage.getItem('fr_identity'); return s ? JSON.parse(s) : null; } catch(e) { return null; } }
-function clearIdentity() { try { sessionStorage.removeItem('fr_identity'); } catch(e) {} }
-
-// ─── Heartbeat, Reconnect, Channel Setup (keep your existing functions) ───────
 function updateConnectionBadge(state, message) {
-  const badge = document.getElementById('connStatusBadge');
+  const badge  = document.getElementById('connStatusBadge');
   const banner = document.getElementById('reconnectBanner');
-  if(badge) { badge.className = `conn-status ${state}`; badge.innerText = message; }
-  if(banner) banner.classList.toggle('visible', state === 'reconnecting' || state === 'disconnected');
+  if (badge)  { badge.className  = `conn-status ${state}`; badge.innerText = message; }
+  if (banner) banner.classList.toggle('visible', state === 'reconnecting' || state === 'disconnected');
 }
 
 function showToast(msg, duration = 4000) {
-  const toast = document.createElement('div');
-  toast.className = 'reconnect-toast';
-  toast.innerText = msg;
-  document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), duration);
+  const t = document.createElement('div'); t.className = 'reconnect-toast'; t.innerText = msg;
+  document.body.appendChild(t); setTimeout(() => t.remove(), duration);
 }
 
 function setStatus(text, color = 'var(--green)') {
   const pill = document.getElementById('statusPill');
-  if(pill) { pill.innerText = text; pill.style.color = color; pill.style.borderColor = color; }
+  if (pill) { pill.innerText = text; pill.style.color = color; pill.style.borderColor = color; }
 }
 
 function showOptions(opts) {
   const grid = document.getElementById('optionsGrid');
-  if(!grid) return;
-  if(!opts || !opts.length) { grid.className = ''; grid.innerHTML = ''; return; }
+  if (!grid) return;
+  if (!opts?.length) { grid.className = ''; grid.innerHTML = ''; return; }
   const letters = ['A','B','C','D'];
-  grid.innerHTML = opts.map((o,i) => `<div class="opt-cell"><span class="opt-letter">${letters[i]}</span><span>${o}</span></div>`).join('');
+  grid.innerHTML = opts.map((o,i) => `<div class="opt-cell"><span class="opt-letter">${letters[i]}</span><span>${escapeHtml(o)}</span></div>`).join('');
   grid.className = 'visible';
 }
-
-function hideOptions() { const grid = document.getElementById('optionsGrid'); if(grid) { grid.className = ''; grid.innerHTML = ''; } }
+function hideOptions() { const g = document.getElementById('optionsGrid'); if(g) { g.className=''; g.innerHTML=''; } }
 
 function updateBuzzerUI() {
   const btn = document.getElementById('buzzerBtn');
-  if(!btn) return;
+  if (!btn) return;
   btn.classList.remove('buzzed-state');
-  if(myStatus === 'eliminated') { btn.disabled = true; btn.innerText = 'OUT'; setStatus('⚡ Eliminated', 'var(--red)'); }
-  else if(myStatus === 'buzzed') { btn.disabled = true; btn.classList.add('buzzed-state'); btn.innerText = 'BUZZED!'; setStatus('🎤 Answer verbally!', 'var(--gold)'); }
-  else if(myStatus === 'locked' || myStatus === 'wrong') { btn.disabled = true; btn.innerText = 'LOCKED'; setStatus('Locked out this round', 'var(--muted)'); }
-  else if(isOpen && myStatus === 'waiting' && globalBuzzerEnabled) { btn.disabled = false; btn.innerText = 'BUZZ!'; setStatus('🔴 BUZZ NOW!', 'var(--green)'); }
-  else { btn.disabled = true; btn.innerText = 'WAIT'; setStatus('Waiting...', 'var(--muted)'); }
+  if (myStatus === 'eliminated')                             { btn.disabled=true;  btn.innerText='OUT';    setStatus('⚡ Eliminated','var(--red)'); }
+  else if (myStatus === 'buzzed')                            { btn.disabled=true;  btn.classList.add('buzzed-state'); btn.innerText='BUZZED!'; setStatus('🎤 Answer verbally!','var(--gold)'); }
+  else if (myStatus === 'locked' || myStatus === 'wrong')    { btn.disabled=true;  btn.innerText='LOCKED'; setStatus('Locked out this round','var(--muted)'); }
+  else if (isOpen && myStatus === 'waiting' && globalBuzzerEnabled) { btn.disabled=false; btn.innerText='BUZZ!'; setStatus('🔴 BUZZ NOW!','var(--green)'); }
+  else                                                       { btn.disabled=true;  btn.innerText='WAIT';   setStatus('Waiting...','var(--muted)'); }
 }
 
 function buzz() {
-  if(!isOpen || myStatus !== 'waiting' || !globalBuzzerEnabled) return;
-  if(navigator.vibrate) navigator.vibrate([60,20,60]);
-  myStatus = 'buzzed';
-  updateBuzzerUI();
-  if(ch) ch.send({ type: 'broadcast', event: 'buzz', payload: { id: myId, name: myName, avatar: myAvatar } });
+  if (!isOpen || myStatus !== 'waiting' || !globalBuzzerEnabled) return;
+  if (navigator.vibrate) navigator.vibrate([60,20,60]);
+  myStatus = 'buzzed'; updateBuzzerUI();
+  if (ch) ch.send({ type:'broadcast', event:'buzz', payload:{ id:myId, name:myName, avatar:myAvatar }});
 }
 
-function updateScore(newScore) { myScore = newScore; const el = document.getElementById('myScoreDisplay'); if(el) el.innerText = myScore; }
+function updateScore(newScore) {
+  myScore = newScore;
+  const el = document.getElementById('myScoreDisplay');
+  if (el) { el.innerText = myScore; el.classList.add('bump'); setTimeout(() => el.classList.remove('bump'), 400); }
+}
 
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/[&<>]/g, m => m==='&'?'&amp;':m==='<'?'&lt;':'&gt;');
+}
+
+// ─── Timer ────────────────────────────────────────────────────────────────────
 function startPlayerTimer(seconds) {
-  if(timerInterval) clearInterval(timerInterval);
+  if (timerInterval) clearInterval(timerInterval);
   const overlay = document.getElementById('playerTimerOverlay');
-  const numEl = document.getElementById('playerTimerNumber');
-  const progressEl = document.getElementById('playerTimerProgress');
-  const circumference = 2 * Math.PI * 35;
-  progressEl.style.strokeDasharray = circumference;
+  const numEl   = document.getElementById('playerTimerNumber');
+  const progEl  = document.getElementById('playerTimerProgress');
+  const circ    = 2 * Math.PI * 35;
+  progEl.style.strokeDasharray = circ;
   overlay.classList.add('active');
   let remaining = seconds;
   const update = () => {
     numEl.innerText = remaining;
     const pct = remaining / seconds;
-    progressEl.style.strokeDashoffset = circumference * (1 - pct);
-    if(remaining <= 3) { progressEl.style.stroke = 'var(--red)'; numEl.style.color = 'var(--red)'; }
-    else if(remaining <= 6) { progressEl.style.stroke = 'var(--amber)'; numEl.style.color = 'var(--amber)'; }
-    else { progressEl.style.stroke = 'var(--gold)'; numEl.style.color = 'var(--gold)'; }
+    progEl.style.strokeDashoffset = circ * (1 - pct);
+    if (remaining <= 3)      { progEl.style.stroke = 'var(--red)';   numEl.style.color = 'var(--red)'; }
+    else if (remaining <= 6) { progEl.style.stroke = 'var(--amber)'; numEl.style.color = 'var(--amber)'; }
+    else                     { progEl.style.stroke = 'var(--gold)';  numEl.style.color = 'var(--gold)'; }
   };
   update();
   timerInterval = setInterval(() => {
     remaining--;
-    if(remaining <= 0) {
+    if (remaining <= 0) {
       clearInterval(timerInterval); timerInterval = null;
       setTimeout(() => overlay.classList.remove('active'), 800);
-    } else { update(); }
+    } else update();
   }, 1000);
 }
 
@@ -822,139 +1078,202 @@ function showCorrectPlayerOverlay(name, avatar, pts) {
   el.classList.add('active');
   setTimeout(() => el.classList.remove('active'), 3000);
 }
-
 function hideCorrectPlayerOverlay() { document.getElementById('correctOverlay').classList.remove('active'); }
-function launchConfetti() { for(let i=0;i<80;i++) { const c=document.createElement('div'); c.style.cssText=`position:fixed;width:6px;height:6px;background:${['#f5c842','#f43f5e','#22d3a0','#6366f1'][Math.floor(Math.random()*4)]};left:${Math.random()*100}vw;top:-10px;border-radius:50%;pointer-events:none;z-index:9999;animation:confettiFall 2.5s linear ${Math.random()*0.5}s forwards;`; document.body.appendChild(c); setTimeout(()=>c.remove(),3000); } }
 
-function startHeartbeat() { stopHeartbeat(); heartbeatInterval = setInterval(() => { if(ch && myId) ch.send({ type: 'broadcast', event: 'player_heartbeat', payload: { id: myId } }); }, HEARTBEAT_MS); }
-function stopHeartbeat() { if(heartbeatInterval) { clearInterval(heartbeatInterval); heartbeatInterval = null; } }
+function launchConfetti() {
+  for(let i=0;i<80;i++) {
+    const c=document.createElement('div');
+    c.style.cssText=`position:fixed;width:6px;height:6px;background:${['#f5c842','#f43f5e','#22d3a0','#6366f1'][Math.floor(Math.random()*4)]};left:${Math.random()*100}vw;top:-10px;border-radius:50%;pointer-events:none;z-index:9999;animation:confettiFall 2.5s linear ${Math.random()*0.5}s forwards;`;
+    document.body.appendChild(c); setTimeout(()=>c.remove(),3000);
+  }
+}
+const _s = document.createElement('style');
+_s.textContent = `@keyframes confettiFall{to{transform:translateY(110vh) rotate(720deg);opacity:0;}}`;
+document.head.appendChild(_s);
 
-function cancelReconnect() { if(reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; } reconnectAttempts = 0; }
-function scheduleReconnect() { if(reconnectTimer) return; const delay = RECONNECT_DELAYS[Math.min(reconnectAttempts, RECONNECT_DELAYS.length-1)]; reconnectAttempts++; updateConnectionBadge('reconnecting', `⟳ Reconnecting (${reconnectAttempts})...`); reconnectTimer = setTimeout(() => { reconnectTimer = null; if(roomCode) subscribeChannel(); }, delay); }
+// ─── Heartbeat & Reconnect ────────────────────────────────────────────────────
+function startHeartbeat() { stopHeartbeat(); heartbeatInterval = setInterval(()=>{ if(ch&&myId) ch.send({type:'broadcast',event:'player_heartbeat',payload:{id:myId}}); }, HEARTBEAT_MS); }
+function stopHeartbeat()  { if(heartbeatInterval) { clearInterval(heartbeatInterval); heartbeatInterval=null; } }
+function cancelReconnect(){ if(reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer=null; } reconnectAttempts=0; }
+function scheduleReconnect() {
+  if(reconnectTimer) return;
+  const delay = RECONNECT_DELAYS[Math.min(reconnectAttempts, RECONNECT_DELAYS.length-1)];
+  reconnectAttempts++;
+  updateConnectionBadge('reconnecting', `⟳ Reconnecting (${reconnectAttempts})...`);
+  reconnectTimer = setTimeout(() => { reconnectTimer=null; if(roomCode) subscribeChannel(); }, delay);
+}
 
 async function verifyRoomBeforeJoining(code) {
   try {
-    const { data, error } = await sb.from('game_rooms').select('room_code, is_active').eq('room_code', code).maybeSingle();
-    if(error || !data) return false;
+    const { data, error } = await sb.from('game_rooms').select('room_code,is_active').eq('room_code',code).maybeSingle();
+    if (error || !data) return false;
     return data.is_active === true;
-  } catch(err) { console.error('Verification error:', err); return false; }
+  } catch(e) { return false; }
 }
 
-async function updatePlayerCount(code, increment) {
-  try {
-    const { data } = await sb.from('game_rooms').select('player_count').eq('room_code', code).single();
-    const newCount = (data?.player_count || 0) + (increment ? 1 : -1);
-    await sb.from('game_rooms').update({ player_count: Math.max(0, newCount) }).eq('room_code', code);
-  } catch(err) { console.warn('Could not update player count:', err); }
-}
+// ─── Identity persistence ─────────────────────────────────────────────────────
+function saveIdentity()  { try { sessionStorage.setItem('fr_identity', JSON.stringify({myId,myName,myAvatar,roomCode,myScore,myStatus})); } catch(e) {} }
+function loadIdentity()  { try { const s=sessionStorage.getItem('fr_identity'); return s?JSON.parse(s):null; } catch(e){return null;} }
+function clearIdentity() { try { sessionStorage.removeItem('fr_identity'); } catch(e) {} }
 
+// ─── Reset to join screen ─────────────────────────────────────────────────────
 function resetToJoinScreen(newRoomCode = null) {
-  if(ch) { try { sb.removeChannel(ch); } catch(e) {} ch = null; }
-  cancelReconnect(); stopHeartbeat(); if(timerInterval) clearInterval(timerInterval);
+  if (ch) { try { sb.removeChannel(ch); } catch(e) {} ch = null; }
+  cancelReconnect(); stopHeartbeat();
+  if (timerInterval) clearInterval(timerInterval);
   clearIdentity();
-  myId = null; myName = ''; myAvatar = '😎'; myScore = 0; roomCode = null;
-  isOpen = false; myStatus = 'waiting'; globalBuzzerEnabled = true;
-  roomVerified = false;
+  myId=null; myName=''; myAvatar='😎'; myScore=0; roomCode=null;
+  isOpen=false; myStatus='waiting'; globalBuzzerEnabled=true; roomVerified=false;
+
   document.getElementById('roomInput').value = newRoomCode || '';
   document.getElementById('nameInput').value = '';
-  document.querySelectorAll('.avatar-opt').forEach((opt, idx) => { if(idx === 0) opt.classList.add('selected'); else opt.classList.remove('selected'); });
+  document.querySelectorAll('.avatar-opt').forEach((o,i) => o.classList.toggle('selected', i===0));
   myAvatar = '😎';
+
   document.getElementById('joinScreen').style.display = 'flex';
   document.getElementById('gameScreen').style.display = 'none';
   document.getElementById('joinError').innerText = '';
   document.getElementById('reconnectBanner').classList.remove('visible');
   hideOptions(); hideCorrectPlayerOverlay();
-  enableNameSection(false);
-  if(newRoomCode) showToast(`🔄 New game! Join with code: ${newRoomCode}`);
+  setVerifyUI(newRoomCode ? 'typing' : 'idle');
+  goToStep(1);
+  if (newRoomCode) { document.getElementById('nameInput').value=''; showToast(`🔄 New game! Join with code: ${newRoomCode}`); }
 }
 
+// ─── Channel subscribe ────────────────────────────────────────────────────────
 function subscribeChannel() {
-  if(ch) { try { sb.removeChannel(ch); } catch(e) {} ch = null; }
+  if (ch) { try { sb.removeChannel(ch); } catch(e) {} ch = null; }
   stopHeartbeat();
-  if(!roomCode) return;
+  if (!roomCode) return;
 
   verifyRoomBeforeJoining(roomCode).then(async (isValid) => {
     if (!isValid) {
-      updateConnectionBadge('error', '❌ Room not available');
+      updateConnectionBadge('error','❌ Room not available');
       showToast('This room is no longer active.', 3000);
-      setTimeout(() => resetToJoinScreen(), 2000);
-      return;
+      setTimeout(()=>resetToJoinScreen(), 2000); return;
     }
 
     ch = sb.channel(`fr-${roomCode}`);
-    const events = ['round_started', 'question_open', 'buzz_confirmed', 'correct', 'wrong', 'next_question', 'reset_buzzers', 'reset_for_next_question', 'buzzers_reopen', 'buzzer_toggle', 'eliminated', 'round_ended', 'timer_start', 'state_sync', 'full_game_reset', 'player_list_update'];
-    events.forEach(ev => { ch.on('broadcast', { event: ev }, ({ payload }) => handleEvent(ev, payload)); });
+    const evts = ['round_started','question_open','buzz_confirmed','correct','wrong',
+      'next_question','reset_buzzers','reset_for_next_question','buzzers_reopen',
+      'buzzer_toggle','eliminated','round_ended','timer_start','state_sync',
+      'full_game_reset','player_list_update'];
+    evts.forEach(ev => ch.on('broadcast',{event:ev},({payload})=>handleEvent(ev,payload)));
 
-    let subscriptionTimeout = setTimeout(() => { if (ch && ch.state !== 'subscribed') { updateConnectionBadge('error', '⏰ Timeout'); showToast('Connection timeout.', 3000); resetToJoinScreen(); } }, 10000);
+    let subTimeout = setTimeout(()=>{
+      if (ch && ch.state !== 'subscribed') { updateConnectionBadge('error','⏰ Timeout'); showToast('Connection timeout.',3000); resetToJoinScreen(); }
+    }, 10000);
 
     ch.subscribe(async (status) => {
-      clearTimeout(subscriptionTimeout);
-      if(status === 'SUBSCRIBED') {
+      clearTimeout(subTimeout);
+      if (status === 'SUBSCRIBED') {
         cancelReconnect();
-        updateConnectionBadge('connected', '● Connected');
+        updateConnectionBadge('connected','● Connected');
         try {
-          await ch.send({ type: 'broadcast', event: 'player_join', payload: { id: myId, name: myName, avatar: myAvatar, timestamp: Date.now() } });
+          await ch.send({type:'broadcast',event:'player_join',payload:{id:myId,name:myName,avatar:myAvatar,timestamp:Date.now()}});
           document.getElementById('joinScreen').style.display = 'none';
           document.getElementById('gameScreen').style.display = 'flex';
           document.getElementById('myAvatarDisplay').innerText = myAvatar;
-          document.getElementById('myNameDisplay').innerText = myName;
-          document.getElementById('myScoreDisplay').innerText = myScore;
-          startHeartbeat();
-          saveIdentity();
-          updatePlayerCount(roomCode, true).catch(()=>{});
+          document.getElementById('myNameDisplay').innerText   = myName;
+          document.getElementById('myScoreDisplay').innerText  = myScore;
+          startHeartbeat(); saveIdentity();
           showToast(`✅ Joined room: ${roomCode}`, 2000);
-        } catch(err) { console.error('Join failed:', err); resetToJoinScreen(); }
-      } else if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        } catch(err) { console.error('Join failed:',err); resetToJoinScreen(); }
+      } else if (status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED') {
         stopHeartbeat();
-        updateConnectionBadge('disconnected', '⚠ Disconnected');
-        verifyRoomBeforeJoining(roomCode).then(isValid => isValid ? scheduleReconnect() : setTimeout(() => resetToJoinScreen(), 2000));
+        updateConnectionBadge('disconnected','⚠ Disconnected');
+        verifyRoomBeforeJoining(roomCode).then(v => v ? scheduleReconnect() : setTimeout(()=>resetToJoinScreen(),2000));
       }
     });
-  }).catch(err => { console.error('Verification error:', err); resetToJoinScreen(); });
+  }).catch(err => { console.error(err); resetToJoinScreen(); });
 }
 
+// ─── Event handler ────────────────────────────────────────────────────────────
 function handleEvent(event, payload) {
   switch(event) {
-    case 'full_game_reset': clearIdentity(); resetToJoinScreen(payload?.newRoomCode || null); break;
-    case 'round_started': if(myStatus !== 'eliminated') { myStatus='waiting'; isOpen=false; globalBuzzerEnabled=true; hideCorrectPlayerOverlay(); hideOptions(); document.getElementById('questionBox').innerText='Round started! Get ready...'; setStatus('Round started!', 'var(--green)'); updateBuzzerUI(); } break;
-    case 'question_open': if(myStatus !== 'eliminated') { myStatus='waiting'; isOpen=true; globalBuzzerEnabled=true; hideCorrectPlayerOverlay(); document.getElementById('questionBox').innerText=payload.question||''; showOptions(payload.options||[]); setStatus('🔴 BUZZ NOW!', 'var(--green)'); updateBuzzerUI(); } break;
-    case 'buzz_confirmed': isOpen=false; if(payload.playerId===myId) { myStatus='buzzed'; setStatus('🎤 Answer verbally!', 'var(--gold)'); } else { if(myStatus==='waiting') myStatus='locked'; setStatus(`⏸ ${payload.playerName} is answering...`, 'var(--muted)'); } updateBuzzerUI(); break;
-    case 'correct': isOpen=false; if(payload.playerId===myId) { updateScore(payload.newScore); myStatus='correct'; setStatus(`✅ +${payload.points||100} pts!`, 'var(--gold)'); hideOptions(); } else { if(myStatus!=='eliminated') myStatus='waiting'; showCorrectPlayerOverlay(payload.playerName, payload.playerAvatar, payload.points||100); } updateBuzzerUI(); saveIdentity(); break;
-    case 'wrong': if(payload.playerId===myId) { myStatus='wrong'; setStatus('❌ Wrong! Locked out', 'var(--red)'); isOpen=false; updateBuzzerUI(); } else { if(myStatus==='locked'||myStatus==='waiting') { setStatus('⏳ Stand by — steal chance incoming...', 'var(--amber)'); setTimeout(()=>{ if((myStatus==='locked'||myStatus==='waiting') && myStatus!=='eliminated' && myStatus!=='wrong' && myStatus!=='correct') { isOpen=true; myStatus='waiting'; globalBuzzerEnabled=true; setStatus('🔴 STEAL! BUZZ NOW!', 'var(--green)'); updateBuzzerUI(); } }, 5500); } } break;
-    case 'buzzers_reopen': if(myStatus!=='eliminated' && myStatus!=='correct' && myStatus!=='wrong') { isOpen=true; myStatus='waiting'; globalBuzzerEnabled=true; setStatus('🔴 STEAL! BUZZ NOW!', 'var(--green)'); updateBuzzerUI(); } break;
-    case 'reset_buzzers': if(myStatus!=='eliminated') { myStatus='waiting'; isOpen=true; globalBuzzerEnabled=true; setStatus('🔴 BUZZ NOW!', 'var(--green)'); updateBuzzerUI(); } break;
-    case 'next_question': case 'reset_for_next_question': if(myStatus==='eliminated') { hideCorrectPlayerOverlay(); break; } myStatus='waiting'; isOpen=false; globalBuzzerEnabled=true; hideCorrectPlayerOverlay(); hideOptions(); document.getElementById('questionBox').innerText='Next question coming...'; setStatus('Waiting for next question...', 'var(--muted)'); updateBuzzerUI(); break;
-    case 'buzzer_toggle': globalBuzzerEnabled=payload.enabled; if(!globalBuzzerEnabled) setStatus('🔕 Buzzers OFF', 'var(--muted)'); else if(isOpen && myStatus==='waiting') setStatus('🔴 BUZZ NOW!', 'var(--green)'); updateBuzzerUI(); break;
-    case 'eliminated': if(payload.playerId===myId) { myStatus='eliminated'; isOpen=false; hideCorrectPlayerOverlay(); hideOptions(); document.getElementById('questionBox').innerText='⚡ You have been eliminated!'; setStatus('⚡ ELIMINATED', 'var(--red)'); updateBuzzerUI(); saveIdentity(); } break;
-    case 'round_ended': isOpen=false; hideCorrectPlayerOverlay(); hideOptions(); const winner=payload.winner; if(winner && winner.id===myId) { document.getElementById('questionBox').innerHTML='🏆 YOU ARE THE CHAMPION!'; setStatus('🏆 CHAMPION!', 'var(--gold)'); launchConfetti(); } else { document.getElementById('questionBox').innerText=`🏆 Winner: ${winner?.name||'?'}`; setStatus(`Winner: ${winner?.name||'?'}`, 'var(--muted)'); } updateBuzzerUI(); break;
+    case 'full_game_reset': clearIdentity(); resetToJoinScreen(payload?.newRoomCode||null); break;
+    case 'round_started':
+      if(myStatus!=='eliminated'){myStatus='waiting';isOpen=false;globalBuzzerEnabled=true;hideCorrectPlayerOverlay();hideOptions();document.getElementById('questionBox').innerText='Round started! Get ready...';setStatus('Round started!','var(--green)');updateBuzzerUI();}
+      break;
+    case 'question_open':
+      if(myStatus!=='eliminated'){myStatus='waiting';isOpen=true;globalBuzzerEnabled=true;hideCorrectPlayerOverlay();document.getElementById('questionBox').innerText=payload.question||'';showOptions(payload.options||[]);setStatus('🔴 BUZZ NOW!','var(--green)');updateBuzzerUI();}
+      break;
+    case 'buzz_confirmed':
+      isOpen=false;
+      if(payload.playerId===myId){myStatus='buzzed';setStatus('🎤 Answer verbally!','var(--gold)');}
+      else{if(myStatus==='waiting')myStatus='locked';setStatus(`⏸ ${payload.playerName} is answering...`,'var(--muted)');}
+      updateBuzzerUI(); break;
+    case 'correct':
+      isOpen=false;
+      if(payload.playerId===myId){updateScore(payload.newScore);myStatus='correct';setStatus(`✅ +${payload.points||100} pts!`,'var(--gold)');hideOptions();}
+      else{if(myStatus!=='eliminated')myStatus='waiting';showCorrectPlayerOverlay(payload.playerName,payload.playerAvatar,payload.points||100);}
+      updateBuzzerUI(); saveIdentity(); break;
+    case 'wrong':
+      if(payload.playerId===myId){myStatus='wrong';setStatus('❌ Wrong! Locked out','var(--red)');isOpen=false;updateBuzzerUI();}
+      else if(myStatus==='locked'||myStatus==='waiting'){setStatus('⏳ Stand by — steal incoming...','var(--amber)');setTimeout(()=>{if((myStatus==='locked'||myStatus==='waiting')&&myStatus!=='eliminated'&&myStatus!=='wrong'&&myStatus!=='correct'){isOpen=true;myStatus='waiting';globalBuzzerEnabled=true;setStatus('🔴 STEAL! BUZZ NOW!','var(--green)');updateBuzzerUI();}},5500);}
+      break;
+    case 'buzzers_reopen':
+      if(myStatus!=='eliminated'&&myStatus!=='correct'&&myStatus!=='wrong'){isOpen=true;myStatus='waiting';globalBuzzerEnabled=true;setStatus('🔴 STEAL! BUZZ NOW!','var(--green)');updateBuzzerUI();}
+      break;
+    case 'reset_buzzers':
+      if(myStatus!=='eliminated'){myStatus='waiting';isOpen=true;globalBuzzerEnabled=true;setStatus('🔴 BUZZ NOW!','var(--green)');updateBuzzerUI();}
+      break;
+    case 'next_question':
+    case 'reset_for_next_question':
+      if(myStatus==='eliminated'){hideCorrectPlayerOverlay();break;}
+      myStatus='waiting';isOpen=false;globalBuzzerEnabled=true;hideCorrectPlayerOverlay();hideOptions();
+      document.getElementById('questionBox').innerText='Next question coming...';
+      setStatus('Waiting for next question...','var(--muted)');updateBuzzerUI(); break;
+    case 'buzzer_toggle':
+      globalBuzzerEnabled=payload.enabled;
+      if(!globalBuzzerEnabled)setStatus('🔕 Buzzers OFF','var(--muted)');
+      else if(isOpen&&myStatus==='waiting')setStatus('🔴 BUZZ NOW!','var(--green)');
+      updateBuzzerUI(); break;
+    case 'eliminated':
+      if(payload.playerId===myId){myStatus='eliminated';isOpen=false;hideCorrectPlayerOverlay();hideOptions();document.getElementById('questionBox').innerText='⚡ You have been eliminated!';setStatus('⚡ ELIMINATED','var(--red)');updateBuzzerUI();saveIdentity();}
+      break;
+    case 'round_ended':
+      isOpen=false;hideCorrectPlayerOverlay();hideOptions();
+      const winner=payload.winner;
+      if(winner&&winner.id===myId){document.getElementById('questionBox').innerHTML='🏆 YOU ARE THE CHAMPION!';setStatus('🏆 CHAMPION!','var(--gold)');launchConfetti();}
+      else{document.getElementById('questionBox').innerText=`🏆 Winner: ${winner?.name||'?'}`;setStatus(`Winner: ${winner?.name||'?'}`,'var(--muted)');}
+      updateBuzzerUI(); break;
     case 'timer_start': startPlayerTimer(payload.seconds); break;
-    case 'state_sync': if(payload.playerId===myId) { myStatus=payload.status||'waiting'; if(payload.score!==undefined) updateScore(payload.score); if(payload.isEliminated) { myStatus='eliminated'; document.getElementById('questionBox').innerText='⚡ You have been eliminated!'; hideOptions(); isOpen=false; } else if(payload.questionText) { document.getElementById('questionBox').innerText=payload.questionText; if(payload.questionOptions?.length) showOptions(payload.questionOptions); isOpen=payload.isQuestionOpen||false; } globalBuzzerEnabled=true; updateBuzzerUI(); updateConnectionBadge('connected', '● Reconnected ✓'); showToast('✅ Back in the game!', 2500); saveIdentity(); } break;
+    case 'state_sync':
+      if(payload.playerId===myId){
+        myStatus=payload.status||'waiting';
+        if(payload.score!==undefined)updateScore(payload.score);
+        if(payload.isEliminated){myStatus='eliminated';document.getElementById('questionBox').innerText='⚡ You have been eliminated!';hideOptions();isOpen=false;}
+        else if(payload.questionText){document.getElementById('questionBox').innerText=payload.questionText;if(payload.questionOptions?.length)showOptions(payload.questionOptions);isOpen=payload.isQuestionOpen||false;}
+        globalBuzzerEnabled=true;updateBuzzerUI();
+        updateConnectionBadge('connected','● Reconnected ✓');showToast('✅ Back in the game!',2500);saveIdentity();
+      } break;
   }
 }
 
-// ─── Auto-rejoin ──────────────────────────────────────────────────────────────
+// ─── Auto-rejoin on page load ─────────────────────────────────────────────────
 (function autoRejoin() {
   const saved = loadIdentity();
-  if(saved && saved.roomCode && saved.myId) {
-    myId = saved.myId; myName = saved.myName; myAvatar = saved.myAvatar; myScore = saved.myScore || 0; myStatus = saved.myStatus || 'waiting'; roomCode = saved.roomCode;
+  if (saved?.roomCode && saved?.myId) {
+    myId=saved.myId; myName=saved.myName; myAvatar=saved.myAvatar;
+    myScore=saved.myScore||0; myStatus=saved.myStatus||'waiting'; roomCode=saved.roomCode;
     document.getElementById('roomInput').value = roomCode;
     document.getElementById('nameInput').value = myName;
-    document.querySelectorAll('.avatar-opt').forEach(opt => opt.classList.toggle('selected', opt.innerText === myAvatar));
-    roomVerified = true;
-    enableNameSection(true);
-    updateConnectionBadge('reconnecting', '⟳ Reconnecting...');
+    document.querySelectorAll('.avatar-opt').forEach(o=>o.classList.toggle('selected',o.innerText===myAvatar));
+    roomVerified=true;
+    updateConnectionBadge('reconnecting','⟳ Reconnecting...');
     subscribeChannel();
   }
 })();
 
-// Add missing CSS animation
-const style = document.createElement('style');
-style.textContent = `@keyframes confettiFall { to { transform: translateY(110vh) rotate(720deg); opacity: 0; } }`;
-document.head.appendChild(style);
-
 window.joinGame = joinGame;
 window.pickAvatar = pickAvatar;
 window.buzz = buzz;
+window.onRoomInput = onRoomInput;
+window.tryAdvanceFromRoom = tryAdvanceFromRoom;
+window.onNameInput = onNameInput;
+window.goToStep = goToStep;
+window.goToStep3 = goToStep3;
 </script>
 </body>
 </html>

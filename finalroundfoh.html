@@ -63,9 +63,10 @@
       justify-content: space-between;
       align-items: center;
       padding: 10px 24px;
-      background: rgba(7,5,16,0.85);
-      backdrop-filter: blur(24px);
-      border-bottom: 1px solid rgba(245,200,66,0.15);
+      background: rgba(7,5,16,0.7);
+      backdrop-filter: blur(32px);
+      -webkit-backdrop-filter: blur(32px);
+      border-bottom: 1px solid rgba(255,255,255,0.07);
       flex-shrink: 0;
       position: relative;
     }
@@ -306,8 +307,10 @@
 
     /* SIDE PANEL */
     .side-panel {
-      background: rgba(0,0,0,0.3);
-      border-left: 1px solid var(--border);
+      background: rgba(0,0,0,0.15);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-left: 1px solid rgba(255,255,255,0.07);
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -315,16 +318,17 @@
     .side-title {
       font-size: 10px; font-weight: 700; letter-spacing: 2px; color: var(--muted);
       text-transform: uppercase; padding: 14px 16px 10px;
-      border-bottom: 1px solid var(--border);
+      border-bottom: 1px solid rgba(255,255,255,0.07);
       flex-shrink: 0;
     }
     .player-list { flex: 1; overflow-y: auto; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
     .p-row {
       display: flex; align-items: center; gap: 10px;
-      background: rgba(255,255,255,0.035);
-      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.03);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.07);
       border-radius: 12px; padding: 8px 10px;
-      transition: border-color 0.3s;
+      transition: border-color 0.3s, background 0.3s;
     }
     .p-row.active-buzz { border-color: var(--gold); background: rgba(245,200,66,0.06); }
     .p-row.wrong-lock  { border-color: rgba(244,63,94,0.3); }
@@ -400,16 +404,173 @@
     .matrix-room-badge { margin-top: 28px; font-family: 'JetBrains Mono', monospace; font-size: 22px; color: #fff; background: rgba(0,255,65,0.08); border: 1px solid rgba(0,255,65,0.35); padding: 10px 28px; border-radius: 8px; letter-spacing: 6px; }
     .matrix-enter-msg { margin-top: 20px; font-size: 12px; color: rgba(0,255,65,0.4); letter-spacing: 3px; animation: blink 1.2s step-end infinite; }
 
-    /* ROOM ENTRY */
-    #roomEntryOverlay { position: fixed; inset: 0; z-index: 800; background: rgba(7,5,16,0.98); backdrop-filter: blur(12px); display: flex; align-items: center; justify-content: center; }
-    .entry-card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1); border-radius: 28px; padding: 40px 36px; width: 100%; max-width: 400px; text-align: center; }
-    .entry-logo { font-family: 'Syne', sans-serif; font-size: 32px; font-weight: 800; letter-spacing: 6px; background: linear-gradient(135deg, #fff 30%, var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 10px; }
-    .entry-sub { font-size: 13px; color: var(--muted); margin-bottom: 28px; letter-spacing: 0.5px; }
-    .entry-label { font-size: 10px; font-weight: 700; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
-    .entry-input { background: rgba(255,255,255,0.05); border: 1.5px solid rgba(255,255,255,0.15); border-radius: 14px; padding: 14px 20px; color: var(--text); font-size: 24px; font-family: 'JetBrains Mono', monospace; width: 100%; outline: none; text-align: center; letter-spacing: 6px; text-transform: uppercase; margin-bottom: 16px; }
-    .entry-input:focus { border-color: var(--gold); }
-    .entry-btn { width: 100%; padding: 15px; background: linear-gradient(135deg, var(--gold), var(--amber)); border: none; border-radius: 14px; font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 800; letter-spacing: 2px; color: #111; cursor: pointer; }
-    .entry-error { margin-top: 12px; font-size: 12px; color: var(--red); }
+    /* ── ROOM ENTRY — Glassmorphism ── */
+    #roomEntryOverlay {
+      position: fixed; inset: 0; z-index: 800;
+      background: rgba(5,4,16,0.92);
+      backdrop-filter: blur(24px);
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    /* Floating orbs behind the card */
+    #roomEntryOverlay::before {
+      content: '';
+      position: absolute; width: 400px; height: 400px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(99,102,241,0.2) 0%, transparent 65%);
+      top: -100px; left: -100px; pointer-events: none;
+      animation: orbFloat 9s ease-in-out infinite alternate;
+    }
+    #roomEntryOverlay::after {
+      content: '';
+      position: absolute; width: 320px; height: 320px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(245,200,66,0.12) 0%, transparent 65%);
+      bottom: -80px; right: -80px; pointer-events: none;
+      animation: orbFloat 11s ease-in-out infinite alternate-reverse;
+    }
+    @keyframes orbFloat {
+      from { transform: translate(0,0) scale(1); }
+      to   { transform: translate(25px,18px) scale(1.08); }
+    }
+
+    .entry-card {
+      position: relative; z-index: 1;
+      background: rgba(255,255,255,0.045);
+      backdrop-filter: blur(32px);
+      -webkit-backdrop-filter: blur(32px);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 32px;
+      padding: 44px 36px 36px;
+      width: 100%; max-width: 420px;
+      text-align: center;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.6), 0 8px 24px rgba(0,0,0,0.4),
+                  inset 0 1px 0 rgba(255,255,255,0.1);
+      overflow: hidden;
+    }
+    .entry-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3) 50%, transparent);
+    }
+    .entry-card::after {
+      content: '';
+      position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+      background: radial-gradient(ellipse 60% 40% at 50% 0%, rgba(245,200,66,0.06) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .entry-logo {
+      font-family: 'Syne', sans-serif; font-size: 32px; font-weight: 800;
+      letter-spacing: 6px;
+      background: linear-gradient(135deg, #fff 25%, var(--gold) 65%, var(--amber));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      margin-bottom: 6px; position: relative; z-index: 1;
+    }
+    .entry-sub {
+      font-size: 12px; color: var(--muted); margin-bottom: 32px;
+      letter-spacing: 1px; position: relative; z-index: 1;
+    }
+
+    .entry-label {
+      font-size: 10px; font-weight: 700; color: var(--muted);
+      letter-spacing: 2px; text-transform: uppercase;
+      margin-bottom: 10px; display: flex; align-items: center;
+      justify-content: center; gap: 6px; position: relative; z-index: 1;
+    }
+
+    /* Glassmorphism input */
+    .entry-input-wrap { position: relative; margin-bottom: 8px; z-index: 1; }
+    .entry-input {
+      background: rgba(255,255,255,0.06);
+      border: 1.5px solid rgba(255,255,255,0.18);
+      border-radius: 16px;
+      padding: 16px 56px 16px 20px;
+      color: var(--text); font-size: 26px;
+      font-family: 'JetBrains Mono', monospace;
+      width: 100%; outline: none; text-align: center;
+      letter-spacing: 8px; text-transform: uppercase;
+      backdrop-filter: blur(8px);
+      caret-color: var(--gold);
+      transition: all 0.3s ease;
+    }
+    .entry-input::placeholder { color: rgba(240,238,255,0.18); letter-spacing: 4px; font-size: 18px; }
+    .entry-input:focus {
+      border-color: rgba(245,200,66,0.55);
+      background: rgba(245,200,66,0.04);
+      box-shadow: 0 0 0 3px rgba(245,200,66,0.12), inset 0 1px 0 rgba(255,255,255,0.06);
+    }
+    .entry-input.state-verifying {
+      border-color: rgba(167,139,250,0.5);
+      box-shadow: 0 0 0 3px rgba(167,139,250,0.1);
+    }
+    .entry-input.state-ok {
+      border-color: rgba(34,211,160,0.6);
+      background: rgba(34,211,160,0.04);
+      box-shadow: 0 0 0 3px rgba(34,211,160,0.12);
+    }
+    .entry-input.state-error {
+      border-color: rgba(244,63,94,0.6);
+      background: rgba(244,63,94,0.04);
+      animation: inputShake 0.4s ease;
+    }
+    @keyframes inputShake {
+      0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 60%{transform:translateX(6px)} 80%{transform:translateX(-3px)}
+    }
+
+    /* icon inside input */
+    .entry-verify-icon {
+      position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+      width: 32px; height: 32px;
+      display: flex; align-items: center; justify-content: center;
+      pointer-events: none;
+    }
+    .entry-spinner {
+      width: 20px; height: 20px;
+      border: 2px solid rgba(167,139,250,0.3);
+      border-top-color: var(--violet);
+      border-radius: 50%;
+      animation: entrySpin 0.8s linear infinite;
+      display: none;
+    }
+    @keyframes entrySpin { to { transform: rotate(360deg); } }
+    .entry-check, .entry-cross { font-size: 20px; display: none; }
+
+    /* Status msg below input */
+    .entry-status-msg {
+      font-size: 11px; font-weight: 600; min-height: 18px;
+      text-align: center; letter-spacing: 0.5px;
+      transition: all 0.3s; margin-bottom: 16px; z-index: 1; position: relative;
+    }
+    .entry-status-msg.ok    { color: var(--green); }
+    .entry-status-msg.error { color: var(--red); }
+    .entry-status-msg.info  { color: var(--violet); }
+
+    .entry-btn {
+      width: 100%; padding: 16px;
+      background: linear-gradient(135deg, var(--gold) 0%, var(--amber) 100%);
+      border: none; border-radius: 16px;
+      font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 800;
+      letter-spacing: 2px; color: #111; cursor: pointer;
+      position: relative; overflow: hidden; z-index: 1;
+      transition: all 0.25s; box-shadow: 0 4px 20px rgba(245,200,66,0.25);
+    }
+    .entry-btn::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 60%);
+      opacity: 0; transition: opacity 0.2s;
+    }
+    .entry-btn:hover::before { opacity: 1; }
+    .entry-btn:not(:disabled):hover {
+      box-shadow: 0 8px 30px rgba(245,200,66,0.4);
+      transform: translateY(-1px);
+    }
+    .entry-btn:active { transform: scale(0.98); }
+    .entry-btn:disabled {
+      opacity: 0.4; cursor: not-allowed;
+      background: linear-gradient(135deg, rgba(245,200,66,0.5), rgba(249,115,22,0.5));
+      box-shadow: none; transform: none;
+    }
+    .entry-error { margin-top: 10px; font-size: 12px; color: var(--red); z-index:1; position:relative; }
   </style>
 </head>
 <body>
@@ -501,15 +662,25 @@
     </div>
   </div>
 
-  <!-- ROOM ENTRY OVERLAY -->
+  <!-- ROOM ENTRY OVERLAY — Glassmorphism -->
   <div id="roomEntryOverlay">
     <div class="entry-card">
       <div class="entry-logo">PLAYAQUIZ</div>
       <div class="entry-sub">Enter the room code from the Control Panel</div>
-      <div class="entry-label">Room Code</div>
-      <input type="text" id="fohRoomInput" class="entry-input" placeholder="FR4X7K" maxlength="8"
-        autocomplete="off" onkeydown="if(event.key==='Enter') submitFohRoom()">
-      <button class="entry-btn" onclick="submitFohRoom()">CONNECT TO ROOM</button>
+      <div class="entry-label">🔑 &nbsp;Room Code</div>
+      <div class="entry-input-wrap">
+        <input type="text" id="fohRoomInput" class="entry-input" placeholder="FR4X7K" maxlength="8"
+          autocomplete="off" inputmode="text"
+          oninput="onFohRoomInput(this)"
+          onkeydown="if(event.key==='Enter') submitFohRoom()">
+        <div class="entry-verify-icon">
+          <div class="entry-spinner" id="fohVerifySpinner"></div>
+          <span class="entry-check"  id="fohVerifyCheck">✅</span>
+          <span class="entry-cross"  id="fohVerifyCross">❌</span>
+        </div>
+      </div>
+      <div class="entry-status-msg" id="fohStatusMsg">Enter the code shown on the Control Panel</div>
+      <button class="entry-btn" id="fohConnectBtn" onclick="submitFohRoom()">CONNECT TO ROOM</button>
       <div id="fohRoomError" class="entry-error"></div>
     </div>
   </div>
@@ -814,52 +985,114 @@ function connectToRoom(code) {
   });
 }
 
-async function submitFohRoom() {
-  const code = document.getElementById('fohRoomInput').value.trim().toUpperCase();
-  const errorEl = document.getElementById('fohRoomError');
-  
-  if(code.length < 4) {
-    errorEl.innerText = 'Enter a valid room code (4-8 characters)';
-    return;
-  }
-  
-  errorEl.innerText = '';
-  const btn = event.target;
+// ─── FOH Room Input UX ────────────────────────────────────────────────────────
+let fohVerifyDebounce = null;
+let fohCurrentVerifyCode = '';
+let fohRoomVerified = false;
+
+function setFohVerifyUI(state, msg) {
+  const spinner  = document.getElementById('fohVerifySpinner');
+  const check    = document.getElementById('fohVerifyCheck');
+  const cross    = document.getElementById('fohVerifyCross');
+  const input    = document.getElementById('fohRoomInput');
+  const statusEl = document.getElementById('fohStatusMsg');
+  const btn      = document.getElementById('fohConnectBtn');
+
+  spinner.style.display = 'none';
+  check.style.display   = 'none';
+  cross.style.display   = 'none';
+  input.className = 'entry-input';
+  statusEl.className = 'entry-status-msg';
   btn.disabled = true;
-  btn.innerText = '⟳ Verifying...';
-  
+  btn.innerText = 'CONNECT TO ROOM';
+
+  if (state === 'idle') {
+    statusEl.textContent = msg || 'Enter the code shown on the Control Panel';
+  } else if (state === 'typing') {
+    statusEl.classList.add('info');
+    statusEl.textContent = msg || 'Keep typing...';
+  } else if (state === 'verifying') {
+    spinner.style.display = 'block';
+    input.classList.add('state-verifying');
+    statusEl.classList.add('info');
+    statusEl.textContent = 'Checking room...';
+    btn.innerText = '⟳ Verifying...';
+  } else if (state === 'ok') {
+    check.style.display = 'block';
+    input.classList.add('state-ok');
+    statusEl.classList.add('ok');
+    statusEl.textContent = msg || '✓ Room verified! Click Connect.';
+    btn.disabled = false;
+  } else if (state === 'not-found') {
+    cross.style.display = 'block';
+    input.classList.add('state-error');
+    statusEl.classList.add('error');
+    statusEl.textContent = msg || '❌ Room not found. Check the code.';
+  } else if (state === 'inactive') {
+    cross.style.display = 'block';
+    input.classList.add('state-error');
+    statusEl.classList.add('error');
+    statusEl.textContent = msg || '❌ This room is no longer active.';
+  } else if (state === 'conn-error') {
+    cross.style.display = 'block';
+    input.classList.add('state-error');
+    statusEl.classList.add('error');
+    statusEl.textContent = msg || '❌ Connection error. Try again.';
+    btn.disabled = false;
+    btn.innerText = 'RETRY';
+  }
+}
+
+function onFohRoomInput(el) {
+  const raw = el.value.replace(/[^A-Za-z0-9]/g,'').toUpperCase();
+  el.value = raw;
+  fohRoomVerified = false;
+  setFohVerifyUI(raw.length < 4 ? 'idle' : 'typing');
+  if (fohVerifyDebounce) clearTimeout(fohVerifyDebounce);
+  if (raw.length >= 4) {
+    fohVerifyDebounce = setTimeout(() => fohVerifyRoom(raw), 500);
+  }
+}
+
+async function fohVerifyRoom(code) {
+  fohCurrentVerifyCode = code;
+  setFohVerifyUI('verifying');
   try {
-    // NEW: Verify room exists in database
     const { data, error } = await sb
       .from('game_rooms')
       .select('room_code, is_active')
       .eq('room_code', code)
       .single();
-    
-    if (error || !data) {
-      errorEl.innerText = '❌ Room not found. Check the code and try again.';
-      btn.disabled = false;
-      btn.innerText = 'CONNECT TO ROOM';
-      return;
-    }
-    
-    if (!data.is_active) {
-      errorEl.innerText = '❌ This room is no longer active. Please check with the host.';
-      btn.disabled = false;
-      btn.innerText = 'CONNECT TO ROOM';
-      return;
-    }
-    
-    // Room is valid!
-    console.log('✅ Room verified:', code);
-    connectToRoom(code);
-    
-  } catch (err) {
-    console.error('Verification error:', err);
-    errorEl.innerText = '❌ Cannot verify room. Try again.';
-    btn.disabled = false;
-    btn.innerText = 'CONNECT TO ROOM';
+
+    if (fohCurrentVerifyCode !== code) return;
+
+    if (error || !data)    { setFohVerifyUI('not-found'); fohRoomVerified = false; return; }
+    if (!data.is_active)   { setFohVerifyUI('inactive');  fohRoomVerified = false; return; }
+
+    fohRoomVerified = true;
+    setFohVerifyUI('ok', `✓ Room ${code} is live — click Connect!`);
+  } catch(err) {
+    if (fohCurrentVerifyCode !== code) return;
+    setFohVerifyUI('conn-error'); fohRoomVerified = false;
   }
+}
+
+async function submitFohRoom() {
+  const code = document.getElementById('fohRoomInput').value.trim().toUpperCase();
+  const errorEl = document.getElementById('fohRoomError');
+  errorEl.innerText = '';
+
+  if (code.length < 4) { setFohVerifyUI('idle','Enter at least 4 characters'); return; }
+
+  // If not yet verified, verify first
+  if (!fohRoomVerified) {
+    await fohVerifyRoom(code);
+    if (!fohRoomVerified) return;
+  }
+
+  // Verified — connect
+  setFohVerifyUI('verifying');
+  connectToRoom(code);
 }
 
 function escapeHtml(str) {
@@ -969,6 +1202,7 @@ function init() {
 init();
 
 window.submitFohRoom = submitFohRoom;
+window.onFohRoomInput = onFohRoomInput;
 window.toggleBackgroundMusic = toggleBackgroundMusic;
 </script>
 </body>
