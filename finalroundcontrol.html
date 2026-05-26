@@ -614,9 +614,8 @@ function shareRoomCodeToFOH() {
 }
 
 function showCategoryPickerOnFOH() {
-  // Broadcast to all players (including FOH) to show categories
-  broadcast('show_categories', { categories: categories });
-  toast('🎨 Categories shown on FOH and player screens');
+  broadcast('show_category_picker', { categories });
+  toast('🎨 Categories shown on FOH');
 }
 
 function showCategoryToStart() {
