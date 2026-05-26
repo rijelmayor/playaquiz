@@ -703,6 +703,8 @@ let matrixRAF = null;
 let fohReconnectTimer = null;
 let fohReconnectAttempts = 0;
 const FOH_RECONNECT_DELAYS = [3000, 6000, 12000, 20000];
+let fohRoomValidityInterval = null;   // polls DB while connected — detects silent room resets
+const FOH_ROOM_POLL_MS = 20000;       // check every 20 s
 
 // ─── Session persistence ─────────────────────────────────────────────────────────────────────────────────
 function saveFohSession() {
@@ -717,7 +719,56 @@ function clearFohSession() {
   try { sessionStorage.removeItem('foh_session'); } catch(e) {}
 }
 
-// ─── Background music ─────────────────────────────────────────────────────────
+// ─── Room validity helpers ────────────────────────────────────────────────────
+async function verifyRoomBeforeJoining(code) {
+  try {
+    const { data, error } = await sb
+      .from('game_rooms')
+      .select('room_code, is_active')
+      .eq('room_code', code)
+      .maybeSingle();
+    if (error || !data) return false;
+    return data.is_active === true;
+  } catch(e) { return false; }
+}
+
+function startFohRoomValidityPoll() {
+  stopFohRoomValidityPoll();
+  fohRoomValidityInterval = setInterval(async () => {
+    if (!roomCode) return;
+    const isValid = await verifyRoomBeforeJoining(roomCode);
+    if (!isValid) {
+      // Room was reset or deactivated while FOH was connected — show entry overlay
+      if(realtimeChannel) { sb.removeChannel(realtimeChannel); realtimeChannel = null; }
+      cancelFohReconnect();
+      stopFohRoomValidityPoll();
+      clearFohSession();
+      const prevCode = roomCode;
+      roomCode = null;
+      cachedPlayers = [];
+      buzzerOpenVisible = false;
+      document.getElementById('fohBuzzerOpenIndicator').style.display = 'none';
+      if(fohTimerInterval) { clearInterval(fohTimerInterval); fohTimerInterval = null; }
+      document.getElementById('fohTimerOverlay').classList.remove('active');
+      clearOverlay();
+      document.getElementById('roomEntryOverlay').style.display = 'flex';
+      document.getElementById('roomDisplay').innerText = '——';
+      document.getElementById('fohFooterCode').innerText = '——';
+      document.getElementById('fohRoomInput').value = '';
+      document.getElementById('fohConnBadge').className = 'conn-badge';
+      document.getElementById('fohConnBadge').innerText = '⏳ Not connected';
+      showScreen('waitingScreen');
+      renderPlayersList();
+      setFohVerifyUI('idle', `⚠️ Room ${prevCode} is no longer active.`);
+    }
+  }, FOH_ROOM_POLL_MS);
+}
+
+function stopFohRoomValidityPoll() {
+  if(fohRoomValidityInterval) { clearInterval(fohRoomValidityInterval); fohRoomValidityInterval = null; }
+}
+
+
 function initBackgroundMusic() {
   bgmAudio = new Audio();
   bgmAudio.src = 'countdownbg.mp3';
@@ -935,15 +986,31 @@ function handleBroadcast(event, payload) {
       roomCode = null;
       cachedPlayers = [];
       clearFohSession();
+      buzzerOpenVisible = false;
+      document.getElementById('fohBuzzerOpenIndicator').style.display = 'none';
+      if(fohTimerInterval) { clearInterval(fohTimerInterval); fohTimerInterval = null; }
+      document.getElementById('fohTimerOverlay').classList.remove('active');
+      clearOverlay();
       document.getElementById('roomEntryOverlay').style.display = 'flex';
       document.getElementById('roomDisplay').innerText = '——';
       document.getElementById('fohFooterCode').innerText = '——';
-      document.getElementById('fohRoomInput').value = '';
       document.getElementById('fohConnBadge').className = 'conn-badge';
       document.getElementById('fohConnBadge').innerText = '⏳ Not connected';
       showScreen('waitingScreen');
       renderPlayersList();
-      setFohVerifyUI('idle');
+      // Auto-populate the new room code if provided, so operator can connect in one click
+      if(payload?.newRoomCode) {
+        const newCode = String(payload.newRoomCode).trim().toUpperCase();
+        const inputEl = document.getElementById('fohRoomInput');
+        inputEl.value = newCode;
+        fohRoomVerified = false;
+        // Kick off verification immediately so the Connect button lights up
+        setFohVerifyUI('verifying');
+        fohVerifyRoom(newCode);
+      } else {
+        document.getElementById('fohRoomInput').value = '';
+        setFohVerifyUI('idle');
+      }
       break;
   }
 }
@@ -952,10 +1019,15 @@ function handleBroadcast(event, payload) {
 function cancelFohReconnect() {
   if(fohReconnectTimer) { clearTimeout(fohReconnectTimer); fohReconnectTimer = null; }
   fohReconnectAttempts = 0;
+  stopFohRoomValidityPoll();
 }
 
 function scheduleFohReconnect() {
   if(fohReconnectTimer) return;
+  // Capture roomCode NOW (not in the closure) so a full_game_reset that
+  // nulls roomCode between schedule and fire doesn't reconnect to the old room.
+  const codeAtScheduleTime = roomCode;
+  if(!codeAtScheduleTime) return;
   const delay = FOH_RECONNECT_DELAYS[Math.min(fohReconnectAttempts, FOH_RECONNECT_DELAYS.length-1)];
   fohReconnectAttempts++;
   const badge = document.getElementById('fohConnBadge');
@@ -963,17 +1035,24 @@ function scheduleFohReconnect() {
   badge.innerText = `⟳ Reconnecting (${fohReconnectAttempts})...`;
   fohReconnectTimer = setTimeout(() => {
     fohReconnectTimer = null;
-    if(roomCode) connectToRoom(roomCode);
+    // Only reconnect if roomCode hasn't been cleared since we scheduled
+    if(roomCode && roomCode === codeAtScheduleTime) connectToRoom(roomCode);
   }, delay);
 }
 
 // ─── Channel connect ──────────────────────────────────────────────────────────
-function connectToRoom(code) {
+function connectToRoom(code, { silent = false } = {}) {
   roomCode = code.trim().toUpperCase();
   document.getElementById('roomDisplay').innerText = roomCode;
   document.getElementById('fohFooterCode').innerText = roomCode;
   document.getElementById('roomEntryOverlay').style.display = 'none';
-  showMatrixWelcome(roomCode);
+  if(!silent) showMatrixWelcome(roomCode);
+
+  // Reset UI state that could be stale from a previous session
+  buzzerOpenVisible = false;
+  document.getElementById('fohBuzzerOpenIndicator').style.display = 'none';
+  if(fohTimerInterval) { clearInterval(fohTimerInterval); fohTimerInterval = null; }
+  document.getElementById('fohTimerOverlay').classList.remove('active');
 
   if(realtimeChannel) { sb.removeChannel(realtimeChannel); realtimeChannel = null; }
 
@@ -996,9 +1075,11 @@ function connectToRoom(code) {
       // Ask control to push current player list + game state immediately
       realtimeChannel.send({ type: 'broadcast', event: 'foh_requesting_sync', payload: { timestamp: Date.now() } }).catch(() => {});
       saveFohSession();
+      startFohRoomValidityPoll();   // ← poll DB so we catch silent room resets
     } else if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
       badge.className = 'conn-badge error';
       badge.innerText = '⚠ Disconnected';
+      stopFohRoomValidityPoll();    // ← stop polling while channel is down
       if(roomCode) scheduleFohReconnect();
     }
   });
@@ -1221,59 +1302,25 @@ async function init() {
   // Auto-reconnect on page load / refresh / accidental browser close
   const saved = loadFohSession();
   if (saved?.roomCode) {
-    try {
-      const { data } = await sb
-        .from('game_rooms')
-        .select('room_code, is_active')
-        .eq('room_code', saved.roomCode)
-        .maybeSingle();
+    // Verify the saved room is still active BEFORE touching the UI — same as player file
+    const isValid = await verifyRoomBeforeJoining(saved.roomCode);
 
-      if (data?.is_active) {
-        // Restore last-known player list so the panel isn't blank while reconnecting
-        if (saved.cachedPlayers?.length) {
-          cachedPlayers = saved.cachedPlayers;
-          renderPlayersList();
-        }
-        // Silently rejoin without showing the matrix welcome screen
-        document.getElementById('roomEntryOverlay').style.display = 'none';
-        document.getElementById('roomDisplay').innerText = saved.roomCode;
-        document.getElementById('fohFooterCode').innerText = saved.roomCode;
-        const badge = document.getElementById('fohConnBadge');
-        badge.className = 'conn-badge reconnecting';
-        badge.innerText = '⟳ Reconnecting...';
-
-        roomCode = saved.roomCode.trim().toUpperCase();
-        if(realtimeChannel) { sb.removeChannel(realtimeChannel); realtimeChannel = null; }
-        realtimeChannel = sb.channel('fr-' + roomCode);
-        const events = [
-          'round_started','player_list_update','question_open','buzz_confirmed','correct','wrong',
-          'next_question','reset_for_next_question','reset_buzzers','buzzers_reopen','eliminated',
-          'show_category_picker','round_ended','timer_start','full_game_reset','show_room_code'
-        ];
-        events.forEach(ev => {
-          realtimeChannel.on('broadcast', { event: ev }, ({ payload }) => handleBroadcast(ev, payload));
-        });
-        realtimeChannel.subscribe((status) => {
-          const b = document.getElementById('fohConnBadge');
-          if(status === 'SUBSCRIBED') {
-            cancelFohReconnect();
-            b.className = 'conn-badge live';
-            b.innerText = '● LIVE';
-            // Ask control to push current player list + state right now
-            realtimeChannel.send({ type: 'broadcast', event: 'foh_requesting_sync', payload: { timestamp: Date.now() } }).catch(() => {});
-            saveFohSession();
-          } else if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-            b.className = 'conn-badge error';
-            b.innerText = '⚠ Disconnected';
-            if(roomCode) scheduleFohReconnect();
-          }
-        });
-      } else {
-        // Room no longer active — clear stale session
-        clearFohSession();
+    if (isValid) {
+      // Restore last-known player list so the panel isn't blank while reconnecting
+      if (saved.cachedPlayers?.length) {
+        cachedPlayers = saved.cachedPlayers;
+        renderPlayersList();
       }
-    } catch(e) {
+      // Silently rejoin — reuse connectToRoom so all logic stays in one place.
+      // silent:true suppresses the matrix welcome screen on refresh.
+      const badge = document.getElementById('fohConnBadge');
+      badge.className = 'conn-badge reconnecting';
+      badge.innerText = '⟳ Reconnecting...';
+      connectToRoom(saved.roomCode, { silent: true });
+    } else {
+      // Room is gone / reset — wipe stale session, show clean entry overlay
       clearFohSession();
+      setFohVerifyUI('idle', '⚠️ Previous room is no longer active. Enter a new code.');
     }
   }
 }
