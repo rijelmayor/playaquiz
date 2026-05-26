@@ -178,21 +178,31 @@ let roomCode = '', frPlayers = new Map(), buzzedPlayerId = null, lockedPlayers =
     usedQuestionIds = new Set();
 
 // ─── Database Registration Function ───────────────────────────────────────────
-async function registerRoomInDatabase(roomCode) {
+async function registerRoomInDatabase(newRoomCode) {
   try {
+    // 1. DELETE all old room records entirely so stale codes can never be reused
+    const { error: deleteError } = await sb
+      .from('game_rooms')
+      .delete()
+      .neq('room_code', newRoomCode);
+
+    if (deleteError) console.warn('Could not delete old rooms:', deleteError);
+    else console.log('🗑️ Old room records cleared from database');
+
+    // 2. Insert the new room as a fresh active record
     const { error } = await sb
       .from('game_rooms')
-      .upsert({ 
-        room_code: roomCode, 
+      .upsert({
+        room_code: newRoomCode,
         is_active: true,
         control_id: 'ctrl_' + Date.now(),
         created_at: new Date(),
         player_count: 0
       });
-    
+
     if (error) throw error;
-    console.log('✅ Room registered in database:', roomCode);
-    toast(`📝 Room ${roomCode} registered in system`);
+    console.log('✅ Room registered in database:', newRoomCode);
+    toast(`📝 Room ${newRoomCode} active — old rooms cleared`);
     return true;
   } catch (error) {
     console.error('Failed to register room:', error);
