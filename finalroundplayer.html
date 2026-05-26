@@ -1018,7 +1018,7 @@ async function joinGame() {
     setTimeout(() => { if (joinBtn && joinBtn.disabled) { joinBtn.disabled = false; joinBtn.textContent = '⚡ Enter Final Round'; }}, 10000);
   } catch(err) {
     console.error('Join error:', err);
-    errorEl.textContent = '❌ Connection failed. Please try again.';
+   // errorEl.textContent = '❌ Connection failed. Please try again.';
     joinBtn.disabled = false; joinBtn.textContent = '⚡ Enter Final Round';
   }
 }
