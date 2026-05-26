@@ -39,7 +39,6 @@
       overflow: hidden;
     }
 
-    /* ── Animated mesh background ── */
     body::before {
       content: '';
       position: fixed; inset: 0; pointer-events: none; z-index: 0;
@@ -49,7 +48,6 @@
         radial-gradient(ellipse 60% 50% at 50% 50%, rgba(245,200,66,0.06) 0%, transparent 60%);
     }
 
-    /* Subtle grid overlay */
     body::after {
       content: '';
       position: fixed; inset: 0; pointer-events: none; z-index: 0;
@@ -59,9 +57,6 @@
       background-size: 48px 48px;
     }
 
-    /* ══════════════════════════════════════════
-       JOIN SCREEN
-    ══════════════════════════════════════════ */
     #joinScreen {
       position: relative; z-index: 2;
       height: 100vh;
@@ -72,7 +67,6 @@
       overflow-y: auto;
     }
 
-    /* Floating orbs behind the card */
     #joinScreen::before {
       content: '';
       position: fixed; width: 300px; height: 300px; border-radius: 50%;
@@ -92,7 +86,6 @@
       to   { transform: translate(30px,20px) scale(1.1); }
     }
 
-    /* Logo */
     .login-logo-wrap { text-align: center; }
     .login-logo {
       font-family: 'Syne', sans-serif;
@@ -108,7 +101,6 @@
       text-transform: uppercase; margin-top: 4px;
     }
 
-    /* ── Glass Card ── */
     .join-card {
       position: relative; z-index: 1;
       background: rgba(255,255,255,0.04);
@@ -122,14 +114,12 @@
       overflow: hidden;
     }
 
-    /* shimmer top edge */
     .join-card::before {
       content: '';
       position: absolute; top: 0; left: 0; right: 0; height: 1px;
       background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.25) 50%, transparent 100%);
     }
 
-    /* ── Step indicators ── */
     .steps-bar {
       display: flex; align-items: center; justify-content: center; gap: 8px;
       margin-bottom: 22px;
@@ -150,7 +140,6 @@
       box-shadow: 0 0 8px rgba(34,211,160,0.4);
     }
 
-    /* ── Step panels ── */
     .step-panel { display: none; animation: stepIn 0.4s cubic-bezier(0.22,1,0.36,1) both; }
     .step-panel.active { display: block; }
     @keyframes stepIn {
@@ -158,7 +147,6 @@
       to   { opacity: 1; transform: none; }
     }
 
-    /* ── Field labels ── */
     .field-label {
       font-size: 9px; font-weight: 700;
       color: var(--muted); text-transform: uppercase;
@@ -166,7 +154,6 @@
       margin-bottom: 8px;
     }
 
-    /* ── Room Code Input ── */
     .room-input-block { position: relative; margin-bottom: 6px; }
 
     .room-code-input {
@@ -211,7 +198,6 @@
       80% { transform: translateX(4px); }
     }
 
-    /* Status icon in input */
     .room-verify-icon {
       position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
       width: 32px; height: 32px;
@@ -229,7 +215,6 @@
     .verify-checkmark, .verify-cross { font-size: 20px; display: none; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* Inline room status message */
     .room-status-msg {
       min-height: 20px; font-size: 11px; font-weight: 600;
       text-align: center; letter-spacing: 0.5px;
@@ -239,7 +224,6 @@
     .room-status-msg.error { color: var(--red); }
     .room-status-msg.info  { color: var(--violet); }
 
-    /* ── Name input ── */
     .text-input {
       width: 100%;
       background: rgba(255,255,255,0.05);
@@ -257,7 +241,6 @@
       box-shadow: 0 0 0 3px rgba(245,200,66,0.1);
     }
 
-    /* ── Avatar grid ── */
     .avatar-grid {
       display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px;
       margin-top: 8px;
@@ -280,7 +263,6 @@
       transform: scale(1.08);
     }
 
-    /* ── Buttons ── */
     .btn-primary {
       width: 100%; padding: 15px;
       background: linear-gradient(135deg, var(--gold) 0%, var(--amber) 100%);
@@ -317,22 +299,17 @@
     }
     .btn-ghost:hover { border-color: var(--glass-border-strong); color: var(--text); }
 
-    /* char counter */
     .char-counter {
       font-size: 10px; color: var(--muted);
       text-align: right; margin-top: 4px;
     }
 
-    /* Error under join button */
     .join-error {
       color: var(--red); font-size: 12px;
       text-align: center; margin-top: 10px;
       font-weight: 600; min-height: 18px;
     }
 
-    /* ══════════════════════════════════════════
-       ROOM VERIFIED BANNER (inline, inside card)
-    ══════════════════════════════════════════ */
     .room-verified-pill {
       display: flex; align-items: center; gap: 8px;
       background: var(--green-dim);
@@ -357,9 +334,6 @@
       color: #fff; letter-spacing: 2px;
     }
 
-    /* ══════════════════════════════════════════
-       FULL-SCREEN VERIFICATION FLASH
-    ══════════════════════════════════════════ */
     #verifyFlash {
       position: fixed; inset: 0; z-index: 9999;
       display: flex; align-items: center; justify-content: center;
@@ -386,9 +360,6 @@
     }
     .flash-sub { font-size: 14px; color: rgba(255,255,255,0.6); }
 
-    /* ══════════════════════════════════════════
-       RECONNECT BANNER
-    ══════════════════════════════════════════ */
     #reconnectBanner {
       position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
       background: linear-gradient(90deg, rgba(249,115,22,0.95), rgba(245,200,66,0.95));
@@ -401,9 +372,6 @@
     }
     #reconnectBanner.visible { transform: translateY(0); }
 
-    /* ══════════════════════════════════════════
-       CORRECT ANSWER OVERLAY
-    ══════════════════════════════════════════ */
     #correctOverlay {
       position: fixed; inset: 0; z-index: 500;
       display: none; flex-direction: column;
@@ -426,23 +394,13 @@
     }
     @keyframes iconPop { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
-    /* ══════════════════════════════════════════
-       GAME SCREEN
-    ══════════════════════════════════════════ */
-    /* ══════════════════════════════════════════
-       GAME SCREEN — mobile-first layout
-       Header (fixed) → Info strip (fixed) →
-       Options (compact, scrollable) →
-       Buzzer zone (big, always visible)
-    ══════════════════════════════════════════ */
     #gameScreen {
       display: none; position: relative; z-index: 2;
-      height: 100vh; height: 100dvh;   /* dynamic viewport on mobile */
+      height: 100vh; height: 100dvh;
       flex-direction: column; padding: 0;
       overflow: hidden;
     }
 
-    /* ── Header ── */
     .game-header {
       display: flex; align-items: center; justify-content: space-between;
       padding: 10px 14px;
@@ -469,6 +427,16 @@
       letter-spacing: 0.3px; max-width: 130px;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
+    .room-code-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--gold);
+      background: rgba(245,200,66,0.12);
+      padding: 2px 8px;
+      border-radius: 12px;
+      margin-top: 2px;
+      display: inline-block;
+    }
     .conn-status {
       font-size: 9px; font-weight: 700; letter-spacing: 0.5px;
       padding: 2px 8px; border-radius: 20px;
@@ -489,15 +457,12 @@
     .score-value.bump { transform: scale(1.3); }
     .score-label { font-size: 8px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; }
 
-    /* ── Top info zone: question text + options ── */
-    /* This zone is allowed to shrink but never push the buzzer off screen */
     .game-info-zone {
       flex: 1;
       display: flex; flex-direction: column;
       overflow: hidden; min-height: 0;
     }
 
-    /* Question text — compact, shrinks gracefully */
     .question-area {
       flex-shrink: 1; min-height: 0;
       display: flex; align-items: center; justify-content: center;
@@ -508,7 +473,6 @@
       color: var(--text); overflow: hidden;
     }
 
-    /* Options — very compact rows, 2-col grid on small screens */
     #optionsGrid {
       flex-shrink: 1; min-height: 0;
       padding: 0 12px 8px;
@@ -538,13 +502,8 @@
       color: var(--gold); flex-shrink: 0; width: 14px;
     }
 
-    /* ══════════════════════════════════════════
-       BUZZER ZONE — guaranteed big, never cut off
-       Uses flex-shrink:0 so it NEVER gets squished
-    ══════════════════════════════════════════ */
     .buzzer-wrap {
       flex-shrink: 0;
-      /* Fixed minimum height ensures buzzer is always fully visible */
       min-height: 260px;
       padding: 10px 20px 28px;
       display: flex; flex-direction: column;
@@ -554,7 +513,6 @@
       background: linear-gradient(0deg, rgba(5,4,16,0.5) 0%, transparent 100%);
     }
 
-    /* Responsive buzzer size via CSS custom prop */
     :root { --buzzer-size: min(180px, 42vw); }
 
     .buzzer-btn-wrap {
@@ -585,7 +543,6 @@
       cursor: not-allowed; position: relative; z-index: 1;
       transition: all 0.25s cubic-bezier(0.34,1.56,0.64,1);
       box-shadow: 0 10px 40px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.05);
-      /* Ensure it stays circular and fills the wrap */
       aspect-ratio: 1 / 1;
     }
     .buzzer-btn:not(:disabled) {
@@ -613,7 +570,6 @@
       animation: none;
     }
 
-    /* Status pill — always visible below buzzer */
     .status-pill {
       font-size: 13px; font-weight: 700; letter-spacing: 0.5px;
       padding: 9px 24px; border-radius: 30px;
@@ -626,7 +582,6 @@
       max-width: 90vw; overflow: hidden; text-overflow: ellipsis;
     }
 
-    /* ── Player timer overlay ── */
     #playerTimerOverlay {
       position: fixed; top: 50%; left: 50%;
       transform: translate(-50%,-50%);
@@ -647,7 +602,6 @@
       color: var(--gold);
     }
 
-    /* ── Toast ── */
     .reconnect-toast {
       position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
       background: rgba(20,18,40,0.9); backdrop-filter: blur(16px);
@@ -663,7 +617,6 @@
 </head>
 <body>
 
-<!-- VERIFY FLASH -->
 <div id="verifyFlash">
   <div class="flash-card">
     <span class="flash-icon">✅</span>
@@ -672,10 +625,8 @@
   </div>
 </div>
 
-<!-- RECONNECT BANNER -->
 <div id="reconnectBanner">⟳ Reconnecting to game... your progress is safe</div>
 
-<!-- CORRECT ANSWER OVERLAY -->
 <div id="correctOverlay">
   <div class="correct-icon">💎</div>
   <div class="correct-name-big" id="correctOverlayName">—</div>
@@ -683,9 +634,6 @@
   <div class="correct-pts" id="correctOverlayPts">+100 pts</div>
 </div>
 
-<!-- ═══════════════════════════════════
-     JOIN SCREEN  (3-step flow)
-═══════════════════════════════════ -->
 <div id="joinScreen">
   <div class="login-logo-wrap">
     <div class="login-logo">PLAYAQUIZ</div>
@@ -693,14 +641,12 @@
   </div>
 
   <div class="join-card">
-    <!-- Step progress dots -->
     <div class="steps-bar">
       <div class="step-dot active"  id="dot1"></div>
       <div class="step-dot"         id="dot2"></div>
       <div class="step-dot"         id="dot3"></div>
     </div>
 
-    <!-- ── STEP 1: Room Code ── -->
     <div class="step-panel active" id="step1">
       <div class="field-label">🔑 &nbsp;Enter Room Code</div>
       <div class="room-input-block">
@@ -723,7 +669,6 @@
       </button>
     </div>
 
-    <!-- ── STEP 2: Name ── -->
     <div class="step-panel" id="step2">
       <div id="verifiedPill" class="room-verified-pill" style="display:none;">
         <div class="pill-dot"></div>
@@ -739,7 +684,6 @@
       <button class="btn-ghost" onclick="goToStep(1)">← Back</button>
     </div>
 
-    <!-- ── STEP 3: Avatar + Join ── -->
     <div class="step-panel" id="step3">
       <div class="field-label">🎨 &nbsp;Pick Your Avatar</div>
       <div class="avatar-grid" id="avatarGrid"></div>
@@ -750,16 +694,13 @@
   </div>
 </div>
 
-<!-- ═══════════════════════════════════
-     GAME SCREEN
-═══════════════════════════════════ -->
 <div id="gameScreen">
   <div class="game-header">
     <div class="player-identity">
       <div class="player-identity-avatar" id="myAvatarDisplay">🎮</div>
       <div>
         <div class="player-identity-name" id="myNameDisplay">—</div>
-        <div class="conn-status connected" id="connStatusBadge">● Connected</div>
+        <div class="room-code-badge" id="roomCodeDisplay">Room: ——</div>
       </div>
     </div>
     <div class="score-block">
@@ -769,8 +710,8 @@
   </div>
 
   <div class="game-info-zone">
-  <div class="question-area" id="questionBox">Waiting for host to start...</div>
-  <div id="optionsGrid"></div>
+    <div class="question-area" id="questionBox">Waiting for host to start...</div>
+    <div id="optionsGrid"></div>
   </div>
 
   <div class="buzzer-wrap">
@@ -784,7 +725,6 @@
   </div>
 </div>
 
-<!-- PLAYER COUNTDOWN TIMER -->
 <div id="playerTimerOverlay">
   <div class="player-timer-ring">
     <svg viewBox="0 0 80 80">
@@ -802,7 +742,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
 const AVATARS = ['😎','🦁','🐯','🐱','🐶','🐺','🦊','🐸','🐧','🐙','🦄','🐲','🚀','⭐','🔥','⚡','🎮','🏆'];
 
-// ─── Core state ───────────────────────────────────────────────────────────────
+// Core state
 let myId = null, myName = '', myAvatar = '😎', myScore = 0;
 let roomCode = null, ch = null;
 let isOpen = false, myStatus = 'waiting', globalBuzzerEnabled = true;
@@ -810,12 +750,12 @@ let timerInterval = null, reconnectAttempts = 0, reconnectTimer = null, heartbea
 let roomVerified = false;
 let currentVerifyCode = '';
 let verifyDebounce = null;
-let roomValidityInterval = null;   // polls DB when inside game to detect stale/new room
+let roomValidityInterval = null;
+let hasAnsweredWrongThisQuestion = false;  // NEW: Track if player answered wrong in current question
 const RECONNECT_DELAYS = [2000, 4000, 8000, 15000];
 const HEARTBEAT_MS = 6000;
-const ROOM_POLL_MS  = 20000;       // check every 20 s if current room is still active
+const ROOM_POLL_MS  = 20000;
 
-// ─── Build avatar grid ────────────────────────────────────────────────────────
 document.getElementById('avatarGrid').innerHTML = AVATARS.map((a,i) =>
   `<div class="avatar-opt ${i===0?'selected':''}" onclick="pickAvatar(this,'${a}')">${a}</div>`
 ).join('');
@@ -826,19 +766,16 @@ function pickAvatar(el, avatar) {
   myAvatar = avatar;
 }
 
-// ─── Step navigation ──────────────────────────────────────────────────────────
 let currentStep = 1;
 
 function goToStep(n) {
   document.getElementById(`step${currentStep}`).classList.remove('active');
   currentStep = n;
   document.getElementById(`step${currentStep}`).classList.add('active');
-  // Update dots
   [1,2,3].forEach(i => {
     const dot = document.getElementById(`dot${i}`);
     dot.className = 'step-dot' + (i === n ? ' active' : (i < n ? ' done' : ''));
   });
-  // Focus relevant input
   setTimeout(() => {
     if (n===1) document.getElementById('roomInput').focus();
     if (n===2) document.getElementById('nameInput').focus();
@@ -855,7 +792,6 @@ function goToStep3() {
   goToStep(3);
 }
 
-// ─── Room Code Verification ───────────────────────────────────────────────────
 function setVerifyUI(state) {
   const spinner   = document.getElementById('verifySpinner');
   const check     = document.getElementById('verifyCheck');
@@ -926,12 +862,11 @@ async function verifyRoom(code) {
       .eq('room_code', code)
       .maybeSingle();
 
-    if (currentVerifyCode !== code) return; // superseded
+    if (currentVerifyCode !== code) return;
 
     if (error || !data) { setVerifyUI('not-found'); roomVerified = false; return; }
     if (!data.is_active) { setVerifyUI('inactive'); roomVerified = false; return; }
 
-    // ✅ Success
     roomVerified = true;
     setVerifyUI('ok');
     playBeep(880, 'sine', 0.25);
@@ -947,7 +882,6 @@ async function tryAdvanceFromRoom() {
     if (code.length >= 4) await verifyRoom(code);
     return;
   }
-  // Show flash animation then advance
   showVerifyFlash(code, () => {
     document.getElementById('pillCode').textContent = code;
     document.getElementById('verifiedPill').style.display = 'flex';
@@ -966,14 +900,12 @@ function showVerifyFlash(code, cb) {
   }, 1100);
 }
 
-// ─── Name input live validation ───────────────────────────────────────────────
 function onNameInput(el) {
   const len = el.value.trim().length;
   document.getElementById('nameLen').textContent = el.value.length;
   document.getElementById('nameNextBtn').disabled = len < 2;
 }
 
-// ─── Join Game ────────────────────────────────────────────────────────────────
 async function joinGame() {
   const errorEl = document.getElementById('joinError');
   const joinBtn = document.getElementById('joinBtn');
@@ -1011,6 +943,7 @@ async function joinGame() {
     myAvatar = document.querySelector('.avatar-opt.selected')?.innerText || '😎';
     roomCode = room;
     myScore  = 0; isOpen = false; myStatus = 'waiting'; globalBuzzerEnabled = true;
+    hasAnsweredWrongThisQuestion = false;
 
     saveIdentity();
     subscribeChannel();
@@ -1018,12 +951,10 @@ async function joinGame() {
     setTimeout(() => { if (joinBtn && joinBtn.disabled) { joinBtn.disabled = false; joinBtn.textContent = '⚡ Enter Final Round'; }}, 10000);
   } catch(err) {
     console.error('Join error:', err);
-   // errorEl.textContent = '❌ Connection failed. Please try again.';
     joinBtn.disabled = false; joinBtn.textContent = '⚡ Enter Final Round';
   }
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 function playBeep(freq, type, duration) {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1068,17 +999,45 @@ function updateBuzzerUI() {
   const btn = document.getElementById('buzzerBtn');
   if (!btn) return;
   btn.classList.remove('buzzed-state');
-  if (myStatus === 'eliminated')                             { btn.disabled=true;  btn.innerText='OUT';    setStatus('⚡ Eliminated','var(--red)'); }
-  else if (myStatus === 'buzzed')                            { btn.disabled=true;  btn.classList.add('buzzed-state'); btn.innerText='BUZZED!'; setStatus('🎤 Answer verbally!','var(--gold)'); }
-  else if (myStatus === 'locked' || myStatus === 'wrong')    { btn.disabled=true;  btn.innerText='LOCKED'; setStatus('Locked out this round','var(--muted)'); }
-  else if (isOpen && myStatus === 'waiting' && globalBuzzerEnabled) { btn.disabled=false; btn.innerText='BUZZ!'; setStatus('🔴 BUZZ NOW!','var(--green)'); }
-  else                                                       { btn.disabled=true;  btn.innerText='WAIT';   setStatus('Waiting...','var(--muted)'); }
+  
+  if (myStatus === 'eliminated') {
+    btn.disabled = true;
+    btn.innerText = 'OUT';
+    setStatus('⚡ Eliminated', 'var(--red)');
+  } else if (myStatus === 'buzzed') {
+    btn.disabled = true;
+    btn.classList.add('buzzed-state');
+    btn.innerText = 'BUZZED!';
+    setStatus('🎤 Answer verbally!', 'var(--gold)');
+  } else if (myStatus === 'wrong' || hasAnsweredWrongThisQuestion) {
+    // CRITICAL FIX: Players who answered wrong are locked out until next question
+    btn.disabled = true;
+    btn.innerText = 'LOCKED';
+    setStatus('❌ Wrong answer - Locked this question', 'var(--red)');
+  } else if (myStatus === 'locked') {
+    btn.disabled = true;
+    btn.innerText = 'LOCKED';
+    setStatus('⏸ Someone is answering...', 'var(--muted)');
+  } else if (isOpen && myStatus === 'waiting' && globalBuzzerEnabled && !hasAnsweredWrongThisQuestion) {
+    btn.disabled = false;
+    btn.innerText = 'BUZZ!';
+    setStatus('🔴 BUZZ NOW!', 'var(--green)');
+  } else {
+    btn.disabled = true;
+    btn.innerText = 'WAIT';
+    setStatus('Waiting...', 'var(--muted)');
+  }
 }
 
 function buzz() {
-  if (!isOpen || myStatus !== 'waiting' || !globalBuzzerEnabled) return;
+  // CRITICAL FIX: Players who answered wrong cannot buzz again this question
+  if (!isOpen || myStatus !== 'waiting' || !globalBuzzerEnabled || hasAnsweredWrongThisQuestion) {
+    console.log('Buzz blocked:', { isOpen, myStatus, globalBuzzerEnabled, hasAnsweredWrongThisQuestion });
+    return;
+  }
   if (navigator.vibrate) navigator.vibrate([60,20,60]);
-  myStatus = 'buzzed'; updateBuzzerUI();
+  myStatus = 'buzzed';
+  updateBuzzerUI();
   if (ch) ch.send({ type:'broadcast', event:'buzz', payload:{ id:myId, name:myName, avatar:myAvatar }});
 }
 
@@ -1093,7 +1052,6 @@ function escapeHtml(str) {
   return str.replace(/[&<>]/g, m => m==='&'?'&amp;':m==='<'?'&lt;':'&gt;');
 }
 
-// ─── Timer ────────────────────────────────────────────────────────────────────
 function startPlayerTimer(seconds) {
   if (timerInterval) clearInterval(timerInterval);
   const overlay = document.getElementById('playerTimerOverlay');
@@ -1141,7 +1099,6 @@ const _s = document.createElement('style');
 _s.textContent = `@keyframes confettiFall{to{transform:translateY(110vh) rotate(720deg);opacity:0;}}`;
 document.head.appendChild(_s);
 
-// ─── Heartbeat & Reconnect ────────────────────────────────────────────────────
 function startHeartbeat() { stopHeartbeat(); heartbeatInterval = setInterval(()=>{ if(ch&&myId) ch.send({type:'broadcast',event:'player_heartbeat',payload:{id:myId}}); }, HEARTBEAT_MS); }
 function stopHeartbeat()  { if(heartbeatInterval) { clearInterval(heartbeatInterval); heartbeatInterval=null; } }
 function cancelReconnect(){ if(reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer=null; } reconnectAttempts=0; }
@@ -1161,12 +1118,10 @@ async function verifyRoomBeforeJoining(code) {
   } catch(e) { return false; }
 }
 
-// ─── Identity persistence ─────────────────────────────────────────────────────
 function saveIdentity()  { try { sessionStorage.setItem('fr_identity', JSON.stringify({myId,myName,myAvatar,roomCode,myScore,myStatus})); } catch(e) {} }
 function loadIdentity()  { try { const s=sessionStorage.getItem('fr_identity'); return s?JSON.parse(s):null; } catch(e){return null;} }
 function clearIdentity() { try { sessionStorage.removeItem('fr_identity'); } catch(e) {} }
 
-// ─── Room validity polling (detects control page reload / silent reset) ────────
 function startRoomValidityPoll() {
   stopRoomValidityPoll();
   roomValidityInterval = setInterval(async () => {
@@ -1182,7 +1137,6 @@ function stopRoomValidityPoll() {
   if (roomValidityInterval) { clearInterval(roomValidityInterval); roomValidityInterval = null; }
 }
 
-// ─── Reset to join screen ─────────────────────────────────────────────────────
 function resetToJoinScreen(newRoomCode = null) {
   if (ch) { try { sb.removeChannel(ch); } catch(e) {} ch = null; }
   cancelReconnect(); stopHeartbeat(); stopRoomValidityPoll();
@@ -1190,6 +1144,7 @@ function resetToJoinScreen(newRoomCode = null) {
   clearIdentity();
   myId=null; myName=''; myAvatar='😎'; myScore=0; roomCode=null;
   isOpen=false; myStatus='waiting'; globalBuzzerEnabled=true; roomVerified=false;
+  hasAnsweredWrongThisQuestion = false;
 
   document.getElementById('roomInput').value = newRoomCode || '';
   document.getElementById('nameInput').value = '';
@@ -1206,12 +1161,10 @@ function resetToJoinScreen(newRoomCode = null) {
   if (newRoomCode) {
     document.getElementById('nameInput').value = '';
     showToast(`🔄 New game! Join with code: ${newRoomCode}`);
-    // Auto-verify the new code so players see it's ready immediately
     verifyRoom(newRoomCode);
   }
 }
 
-// ─── Channel subscribe ────────────────────────────────────────────────────────
 function subscribeChannel() {
   if (ch) { try { sb.removeChannel(ch); } catch(e) {} ch = null; }
   stopHeartbeat(); stopRoomValidityPoll();
@@ -1247,6 +1200,7 @@ function subscribeChannel() {
           document.getElementById('myAvatarDisplay').innerText = myAvatar;
           document.getElementById('myNameDisplay').innerText   = myName;
           document.getElementById('myScoreDisplay').innerText  = myScore;
+          document.getElementById('roomCodeDisplay').innerText = `Room: ${roomCode}`;
           startHeartbeat(); startRoomValidityPoll(); saveIdentity();
           showToast(`✅ Joined room: ${roomCode}`, 2000);
         } catch(err) { console.error('Join failed:',err); resetToJoinScreen(); }
@@ -1259,15 +1213,12 @@ function subscribeChannel() {
   }).catch(err => { console.error(err); resetToJoinScreen(); });
 }
 
-// ─── Event handler ────────────────────────────────────────────────────────────
 function handleEvent(event, payload) {
   switch(event) {
     case 'full_game_reset':
       clearIdentity();
       const newCode = payload?.newRoomCode || null;
       if (newCode) {
-        // Retry-verify: DB registration may not have propagated yet (race condition)
-        // Poll up to ~5 s before giving up
         let retries = 0;
         const MAX_RETRIES = 10;
         const poll = async () => {
@@ -1278,7 +1229,6 @@ function handleEvent(event, payload) {
             retries++;
             setTimeout(poll, 500);
           } else {
-            // Room never showed up — just reset without pre-filling
             resetToJoinScreen(null);
             showToast('🔄 Game reset. Ask host for new room code.', 5000);
           }
@@ -1289,104 +1239,194 @@ function handleEvent(event, payload) {
       }
       break;
     case 'round_started':
-      if(myStatus!=='eliminated'){myStatus='waiting';isOpen=false;globalBuzzerEnabled=true;hideCorrectPlayerOverlay();hideOptions();document.getElementById('questionBox').innerText='Round started! Get ready...';setStatus('Round started!','var(--green)');updateBuzzerUI();}
+      if(myStatus!=='eliminated'){
+        myStatus='waiting';
+        isOpen=false;
+        globalBuzzerEnabled=true;
+        hasAnsweredWrongThisQuestion = false;  // Reset wrong answer flag for new round
+        hideCorrectPlayerOverlay();
+        hideOptions();
+        document.getElementById('questionBox').innerText='Round started! Get ready...';
+        setStatus('Round started!','var(--green)');
+        updateBuzzerUI();
+      }
       break;
     case 'question_open':
-      if(myStatus!=='eliminated'){myStatus='waiting';isOpen=true;globalBuzzerEnabled=true;hideCorrectPlayerOverlay();document.getElementById('questionBox').innerText=payload.question||'';showOptions(payload.options||[]);setStatus('🔴 BUZZ NOW!','var(--green)');updateBuzzerUI();}
+      if(myStatus!=='eliminated'){
+        myStatus='waiting';
+        isOpen=true;
+        globalBuzzerEnabled=true;
+        // Do NOT reset hasAnsweredWrongThisQuestion here - it persists through the question
+        // It will be reset on next_question
+        hideCorrectPlayerOverlay();
+        document.getElementById('questionBox').innerText=payload.question||'';
+        showOptions(payload.options||[]);
+        setStatus('🔴 BUZZ NOW!','var(--green)');
+        updateBuzzerUI();
+      }
       break;
     case 'buzz_confirmed':
       isOpen=false;
-      if(payload.playerId===myId){myStatus='buzzed';setStatus('🎤 Answer verbally!','var(--gold)');}
-      else if(myStatus!=='eliminated'&&myStatus!=='correct'&&myStatus!=='wrong'){
-        // Only lock players who haven't already used their attempt this question.
-        // A player already marked 'wrong' stays 'wrong' — they can't steal.
+      if(payload.playerId===myId){
+        myStatus='buzzed';
+        setStatus('🎤 Answer verbally!','var(--gold)');
+      } else if(myStatus!=='eliminated' && !hasAnsweredWrongThisQuestion && myStatus !== 'correct'){
+        // Only lock players who haven't answered wrong this question
         myStatus='locked';
         setStatus(`⏸ ${payload.playerName} is answering...`,'var(--muted)');
-      } else if(myStatus==='wrong'){
-        // Already answered wrong this question — just update the status text, keep them locked out
-        setStatus(`⏸ ${payload.playerName} is answering...`,'var(--muted)');
       }
-      updateBuzzerUI(); break;
+      updateBuzzerUI();
+      break;
     case 'correct':
       isOpen=false;
-      if(payload.playerId===myId){updateScore(payload.newScore);myStatus='correct';setStatus(`✅ +${payload.points||100} pts!`,'var(--gold)');hideOptions();}
-      else{if(myStatus!=='eliminated')myStatus='waiting';showCorrectPlayerOverlay(payload.playerName,payload.playerAvatar,payload.points||100);}
-      updateBuzzerUI(); saveIdentity(); break;
+      if(payload.playerId===myId){
+        updateScore(payload.newScore);
+        myStatus='correct';
+        setStatus(`✅ +${payload.points||100} pts!`,'var(--gold)');
+        hideOptions();
+      } else {
+        if(myStatus!=='eliminated') myStatus='waiting';
+        showCorrectPlayerOverlay(payload.playerName,payload.playerAvatar,payload.points||100);
+      }
+      updateBuzzerUI(); 
+      saveIdentity(); 
+      break;
     case 'wrong':
-      if(payload.playerId===myId){myStatus='wrong';setStatus('❌ Wrong! Locked out','var(--red)');isOpen=false;updateBuzzerUI();}
-      else if(myStatus==='locked'){
+      if(payload.playerId===myId){
+        myStatus='wrong';
+        hasAnsweredWrongThisQuestion = true;  // CRITICAL FIX: Mark that player answered wrong
+        setStatus('❌ Wrong! Locked out for this question','var(--red)');
+        isOpen=false;
+        updateBuzzerUI();
+      } else if(myStatus==='locked' && !hasAnsweredWrongThisQuestion){
         // I was locked waiting — they answered wrong, stand by for steal
         setStatus('⏳ Stand by — steal incoming...','var(--amber)');
-        // buzzers_reopen is the authoritative trigger; this is a fallback only in case it's delayed
         setTimeout(()=>{
-          if(myStatus==='locked'){
-            isOpen=true;myStatus='waiting';globalBuzzerEnabled=true;
-            setStatus('🔴 STEAL! BUZZ NOW!','var(--green)');updateBuzzerUI();
+          // Only re-open if the player hasn't answered wrong yet
+          if(myStatus==='locked' && !hasAnsweredWrongThisQuestion){
+            isOpen=true;
+            myStatus='waiting';
+            globalBuzzerEnabled=true;
+            setStatus('🔴 STEAL! BUZZ NOW!','var(--green)');
+            updateBuzzerUI();
           }
         },3500);
       }
       break;
     case 'buzzers_reopen':
-      // Only re-open for players who are locked (were waiting when someone buzzed).
-      // Players already marked 'wrong' this question stay locked out — no steal for them.
-      if(myStatus==='locked'){isOpen=true;myStatus='waiting';globalBuzzerEnabled=true;setStatus('🔴 STEAL! BUZZ NOW!','var(--green)');updateBuzzerUI();}
+      // Only re-open for players who are locked and haven't answered wrong this question
+      if(myStatus==='locked' && !hasAnsweredWrongThisQuestion){
+        isOpen=true;
+        myStatus='waiting';
+        globalBuzzerEnabled=true;
+        setStatus('🔴 STEAL! BUZZ NOW!','var(--green)');
+        updateBuzzerUI();
+      }
       break;
     case 'reset_buzzers':
-      // Only reset players who haven't already answered wrong this question.
-      // 'wrong' players must stay locked until next_question clears everyone.
-      if(myStatus!=='eliminated'&&myStatus!=='wrong'){myStatus='waiting';isOpen=true;globalBuzzerEnabled=true;setStatus('🔴 BUZZ NOW!','var(--green)');updateBuzzerUI();}
+      // Only reset players who haven't answered wrong this question
+      if(myStatus!=='eliminated' && !hasAnsweredWrongThisQuestion){
+        myStatus='waiting';
+        isOpen=true;
+        globalBuzzerEnabled=true;
+        setStatus('🔴 BUZZ NOW!','var(--green)');
+        updateBuzzerUI();
+      }
       break;
     case 'next_question':
     case 'reset_for_next_question':
-      if(myStatus==='eliminated'){hideCorrectPlayerOverlay();break;}
-      myStatus='waiting';isOpen=false;globalBuzzerEnabled=true;hideCorrectPlayerOverlay();hideOptions();
+      if(myStatus==='eliminated'){
+        hideCorrectPlayerOverlay();
+        break;
+      }
+      // CRITICAL FIX: Reset wrong answer flag for new question
+      hasAnsweredWrongThisQuestion = false;
+      myStatus='waiting';
+      isOpen=false;
+      globalBuzzerEnabled=true;
+      hideCorrectPlayerOverlay();
+      hideOptions();
       document.getElementById('questionBox').innerText='Next question coming...';
-      setStatus('Waiting for next question...','var(--muted)');updateBuzzerUI(); break;
+      setStatus('Waiting for next question...','var(--muted)');
+      updateBuzzerUI(); 
+      break;
     case 'buzzer_toggle':
       globalBuzzerEnabled=payload.enabled;
-      if(!globalBuzzerEnabled)setStatus('🔕 Buzzers OFF','var(--muted)');
-      else if(isOpen&&myStatus==='waiting')setStatus('🔴 BUZZ NOW!','var(--green)');
-      updateBuzzerUI(); break;
+      if(!globalBuzzerEnabled) setStatus('🔕 Buzzers OFF','var(--muted)');
+      else if(isOpen && myStatus==='waiting' && !hasAnsweredWrongThisQuestion) setStatus('🔴 BUZZ NOW!','var(--green)');
+      updateBuzzerUI(); 
+      break;
     case 'eliminated':
-      if(payload.playerId===myId){myStatus='eliminated';isOpen=false;hideCorrectPlayerOverlay();hideOptions();document.getElementById('questionBox').innerText='⚡ You have been eliminated!';setStatus('⚡ ELIMINATED','var(--red)');updateBuzzerUI();saveIdentity();}
+      if(payload.playerId===myId){
+        myStatus='eliminated';
+        isOpen=false;
+        hasAnsweredWrongThisQuestion = false;
+        hideCorrectPlayerOverlay();
+        hideOptions();
+        document.getElementById('questionBox').innerText='⚡ You have been eliminated!';
+        setStatus('⚡ ELIMINATED','var(--red)');
+        updateBuzzerUI();
+        saveIdentity();
+      }
       break;
     case 'round_ended':
-      isOpen=false;hideCorrectPlayerOverlay();hideOptions();
+      isOpen=false;
+      hideCorrectPlayerOverlay();
+      hideOptions();
       const winner=payload.winner;
-      if(winner&&winner.id===myId){document.getElementById('questionBox').innerHTML='🏆 YOU ARE THE CHAMPION!';setStatus('🏆 CHAMPION!','var(--gold)');launchConfetti();}
-      else{document.getElementById('questionBox').innerText=`🏆 Winner: ${winner?.name||'?'}`;setStatus(`Winner: ${winner?.name||'?'}`,'var(--muted)');}
-      updateBuzzerUI(); break;
-    case 'timer_start': startPlayerTimer(payload.seconds); break;
+      if(winner&&winner.id===myId){
+        document.getElementById('questionBox').innerHTML='🏆 YOU ARE THE CHAMPION!';
+        setStatus('🏆 CHAMPION!','var(--gold)');
+        launchConfetti();
+      } else {
+        document.getElementById('questionBox').innerText=`🏆 Winner: ${winner?.name||'?'}`;
+        setStatus(`Winner: ${winner?.name||'?'}`,'var(--muted)');
+      }
+      updateBuzzerUI(); 
+      break;
+    case 'timer_start': 
+      startPlayerTimer(payload.seconds); 
+      break;
     case 'state_sync':
       if(payload.playerId===myId){
         myStatus=payload.status||'waiting';
-        if(payload.score!==undefined)updateScore(payload.score);
-        if(payload.isEliminated){myStatus='eliminated';document.getElementById('questionBox').innerText='⚡ You have been eliminated!';hideOptions();isOpen=false;}
-        else if(payload.questionText){document.getElementById('questionBox').innerText=payload.questionText;if(payload.questionOptions?.length)showOptions(payload.questionOptions);isOpen=payload.isQuestionOpen||false;}
-        globalBuzzerEnabled=true;updateBuzzerUI();
-        updateConnectionBadge('connected','● Reconnected ✓');showToast('✅ Back in the game!',2500);saveIdentity();
-      } break;
+        if(payload.score!==undefined) updateScore(payload.score);
+        if(payload.isEliminated){
+          myStatus='eliminated';
+          hasAnsweredWrongThisQuestion = false;
+          document.getElementById('questionBox').innerText='⚡ You have been eliminated!';
+          hideOptions();
+          isOpen=false;
+        } else if(payload.questionText){
+          document.getElementById('questionBox').innerText=payload.questionText;
+          if(payload.questionOptions?.length) showOptions(payload.questionOptions);
+          isOpen=payload.isQuestionOpen||false;
+        }
+        globalBuzzerEnabled=true;
+        updateBuzzerUI();
+        updateConnectionBadge('connected','● Reconnected ✓');
+        showToast('✅ Back in the game!',2500);
+        saveIdentity();
+      } 
+      break;
   }
 }
 
-// ─── Auto-rejoin on page load ─────────────────────────────────────────────────
 (async function autoRejoin() {
   const saved = loadIdentity();
-  if (!saved?.roomCode || !saved?.myId) return; // nothing saved, stay on join screen
+  if (!saved?.roomCode || !saved?.myId) return;
 
-  // Verify the saved room is still active BEFORE doing anything to the UI
   const isValid = await verifyRoomBeforeJoining(saved.roomCode);
 
   if (!isValid) {
-    // Room is gone / reset — wipe stale session and show a clean join screen
     clearIdentity();
     showToast('Previous room is no longer active. Please join a new game.', 4000);
-    return; // join screen is already showing by default
+    return;
   }
 
-  // Room is valid — restore state and reconnect
   myId=saved.myId; myName=saved.myName; myAvatar=saved.myAvatar;
   myScore=saved.myScore||0; myStatus=saved.myStatus||'waiting'; roomCode=saved.roomCode;
+  hasAnsweredWrongThisQuestion = false;
   document.getElementById('roomInput').value = roomCode;
   document.getElementById('nameInput').value = myName;
   document.querySelectorAll('.avatar-opt').forEach(o=>o.classList.toggle('selected',o.innerText===myAvatar));
