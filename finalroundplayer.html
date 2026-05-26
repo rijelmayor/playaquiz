@@ -1348,18 +1348,29 @@ function handleEvent(event, payload) {
 }
 
 // ─── Auto-rejoin on page load ─────────────────────────────────────────────────
-(function autoRejoin() {
+(async function autoRejoin() {
   const saved = loadIdentity();
-  if (saved?.roomCode && saved?.myId) {
-    myId=saved.myId; myName=saved.myName; myAvatar=saved.myAvatar;
-    myScore=saved.myScore||0; myStatus=saved.myStatus||'waiting'; roomCode=saved.roomCode;
-    document.getElementById('roomInput').value = roomCode;
-    document.getElementById('nameInput').value = myName;
-    document.querySelectorAll('.avatar-opt').forEach(o=>o.classList.toggle('selected',o.innerText===myAvatar));
-    roomVerified=true;
-    updateConnectionBadge('reconnecting','⟳ Reconnecting...');
-    subscribeChannel();
+  if (!saved?.roomCode || !saved?.myId) return; // nothing saved, stay on join screen
+
+  // Verify the saved room is still active BEFORE doing anything to the UI
+  const isValid = await verifyRoomBeforeJoining(saved.roomCode);
+
+  if (!isValid) {
+    // Room is gone / reset — wipe stale session and show a clean join screen
+    clearIdentity();
+    showToast('Previous room is no longer active. Please join a new game.', 4000);
+    return; // join screen is already showing by default
   }
+
+  // Room is valid — restore state and reconnect
+  myId=saved.myId; myName=saved.myName; myAvatar=saved.myAvatar;
+  myScore=saved.myScore||0; myStatus=saved.myStatus||'waiting'; roomCode=saved.roomCode;
+  document.getElementById('roomInput').value = roomCode;
+  document.getElementById('nameInput').value = myName;
+  document.querySelectorAll('.avatar-opt').forEach(o=>o.classList.toggle('selected',o.innerText===myAvatar));
+  roomVerified=true;
+  updateConnectionBadge('reconnecting','⟳ Reconnecting...');
+  subscribeChannel();
 })();
 
 window.joinGame = joinGame;
