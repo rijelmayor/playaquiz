@@ -394,6 +394,66 @@
     }
     @keyframes iconPop { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
+    #categoryOverlay {
+      position: fixed; inset: 0; z-index: 600;
+      display: none; flex-direction: column;
+      align-items: center; justify-content: center;
+      background: rgba(5,4,16,0.95);
+      backdrop-filter: blur(24px);
+    }
+    #categoryOverlay.active { display: flex; animation: overlayIn 0.4s ease; }
+    .category-overlay-content {
+      max-width: 500px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+      padding: 24px;
+    }
+    .category-overlay-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 28px;
+      font-weight: 800;
+      text-align: center;
+      margin-bottom: 24px;
+      background: linear-gradient(135deg, var(--gold), var(--amber));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .category-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 12px;
+    }
+    .category-card {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      padding: 20px 12px;
+      text-align: center;
+      transition: all 0.2s ease;
+    }
+    .category-card .category-icon {
+      font-size: 40px;
+      display: block;
+      margin-bottom: 8px;
+    }
+    .category-card .category-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--gold);
+    }
+    .close-categories-btn {
+      margin-top: 24px;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      border-radius: 40px;
+      padding: 12px 24px;
+      color: var(--text);
+      font-weight: 700;
+      cursor: pointer;
+      width: 100%;
+    }
+
     #gameScreen {
       display: none; position: relative; z-index: 2;
       height: 100vh; height: 100dvh;
@@ -456,6 +516,23 @@
     }
     .score-value.bump { transform: scale(1.3); }
     .score-label { font-size: 8px; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; }
+
+    .show-categories-btn {
+      background: var(--violet);
+      border: none;
+      border-radius: 20px;
+      padding: 6px 12px;
+      font-size: 10px;
+      font-weight: 700;
+      color: white;
+      cursor: pointer;
+      margin-left: 8px;
+      transition: all 0.2s;
+    }
+    .show-categories-btn:hover {
+      transform: scale(1.05);
+      background: var(--purple);
+    }
 
     .game-info-zone {
       flex: 1;
@@ -634,6 +711,15 @@
   <div class="correct-pts" id="correctOverlayPts">+100 pts</div>
 </div>
 
+<!-- CATEGORY OVERLAY -->
+<div id="categoryOverlay">
+  <div class="category-overlay-content">
+    <div class="category-overlay-title">🎨 Game Categories</div>
+    <div class="category-grid" id="categoryGrid"></div>
+    <button class="close-categories-btn" onclick="closeCategoryOverlay()">Got it!</button>
+  </div>
+</div>
+
 <div id="joinScreen">
   <div class="login-logo-wrap">
     <div class="login-logo">PLAYAQUIZ</div>
@@ -703,9 +789,12 @@
         <div class="room-code-badge" id="roomCodeDisplay">Room: ——</div>
       </div>
     </div>
-    <div class="score-block">
-      <div class="score-value" id="myScoreDisplay">0</div>
-      <div class="score-label">Points</div>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <button class="show-categories-btn" onclick="showCategories()" id="showCategoriesBtn">🎨 Categories</button>
+      <div class="score-block">
+        <div class="score-value" id="myScoreDisplay">0</div>
+        <div class="score-label">Points</div>
+      </div>
     </div>
   </div>
 
@@ -751,7 +840,8 @@ let roomVerified = false;
 let currentVerifyCode = '';
 let verifyDebounce = null;
 let roomValidityInterval = null;
-let hasAnsweredWrongThisQuestion = false;  // NEW: Track if player answered wrong in current question
+let hasAnsweredWrongThisQuestion = false;
+let categories = [];  // Store categories for display
 const RECONNECT_DELAYS = [2000, 4000, 8000, 15000];
 const HEARTBEAT_MS = 6000;
 const ROOM_POLL_MS  = 20000;
@@ -1010,7 +1100,6 @@ function updateBuzzerUI() {
     btn.innerText = 'BUZZED!';
     setStatus('🎤 Answer verbally!', 'var(--gold)');
   } else if (myStatus === 'wrong' || hasAnsweredWrongThisQuestion) {
-    // CRITICAL FIX: Players who answered wrong are locked out until next question
     btn.disabled = true;
     btn.innerText = 'LOCKED';
     setStatus('❌ Wrong answer - Locked this question', 'var(--red)');
@@ -1030,7 +1119,6 @@ function updateBuzzerUI() {
 }
 
 function buzz() {
-  // CRITICAL FIX: Players who answered wrong cannot buzz again this question
   if (!isOpen || myStatus !== 'waiting' || !globalBuzzerEnabled || hasAnsweredWrongThisQuestion) {
     console.log('Buzz blocked:', { isOpen, myStatus, globalBuzzerEnabled, hasAnsweredWrongThisQuestion });
     return;
@@ -1087,6 +1175,39 @@ function showCorrectPlayerOverlay(name, avatar, pts) {
   setTimeout(() => el.classList.remove('active'), 3000);
 }
 function hideCorrectPlayerOverlay() { document.getElementById('correctOverlay').classList.remove('active'); }
+
+// Category display functions
+async function loadCategories() {
+  try {
+    const { data, error } = await sb.from('categories').select('*').order('name');
+    if (error) throw error;
+    categories = data || [];
+  } catch (e) {
+    console.error('Failed to load categories:', e);
+  }
+}
+
+function showCategories() {
+  const overlay = document.getElementById('categoryOverlay');
+  const grid = document.getElementById('categoryGrid');
+  
+  if (categories.length === 0) {
+    grid.innerHTML = '<div style="text-align: center; padding: 40px;">No categories loaded yet...</div>';
+  } else {
+    grid.innerHTML = categories.map(cat => `
+      <div class="category-card">
+        <div class="category-icon">${cat.icon || '📚'}</div>
+        <div class="category-name">${escapeHtml(cat.name)}</div>
+      </div>
+    `).join('');
+  }
+  
+  overlay.classList.add('active');
+}
+
+function closeCategoryOverlay() {
+  document.getElementById('categoryOverlay').classList.remove('active');
+}
 
 function launchConfetti() {
   for(let i=0;i<80;i++) {
@@ -1181,7 +1302,7 @@ function subscribeChannel() {
     const evts = ['round_started','question_open','buzz_confirmed','correct','wrong',
       'next_question','reset_buzzers','reset_for_next_question','buzzers_reopen',
       'buzzer_toggle','eliminated','round_ended','timer_start','state_sync',
-      'full_game_reset','player_list_update'];
+      'full_game_reset','player_list_update','show_categories'];
     evts.forEach(ev => ch.on('broadcast',{event:ev},({payload})=>handleEvent(ev,payload)));
 
     let subTimeout = setTimeout(()=>{
@@ -1215,6 +1336,10 @@ function subscribeChannel() {
 
 function handleEvent(event, payload) {
   switch(event) {
+    case 'show_categories':
+      // Show categories overlay when host triggers it
+      showCategories();
+      break;
     case 'full_game_reset':
       clearIdentity();
       const newCode = payload?.newRoomCode || null;
@@ -1243,7 +1368,7 @@ function handleEvent(event, payload) {
         myStatus='waiting';
         isOpen=false;
         globalBuzzerEnabled=true;
-        hasAnsweredWrongThisQuestion = false;  // Reset wrong answer flag for new round
+        hasAnsweredWrongThisQuestion = false;
         hideCorrectPlayerOverlay();
         hideOptions();
         document.getElementById('questionBox').innerText='Round started! Get ready...';
@@ -1256,8 +1381,6 @@ function handleEvent(event, payload) {
         myStatus='waiting';
         isOpen=true;
         globalBuzzerEnabled=true;
-        // Do NOT reset hasAnsweredWrongThisQuestion here - it persists through the question
-        // It will be reset on next_question
         hideCorrectPlayerOverlay();
         document.getElementById('questionBox').innerText=payload.question||'';
         showOptions(payload.options||[]);
@@ -1271,7 +1394,6 @@ function handleEvent(event, payload) {
         myStatus='buzzed';
         setStatus('🎤 Answer verbally!','var(--gold)');
       } else if(myStatus!=='eliminated' && !hasAnsweredWrongThisQuestion && myStatus !== 'correct'){
-        // Only lock players who haven't answered wrong this question
         myStatus='locked';
         setStatus(`⏸ ${payload.playerName} is answering...`,'var(--muted)');
       }
@@ -1294,15 +1416,13 @@ function handleEvent(event, payload) {
     case 'wrong':
       if(payload.playerId===myId){
         myStatus='wrong';
-        hasAnsweredWrongThisQuestion = true;  // CRITICAL FIX: Mark that player answered wrong
+        hasAnsweredWrongThisQuestion = true;
         setStatus('❌ Wrong! Locked out for this question','var(--red)');
         isOpen=false;
         updateBuzzerUI();
       } else if(myStatus==='locked' && !hasAnsweredWrongThisQuestion){
-        // I was locked waiting — they answered wrong, stand by for steal
         setStatus('⏳ Stand by — steal incoming...','var(--amber)');
         setTimeout(()=>{
-          // Only re-open if the player hasn't answered wrong yet
           if(myStatus==='locked' && !hasAnsweredWrongThisQuestion){
             isOpen=true;
             myStatus='waiting';
@@ -1314,7 +1434,6 @@ function handleEvent(event, payload) {
       }
       break;
     case 'buzzers_reopen':
-      // Only re-open for players who are locked and haven't answered wrong this question
       if(myStatus==='locked' && !hasAnsweredWrongThisQuestion){
         isOpen=true;
         myStatus='waiting';
@@ -1324,7 +1443,6 @@ function handleEvent(event, payload) {
       }
       break;
     case 'reset_buzzers':
-      // Only reset players who haven't answered wrong this question
       if(myStatus!=='eliminated' && !hasAnsweredWrongThisQuestion){
         myStatus='waiting';
         isOpen=true;
@@ -1339,7 +1457,6 @@ function handleEvent(event, payload) {
         hideCorrectPlayerOverlay();
         break;
       }
-      // CRITICAL FIX: Reset wrong answer flag for new question
       hasAnsweredWrongThisQuestion = false;
       myStatus='waiting';
       isOpen=false;
@@ -1412,6 +1529,11 @@ function handleEvent(event, payload) {
   }
 }
 
+// Initialize categories on load
+(async function init() {
+  await loadCategories();
+})();
+
 (async function autoRejoin() {
   const saved = loadIdentity();
   if (!saved?.roomCode || !saved?.myId) return;
@@ -1443,6 +1565,8 @@ window.tryAdvanceFromRoom = tryAdvanceFromRoom;
 window.onNameInput = onNameInput;
 window.goToStep = goToStep;
 window.goToStep3 = goToStep3;
+window.showCategories = showCategories;
+window.closeCategoryOverlay = closeCategoryOverlay;
 </script>
 </body>
 </html>
