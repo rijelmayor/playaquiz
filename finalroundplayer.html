@@ -1297,7 +1297,12 @@ function handleEvent(event, payload) {
     case 'buzz_confirmed':
       isOpen=false;
       if(payload.playerId===myId){myStatus='buzzed';setStatus('🎤 Answer verbally!','var(--gold)');}
-      else{if(myStatus==='waiting')myStatus='locked';setStatus(`⏸ ${payload.playerName} is answering...`,'var(--muted)');}
+      else if(myStatus!=='eliminated'&&myStatus!=='correct'){
+        // Lock ALL other active players — not just those in 'waiting'.
+        // This prevents a player in any mid-state from buzzing while someone is answering.
+        myStatus='locked';
+        setStatus(`⏸ ${payload.playerName} is answering...`,'var(--muted)');
+      }
       updateBuzzerUI(); break;
     case 'correct':
       isOpen=false;
@@ -1306,7 +1311,17 @@ function handleEvent(event, payload) {
       updateBuzzerUI(); saveIdentity(); break;
     case 'wrong':
       if(payload.playerId===myId){myStatus='wrong';setStatus('❌ Wrong! Locked out','var(--red)');isOpen=false;updateBuzzerUI();}
-      else if(myStatus==='locked'||myStatus==='waiting'){setStatus('⏳ Stand by — steal incoming...','var(--amber)');setTimeout(()=>{if((myStatus==='locked'||myStatus==='waiting')&&myStatus!=='eliminated'&&myStatus!=='wrong'&&myStatus!=='correct'){isOpen=true;myStatus='waiting';globalBuzzerEnabled=true;setStatus('🔴 STEAL! BUZZ NOW!','var(--green)');updateBuzzerUI();}},5500);}
+      else if(myStatus==='locked'){
+        // I was locked waiting for this player — now they're wrong, stand by for steal
+        setStatus('⏳ Stand by — steal incoming...','var(--amber)');
+        // The control will send buzzers_reopen; this client-side timer is a fallback only
+        setTimeout(()=>{
+          if(myStatus==='locked'&&myStatus!=='eliminated'&&myStatus!=='wrong'&&myStatus!=='correct'){
+            isOpen=true;myStatus='waiting';globalBuzzerEnabled=true;
+            setStatus('🔴 STEAL! BUZZ NOW!','var(--green)');updateBuzzerUI();
+          }
+        },3500);
+      }
       break;
     case 'buzzers_reopen':
       if(myStatus!=='eliminated'&&myStatus!=='correct'&&myStatus!=='wrong'){isOpen=true;myStatus='waiting';globalBuzzerEnabled=true;setStatus('🔴 STEAL! BUZZ NOW!','var(--green)');updateBuzzerUI();}
