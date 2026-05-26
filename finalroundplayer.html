@@ -539,38 +539,6 @@
     }
 
     /* ══════════════════════════════════════════
-       CATEGORY PICKER (shown on player phones)
-    ══════════════════════════════════════════ */
-    #categoryPickerGrid {
-      flex-shrink: 1; min-height: 0;
-      padding: 6px 12px 8px;
-      display: none;
-      overflow-y: auto;
-    }
-    #categoryPickerGrid.visible {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-    }
-    .player-cat-tile {
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      gap: 4px; padding: 10px 8px;
-      background: rgba(245,200,66,0.06);
-      border: 1px solid rgba(245,200,66,0.2);
-      border-radius: 12px;
-      font-size: 11px; font-weight: 700; text-align: center;
-      color: var(--text); line-height: 1.3;
-      animation: optCellIn 0.3s cubic-bezier(0.22,1,0.36,1) both;
-    }
-    .player-cat-tile:nth-child(1) { animation-delay: 0.04s; }
-    .player-cat-tile:nth-child(2) { animation-delay: 0.08s; }
-    .player-cat-tile:nth-child(3) { animation-delay: 0.12s; }
-    .player-cat-tile:nth-child(4) { animation-delay: 0.16s; }
-    .player-cat-tile:nth-child(5) { animation-delay: 0.20s; }
-    .player-cat-tile:nth-child(6) { animation-delay: 0.24s; }
-    .player-cat-icon { font-size: 22px; }
-
-    /* ══════════════════════════════════════════
        BUZZER ZONE — guaranteed big, never cut off
        Uses flex-shrink:0 so it NEVER gets squished
     ══════════════════════════════════════════ */
@@ -802,7 +770,6 @@
 
   <div class="game-info-zone">
   <div class="question-area" id="questionBox">Waiting for host to start...</div>
-  <div id="categoryPickerGrid"></div>
   <div id="optionsGrid"></div>
   </div>
 
@@ -1097,20 +1064,6 @@ function showOptions(opts) {
 }
 function hideOptions() { const g = document.getElementById('optionsGrid'); if(g) { g.className=''; g.innerHTML=''; } }
 
-function showCategoryPicker(cats) {
-  const grid = document.getElementById('categoryPickerGrid');
-  if (!grid) return;
-  if (!cats?.length) { grid.className = ''; grid.innerHTML = ''; return; }
-  grid.innerHTML = cats.map((c, i) =>
-    `<div class="player-cat-tile" style="animation-delay:${i*0.04}s">
-      <span class="player-cat-icon">${c.icon || '📂'}</span>
-      <span>${escapeHtml(c.name)}</span>
-    </div>`
-  ).join('');
-  grid.className = 'visible';
-}
-function hideCategoryPicker() { const g = document.getElementById('categoryPickerGrid'); if(g) { g.className=''; g.innerHTML=''; } }
-
 function updateBuzzerUI() {
   const btn = document.getElementById('buzzerBtn');
   if (!btn) return;
@@ -1247,7 +1200,7 @@ function resetToJoinScreen(newRoomCode = null) {
   document.getElementById('gameScreen').style.display = 'none';
   document.getElementById('joinError').innerText = '';
   document.getElementById('reconnectBanner').classList.remove('visible');
-  hideOptions(); hideCategoryPicker(); hideCorrectPlayerOverlay();
+  hideOptions(); hideCorrectPlayerOverlay();
   setVerifyUI(newRoomCode ? 'typing' : 'idle');
   goToStep(1);
   if (newRoomCode) {
@@ -1275,7 +1228,7 @@ function subscribeChannel() {
     const evts = ['round_started','question_open','buzz_confirmed','correct','wrong',
       'next_question','reset_buzzers','reset_for_next_question','buzzers_reopen',
       'buzzer_toggle','eliminated','round_ended','timer_start','state_sync',
-      'full_game_reset','player_list_update','show_category_picker'];
+      'full_game_reset','player_list_update'];
     evts.forEach(ev => ch.on('broadcast',{event:ev},({payload})=>handleEvent(ev,payload)));
 
     let subTimeout = setTimeout(()=>{
@@ -1335,29 +1288,22 @@ function handleEvent(event, payload) {
         resetToJoinScreen(null);
       }
       break;
-    case 'show_category_picker':
-      if(myStatus!=='eliminated'){
-        hideCategoryPicker();
-        hideOptions();
-        document.getElementById('questionBox').innerText = '🎨 Pick a category!';
-        showCategoryPicker(payload.categories || []);
-        setStatus('Host is picking a category...','var(--violet)');
-        updateBuzzerUI();
-      }
-      break;
     case 'round_started':
-      if(myStatus!=='eliminated'){myStatus='waiting';isOpen=false;globalBuzzerEnabled=true;hideCorrectPlayerOverlay();hideCategoryPicker();hideOptions();document.getElementById('questionBox').innerText='Round started! Get ready...';setStatus('Round started!','var(--green)');updateBuzzerUI();}
+      if(myStatus!=='eliminated'){myStatus='waiting';isOpen=false;globalBuzzerEnabled=true;hideCorrectPlayerOverlay();hideOptions();document.getElementById('questionBox').innerText='Round started! Get ready...';setStatus('Round started!','var(--green)');updateBuzzerUI();}
       break;
     case 'question_open':
-      if(myStatus!=='eliminated'){myStatus='waiting';isOpen=true;globalBuzzerEnabled=true;hideCorrectPlayerOverlay();hideCategoryPicker();document.getElementById('questionBox').innerText=payload.question||'';showOptions(payload.options||[]);setStatus('🔴 BUZZ NOW!','var(--green)');updateBuzzerUI();}
+      if(myStatus!=='eliminated'){myStatus='waiting';isOpen=true;globalBuzzerEnabled=true;hideCorrectPlayerOverlay();document.getElementById('questionBox').innerText=payload.question||'';showOptions(payload.options||[]);setStatus('🔴 BUZZ NOW!','var(--green)');updateBuzzerUI();}
       break;
     case 'buzz_confirmed':
       isOpen=false;
       if(payload.playerId===myId){myStatus='buzzed';setStatus('🎤 Answer verbally!','var(--gold)');}
-      else if(myStatus!=='eliminated'&&myStatus!=='correct'){
-        // Lock ALL other active players — not just those in 'waiting'.
-        // This prevents a player in any mid-state from buzzing while someone is answering.
+      else if(myStatus!=='eliminated'&&myStatus!=='correct'&&myStatus!=='wrong'){
+        // Only lock players who haven't already used their attempt this question.
+        // A player already marked 'wrong' stays 'wrong' — they can't steal.
         myStatus='locked';
+        setStatus(`⏸ ${payload.playerName} is answering...`,'var(--muted)');
+      } else if(myStatus==='wrong'){
+        // Already answered wrong this question — just update the status text, keep them locked out
         setStatus(`⏸ ${payload.playerName} is answering...`,'var(--muted)');
       }
       updateBuzzerUI(); break;
@@ -1369,11 +1315,11 @@ function handleEvent(event, payload) {
     case 'wrong':
       if(payload.playerId===myId){myStatus='wrong';setStatus('❌ Wrong! Locked out','var(--red)');isOpen=false;updateBuzzerUI();}
       else if(myStatus==='locked'){
-        // I was locked waiting for this player — now they're wrong, stand by for steal
+        // I was locked waiting — they answered wrong, stand by for steal
         setStatus('⏳ Stand by — steal incoming...','var(--amber)');
-        // The control will send buzzers_reopen; this client-side timer is a fallback only
+        // buzzers_reopen is the authoritative trigger; this is a fallback only in case it's delayed
         setTimeout(()=>{
-          if(myStatus==='locked'&&myStatus!=='eliminated'&&myStatus!=='wrong'&&myStatus!=='correct'){
+          if(myStatus==='locked'){
             isOpen=true;myStatus='waiting';globalBuzzerEnabled=true;
             setStatus('🔴 STEAL! BUZZ NOW!','var(--green)');updateBuzzerUI();
           }
@@ -1381,15 +1327,19 @@ function handleEvent(event, payload) {
       }
       break;
     case 'buzzers_reopen':
-      if(myStatus!=='eliminated'&&myStatus!=='correct'&&myStatus!=='wrong'){isOpen=true;myStatus='waiting';globalBuzzerEnabled=true;setStatus('🔴 STEAL! BUZZ NOW!','var(--green)');updateBuzzerUI();}
+      // Only re-open for players who are locked (were waiting when someone buzzed).
+      // Players already marked 'wrong' this question stay locked out — no steal for them.
+      if(myStatus==='locked'){isOpen=true;myStatus='waiting';globalBuzzerEnabled=true;setStatus('🔴 STEAL! BUZZ NOW!','var(--green)');updateBuzzerUI();}
       break;
     case 'reset_buzzers':
-      if(myStatus!=='eliminated'){myStatus='waiting';isOpen=true;globalBuzzerEnabled=true;setStatus('🔴 BUZZ NOW!','var(--green)');updateBuzzerUI();}
+      // Only reset players who haven't already answered wrong this question.
+      // 'wrong' players must stay locked until next_question clears everyone.
+      if(myStatus!=='eliminated'&&myStatus!=='wrong'){myStatus='waiting';isOpen=true;globalBuzzerEnabled=true;setStatus('🔴 BUZZ NOW!','var(--green)');updateBuzzerUI();}
       break;
     case 'next_question':
     case 'reset_for_next_question':
       if(myStatus==='eliminated'){hideCorrectPlayerOverlay();break;}
-      myStatus='waiting';isOpen=false;globalBuzzerEnabled=true;hideCorrectPlayerOverlay();hideCategoryPicker();hideOptions();
+      myStatus='waiting';isOpen=false;globalBuzzerEnabled=true;hideCorrectPlayerOverlay();hideOptions();
       document.getElementById('questionBox').innerText='Next question coming...';
       setStatus('Waiting for next question...','var(--muted)');updateBuzzerUI(); break;
     case 'buzzer_toggle':
@@ -1401,7 +1351,7 @@ function handleEvent(event, payload) {
       if(payload.playerId===myId){myStatus='eliminated';isOpen=false;hideCorrectPlayerOverlay();hideOptions();document.getElementById('questionBox').innerText='⚡ You have been eliminated!';setStatus('⚡ ELIMINATED','var(--red)');updateBuzzerUI();saveIdentity();}
       break;
     case 'round_ended':
-      isOpen=false;hideCorrectPlayerOverlay();hideCategoryPicker();hideOptions();
+      isOpen=false;hideCorrectPlayerOverlay();hideOptions();
       const winner=payload.winner;
       if(winner&&winner.id===myId){document.getElementById('questionBox').innerHTML='🏆 YOU ARE THE CHAMPION!';setStatus('🏆 CHAMPION!','var(--gold)');launchConfetti();}
       else{document.getElementById('questionBox').innerText=`🏆 Winner: ${winner?.name||'?'}`;setStatus(`Winner: ${winner?.name||'?'}`,'var(--muted)');}
