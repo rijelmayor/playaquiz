@@ -178,21 +178,31 @@ let roomCode = '', frPlayers = new Map(), buzzedPlayerId = null, lockedPlayers =
     usedQuestionIds = new Set();
 
 // ─── Database Registration Function ───────────────────────────────────────────
-async function registerRoomInDatabase(roomCode) {
+async function registerRoomInDatabase(newRoomCode) {
   try {
+    // 1. DELETE all old room records entirely so stale codes can never be reused
+    const { error: deleteError } = await sb
+      .from('game_rooms')
+      .delete()
+      .neq('room_code', newRoomCode);
+
+    if (deleteError) console.warn('Could not delete old rooms:', deleteError);
+    else console.log('🗑️ Old room records cleared from database');
+
+    // 2. Insert the new room as a fresh active record
     const { error } = await sb
       .from('game_rooms')
-      .upsert({ 
-        room_code: roomCode, 
+      .upsert({
+        room_code: newRoomCode,
         is_active: true,
         control_id: 'ctrl_' + Date.now(),
         created_at: new Date(),
         player_count: 0
       });
-    
+
     if (error) throw error;
-    console.log('✅ Room registered in database:', roomCode);
-    toast(`📝 Room ${roomCode} registered in system`);
+    console.log('✅ Room registered in database:', newRoomCode);
+    toast(`📝 Room ${newRoomCode} active — old rooms cleared`);
     return true;
   } catch (error) {
     console.error('Failed to register room:', error);
@@ -202,26 +212,32 @@ async function registerRoomInDatabase(roomCode) {
 }
 
 // ─── Room code generation (WITH database registration) ────────────────────────
-function generateNewRoomCode() {
+async function generateNewRoomCode() {
   if(!confirm('Generate new room code? All players must re-join.')) return;
   const newCode = 'FR' + Math.random().toString(36).substring(2,6).toUpperCase();
-  roomCode = newCode;
-  document.getElementById('roomCodeInput').value = roomCode;
-  document.getElementById('roomCodeDisplay').innerText = roomCode;
-  localStorage.setItem('fr_room', roomCode);
-  
-  // THIS IS THE IMPORTANT LINE - makes it work
-  registerRoomInDatabase(newCode);
-  
-  frPlayers.clear(); eliminatedPlayers.clear(); lockedPlayers.clear();
-  buzzedPlayerId = null; isQuestionOpen = false; selectedQuestionForGame = null;
-  currentQuestionNumber = 0; usedQuestionIds.clear();
-  renderPlayersGrid(); updateSidebar();
-  broadcast('full_game_reset', { newRoomCode: roomCode });
-  setupRealtimeChannel();
-  document.getElementById('setupPanel').classList.remove('hidden');
-  document.getElementById('gamePanel').classList.add('hidden');
-  toast(`🆕 New room: ${roomCode}`);
+
+  // 1. Register in DB FIRST so players can verify before joining
+  await registerRoomInDatabase(newCode);
+
+  // 2. Broadcast reset on the CURRENT channel before switching
+  broadcast('full_game_reset', { newRoomCode: newCode });
+
+  // 3. Small delay so broadcast flushes, then switch channel
+  setTimeout(() => {
+    roomCode = newCode;
+    document.getElementById('roomCodeInput').value = roomCode;
+    document.getElementById('roomCodeDisplay').innerText = roomCode;
+    localStorage.setItem('fr_room', roomCode);
+
+    frPlayers.clear(); eliminatedPlayers.clear(); lockedPlayers.clear();
+    buzzedPlayerId = null; isQuestionOpen = false; selectedQuestionForGame = null;
+    currentQuestionNumber = 0; usedQuestionIds.clear();
+    renderPlayersGrid(); updateSidebar();
+    setupRealtimeChannel();
+    document.getElementById('setupPanel').classList.remove('hidden');
+    document.getElementById('gamePanel').classList.add('hidden');
+    toast(`🆕 New room: ${roomCode}`);
+  }, 600);
 }
 
 
@@ -369,9 +385,13 @@ function setupRealtimeChannel() {
 
   realtimeChannel = sb.channel(`fr-${roomCode}`);
   realtimeChannel
-    .on('broadcast', {event:'player_join'},      ({payload}) => handlePlayerJoin(payload))
-    .on('broadcast', {event:'buzz'},              ({payload}) => handleBuzz(payload))
-    .on('broadcast', {event:'player_heartbeat'}, ({payload}) => handleHeartbeat(payload))
+    .on('broadcast', {event:'player_join'},        ({payload}) => handlePlayerJoin(payload))
+    .on('broadcast', {event:'buzz'},               ({payload}) => handleBuzz(payload))
+    .on('broadcast', {event:'player_heartbeat'},   ({payload}) => handleHeartbeat(payload))
+    .on('broadcast', {event:'foh_requesting_sync'},({payload}) => {
+      // FOH refreshed or reconnected — push current player list immediately
+      broadcast('player_list_update', { players: Array.from(frPlayers.values()) });
+    })
     .subscribe((status) => {
       const dot = document.getElementById('connDot'), txt = document.getElementById('connText');
       if(status==='SUBSCRIBED') { dot.classList.add('connected'); txt.innerText='Live'; }
@@ -619,19 +639,23 @@ function endFinalRound() {
   toast(`🏆 Winner: ${winner?.name || 'N/A'}`);
 }
 
-function resetFullGame() {
+async function resetFullGame() {
   if(!confirm('⚠️ NEW GAME: Reset everything? All players must re-join.')) return;
   const newCode = 'FR' + Math.random().toString(36).substring(2,6).toUpperCase();
+
+  // 1. Register the NEW room in DB FIRST so players can verify it immediately
+  await registerRoomInDatabase(newCode);
+
+  // 2. Broadcast reset on current channel so all players get the new code
   broadcast('full_game_reset', { newRoomCode: newCode, forceLogin: true });
+
+  // 3. Delay switching so broadcast can flush, then reset local state
   setTimeout(() => {
     roomCode = newCode;
     document.getElementById('roomCodeInput').value = roomCode;
     document.getElementById('roomCodeDisplay').innerText = roomCode;
     localStorage.setItem('fr_room', roomCode);
-    
-    // IMPORTANT: Register the new room
-    registerRoomInDatabase(newCode);
-    
+
     frPlayers.clear(); eliminatedPlayers.clear(); lockedPlayers.clear();
     buzzedPlayerId = null; isQuestionOpen = false; selectedQuestionForGame = null;
     currentQuestionNumber = 0; usedQuestionIds.clear();
@@ -640,7 +664,7 @@ function resetFullGame() {
     document.getElementById('setupPanel').classList.remove('hidden');
     document.getElementById('gamePanel').classList.add('hidden');
     toast(`🔄 NEW GAME! Room: ${roomCode}`);
-  }, 400);
+  }, 600);
 }
 
 function eliminatePlayer(id) {
