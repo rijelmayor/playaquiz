@@ -810,8 +810,10 @@ let timerInterval = null, reconnectAttempts = 0, reconnectTimer = null, heartbea
 let roomVerified = false;
 let currentVerifyCode = '';
 let verifyDebounce = null;
+let roomValidityInterval = null;   // polls DB when inside game to detect stale/new room
 const RECONNECT_DELAYS = [2000, 4000, 8000, 15000];
 const HEARTBEAT_MS = 6000;
+const ROOM_POLL_MS  = 20000;       // check every 20 s if current room is still active
 
 // ─── Build avatar grid ────────────────────────────────────────────────────────
 document.getElementById('avatarGrid').innerHTML = AVATARS.map((a,i) =>
@@ -1164,10 +1166,26 @@ function saveIdentity()  { try { sessionStorage.setItem('fr_identity', JSON.stri
 function loadIdentity()  { try { const s=sessionStorage.getItem('fr_identity'); return s?JSON.parse(s):null; } catch(e){return null;} }
 function clearIdentity() { try { sessionStorage.removeItem('fr_identity'); } catch(e) {} }
 
+// ─── Room validity polling (detects control page reload / silent reset) ────────
+function startRoomValidityPoll() {
+  stopRoomValidityPoll();
+  roomValidityInterval = setInterval(async () => {
+    if (!roomCode) return;
+    const isValid = await verifyRoomBeforeJoining(roomCode);
+    if (!isValid) {
+      showToast('⚠️ This room is no longer active.', 4000);
+      setTimeout(() => resetToJoinScreen(), 1500);
+    }
+  }, ROOM_POLL_MS);
+}
+function stopRoomValidityPoll() {
+  if (roomValidityInterval) { clearInterval(roomValidityInterval); roomValidityInterval = null; }
+}
+
 // ─── Reset to join screen ─────────────────────────────────────────────────────
 function resetToJoinScreen(newRoomCode = null) {
   if (ch) { try { sb.removeChannel(ch); } catch(e) {} ch = null; }
-  cancelReconnect(); stopHeartbeat();
+  cancelReconnect(); stopHeartbeat(); stopRoomValidityPoll();
   if (timerInterval) clearInterval(timerInterval);
   clearIdentity();
   myId=null; myName=''; myAvatar='😎'; myScore=0; roomCode=null;
@@ -1185,13 +1203,18 @@ function resetToJoinScreen(newRoomCode = null) {
   hideOptions(); hideCorrectPlayerOverlay();
   setVerifyUI(newRoomCode ? 'typing' : 'idle');
   goToStep(1);
-  if (newRoomCode) { document.getElementById('nameInput').value=''; showToast(`🔄 New game! Join with code: ${newRoomCode}`); }
+  if (newRoomCode) {
+    document.getElementById('nameInput').value = '';
+    showToast(`🔄 New game! Join with code: ${newRoomCode}`);
+    // Auto-verify the new code so players see it's ready immediately
+    verifyRoom(newRoomCode);
+  }
 }
 
 // ─── Channel subscribe ────────────────────────────────────────────────────────
 function subscribeChannel() {
   if (ch) { try { sb.removeChannel(ch); } catch(e) {} ch = null; }
-  stopHeartbeat();
+  stopHeartbeat(); stopRoomValidityPoll();
   if (!roomCode) return;
 
   verifyRoomBeforeJoining(roomCode).then(async (isValid) => {
@@ -1224,11 +1247,11 @@ function subscribeChannel() {
           document.getElementById('myAvatarDisplay').innerText = myAvatar;
           document.getElementById('myNameDisplay').innerText   = myName;
           document.getElementById('myScoreDisplay').innerText  = myScore;
-          startHeartbeat(); saveIdentity();
+          startHeartbeat(); startRoomValidityPoll(); saveIdentity();
           showToast(`✅ Joined room: ${roomCode}`, 2000);
         } catch(err) { console.error('Join failed:',err); resetToJoinScreen(); }
       } else if (status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED') {
-        stopHeartbeat();
+        stopHeartbeat(); stopRoomValidityPoll();
         updateConnectionBadge('disconnected','⚠ Disconnected');
         verifyRoomBeforeJoining(roomCode).then(v => v ? scheduleReconnect() : setTimeout(()=>resetToJoinScreen(),2000));
       }
@@ -1239,7 +1262,32 @@ function subscribeChannel() {
 // ─── Event handler ────────────────────────────────────────────────────────────
 function handleEvent(event, payload) {
   switch(event) {
-    case 'full_game_reset': clearIdentity(); resetToJoinScreen(payload?.newRoomCode||null); break;
+    case 'full_game_reset':
+      clearIdentity();
+      const newCode = payload?.newRoomCode || null;
+      if (newCode) {
+        // Retry-verify: DB registration may not have propagated yet (race condition)
+        // Poll up to ~5 s before giving up
+        let retries = 0;
+        const MAX_RETRIES = 10;
+        const poll = async () => {
+          const isValid = await verifyRoomBeforeJoining(newCode);
+          if (isValid) {
+            resetToJoinScreen(newCode);
+          } else if (retries < MAX_RETRIES) {
+            retries++;
+            setTimeout(poll, 500);
+          } else {
+            // Room never showed up — just reset without pre-filling
+            resetToJoinScreen(null);
+            showToast('🔄 Game reset. Ask host for new room code.', 5000);
+          }
+        };
+        poll();
+      } else {
+        resetToJoinScreen(null);
+      }
+      break;
     case 'round_started':
       if(myStatus!=='eliminated'){myStatus='waiting';isOpen=false;globalBuzzerEnabled=true;hideCorrectPlayerOverlay();hideOptions();document.getElementById('questionBox').innerText='Round started! Get ready...';setStatus('Round started!','var(--green)');updateBuzzerUI();}
       break;
