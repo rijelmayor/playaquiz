@@ -514,13 +514,27 @@ function markWrong() {
   renderPlayersGrid(); updateSidebar();
   toast(`❌ Wrong — ${player?.name} locked out`);
 
+  // Players still eligible to steal: not locked (answered wrong) and not eliminated
   const remaining = Array.from(frPlayers.keys()).filter(id => !lockedPlayers.has(id) && !eliminatedPlayers.has(id));
+
+  document.getElementById('buzzerCard').style.display = 'none';
+
   if(remaining.length > 0) {
-    // Host controls reopen via "Reset Buzzers" button — no auto-reopen timeout
-    document.getElementById('buzzerCard').style.display = 'none';
-    document.getElementById('openBtn').disabled = false;
+    // Re-open buzzers for eligible stealers.
+    // The player side now waits for this explicit broadcast — no client-side timer.
+    isQuestionOpen = true;
+    buzzerGlobalEnabled = true;
+    document.getElementById('buzzerToggleBtn').innerHTML = '🔔 BUZZERS ON';
+    frPlayers.forEach((p, id) => {
+      if(!eliminatedPlayers.has(id) && !lockedPlayers.has(id)) p.status = 'waiting';
+    });
+    renderPlayersGrid();
+    broadcast('buzzers_reopen', {});
+    toast(`🔴 Steal open for ${remaining.length} player${remaining.length!==1?'s':''}`);
   } else {
-    document.getElementById('buzzerCard').style.display = 'none';
+    // Everyone has been locked out — no steal possible
+    isQuestionOpen = false;
+    toast('🔒 All players locked — move to next question');
   }
   buzzedPlayerId = null;
 }

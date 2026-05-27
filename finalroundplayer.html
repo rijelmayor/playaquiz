@@ -1405,7 +1405,10 @@ function handleEvent(event, payload) {
       if(payload.playerId===myId){
         myStatus='buzzed';
         setStatus('🎤 Answer verbally!','var(--gold)');
-      } else if(myStatus!=='eliminated' && !hasAnsweredWrongThisQuestion && myStatus !== 'correct'){
+      } else if(myStatus!=='eliminated' && myStatus!=='correct') {
+        // Lock everyone else — including those who already answered wrong.
+        // They stay locked; only an explicit buzzers_reopen/reset_buzzers from
+        // the host will unlock players who are still eligible to steal.
         myStatus='locked';
         setStatus(`⏸ ${payload.playerName} is answering...`,'var(--muted)');
       }
@@ -1432,21 +1435,18 @@ function handleEvent(event, payload) {
         setStatus('❌ Wrong! Locked out for this question','var(--red)');
         isOpen=false;
         updateBuzzerUI();
-      } else if(myStatus==='locked' && !hasAnsweredWrongThisQuestion){
-        setStatus('⏳ Stand by — steal incoming...','var(--amber)');
-        setTimeout(()=>{
-          if(myStatus==='locked' && !hasAnsweredWrongThisQuestion){
-            isOpen=true;
-            myStatus='waiting';
-            globalBuzzerEnabled=true;
-            setStatus('🔴 STEAL! BUZZ NOW!','var(--green)');
-            updateBuzzerUI();
-          }
-        },3500);
+      } else {
+        // Someone else was wrong. Show a "steal incoming" hint but do NOT
+        // self-unlock — wait for the host's explicit buzzers_reopen broadcast.
+        // This prevents stale timers from opening buzzers mid-answer.
+        if(myStatus!=='eliminated' && !hasAnsweredWrongThisQuestion){
+          setStatus('⏳ Stand by — steal incoming...','var(--amber)');
+        }
       }
       break;
     case 'buzzers_reopen':
-      if(myStatus==='locked' && !hasAnsweredWrongThisQuestion){
+      // Only open if this player is still eligible: not eliminated and not already wrong
+      if(myStatus!=='eliminated' && !hasAnsweredWrongThisQuestion){
         isOpen=true;
         myStatus='waiting';
         globalBuzzerEnabled=true;
@@ -1455,6 +1455,7 @@ function handleEvent(event, payload) {
       }
       break;
     case 'reset_buzzers':
+      // Full reset: reopen for everyone who hasn't answered wrong yet this question
       if(myStatus!=='eliminated' && !hasAnsweredWrongThisQuestion){
         myStatus='waiting';
         isOpen=true;
