@@ -208,16 +208,6 @@
       align-items: flex-start;
       gap: 12px;
       animation: optIn 0.4s cubic-bezier(0.22,1,0.36,1) both;
-      transition: background 0.4s, border-color 0.4s, transform 0.4s;
-    }
-    .opt-tile.correct {
-      background: rgba(34,211,160,0.18);
-      border-color: var(--green);
-      transform: scale(1.03);
-      box-shadow: 0 0 28px rgba(34,211,160,0.35);
-    }
-    .opt-tile.correct .opt-letter {
-      color: var(--green);
     }
     .opt-tile:nth-child(1) { animation-delay: 0.05s; }
     .opt-tile:nth-child(2) { animation-delay: 0.1s; }
@@ -743,8 +733,35 @@ async function verifyRoomBeforeJoining(code) {
 }
 
 function startFohRoomValidityPoll() {
-  // Poll disabled — RLS blocks anonymous DB reads.
-  // Room invalidation is handled by the full_game_reset broadcast from control.
+  stopFohRoomValidityPoll();
+  fohRoomValidityInterval = setInterval(async () => {
+    if (!roomCode) return;
+    const isValid = await verifyRoomBeforeJoining(roomCode);
+    if (!isValid) {
+      // Room was reset or deactivated while FOH was connected — show entry overlay
+      if(realtimeChannel) { sb.removeChannel(realtimeChannel); realtimeChannel = null; }
+      cancelFohReconnect();
+      stopFohRoomValidityPoll();
+      clearFohSession();
+      const prevCode = roomCode;
+      roomCode = null;
+      cachedPlayers = [];
+      buzzerOpenVisible = false;
+      document.getElementById('fohBuzzerOpenIndicator').style.display = 'none';
+      if(fohTimerInterval) { clearInterval(fohTimerInterval); fohTimerInterval = null; }
+      document.getElementById('fohTimerOverlay').classList.remove('active');
+      clearOverlay();
+      document.getElementById('roomEntryOverlay').style.display = 'flex';
+      document.getElementById('roomDisplay').innerText = '——';
+      document.getElementById('fohFooterCode').innerText = '——';
+      document.getElementById('fohRoomInput').value = '';
+      document.getElementById('fohConnBadge').className = 'conn-badge';
+      document.getElementById('fohConnBadge').innerText = '⏳ Not connected';
+      showScreen('waitingScreen');
+      renderPlayersList();
+      setFohVerifyUI('idle', `⚠️ Room ${prevCode} is no longer active.`);
+    }
+  }, FOH_ROOM_POLL_MS);
 }
 
 function stopFohRoomValidityPoll() {
@@ -805,29 +822,13 @@ function showBuzzOverlay(name, avatar) {
   overlayTimer = setTimeout(() => clearOverlay(), 6000);
 }
 
-function showCorrectOverlay(name, avatar, points, correctAnswer, correctIndex) {
+function showCorrectOverlay(name, avatar, points) {
   clearOverlay();
-
-  // Highlight the correct option tile on the question screen
-  if (correctIndex >= 0) {
-    const tiles = document.querySelectorAll('#fohOptionsContainer .opt-tile');
-    if (tiles[correctIndex]) tiles[correctIndex].classList.add('correct');
-  }
-
-  const answerLine = correctAnswer
-    ? `<div style="margin-top:14px;padding:10px 20px;background:rgba(34,211,160,0.12);border:1.5px solid rgba(34,211,160,0.4);border-radius:14px;font-size:clamp(14px,2vw,20px);font-weight:700;color:var(--green);letter-spacing:0.5px;">✅ ${escapeHtml(correctAnswer)}</div>`
-    : '';
-
   const div = document.createElement('div');
   div.className = 'overlay-container';
-  div.innerHTML = `<div class="winner-banner">
-    <span style="font-size:70px;display:block;margin-bottom:10px;">💎</span>
-    <div class="buzz-title" style="font-size:clamp(28px,5vw,48px);">${avatar || '🏆'} ${escapeHtml(name)}</div>
-    <div style="font-size:18px;margin-top:8px;font-weight:700;color:var(--green);">CORRECT! +${points} POINTS</div>
-    ${answerLine}
-  </div>`;
+  div.innerHTML = `<div class="winner-banner"><span style="font-size:70px;display:block;margin-bottom:10px;">💎</span><div class="buzz-title" style="font-size:clamp(28px,5vw,48px);">${avatar || '🏆'} ${escapeHtml(name)}</div><div style="font-size:18px;margin-top:8px;font-weight:700;color:var(--green);">CORRECT! +${points} POINTS</div></div>`;
   document.getElementById('overlayContainer').appendChild(div);
-  // No auto-dismiss — overlay stays until host pushes next category or resets
+  overlayTimer = setTimeout(() => clearOverlay(), 20000);
 }
 
 function showWrongOverlay(name) {
@@ -893,7 +894,7 @@ function handleBroadcast(event, payload) {
       playBackgroundMusic();
       break;
 
-    case 'show_categories':
+    case 'show_category_picker':
       clearOverlay();
       showScreen('categoriesScreen');
       buzzerOpenVisible = false;
@@ -933,7 +934,8 @@ function handleBroadcast(event, payload) {
       break;
 
     case 'correct':
-      showCorrectOverlay(payload.playerName, payload.playerAvatar, payload.points || 100, payload.correctAnswer, payload.correctIndex ?? -1);
+      clearOverlay();
+      showCorrectOverlay(payload.playerName, payload.playerAvatar, payload.points || 100);
       playBeep(659.25, 'sine', 0.5);
       launchConfetti(5000);
       { const p = cachedPlayers.find(p => p.id === payload.playerId); if(p) { p.score = payload.newScore; p.status = 'correct'; renderPlayersList(); saveFohSession(); } }
@@ -952,7 +954,6 @@ function handleBroadcast(event, payload) {
       buzzerOpenVisible = false;
       document.getElementById('fohBuzzerOpenIndicator').style.display = 'none';
       clearOverlay();
-      document.querySelectorAll('#fohOptionsContainer .opt-tile').forEach(t => t.classList.remove('correct'));
       cachedPlayers.forEach(p => { if(p.status !== 'eliminated') p.status = 'waiting'; });
       renderPlayersList();
       if(event === 'next_question') showScreen('waitingScreen');
@@ -1059,7 +1060,7 @@ function connectToRoom(code, { silent = false } = {}) {
   const events = [
     'round_started', 'player_list_update', 'question_open', 'buzz_confirmed', 'correct', 'wrong',
     'next_question', 'reset_for_next_question', 'reset_buzzers', 'buzzers_reopen', 'eliminated',
-    'show_categories', 'round_ended', 'timer_start', 'full_game_reset', 'show_room_code'
+    'show_category_picker', 'round_ended', 'timer_start', 'full_game_reset', 'show_room_code'
   ];
   events.forEach(ev => {
     realtimeChannel.on('broadcast', { event: ev }, ({ payload }) => handleBroadcast(ev, payload));
@@ -1074,9 +1075,11 @@ function connectToRoom(code, { silent = false } = {}) {
       // Ask control to push current player list + game state immediately
       realtimeChannel.send({ type: 'broadcast', event: 'foh_requesting_sync', payload: { timestamp: Date.now() } }).catch(() => {});
       saveFohSession();
+      startFohRoomValidityPoll();   // ← poll DB so we catch silent room resets
     } else if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
       badge.className = 'conn-badge error';
       badge.innerText = '⚠ Disconnected';
+      stopFohRoomValidityPoll();    // ← stop polling while channel is down
       if(roomCode) scheduleFohReconnect();
     }
   });
@@ -1159,12 +1162,11 @@ async function fohVerifyRoom(code) {
       .from('game_rooms')
       .select('room_code, is_active')
       .eq('room_code', code)
-      .maybeSingle();
+      .single();
 
     if (fohCurrentVerifyCode !== code) return;
 
-    if (error) { setFohVerifyUI('conn-error'); fohRoomVerified = false; return; }
-    if (!data) { setFohVerifyUI('not-found'); fohRoomVerified = false; return; }
+    if (error || !data)    { setFohVerifyUI('not-found'); fohRoomVerified = false; return; }
     if (!data.is_active)   { setFohVerifyUI('inactive');  fohRoomVerified = false; return; }
 
     fohRoomVerified = true;
@@ -1300,17 +1302,26 @@ async function init() {
   // Auto-reconnect on page load / refresh / accidental browser close
   const saved = loadFohSession();
   if (saved?.roomCode) {
-    // Skip DB verification (RLS blocks anonymous reads).
-    // Just reconnect directly — if the room is gone the channel will fail
-    // and full_game_reset will redirect to the entry screen.
-    if (saved.cachedPlayers?.length) {
-      cachedPlayers = saved.cachedPlayers;
-      renderPlayersList();
+    // Verify the saved room is still active BEFORE touching the UI — same as player file
+    const isValid = await verifyRoomBeforeJoining(saved.roomCode);
+
+    if (isValid) {
+      // Restore last-known player list so the panel isn't blank while reconnecting
+      if (saved.cachedPlayers?.length) {
+        cachedPlayers = saved.cachedPlayers;
+        renderPlayersList();
+      }
+      // Silently rejoin — reuse connectToRoom so all logic stays in one place.
+      // silent:true suppresses the matrix welcome screen on refresh.
+      const badge = document.getElementById('fohConnBadge');
+      badge.className = 'conn-badge reconnecting';
+      badge.innerText = '⟳ Reconnecting...';
+      connectToRoom(saved.roomCode, { silent: true });
+    } else {
+      // Room is gone / reset — wipe stale session, show clean entry overlay
+      clearFohSession();
+      setFohVerifyUI('idle', '⚠️ Previous room is no longer active. Enter a new code.');
     }
-    const badge = document.getElementById('fohConnBadge');
-    badge.className = 'conn-badge reconnecting';
-    badge.innerText = '⟳ Reconnecting...';
-    connectToRoom(saved.roomCode, { silent: true });
   }
 }
 init();
