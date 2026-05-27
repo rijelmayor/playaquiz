@@ -1162,11 +1162,12 @@ async function fohVerifyRoom(code) {
       .from('game_rooms')
       .select('room_code, is_active')
       .eq('room_code', code)
-      .single();
+      .maybeSingle();
 
     if (fohCurrentVerifyCode !== code) return;
 
-    if (error || !data)    { setFohVerifyUI('not-found'); fohRoomVerified = false; return; }
+    if (error) { setFohVerifyUI('conn-error'); fohRoomVerified = false; return; }
+    if (!data) { setFohVerifyUI('not-found'); fohRoomVerified = false; return; }
     if (!data.is_active)   { setFohVerifyUI('inactive');  fohRoomVerified = false; return; }
 
     fohRoomVerified = true;
@@ -1197,7 +1198,8 @@ async function submitFohRoom() {
 
 function escapeHtml(str) {
   if(!str) return '';
-  return str.replace(/[&<>]/g, m => m==='&'?'&amp;':m==='<'?'&lt;':'&gt;');
+  const map = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};
+  return str.replace(/[&<>"']/g, m => map[m]);
 }
 
 // ─── FOH Timer ────────────────────────────────────────────────────────────────

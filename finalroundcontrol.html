@@ -74,6 +74,10 @@
     .buzzer-card { border: 2px solid var(--gold) !important; }
     .buzzed-name { font-size: 36px; font-weight: 800; }
     .player-card.disconnected { border-color: var(--red); background: rgba(239,68,68,0.05); }
+    @keyframes scoreBump { 0%{transform:scale(1)} 40%{transform:scale(1.35)} 100%{transform:scale(1)} }
+    .bump { animation: scoreBump 0.4s cubic-bezier(0.34,1.56,0.64,1); }
+    .kbd-hint { font-size: 10px; color: var(--muted); margin-top: 6px; letter-spacing: 0.5px; }
+    kbd { background: var(--surface2); border: 1px solid var(--border2); border-radius: 4px; padding: 1px 5px; font-size: 10px; }
   </style>
 </head>
 <body>
@@ -157,6 +161,7 @@
             <button class="btn btn-green btn-lg" onclick="markCorrect()">✅ CORRECT</button>
             <button class="btn btn-red btn-lg" onclick="markWrong()">❌ WRONG</button>
           </div>
+          <div class="kbd-hint">Press <kbd>Y</kbd> = Correct &nbsp; <kbd>N</kbd> = Wrong &nbsp; <kbd>→</kbd> = Next Q</div>
           <button class="btn btn-ghost" style="margin-top:12px;" onclick="nextQuestion()">⏭ Skip Question</button>
         </div>
       </div>
@@ -178,27 +183,26 @@ let roomCode = '', frPlayers = new Map(), buzzedPlayerId = null, lockedPlayers =
     usedQuestionIds = new Set();
 
 // ─── Database Registration Function ───────────────────────────────────────────
-async function registerRoomInDatabase(newRoomCode) {
+async function registerRoomInDatabase(newRoomCode, prevRoomCode = null) {
   try {
-    // 1. DELETE all old room records entirely so stale codes can never be reused
-    const { error: deleteError } = await sb
-      .from('game_rooms')
-      .delete()
-      .neq('room_code', newRoomCode);
+    // 1. Deactivate the previous room for THIS session only (safe in multi-host envs)
+    // prevRoomCode is passed in explicitly — reading from localStorage here is unreliable
+    // because the caller may have already updated localStorage to the new code.
+    if (prevRoomCode && prevRoomCode !== newRoomCode) {
+      await sb.from('game_rooms').update({ is_active: false }).eq('room_code', prevRoomCode).catch(()=>{});
+    }
 
-    if (deleteError) console.warn('Could not delete old rooms:', deleteError);
-    else console.log('🗑️ Old room records cleared from database');
-
-    // 2. Insert the new room as a fresh active record
+    // 2. Upsert the room — onConflict ensures we UPDATE if the row exists
+    // (without this Supabase inserts a duplicate, breaking maybeSingle() queries)
     const { error } = await sb
       .from('game_rooms')
       .upsert({
         room_code: newRoomCode,
         is_active: true,
         control_id: 'ctrl_' + Date.now(),
-        created_at: new Date(),
+        created_at: new Date().toISOString(),
         player_count: 0
-      });
+      }, { onConflict: 'room_code' });
 
     if (error) throw error;
     console.log('✅ Room registered in database:', newRoomCode);
@@ -217,7 +221,8 @@ async function generateNewRoomCode() {
   const newCode = 'FR' + Math.random().toString(36).substring(2,6).toUpperCase();
 
   // 1. Register in DB FIRST so players can verify before joining
-  await registerRoomInDatabase(newCode);
+  // Pass current roomCode as prevRoom so the old DB row gets deactivated correctly
+  await registerRoomInDatabase(newCode, roomCode);
 
   // 2. Broadcast reset on the CURRENT channel before switching
   broadcast('full_game_reset', { newRoomCode: newCode });
@@ -225,6 +230,7 @@ async function generateNewRoomCode() {
   // 3. Small delay so broadcast flushes, then switch channel
   setTimeout(() => {
     roomCode = newCode;
+    sessionStorage.setItem('fr_session_room', roomCode);
     document.getElementById('roomCodeInput').value = roomCode;
     document.getElementById('roomCodeDisplay').innerText = roomCode;
     localStorage.setItem('fr_room', roomCode);
@@ -241,51 +247,6 @@ async function generateNewRoomCode() {
 }
 
 
-// Add this debug function
-async function debugRoomRegistration() {
-  console.log('=== DEBUG: Checking room registration ===');
-  console.log('Current roomCode:', roomCode);
-  
-  try {
-    const { data, error } = await sb
-      .from('game_rooms')
-      .select('*')
-      .eq('room_code', roomCode);
-    
-    if (error) {
-      console.error('Database query error:', error);
-    } else {
-      console.log('Rooms found in database:', data);
-      if (data.length === 0) {
-        console.log('⚠️ Room NOT found in database! Registration failed.');
-      } else {
-        console.log('✅ Room found in database!');
-      }
-    }
-  } catch (err) {
-    console.error('Debug error:', err);
-  }
-}
-
-// Also add this to check table existence
-async function checkTableExists() {
-  console.log('=== Checking game_rooms table ===');
-  try {
-    const { data, error, count } = await sb
-      .from('game_rooms')
-      .select('*', { count: 'exact', head: true });
-    
-    if (error) {
-      console.error('Table error:', error);
-      console.log('❌ game_rooms table may not exist or RLS is blocking');
-    } else {
-      console.log('✅ game_rooms table exists');
-      console.log('Total rooms:', count);
-    }
-  } catch (err) {
-    console.error('Check failed:', err);
-  }
-}
 
 // ─── Audio Functions ──────────────────────────────────────────────────────────
 function getAudio() {
@@ -320,10 +281,10 @@ async function loadQuestionsFromDB() {
 }
 
 function renderCategoryFilters() {
-  const html = `<button class="cat-filter-btn active" onclick="filterByCategory('all',this)">📚 All (${allQuestions.length})</button>` +
+  const html = `<button class="cat-filter-btn active" data-catid="all" onclick="filterByCategory('all',this)">📚 All (${allQuestions.length})</button>` +
     categories.map(c => {
       const count = allQuestions.filter(q=>q.category_id===c.id).length;
-      return `<button class="cat-filter-btn" onclick="filterByCategory('${c.id}',this)">${c.icon||'📁'} ${c.name} (${count})</button>`;
+      return `<button class="cat-filter-btn" data-catid="${c.id}" onclick="filterByCategory('${c.id}',this)">${c.icon||'📁'} ${c.name} (${count})</button>`;
     }).join('');
   ['categoryFilter','gameCategoryFilter'].forEach(id => {
     const el = document.getElementById(id);
@@ -333,11 +294,7 @@ function renderCategoryFilters() {
 
 function filterByCategory(catId, btn) {
   currentFilterCat = catId;
-  document.querySelectorAll('.cat-filter-btn').forEach(b=>b.classList.remove('active'));
-  document.querySelectorAll('.cat-filter-btn').forEach(b => {
-    if(b.innerText.startsWith(catId==='all'?'📚':'') && b.onclick?.toString().includes(`'${catId}'`)) b.classList.add('active');
-  });
-  btn.classList.add('active');
+  document.querySelectorAll('.cat-filter-btn').forEach(b => b.classList.toggle('active', b.dataset.catid === catId));
   renderQuestionBank();
 }
 
@@ -473,23 +430,11 @@ function handleBuzz(payload) {
   if(lockedPlayers.has(payload.id) || eliminatedPlayers.has(payload.id)) return;
   const player = frPlayers.get(payload.id);
   if(!player) return;
-  
-  // Check if this player is eligible (not locked, not eliminated)
-  if(lockedPlayers.has(payload.id)) return;
-  
   playBuzzSound();
   buzzedPlayerId = payload.id;
   isQuestionOpen = false;
   player.status = 'buzzed';
-  
-  // Lock ALL other players (including those who haven't answered yet)
-  frPlayers.forEach((p, id) => { 
-    if(id !== payload.id && !eliminatedPlayers.has(id)) {
-      p.status = 'locked';
-      lockedPlayers.add(id);
-    }
-  });
-  
+  frPlayers.forEach((p, id) => { if(id!==payload.id && !eliminatedPlayers.has(id)) p.status='locked'; });
   document.getElementById('buzzerCard').style.display = 'block';
   document.getElementById('buzzedName').innerHTML = `${player.avatar} ${player.name}`;
   if(selectedQuestionForGame) {
@@ -536,13 +481,7 @@ function resetBuzzers() {
   isQuestionOpen = true;
   buzzerGlobalEnabled = true;
   document.getElementById('buzzerToggleBtn').innerHTML = '🔔 BUZZERS ON';
-  frPlayers.forEach((p, id) => { 
-    if(!eliminatedPlayers.has(id)) {
-      p.status = 'waiting';
-      // Don't clear locked status for players who already answered wrong this question
-      // The lockedPlayers Set is cleared above, but we need to track wrong answers separately
-    }
-  });
+  frPlayers.forEach((p, id) => { if(!eliminatedPlayers.has(id)) p.status='waiting'; });
   document.getElementById('buzzerCard').style.display = 'none';
   renderPlayersGrid();
   broadcast('reset_buzzers', {});
@@ -573,37 +512,34 @@ function markCorrect() {
 function markWrong() {
   if(!buzzedPlayerId) return;
   const player = frPlayers.get(buzzedPlayerId);
-  if(player) { 
-    player.status = 'wrong'; 
-    lockedPlayers.add(buzzedPlayerId); 
-  }
+  if(player) { player.status = 'wrong'; lockedPlayers.add(buzzedPlayerId); }
   playWrongSound();
   broadcast('wrong', { playerId: buzzedPlayerId, playerName: player?.name });
-  renderPlayersGrid(); 
-  updateSidebar();
+  renderPlayersGrid(); updateSidebar();
   toast(`❌ Wrong — ${player?.name} locked out`);
 
-  // Get remaining players who are NOT locked out and NOT eliminated
-  const remaining = Array.from(frPlayers.keys()).filter(id => 
-    !lockedPlayers.has(id) && !eliminatedPlayers.has(id)
-  );
-  
+  // Players still eligible to steal: not locked (answered wrong) and not eliminated
+  const remaining = Array.from(frPlayers.keys()).filter(id => !lockedPlayers.has(id) && !eliminatedPlayers.has(id));
+
+  document.getElementById('buzzerCard').style.display = 'none';
+
   if(remaining.length > 0) {
-    // Open STEAL opportunity immediately for remaining players
-    setTimeout(() => {
-      isQuestionOpen = true;
-      buzzerGlobalEnabled = true;
-      buzzedPlayerId = null;
-      document.getElementById('buzzerToggleBtn').innerHTML = '🔔 BUZZERS ON';
-      broadcast('buzzers_reopen', {});
-      document.getElementById('buzzerCard').style.display = 'none';
-      toast(`🔔 STEAL opportunity! ${remaining.length} player(s) can buzz`);
-    }, 500); // Small delay for steal opportunity
+    // Re-open buzzers for eligible stealers.
+    // The player side now waits for this explicit broadcast — no client-side timer.
+    isQuestionOpen = true;
+    buzzerGlobalEnabled = true;
+    document.getElementById('buzzerToggleBtn').innerHTML = '🔔 BUZZERS ON';
+    frPlayers.forEach((p, id) => {
+      if(!eliminatedPlayers.has(id) && !lockedPlayers.has(id)) p.status = 'waiting';
+    });
+    renderPlayersGrid();
+    broadcast('buzzers_reopen', {});
+    toast(`🔴 Steal open for ${remaining.length} player${remaining.length!==1?'s':''}`);
   } else {
-    document.getElementById('buzzerCard').style.display = 'none';
-    toast('No players remaining to steal');
+    // Everyone has been locked out — no steal possible
+    isQuestionOpen = false;
+    toast('🔒 All players locked — move to next question');
   }
-  
   buzzedPlayerId = null;
 }
 
@@ -645,9 +581,8 @@ function shareRoomCodeToFOH() {
 }
 
 function showCategoryPickerOnFOH() {
-  // Broadcast to all players (including FOH) to show categories
-  broadcast('show_categories', { categories: categories });
-  toast('🎨 Categories shown on FOH and player screens');
+  broadcast('show_category_picker', { categories });
+  toast('🎨 Categories shown on FOH');
 }
 
 function showCategoryToStart() {
@@ -676,7 +611,7 @@ async function resetFullGame() {
   const newCode = 'FR' + Math.random().toString(36).substring(2,6).toUpperCase();
 
   // 1. Register the NEW room in DB FIRST so players can verify it immediately
-  await registerRoomInDatabase(newCode);
+  await registerRoomInDatabase(newCode, roomCode);
 
   // 2. Broadcast reset on current channel so all players get the new code
   broadcast('full_game_reset', { newRoomCode: newCode, forceLogin: true });
@@ -684,6 +619,7 @@ async function resetFullGame() {
   // 3. Delay switching so broadcast can flush, then reset local state
   setTimeout(() => {
     roomCode = newCode;
+    sessionStorage.setItem('fr_session_room', roomCode);
     document.getElementById('roomCodeInput').value = roomCode;
     document.getElementById('roomCodeDisplay').innerText = roomCode;
     localStorage.setItem('fr_room', roomCode);
@@ -782,29 +718,52 @@ function updateSidebar() {
   document.getElementById('playerCount').innerText = frPlayers.size;
 }
 
-function toast(msg) {
+function toast(msg, type = 'info') {
   const el = document.createElement('div');
   el.className = 'toast';
+  if (type === 'error') el.style.borderColor = 'var(--red)';
   el.innerText = msg;
   document.body.appendChild(el);
-  setTimeout(() => el.remove(), 3000);
+  setTimeout(() => { if(el.parentNode) el.remove(); }, 3000);
 }
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 function initControl() {
-  roomCode = 'FR' + Math.random().toString(36).substring(2,6).toUpperCase();
+  // Read prevRoom BEFORE we overwrite localStorage — this is what registerRoom uses to
+  // deactivate old rows. If we write localStorage first, prevRoom === newCode → skipped.
+  const prevRoom = localStorage.getItem('fr_room');
+
+  // Restore room code from session so accidental refresh doesn't kick all players.
+  const saved = sessionStorage.getItem('fr_session_room');
+  roomCode = saved || ('FR' + Math.random().toString(36).substring(2,6).toUpperCase());
+  sessionStorage.setItem('fr_session_room', roomCode);
   document.getElementById('roomCodeInput').value = roomCode;
   document.getElementById('roomCodeDisplay').innerText = roomCode;
   localStorage.setItem('fr_room', roomCode);
-  
-  // Register initial room
-  registerRoomInDatabase(roomCode);
-  
+
+  // Pass prevRoom explicitly so registerRoom can deactivate it correctly
+  registerRoomInDatabase(roomCode, prevRoom !== roomCode ? prevRoom : null);
   setupRealtimeChannel();
   loadQuestionsFromDB();
 }
 
 initControl();
+
+// ── Keyboard shortcuts for host ──────────────────────────────────────────────
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.key === 'y' || e.key === 'Y') {
+    const btn = document.querySelector('.btn-green[onclick="markCorrect()"]');
+    if (btn && !btn.disabled && document.getElementById('buzzerCard').style.display !== 'none') markCorrect();
+  }
+  if (e.key === 'n' || e.key === 'N') {
+    const btn = document.querySelector('.btn-red[onclick="markWrong()"]');
+    if (btn && !btn.disabled && document.getElementById('buzzerCard').style.display !== 'none') markWrong();
+  }
+  if (e.key === 'ArrowRight') {
+    if (!document.getElementById('gamePanel').classList.contains('hidden')) nextQuestion();
+  }
+});
 
 // Expose to HTML onclick
 window.generateNewRoomCode = generateNewRoomCode;
