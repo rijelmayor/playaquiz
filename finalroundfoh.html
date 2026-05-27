@@ -827,7 +827,7 @@ function showCorrectOverlay(name, avatar, points, correctAnswer, correctIndex) {
     ${answerLine}
   </div>`;
   document.getElementById('overlayContainer').appendChild(div);
-  overlayTimer = setTimeout(() => clearOverlay(), 20000);
+  // No auto-dismiss — overlay stays until host pushes next category or resets
 }
 
 function showWrongOverlay(name) {
@@ -933,7 +933,6 @@ function handleBroadcast(event, payload) {
       break;
 
     case 'correct':
-      clearOverlay();
       showCorrectOverlay(payload.playerName, payload.playerAvatar, payload.points || 100, payload.correctAnswer, payload.correctIndex ?? -1);
       playBeep(659.25, 'sine', 0.5);
       launchConfetti(5000);
