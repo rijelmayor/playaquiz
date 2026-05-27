@@ -948,27 +948,50 @@ function onRoomInput(el) {
 async function verifyRoom(code, attempt = 1) {
   currentVerifyCode = code;
   setVerifyUI('verifying');
+
+  // Use realtime ping-ack instead of a DB SELECT.
+  // RLS on game_rooms blocks anonymous reads, so a DB query always returns
+  // "not found" even when the room exists. The control listens for room_ping
+  // and replies with room_ack — if we hear it within 4s, the room is live.
+  let pingCh = null;
+  let ackTimer = null;
+  let ackReceived = false;
+
   try {
-    const { data, error } = await sb
-      .from('game_rooms')
-      .select('room_code, is_active')
-      .eq('room_code', code)
-      .maybeSingle();
+    pingCh = sb.channel(`fr-${code}`);
 
-    if (currentVerifyCode !== code) return; // superseded by newer input
+    pingCh.on('broadcast', { event: 'room_ack' }, ({ payload }) => {
+      if (currentVerifyCode !== code) return;
+      if (ackReceived) return;
+      ackReceived = true;
+      if (ackTimer) clearTimeout(ackTimer);
+      sb.removeChannel(pingCh);
+      roomVerified = true;
+      setVerifyUI('ok');
+      playBeep(880, 'sine', 0.25);
+    });
 
-    if (error) {
-      // Transient DB error (including duplicate row PGRST116) — retry once
-      if (attempt < 2) { setTimeout(() => verifyRoom(code, 2), 1000); return; }
-      setVerifyUI('conn-error'); roomVerified = false; return;
-    }
-    if (!data) { setVerifyUI('not-found'); roomVerified = false; return; }
-    if (!data.is_active) { setVerifyUI('inactive'); roomVerified = false; return; }
+    pingCh.subscribe((status) => {
+      if (status !== 'SUBSCRIBED') return;
+      if (currentVerifyCode !== code) { sb.removeChannel(pingCh); return; }
+      // Subscribed — send the ping
+      pingCh.send({ type: 'broadcast', event: 'room_ping', payload: { code } });
 
-    roomVerified = true;
-    setVerifyUI('ok');
-    playBeep(880, 'sine', 0.25);
+      // If no ack within 4s, the room doesn't exist / control is offline
+      ackTimer = setTimeout(() => {
+        if (ackReceived) return;
+        sb.removeChannel(pingCh);
+        if (currentVerifyCode !== code) return;
+        if (attempt < 2) {
+          // Retry once — control may have been mid-subscribe itself
+          setTimeout(() => verifyRoom(code, 2), 800);
+          return;
+        }
+        setVerifyUI('not-found'); roomVerified = false;
+      }, 4000);
+    });
   } catch(e) {
+    if (pingCh) { try { sb.removeChannel(pingCh); } catch(_) {} }
     if (currentVerifyCode !== code) return;
     if (attempt < 2) { setTimeout(() => verifyRoom(code, 2), 1000); return; }
     setVerifyUI('conn-error'); roomVerified = false;
@@ -1019,23 +1042,8 @@ async function joinGame() {
   errorEl.textContent = '';
 
   try {
-    const { data: roomData, error: roomError } = await sb
-      .from('game_rooms')
-      .select('room_code, is_active, player_count')
-      .eq('room_code', room)
-      .maybeSingle();
-
-    if (roomError || !roomData) {
-      errorEl.textContent = '❌ Room no longer exists.';
-      joinBtn.disabled = false; joinBtn.textContent = '⚡ Enter Final Round';
-      roomVerified = false; goToStep(1); setVerifyUI('not-found'); return;
-    }
-    if (!roomData.is_active) {
-      errorEl.textContent = '❌ Game has ended.';
-      joinBtn.disabled = false; joinBtn.textContent = '⚡ Enter Final Round';
-      roomVerified = false; goToStep(1); setVerifyUI('inactive'); return;
-    }
-
+    // Room was already ping-ack verified above — skip the DB query (RLS blocks it).
+    // Proceed straight to joining.
     if (ch) { try { await sb.removeChannel(ch); } catch(e) {} ch = null; }
     myId     = 'p_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
     myName   = name;
@@ -1046,7 +1054,6 @@ async function joinGame() {
 
     saveIdentity();
     subscribeChannel();
-    sb.from('game_rooms').update({ player_count: (roomData.player_count || 0) + 1 }).eq('room_code', room).catch(()=>{});
     setTimeout(() => { if (joinBtn && joinBtn.disabled) { joinBtn.disabled = false; joinBtn.textContent = '⚡ Enter Final Round'; }}, 10000);
   } catch(err) {
     console.error('Join error:', err);
@@ -1250,11 +1257,28 @@ function scheduleReconnect() {
 }
 
 async function verifyRoomBeforeJoining(code) {
-  try {
-    const { data, error } = await sb.from('game_rooms').select('room_code,is_active').eq('room_code',code).maybeSingle();
-    if (error || !data) return false;
-    return data.is_active === true;
-  } catch(e) { return false; }
+  // Ping-ack — avoids RLS-blocked DB reads
+  return new Promise((resolve) => {
+    let pingCh = null, ackTimer = null, done = false;
+    try {
+      pingCh = sb.channel(`fr-${code}-chk-${Date.now()}`);
+      pingCh.on('broadcast', { event: 'room_ack' }, () => {
+        if (done) return; done = true;
+        clearTimeout(ackTimer); sb.removeChannel(pingCh); resolve(true);
+      });
+      pingCh.subscribe((status) => {
+        if (status !== 'SUBSCRIBED') return;
+        pingCh.send({ type: 'broadcast', event: 'room_ping', payload: { code } });
+        ackTimer = setTimeout(() => {
+          if (done) return; done = true;
+          sb.removeChannel(pingCh); resolve(false);
+        }, 4000);
+      });
+    } catch(e) {
+      if (pingCh) { try { sb.removeChannel(pingCh); } catch(_) {} }
+      resolve(false);
+    }
+  });
 }
 
 function saveIdentity()  { try { sessionStorage.setItem('fr_identity', JSON.stringify({myId,myName,myAvatar,roomCode,myScore,myStatus})); } catch(e) {} }

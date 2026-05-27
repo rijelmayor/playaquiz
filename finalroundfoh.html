@@ -721,15 +721,28 @@ function clearFohSession() {
 
 // ─── Room validity helpers ────────────────────────────────────────────────────
 async function verifyRoomBeforeJoining(code) {
-  try {
-    const { data, error } = await sb
-      .from('game_rooms')
-      .select('room_code, is_active')
-      .eq('room_code', code)
-      .maybeSingle();
-    if (error || !data) return false;
-    return data.is_active === true;
-  } catch(e) { return false; }
+  // Ping-ack — avoids RLS-blocked DB reads
+  return new Promise((resolve) => {
+    let pingCh = null, ackTimer = null, done = false;
+    try {
+      pingCh = sb.channel(`fr-${code}-fchk-${Date.now()}`);
+      pingCh.on('broadcast', { event: 'room_ack' }, () => {
+        if (done) return; done = true;
+        clearTimeout(ackTimer); sb.removeChannel(pingCh); resolve(true);
+      });
+      pingCh.subscribe((status) => {
+        if (status !== 'SUBSCRIBED') return;
+        pingCh.send({ type: 'broadcast', event: 'room_ping', payload: { code } });
+        ackTimer = setTimeout(() => {
+          if (done) return; done = true;
+          sb.removeChannel(pingCh); resolve(false);
+        }, 4000);
+      });
+    } catch(e) {
+      if (pingCh) { try { sb.removeChannel(pingCh); } catch(_) {} }
+      resolve(false);
+    }
+  });
 }
 
 function startFohRoomValidityPoll() {
@@ -1157,22 +1170,36 @@ function onFohRoomInput(el) {
 async function fohVerifyRoom(code) {
   fohCurrentVerifyCode = code;
   setFohVerifyUI('verifying');
+
+  // Ping-ack verification — avoids RLS-blocked DB reads.
+  // We subscribe to the room channel, send room_ping, and wait for room_ack from control.
+  let pingCh = null, ackTimer = null, ackReceived = false;
   try {
-    const { data, error } = await sb
-      .from('game_rooms')
-      .select('room_code, is_active')
-      .eq('room_code', code)
-      .maybeSingle();
+    pingCh = sb.channel(`fr-${code}`);
 
-    if (fohCurrentVerifyCode !== code) return;
+    pingCh.on('broadcast', { event: 'room_ack' }, ({ payload }) => {
+      if (fohCurrentVerifyCode !== code || ackReceived) return;
+      ackReceived = true;
+      clearTimeout(ackTimer);
+      sb.removeChannel(pingCh);
+      fohRoomVerified = true;
+      setFohVerifyUI('ok', `✓ Room ${code} is live — click Connect!`);
+    });
 
-    if (error) { setFohVerifyUI('conn-error'); fohRoomVerified = false; return; }
-    if (!data) { setFohVerifyUI('not-found'); fohRoomVerified = false; return; }
-    if (!data.is_active)   { setFohVerifyUI('inactive');  fohRoomVerified = false; return; }
+    pingCh.subscribe((status) => {
+      if (status !== 'SUBSCRIBED') return;
+      if (fohCurrentVerifyCode !== code) { sb.removeChannel(pingCh); return; }
+      pingCh.send({ type: 'broadcast', event: 'room_ping', payload: { code } });
 
-    fohRoomVerified = true;
-    setFohVerifyUI('ok', `✓ Room ${code} is live — click Connect!`);
+      ackTimer = setTimeout(() => {
+        if (ackReceived) return;
+        sb.removeChannel(pingCh);
+        if (fohCurrentVerifyCode !== code) return;
+        setFohVerifyUI('not-found'); fohRoomVerified = false;
+      }, 4000);
+    });
   } catch(err) {
+    if (pingCh) { try { sb.removeChannel(pingCh); } catch(_) {} }
     if (fohCurrentVerifyCode !== code) return;
     setFohVerifyUI('conn-error'); fohRoomVerified = false;
   }

@@ -349,6 +349,10 @@ function setupRealtimeChannel() {
       // FOH refreshed or reconnected — push current player list immediately
       broadcast('player_list_update', { players: Array.from(frPlayers.values()) });
     })
+    .on('broadcast', {event:'room_ping'},          ({payload}) => {
+      // Player or FOH is verifying the room exists — reply immediately
+      realtimeChannel.send({ type:'broadcast', event:'room_ack', payload: { roomCode, ts: Date.now() } });
+    })
     .subscribe((status) => {
       const dot = document.getElementById('connDot'), txt = document.getElementById('connText');
       if(status==='SUBSCRIBED') { dot.classList.add('connected'); txt.innerText='Live'; }
