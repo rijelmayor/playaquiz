@@ -74,10 +74,6 @@
     .buzzer-card { border: 2px solid var(--gold) !important; }
     .buzzed-name { font-size: 36px; font-weight: 800; }
     .player-card.disconnected { border-color: var(--red); background: rgba(239,68,68,0.05); }
-    @keyframes scoreBump { 0%{transform:scale(1)} 40%{transform:scale(1.35)} 100%{transform:scale(1)} }
-    .bump { animation: scoreBump 0.4s cubic-bezier(0.34,1.56,0.64,1); }
-    .kbd-hint { font-size: 10px; color: var(--muted); margin-top: 6px; letter-spacing: 0.5px; }
-    kbd { background: var(--surface2); border: 1px solid var(--border2); border-radius: 4px; padding: 1px 5px; font-size: 10px; }
   </style>
 </head>
 <body>
@@ -161,7 +157,6 @@
             <button class="btn btn-green btn-lg" onclick="markCorrect()">✅ CORRECT</button>
             <button class="btn btn-red btn-lg" onclick="markWrong()">❌ WRONG</button>
           </div>
-          <div class="kbd-hint">Press <kbd>Y</kbd> = Correct &nbsp; <kbd>N</kbd> = Wrong &nbsp; <kbd>→</kbd> = Next Q</div>
           <button class="btn btn-ghost" style="margin-top:12px;" onclick="nextQuestion()">⏭ Skip Question</button>
         </div>
       </div>
@@ -183,24 +178,25 @@ let roomCode = '', frPlayers = new Map(), buzzedPlayerId = null, lockedPlayers =
     usedQuestionIds = new Set();
 
 // ─── Database Registration Function ───────────────────────────────────────────
-async function registerRoomInDatabase(newRoomCode, prevRoomCode = null) {
+async function registerRoomInDatabase(newRoomCode) {
   try {
-    // 1. Deactivate the previous room for THIS session only (safe in multi-host envs)
-    // prevRoomCode is passed in explicitly — reading from localStorage here is unreliable
-    // because the caller may have already updated localStorage to the new code.
-    if (prevRoomCode && prevRoomCode !== newRoomCode) {
-      await sb.from('game_rooms').update({ is_active: false }).eq('room_code', prevRoomCode).catch(()=>{});
-    }
+    // 1. DELETE all old room records entirely so stale codes can never be reused
+    const { error: deleteError } = await sb
+      .from('game_rooms')
+      .delete()
+      .neq('room_code', newRoomCode);
 
-    // 2. Upsert the room — onConflict ensures we UPDATE if the row exists
-    // (without this Supabase inserts a duplicate, breaking maybeSingle() queries)
+    if (deleteError) console.warn('Could not delete old rooms:', deleteError);
+    else console.log('🗑️ Old room records cleared from database');
+
+    // 2. Insert the new room as a fresh active record
     const { error } = await sb
       .from('game_rooms')
       .upsert({
         room_code: newRoomCode,
         is_active: true,
         control_id: 'ctrl_' + Date.now(),
-        created_at: new Date().toISOString(),
+        created_at: new Date(),
         player_count: 0
       }, { onConflict: 'room_code' });
 
@@ -221,8 +217,7 @@ async function generateNewRoomCode() {
   const newCode = 'FR' + Math.random().toString(36).substring(2,6).toUpperCase();
 
   // 1. Register in DB FIRST so players can verify before joining
-  // Pass current roomCode as prevRoom so the old DB row gets deactivated correctly
-  await registerRoomInDatabase(newCode, roomCode);
+  await registerRoomInDatabase(newCode);
 
   // 2. Broadcast reset on the CURRENT channel before switching
   broadcast('full_game_reset', { newRoomCode: newCode });
@@ -230,7 +225,6 @@ async function generateNewRoomCode() {
   // 3. Small delay so broadcast flushes, then switch channel
   setTimeout(() => {
     roomCode = newCode;
-    sessionStorage.setItem('fr_session_room', roomCode);
     document.getElementById('roomCodeInput').value = roomCode;
     document.getElementById('roomCodeDisplay').innerText = roomCode;
     localStorage.setItem('fr_room', roomCode);
@@ -247,6 +241,51 @@ async function generateNewRoomCode() {
 }
 
 
+// Add this debug function
+async function debugRoomRegistration() {
+  console.log('=== DEBUG: Checking room registration ===');
+  console.log('Current roomCode:', roomCode);
+  
+  try {
+    const { data, error } = await sb
+      .from('game_rooms')
+      .select('*')
+      .eq('room_code', roomCode);
+    
+    if (error) {
+      console.error('Database query error:', error);
+    } else {
+      console.log('Rooms found in database:', data);
+      if (data.length === 0) {
+        console.log('⚠️ Room NOT found in database! Registration failed.');
+      } else {
+        console.log('✅ Room found in database!');
+      }
+    }
+  } catch (err) {
+    console.error('Debug error:', err);
+  }
+}
+
+// Also add this to check table existence
+async function checkTableExists() {
+  console.log('=== Checking game_rooms table ===');
+  try {
+    const { data, error, count } = await sb
+      .from('game_rooms')
+      .select('*', { count: 'exact', head: true });
+    
+    if (error) {
+      console.error('Table error:', error);
+      console.log('❌ game_rooms table may not exist or RLS is blocking');
+    } else {
+      console.log('✅ game_rooms table exists');
+      console.log('Total rooms:', count);
+    }
+  } catch (err) {
+    console.error('Check failed:', err);
+  }
+}
 
 // ─── Audio Functions ──────────────────────────────────────────────────────────
 function getAudio() {
@@ -281,10 +320,10 @@ async function loadQuestionsFromDB() {
 }
 
 function renderCategoryFilters() {
-  const html = `<button class="cat-filter-btn active" data-catid="all" onclick="filterByCategory('all',this)">📚 All (${allQuestions.length})</button>` +
+  const html = `<button class="cat-filter-btn active" onclick="filterByCategory('all',this)">📚 All (${allQuestions.length})</button>` +
     categories.map(c => {
       const count = allQuestions.filter(q=>q.category_id===c.id).length;
-      return `<button class="cat-filter-btn" data-catid="${c.id}" onclick="filterByCategory('${c.id}',this)">${c.icon||'📁'} ${c.name} (${count})</button>`;
+      return `<button class="cat-filter-btn" onclick="filterByCategory('${c.id}',this)">${c.icon||'📁'} ${c.name} (${count})</button>`;
     }).join('');
   ['categoryFilter','gameCategoryFilter'].forEach(id => {
     const el = document.getElementById(id);
@@ -294,7 +333,11 @@ function renderCategoryFilters() {
 
 function filterByCategory(catId, btn) {
   currentFilterCat = catId;
-  document.querySelectorAll('.cat-filter-btn').forEach(b => b.classList.toggle('active', b.dataset.catid === catId));
+  document.querySelectorAll('.cat-filter-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.cat-filter-btn').forEach(b => {
+    if(b.innerText.startsWith(catId==='all'?'📚':'') && b.onclick?.toString().includes(`'${catId}'`)) b.classList.add('active');
+  });
+  btn.classList.add('active');
   renderQuestionBank();
 }
 
@@ -348,10 +391,6 @@ function setupRealtimeChannel() {
     .on('broadcast', {event:'foh_requesting_sync'},({payload}) => {
       // FOH refreshed or reconnected — push current player list immediately
       broadcast('player_list_update', { players: Array.from(frPlayers.values()) });
-    })
-    .on('broadcast', {event:'room_ping'},          ({payload}) => {
-      // Player or FOH is verifying the room exists — reply immediately
-      realtimeChannel.send({ type:'broadcast', event:'room_ack', payload: { roomCode, ts: Date.now() } });
     })
     .subscribe((status) => {
       const dot = document.getElementById('connDot'), txt = document.getElementById('connText');
@@ -522,14 +561,10 @@ function markWrong() {
   renderPlayersGrid(); updateSidebar();
   toast(`❌ Wrong — ${player?.name} locked out`);
 
-  // Players still eligible to steal: not locked (answered wrong) and not eliminated
   const remaining = Array.from(frPlayers.keys()).filter(id => !lockedPlayers.has(id) && !eliminatedPlayers.has(id));
-
   document.getElementById('buzzerCard').style.display = 'none';
 
-  if(remaining.length > 0) {
-    // Re-open buzzers for eligible stealers.
-    // The player side now waits for this explicit broadcast — no client-side timer.
+  if(remaining.length > 0){
     isQuestionOpen = true;
     buzzerGlobalEnabled = true;
     document.getElementById('buzzerToggleBtn').innerHTML = '🔔 BUZZERS ON';
@@ -540,7 +575,6 @@ function markWrong() {
     broadcast('buzzers_reopen', {});
     toast(`🔴 Steal open for ${remaining.length} player${remaining.length!==1?'s':''}`);
   } else {
-    // Everyone has been locked out — no steal possible
     isQuestionOpen = false;
     toast('🔒 All players locked — move to next question');
   }
@@ -585,8 +619,9 @@ function shareRoomCodeToFOH() {
 }
 
 function showCategoryPickerOnFOH() {
-  broadcast('show_category_picker', { categories });
-  toast('🎨 Categories shown on FOH');
+  // Broadcast to all players (including FOH) to show categories
+  broadcast('show_categories', { categories: categories });
+  toast('🎨 Categories shown on FOH and player screens');
 }
 
 function showCategoryToStart() {
@@ -615,7 +650,7 @@ async function resetFullGame() {
   const newCode = 'FR' + Math.random().toString(36).substring(2,6).toUpperCase();
 
   // 1. Register the NEW room in DB FIRST so players can verify it immediately
-  await registerRoomInDatabase(newCode, roomCode);
+  await registerRoomInDatabase(newCode);
 
   // 2. Broadcast reset on current channel so all players get the new code
   broadcast('full_game_reset', { newRoomCode: newCode, forceLogin: true });
@@ -623,7 +658,6 @@ async function resetFullGame() {
   // 3. Delay switching so broadcast can flush, then reset local state
   setTimeout(() => {
     roomCode = newCode;
-    sessionStorage.setItem('fr_session_room', roomCode);
     document.getElementById('roomCodeInput').value = roomCode;
     document.getElementById('roomCodeDisplay').innerText = roomCode;
     localStorage.setItem('fr_room', roomCode);
@@ -722,52 +756,29 @@ function updateSidebar() {
   document.getElementById('playerCount').innerText = frPlayers.size;
 }
 
-function toast(msg, type = 'info') {
+function toast(msg) {
   const el = document.createElement('div');
   el.className = 'toast';
-  if (type === 'error') el.style.borderColor = 'var(--red)';
   el.innerText = msg;
   document.body.appendChild(el);
-  setTimeout(() => { if(el.parentNode) el.remove(); }, 3000);
+  setTimeout(() => el.remove(), 3000);
 }
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 function initControl() {
-  // Read prevRoom BEFORE we overwrite localStorage — this is what registerRoom uses to
-  // deactivate old rows. If we write localStorage first, prevRoom === newCode → skipped.
-  const prevRoom = localStorage.getItem('fr_room');
-
-  // Restore room code from session so accidental refresh doesn't kick all players.
-  const saved = sessionStorage.getItem('fr_session_room');
-  roomCode = saved || ('FR' + Math.random().toString(36).substring(2,6).toUpperCase());
-  sessionStorage.setItem('fr_session_room', roomCode);
+  roomCode = 'FR' + Math.random().toString(36).substring(2,6).toUpperCase();
   document.getElementById('roomCodeInput').value = roomCode;
   document.getElementById('roomCodeDisplay').innerText = roomCode;
   localStorage.setItem('fr_room', roomCode);
-
-  // Pass prevRoom explicitly so registerRoom can deactivate it correctly
-  registerRoomInDatabase(roomCode, prevRoom !== roomCode ? prevRoom : null);
+  
+  // Register initial room
+  registerRoomInDatabase(roomCode);
+  
   setupRealtimeChannel();
   loadQuestionsFromDB();
 }
 
 initControl();
-
-// ── Keyboard shortcuts for host ──────────────────────────────────────────────
-document.addEventListener('keydown', (e) => {
-  if (e.target.tagName === 'INPUT') return;
-  if (e.key === 'y' || e.key === 'Y') {
-    const btn = document.querySelector('.btn-green[onclick="markCorrect()"]');
-    if (btn && !btn.disabled && document.getElementById('buzzerCard').style.display !== 'none') markCorrect();
-  }
-  if (e.key === 'n' || e.key === 'N') {
-    const btn = document.querySelector('.btn-red[onclick="markWrong()"]');
-    if (btn && !btn.disabled && document.getElementById('buzzerCard').style.display !== 'none') markWrong();
-  }
-  if (e.key === 'ArrowRight') {
-    if (!document.getElementById('gamePanel').classList.contains('hidden')) nextQuestion();
-  }
-});
 
 // Expose to HTML onclick
 window.generateNewRoomCode = generateNewRoomCode;

@@ -721,60 +721,20 @@ function clearFohSession() {
 
 // ─── Room validity helpers ────────────────────────────────────────────────────
 async function verifyRoomBeforeJoining(code) {
-  // Ping-ack — avoids RLS-blocked DB reads
-  return new Promise((resolve) => {
-    let pingCh = null, ackTimer = null, done = false;
-    try {
-      pingCh = sb.channel(`fr-${code}-fchk-${Date.now()}`);
-      pingCh.on('broadcast', { event: 'room_ack' }, () => {
-        if (done) return; done = true;
-        clearTimeout(ackTimer); sb.removeChannel(pingCh); resolve(true);
-      });
-      pingCh.subscribe((status) => {
-        if (status !== 'SUBSCRIBED') return;
-        pingCh.send({ type: 'broadcast', event: 'room_ping', payload: { code } });
-        ackTimer = setTimeout(() => {
-          if (done) return; done = true;
-          sb.removeChannel(pingCh); resolve(false);
-        }, 4000);
-      });
-    } catch(e) {
-      if (pingCh) { try { sb.removeChannel(pingCh); } catch(_) {} }
-      resolve(false);
-    }
-  });
+  try {
+    const { data, error } = await sb
+      .from('game_rooms')
+      .select('room_code, is_active')
+      .eq('room_code', code)
+      .maybeSingle();
+    if (error || !data) return false;
+    return data.is_active === true;
+  } catch(e) { return false; }
 }
 
 function startFohRoomValidityPoll() {
-  stopFohRoomValidityPoll();
-  fohRoomValidityInterval = setInterval(async () => {
-    if (!roomCode) return;
-    const isValid = await verifyRoomBeforeJoining(roomCode);
-    if (!isValid) {
-      // Room was reset or deactivated while FOH was connected — show entry overlay
-      if(realtimeChannel) { sb.removeChannel(realtimeChannel); realtimeChannel = null; }
-      cancelFohReconnect();
-      stopFohRoomValidityPoll();
-      clearFohSession();
-      const prevCode = roomCode;
-      roomCode = null;
-      cachedPlayers = [];
-      buzzerOpenVisible = false;
-      document.getElementById('fohBuzzerOpenIndicator').style.display = 'none';
-      if(fohTimerInterval) { clearInterval(fohTimerInterval); fohTimerInterval = null; }
-      document.getElementById('fohTimerOverlay').classList.remove('active');
-      clearOverlay();
-      document.getElementById('roomEntryOverlay').style.display = 'flex';
-      document.getElementById('roomDisplay').innerText = '——';
-      document.getElementById('fohFooterCode').innerText = '——';
-      document.getElementById('fohRoomInput').value = '';
-      document.getElementById('fohConnBadge').className = 'conn-badge';
-      document.getElementById('fohConnBadge').innerText = '⏳ Not connected';
-      showScreen('waitingScreen');
-      renderPlayersList();
-      setFohVerifyUI('idle', `⚠️ Room ${prevCode} is no longer active.`);
-    }
-  }, FOH_ROOM_POLL_MS);
+  // Poll disabled — RLS blocks anonymous DB reads.
+  // Room invalidation is handled by the full_game_reset broadcast from control.
 }
 
 function stopFohRoomValidityPoll() {
@@ -1088,11 +1048,9 @@ function connectToRoom(code, { silent = false } = {}) {
       // Ask control to push current player list + game state immediately
       realtimeChannel.send({ type: 'broadcast', event: 'foh_requesting_sync', payload: { timestamp: Date.now() } }).catch(() => {});
       saveFohSession();
-      startFohRoomValidityPoll();   // ← poll DB so we catch silent room resets
     } else if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
       badge.className = 'conn-badge error';
       badge.innerText = '⚠ Disconnected';
-      stopFohRoomValidityPoll();    // ← stop polling while channel is down
       if(roomCode) scheduleFohReconnect();
     }
   });
@@ -1170,36 +1128,22 @@ function onFohRoomInput(el) {
 async function fohVerifyRoom(code) {
   fohCurrentVerifyCode = code;
   setFohVerifyUI('verifying');
-
-  // Ping-ack verification — avoids RLS-blocked DB reads.
-  // We subscribe to the room channel, send room_ping, and wait for room_ack from control.
-  let pingCh = null, ackTimer = null, ackReceived = false;
   try {
-    pingCh = sb.channel(`fr-${code}`);
+    const { data, error } = await sb
+      .from('game_rooms')
+      .select('room_code, is_active')
+      .eq('room_code', code)
+      .maybeSingle();
 
-    pingCh.on('broadcast', { event: 'room_ack' }, ({ payload }) => {
-      if (fohCurrentVerifyCode !== code || ackReceived) return;
-      ackReceived = true;
-      clearTimeout(ackTimer);
-      sb.removeChannel(pingCh);
-      fohRoomVerified = true;
-      setFohVerifyUI('ok', `✓ Room ${code} is live — click Connect!`);
-    });
+    if (fohCurrentVerifyCode !== code) return;
 
-    pingCh.subscribe((status) => {
-      if (status !== 'SUBSCRIBED') return;
-      if (fohCurrentVerifyCode !== code) { sb.removeChannel(pingCh); return; }
-      pingCh.send({ type: 'broadcast', event: 'room_ping', payload: { code } });
+    if (error) { setFohVerifyUI('conn-error'); fohRoomVerified = false; return; }
+    if (!data) { setFohVerifyUI('not-found'); fohRoomVerified = false; return; }
+    if (!data.is_active)   { setFohVerifyUI('inactive');  fohRoomVerified = false; return; }
 
-      ackTimer = setTimeout(() => {
-        if (ackReceived) return;
-        sb.removeChannel(pingCh);
-        if (fohCurrentVerifyCode !== code) return;
-        setFohVerifyUI('not-found'); fohRoomVerified = false;
-      }, 4000);
-    });
+    fohRoomVerified = true;
+    setFohVerifyUI('ok', `✓ Room ${code} is live — click Connect!`);
   } catch(err) {
-    if (pingCh) { try { sb.removeChannel(pingCh); } catch(_) {} }
     if (fohCurrentVerifyCode !== code) return;
     setFohVerifyUI('conn-error'); fohRoomVerified = false;
   }
@@ -1225,8 +1169,7 @@ async function submitFohRoom() {
 
 function escapeHtml(str) {
   if(!str) return '';
-  const map = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};
-  return str.replace(/[&<>"']/g, m => map[m]);
+  return str.replace(/[&<>]/g, m => m==='&'?'&amp;':m==='<'?'&lt;':'&gt;');
 }
 
 // ─── FOH Timer ────────────────────────────────────────────────────────────────
@@ -1331,26 +1274,17 @@ async function init() {
   // Auto-reconnect on page load / refresh / accidental browser close
   const saved = loadFohSession();
   if (saved?.roomCode) {
-    // Verify the saved room is still active BEFORE touching the UI — same as player file
-    const isValid = await verifyRoomBeforeJoining(saved.roomCode);
-
-    if (isValid) {
-      // Restore last-known player list so the panel isn't blank while reconnecting
-      if (saved.cachedPlayers?.length) {
-        cachedPlayers = saved.cachedPlayers;
-        renderPlayersList();
-      }
-      // Silently rejoin — reuse connectToRoom so all logic stays in one place.
-      // silent:true suppresses the matrix welcome screen on refresh.
-      const badge = document.getElementById('fohConnBadge');
-      badge.className = 'conn-badge reconnecting';
-      badge.innerText = '⟳ Reconnecting...';
-      connectToRoom(saved.roomCode, { silent: true });
-    } else {
-      // Room is gone / reset — wipe stale session, show clean entry overlay
-      clearFohSession();
-      setFohVerifyUI('idle', '⚠️ Previous room is no longer active. Enter a new code.');
+    // Skip DB verification (RLS blocks anonymous reads).
+    // Just reconnect directly — if the room is gone the channel will fail
+    // and full_game_reset will redirect to the entry screen.
+    if (saved.cachedPlayers?.length) {
+      cachedPlayers = saved.cachedPlayers;
+      renderPlayersList();
     }
+    const badge = document.getElementById('fohConnBadge');
+    badge.className = 'conn-badge reconnecting';
+    badge.innerText = '⟳ Reconnecting...';
+    connectToRoom(saved.roomCode, { silent: true });
   }
 }
 init();

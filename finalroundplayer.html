@@ -342,7 +342,7 @@
       pointer-events: none; opacity: 0;
       transition: opacity 0.35s;
     }
-    #verifyFlash.show { opacity: 1; pointer-events: none; }
+    #verifyFlash.show { opacity: 1; }
     .flash-card {
       background: rgba(34,211,160,0.1);
       border: 1px solid rgba(34,211,160,0.4);
@@ -690,8 +690,6 @@
     }
     @keyframes toastIn  { from { opacity:0; transform: translateX(-50%) translateY(16px); } }
     @keyframes toastOut { to   { opacity:0; transform: translateX(-50%) translateY(8px); } }
-    @keyframes scoreBump { 0%{transform:scale(1)} 40%{transform:scale(1.35)} 100%{transform:scale(1)} }
-    .bump { animation: scoreBump 0.4s cubic-bezier(0.34,1.56,0.64,1); }
   </style>
 </head>
 <body>
@@ -792,7 +790,6 @@
       </div>
     </div>
     <div style="display: flex; align-items: center; gap: 8px;">
-      <div id="connStatusBadge" class="conn-status" style="font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid rgba(255,255,255,0.1);color:var(--muted);letter-spacing:0.5px;">● Connecting</div>
       <button class="show-categories-btn" onclick="showCategories()" id="showCategoriesBtn">🎨 Categories</button>
       <div class="score-block">
         <div class="score-value" id="myScoreDisplay">0</div>
@@ -945,55 +942,26 @@ function onRoomInput(el) {
   }
 }
 
-async function verifyRoom(code, attempt = 1) {
+async function verifyRoom(code) {
   currentVerifyCode = code;
   setVerifyUI('verifying');
-
-  // Use realtime ping-ack instead of a DB SELECT.
-  // RLS on game_rooms blocks anonymous reads, so a DB query always returns
-  // "not found" even when the room exists. The control listens for room_ping
-  // and replies with room_ack — if we hear it within 4s, the room is live.
-  let pingCh = null;
-  let ackTimer = null;
-  let ackReceived = false;
-
   try {
-    pingCh = sb.channel(`fr-${code}`);
+    const { data, error } = await sb
+      .from('game_rooms')
+      .select('room_code, is_active')
+      .eq('room_code', code)
+      .maybeSingle();
 
-    pingCh.on('broadcast', { event: 'room_ack' }, ({ payload }) => {
-      if (currentVerifyCode !== code) return;
-      if (ackReceived) return;
-      ackReceived = true;
-      if (ackTimer) clearTimeout(ackTimer);
-      sb.removeChannel(pingCh);
-      roomVerified = true;
-      setVerifyUI('ok');
-      playBeep(880, 'sine', 0.25);
-    });
-
-    pingCh.subscribe((status) => {
-      if (status !== 'SUBSCRIBED') return;
-      if (currentVerifyCode !== code) { sb.removeChannel(pingCh); return; }
-      // Subscribed — send the ping
-      pingCh.send({ type: 'broadcast', event: 'room_ping', payload: { code } });
-
-      // If no ack within 4s, the room doesn't exist / control is offline
-      ackTimer = setTimeout(() => {
-        if (ackReceived) return;
-        sb.removeChannel(pingCh);
-        if (currentVerifyCode !== code) return;
-        if (attempt < 2) {
-          // Retry once — control may have been mid-subscribe itself
-          setTimeout(() => verifyRoom(code, 2), 800);
-          return;
-        }
-        setVerifyUI('not-found'); roomVerified = false;
-      }, 4000);
-    });
-  } catch(e) {
-    if (pingCh) { try { sb.removeChannel(pingCh); } catch(_) {} }
     if (currentVerifyCode !== code) return;
-    if (attempt < 2) { setTimeout(() => verifyRoom(code, 2), 1000); return; }
+
+    if (error || !data) { setVerifyUI('not-found'); roomVerified = false; return; }
+    if (!data.is_active) { setVerifyUI('inactive'); roomVerified = false; return; }
+
+    roomVerified = true;
+    setVerifyUI('ok');
+    playBeep(880, 'sine', 0.25);
+  } catch(e) {
+    if (currentVerifyCode !== code) return;
     setVerifyUI('conn-error'); roomVerified = false;
   }
 }
@@ -1042,8 +1010,23 @@ async function joinGame() {
   errorEl.textContent = '';
 
   try {
-    // Room was already ping-ack verified above — skip the DB query (RLS blocks it).
-    // Proceed straight to joining.
+    const { data: roomData, error: roomError } = await sb
+      .from('game_rooms')
+      .select('room_code, is_active, player_count')
+      .eq('room_code', room)
+      .maybeSingle();
+
+    if (roomError || !roomData) {
+      errorEl.textContent = '❌ Room no longer exists.';
+      joinBtn.disabled = false; joinBtn.textContent = '⚡ Enter Final Round';
+      roomVerified = false; goToStep(1); setVerifyUI('not-found'); return;
+    }
+    if (!roomData.is_active) {
+      errorEl.textContent = '❌ Game has ended.';
+      joinBtn.disabled = false; joinBtn.textContent = '⚡ Enter Final Round';
+      roomVerified = false; goToStep(1); setVerifyUI('inactive'); return;
+    }
+
     if (ch) { try { await sb.removeChannel(ch); } catch(e) {} ch = null; }
     myId     = 'p_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
     myName   = name;
@@ -1054,6 +1037,7 @@ async function joinGame() {
 
     saveIdentity();
     subscribeChannel();
+    sb.from('game_rooms').update({ player_count: (roomData.player_count || 0) + 1 }).eq('room_code', room).catch(()=>{});
     setTimeout(() => { if (joinBtn && joinBtn.disabled) { joinBtn.disabled = false; joinBtn.textContent = '⚡ Enter Final Round'; }}, 10000);
   } catch(err) {
     console.error('Join error:', err);
@@ -1061,15 +1045,10 @@ async function joinGame() {
   }
 }
 
-let _audioCtx = null;
-function getAudioCtx() {
-  if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  if (_audioCtx.state === 'suspended') _audioCtx.resume();
-  return _audioCtx;
-}
 function playBeep(freq, type, duration) {
   try {
-    const ctx = getAudioCtx();
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (ctx.state === 'suspended') ctx.resume();
     const osc = ctx.createOscillator(), gain = ctx.createGain();
     osc.type = type; osc.frequency.value = freq;
     gain.gain.setValueAtTime(0.15, ctx.currentTime);
@@ -1087,10 +1066,8 @@ function updateConnectionBadge(state, message) {
 }
 
 function showToast(msg, duration = 4000) {
-  const existing = document.querySelectorAll('.reconnect-toast');
-  if (existing.length >= 3) existing[0].remove();
   const t = document.createElement('div'); t.className = 'reconnect-toast'; t.innerText = msg;
-  document.body.appendChild(t); setTimeout(() => { if(t.parentNode) t.remove(); }, duration);
+  document.body.appendChild(t); setTimeout(() => t.remove(), duration);
 }
 
 function setStatus(text, color = 'var(--green)') {
@@ -1160,8 +1137,7 @@ function updateScore(newScore) {
 
 function escapeHtml(str) {
   if (!str) return '';
-  const map = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};
-  return str.replace(/[&<>"']/g, m => map[m]);
+  return str.replace(/[&<>]/g, m => m==='&'?'&amp;':m==='<'?'&lt;':'&gt;');
 }
 
 function startPlayerTimer(seconds) {
@@ -1216,8 +1192,7 @@ function showCategories() {
   const grid = document.getElementById('categoryGrid');
   
   if (categories.length === 0) {
-    grid.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--muted);">⏳ Loading categories...</div>';
-    loadCategories().then(() => { if(categories.length) showCategories(); });
+    grid.innerHTML = '<div style="text-align: center; padding: 40px;">No categories loaded yet...</div>';
   } else {
     grid.innerHTML = categories.map(cat => `
       <div class="category-card">
@@ -1257,28 +1232,11 @@ function scheduleReconnect() {
 }
 
 async function verifyRoomBeforeJoining(code) {
-  // Ping-ack — avoids RLS-blocked DB reads
-  return new Promise((resolve) => {
-    let pingCh = null, ackTimer = null, done = false;
-    try {
-      pingCh = sb.channel(`fr-${code}-chk-${Date.now()}`);
-      pingCh.on('broadcast', { event: 'room_ack' }, () => {
-        if (done) return; done = true;
-        clearTimeout(ackTimer); sb.removeChannel(pingCh); resolve(true);
-      });
-      pingCh.subscribe((status) => {
-        if (status !== 'SUBSCRIBED') return;
-        pingCh.send({ type: 'broadcast', event: 'room_ping', payload: { code } });
-        ackTimer = setTimeout(() => {
-          if (done) return; done = true;
-          sb.removeChannel(pingCh); resolve(false);
-        }, 4000);
-      });
-    } catch(e) {
-      if (pingCh) { try { sb.removeChannel(pingCh); } catch(_) {} }
-      resolve(false);
-    }
-  });
+  try {
+    const { data, error } = await sb.from('game_rooms').select('room_code,is_active').eq('room_code',code).maybeSingle();
+    if (error || !data) return false;
+    return data.is_active === true;
+  } catch(e) { return false; }
 }
 
 function saveIdentity()  { try { sessionStorage.setItem('fr_identity', JSON.stringify({myId,myName,myAvatar,roomCode,myScore,myStatus})); } catch(e) {} }
@@ -1286,15 +1244,8 @@ function loadIdentity()  { try { const s=sessionStorage.getItem('fr_identity'); 
 function clearIdentity() { try { sessionStorage.removeItem('fr_identity'); } catch(e) {} }
 
 function startRoomValidityPoll() {
-  stopRoomValidityPoll();
-  roomValidityInterval = setInterval(async () => {
-    if (!roomCode) return;
-    const isValid = await verifyRoomBeforeJoining(roomCode);
-    if (!isValid) {
-      showToast('⚠️ This room is no longer active.', 4000);
-      setTimeout(() => resetToJoinScreen(), 1500);
-    }
-  }, ROOM_POLL_MS);
+  // Poll disabled — RLS blocks anonymous DB reads.
+  // Room invalidation is handled by the full_game_reset broadcast from control.
 }
 function stopRoomValidityPoll() {
   if (roomValidityInterval) { clearInterval(roomValidityInterval); roomValidityInterval = null; }
@@ -1364,13 +1315,13 @@ function subscribeChannel() {
           document.getElementById('myNameDisplay').innerText   = myName;
           document.getElementById('myScoreDisplay').innerText  = myScore;
           document.getElementById('roomCodeDisplay').innerText = `Room: ${roomCode}`;
-          startHeartbeat(); startRoomValidityPoll(); saveIdentity();
+          startHeartbeat(); saveIdentity();
           showToast(`✅ Joined room: ${roomCode}`, 2000);
         } catch(err) { console.error('Join failed:',err); resetToJoinScreen(); }
       } else if (status==='CHANNEL_ERROR'||status==='TIMED_OUT'||status==='CLOSED') {
         stopHeartbeat(); stopRoomValidityPoll();
         updateConnectionBadge('disconnected','⚠ Disconnected');
-        verifyRoomBeforeJoining(roomCode).then(v => v ? scheduleReconnect() : setTimeout(()=>resetToJoinScreen(),2000));
+        scheduleReconnect(); // Always try reconnect; full_game_reset handles true room closure
       }
     });
   }).catch(err => { console.error(err); resetToJoinScreen(); });
@@ -1384,26 +1335,7 @@ function handleEvent(event, payload) {
       break;
     case 'full_game_reset':
       clearIdentity();
-      const newCode = payload?.newRoomCode || null;
-      if (newCode) {
-        let retries = 0;
-        const MAX_RETRIES = 10;
-        const poll = async () => {
-          const isValid = await verifyRoomBeforeJoining(newCode);
-          if (isValid) {
-            resetToJoinScreen(newCode);
-          } else if (retries < MAX_RETRIES) {
-            retries++;
-            setTimeout(poll, 500);
-          } else {
-            resetToJoinScreen(null);
-            showToast('🔄 Game reset. Ask host for new room code.', 5000);
-          }
-        };
-        poll();
-      } else {
-        resetToJoinScreen(null);
-      }
+      resetToJoinScreen(payload?.newRoomCode || null);
       break;
     case 'round_started':
       if(myStatus!=='eliminated'){
@@ -1435,10 +1367,7 @@ function handleEvent(event, payload) {
       if(payload.playerId===myId){
         myStatus='buzzed';
         setStatus('🎤 Answer verbally!','var(--gold)');
-      } else if(myStatus!=='eliminated' && myStatus!=='correct') {
-        // Lock everyone else — including those who already answered wrong.
-        // They stay locked; only an explicit buzzers_reopen/reset_buzzers from
-        // the host will unlock players who are still eligible to steal.
+      } else if(myStatus!=='eliminated' && myStatus!=='correct'){
         myStatus='locked';
         setStatus(`⏸ ${payload.playerName} is answering...`,'var(--muted)');
       }
@@ -1466,16 +1395,12 @@ function handleEvent(event, payload) {
         isOpen=false;
         updateBuzzerUI();
       } else {
-        // Someone else was wrong. Show a "steal incoming" hint but do NOT
-        // self-unlock — wait for the host's explicit buzzers_reopen broadcast.
-        // This prevents stale timers from opening buzzers mid-answer.
         if(myStatus!=='eliminated' && !hasAnsweredWrongThisQuestion){
           setStatus('⏳ Stand by — steal incoming...','var(--amber)');
         }
       }
       break;
     case 'buzzers_reopen':
-      // Only open if this player is still eligible: not eliminated and not already wrong
       if(myStatus!=='eliminated' && !hasAnsweredWrongThisQuestion){
         isOpen=true;
         myStatus='waiting';
@@ -1485,7 +1410,6 @@ function handleEvent(event, payload) {
       }
       break;
     case 'reset_buzzers':
-      // Full reset: reopen for everyone who hasn't answered wrong yet this question
       if(myStatus!=='eliminated' && !hasAnsweredWrongThisQuestion){
         myStatus='waiting';
         isOpen=true;
@@ -1551,7 +1475,6 @@ function handleEvent(event, payload) {
       if(payload.playerId===myId){
         myStatus=payload.status||'waiting';
         if(payload.score!==undefined) updateScore(payload.score);
-        hasAnsweredWrongThisQuestion = false;
         if(payload.isEliminated){
           myStatus='eliminated';
           hasAnsweredWrongThisQuestion = false;
