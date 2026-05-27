@@ -342,7 +342,7 @@
       pointer-events: none; opacity: 0;
       transition: opacity 0.35s;
     }
-    #verifyFlash.show { opacity: 1; }
+    #verifyFlash.show { opacity: 1; pointer-events: none; }
     .flash-card {
       background: rgba(34,211,160,0.1);
       border: 1px solid rgba(34,211,160,0.4);
@@ -690,6 +690,8 @@
     }
     @keyframes toastIn  { from { opacity:0; transform: translateX(-50%) translateY(16px); } }
     @keyframes toastOut { to   { opacity:0; transform: translateX(-50%) translateY(8px); } }
+    @keyframes scoreBump { 0%{transform:scale(1)} 40%{transform:scale(1.35)} 100%{transform:scale(1)} }
+    .bump { animation: scoreBump 0.4s cubic-bezier(0.34,1.56,0.64,1); }
   </style>
 </head>
 <body>
@@ -790,6 +792,7 @@
       </div>
     </div>
     <div style="display: flex; align-items: center; gap: 8px;">
+      <div id="connStatusBadge" class="conn-status" style="font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid rgba(255,255,255,0.1);color:var(--muted);letter-spacing:0.5px;">● Connecting</div>
       <button class="show-categories-btn" onclick="showCategories()" id="showCategoriesBtn">🎨 Categories</button>
       <div class="score-block">
         <div class="score-value" id="myScoreDisplay">0</div>
@@ -1045,10 +1048,15 @@ async function joinGame() {
   }
 }
 
+let _audioCtx = null;
+function getAudioCtx() {
+  if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (_audioCtx.state === 'suspended') _audioCtx.resume();
+  return _audioCtx;
+}
 function playBeep(freq, type, duration) {
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    if (ctx.state === 'suspended') ctx.resume();
+    const ctx = getAudioCtx();
     const osc = ctx.createOscillator(), gain = ctx.createGain();
     osc.type = type; osc.frequency.value = freq;
     gain.gain.setValueAtTime(0.15, ctx.currentTime);
@@ -1066,8 +1074,10 @@ function updateConnectionBadge(state, message) {
 }
 
 function showToast(msg, duration = 4000) {
+  const existing = document.querySelectorAll('.reconnect-toast');
+  if (existing.length >= 3) existing[0].remove();
   const t = document.createElement('div'); t.className = 'reconnect-toast'; t.innerText = msg;
-  document.body.appendChild(t); setTimeout(() => t.remove(), duration);
+  document.body.appendChild(t); setTimeout(() => { if(t.parentNode) t.remove(); }, duration);
 }
 
 function setStatus(text, color = 'var(--green)') {
@@ -1137,7 +1147,8 @@ function updateScore(newScore) {
 
 function escapeHtml(str) {
   if (!str) return '';
-  return str.replace(/[&<>]/g, m => m==='&'?'&amp;':m==='<'?'&lt;':'&gt;');
+  const map = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};
+  return str.replace(/[&<>"']/g, m => map[m]);
 }
 
 function startPlayerTimer(seconds) {
@@ -1192,7 +1203,8 @@ function showCategories() {
   const grid = document.getElementById('categoryGrid');
   
   if (categories.length === 0) {
-    grid.innerHTML = '<div style="text-align: center; padding: 40px;">No categories loaded yet...</div>';
+    grid.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--muted);">⏳ Loading categories...</div>';
+    loadCategories().then(() => { if(categories.length) showCategories(); });
   } else {
     grid.innerHTML = categories.map(cat => `
       <div class="category-card">
@@ -1508,6 +1520,7 @@ function handleEvent(event, payload) {
       if(payload.playerId===myId){
         myStatus=payload.status||'waiting';
         if(payload.score!==undefined) updateScore(payload.score);
+        hasAnsweredWrongThisQuestion = false;
         if(payload.isEliminated){
           myStatus='eliminated';
           hasAnsweredWrongThisQuestion = false;
