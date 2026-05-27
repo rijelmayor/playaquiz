@@ -867,7 +867,7 @@ function handleBroadcast(event, payload) {
       playBackgroundMusic();
       break;
 
-    case 'show_category_picker':
+    case 'show_categories':
       clearOverlay();
       showScreen('categoriesScreen');
       buzzerOpenVisible = false;
@@ -1033,7 +1033,7 @@ function connectToRoom(code, { silent = false } = {}) {
   const events = [
     'round_started', 'player_list_update', 'question_open', 'buzz_confirmed', 'correct', 'wrong',
     'next_question', 'reset_for_next_question', 'reset_buzzers', 'buzzers_reopen', 'eliminated',
-    'show_category_picker', 'round_ended', 'timer_start', 'full_game_reset', 'show_room_code'
+    'show_categories', 'round_ended', 'timer_start', 'full_game_reset', 'show_room_code'
   ];
   events.forEach(ev => {
     realtimeChannel.on('broadcast', { event: ev }, ({ payload }) => handleBroadcast(ev, payload));
