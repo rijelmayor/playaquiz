@@ -342,7 +342,7 @@
       pointer-events: none; opacity: 0;
       transition: opacity 0.35s;
     }
-    #verifyFlash.show { opacity: 1; pointer-events: none; }
+    #verifyFlash.show { opacity: 1; }
     .flash-card {
       background: rgba(34,211,160,0.1);
       border: 1px solid rgba(34,211,160,0.4);
@@ -690,8 +690,6 @@
     }
     @keyframes toastIn  { from { opacity:0; transform: translateX(-50%) translateY(16px); } }
     @keyframes toastOut { to   { opacity:0; transform: translateX(-50%) translateY(8px); } }
-    @keyframes scoreBump { 0%{transform:scale(1)} 40%{transform:scale(1.35)} 100%{transform:scale(1)} }
-    .bump { animation: scoreBump 0.4s cubic-bezier(0.34,1.56,0.64,1); }
   </style>
 </head>
 <body>
@@ -792,7 +790,6 @@
       </div>
     </div>
     <div style="display: flex; align-items: center; gap: 8px;">
-      <div id="connStatusBadge" class="conn-status" style="font-size:10px;padding:4px 10px;border-radius:20px;border:1px solid rgba(255,255,255,0.1);color:var(--muted);letter-spacing:0.5px;">● Connecting</div>
       <button class="show-categories-btn" onclick="showCategories()" id="showCategoriesBtn">🎨 Categories</button>
       <div class="score-block">
         <div class="score-value" id="myScoreDisplay">0</div>
@@ -844,6 +841,7 @@ let currentVerifyCode = '';
 let verifyDebounce = null;
 let roomValidityInterval = null;
 let hasAnsweredWrongThisQuestion = false;
+let eliminated = false;
 let categories = [];  // Store categories for display
 const RECONNECT_DELAYS = [2000, 4000, 8000, 15000];
 const HEARTBEAT_MS = 6000;
@@ -1037,6 +1035,7 @@ async function joinGame() {
     roomCode = room;
     myScore  = 0; isOpen = false; myStatus = 'waiting'; globalBuzzerEnabled = true;
     hasAnsweredWrongThisQuestion = false;
+    eliminated = false;
 
     saveIdentity();
     subscribeChannel();
@@ -1048,15 +1047,10 @@ async function joinGame() {
   }
 }
 
-let _audioCtx = null;
-function getAudioCtx() {
-  if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  if (_audioCtx.state === 'suspended') _audioCtx.resume();
-  return _audioCtx;
-}
 function playBeep(freq, type, duration) {
   try {
-    const ctx = getAudioCtx();
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (ctx.state === 'suspended') ctx.resume();
     const osc = ctx.createOscillator(), gain = ctx.createGain();
     osc.type = type; osc.frequency.value = freq;
     gain.gain.setValueAtTime(0.15, ctx.currentTime);
@@ -1074,10 +1068,8 @@ function updateConnectionBadge(state, message) {
 }
 
 function showToast(msg, duration = 4000) {
-  const existing = document.querySelectorAll('.reconnect-toast');
-  if (existing.length >= 3) existing[0].remove();
   const t = document.createElement('div'); t.className = 'reconnect-toast'; t.innerText = msg;
-  document.body.appendChild(t); setTimeout(() => { if(t.parentNode) t.remove(); }, duration);
+  document.body.appendChild(t); setTimeout(() => t.remove(), duration);
 }
 
 function setStatus(text, color = 'var(--green)') {
@@ -1100,7 +1092,7 @@ function updateBuzzerUI() {
   if (!btn) return;
   btn.classList.remove('buzzed-state');
   
-  if (myStatus === 'eliminated') {
+  if (myStatus === 'eliminated' || eliminated) {
     btn.disabled = true;
     btn.innerText = 'OUT';
     setStatus('⚡ Eliminated', 'var(--red)');
@@ -1117,7 +1109,7 @@ function updateBuzzerUI() {
     btn.disabled = true;
     btn.innerText = 'LOCKED';
     setStatus('⏸ Someone is answering...', 'var(--muted)');
-  } else if (isOpen && myStatus === 'waiting' && globalBuzzerEnabled && !hasAnsweredWrongThisQuestion) {
+  } else if (isOpen && myStatus === 'waiting' && globalBuzzerEnabled && !hasAnsweredWrongThisQuestion && !eliminated) {
     btn.disabled = false;
     btn.innerText = 'BUZZ!';
     setStatus('🔴 BUZZ NOW!', 'var(--green)');
@@ -1129,8 +1121,8 @@ function updateBuzzerUI() {
 }
 
 function buzz() {
-  if (!isOpen || myStatus !== 'waiting' || !globalBuzzerEnabled || hasAnsweredWrongThisQuestion) {
-    console.log('Buzz blocked:', { isOpen, myStatus, globalBuzzerEnabled, hasAnsweredWrongThisQuestion });
+  if (!isOpen || myStatus !== 'waiting' || !globalBuzzerEnabled || hasAnsweredWrongThisQuestion || eliminated) {
+    console.log('Buzz blocked:', { isOpen, myStatus, globalBuzzerEnabled, hasAnsweredWrongThisQuestion, eliminated });
     return;
   }
   if (navigator.vibrate) navigator.vibrate([60,20,60]);
@@ -1147,8 +1139,7 @@ function updateScore(newScore) {
 
 function escapeHtml(str) {
   if (!str) return '';
-  const map = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};
-  return str.replace(/[&<>"']/g, m => map[m]);
+  return str.replace(/[&<>]/g, m => m==='&'?'&amp;':m==='<'?'&lt;':'&gt;');
 }
 
 function startPlayerTimer(seconds) {
@@ -1203,8 +1194,7 @@ function showCategories() {
   const grid = document.getElementById('categoryGrid');
   
   if (categories.length === 0) {
-    grid.innerHTML = '<div style="text-align: center; padding: 40px; color: var(--muted);">⏳ Loading categories...</div>';
-    loadCategories().then(() => { if(categories.length) showCategories(); });
+    grid.innerHTML = '<div style="text-align: center; padding: 40px;">No categories loaded yet...</div>';
   } else {
     grid.innerHTML = categories.map(cat => `
       <div class="category-card">
@@ -1251,7 +1241,7 @@ async function verifyRoomBeforeJoining(code) {
   } catch(e) { return false; }
 }
 
-function saveIdentity()  { try { sessionStorage.setItem('fr_identity', JSON.stringify({myId,myName,myAvatar,roomCode,myScore,myStatus})); } catch(e) {} }
+function saveIdentity()  { try { sessionStorage.setItem('fr_identity', JSON.stringify({myId,myName,myAvatar,roomCode,myScore,myStatus,eliminated})); } catch(e) {} }
 function loadIdentity()  { try { const s=sessionStorage.getItem('fr_identity'); return s?JSON.parse(s):null; } catch(e){return null;} }
 function clearIdentity() { try { sessionStorage.removeItem('fr_identity'); } catch(e) {} }
 
@@ -1278,6 +1268,7 @@ function resetToJoinScreen(newRoomCode = null) {
   myId=null; myName=''; myAvatar='😎'; myScore=0; roomCode=null;
   isOpen=false; myStatus='waiting'; globalBuzzerEnabled=true; roomVerified=false;
   hasAnsweredWrongThisQuestion = false;
+  eliminated = false;
 
   document.getElementById('roomInput').value = newRoomCode || '';
   document.getElementById('nameInput').value = '';
@@ -1349,7 +1340,6 @@ function subscribeChannel() {
 function handleEvent(event, payload) {
   switch(event) {
     case 'show_categories':
-      // Show categories overlay when host triggers it
       showCategories();
       break;
     case 'full_game_reset':
@@ -1376,11 +1366,12 @@ function handleEvent(event, payload) {
       }
       break;
     case 'round_started':
-      if(myStatus!=='eliminated'){
+      if(myStatus!=='eliminated' && !eliminated){
         myStatus='waiting';
         isOpen=false;
         globalBuzzerEnabled=true;
         hasAnsweredWrongThisQuestion = false;
+        eliminated = false;
         hideCorrectPlayerOverlay();
         hideOptions();
         document.getElementById('questionBox').innerText='Round started! Get ready...';
@@ -1389,7 +1380,7 @@ function handleEvent(event, payload) {
       }
       break;
     case 'question_open':
-      if(myStatus!=='eliminated'){
+      if(myStatus!=='eliminated' && !eliminated){
         myStatus='waiting';
         isOpen=true;
         globalBuzzerEnabled=true;
@@ -1405,10 +1396,7 @@ function handleEvent(event, payload) {
       if(payload.playerId===myId){
         myStatus='buzzed';
         setStatus('🎤 Answer verbally!','var(--gold)');
-      } else if(myStatus!=='eliminated' && myStatus!=='correct') {
-        // Lock everyone else — including those who already answered wrong.
-        // They stay locked; only an explicit buzzers_reopen/reset_buzzers from
-        // the host will unlock players who are still eligible to steal.
+      } else if(myStatus!=='eliminated' && !eliminated && !hasAnsweredWrongThisQuestion && myStatus !== 'correct'){
         myStatus='locked';
         setStatus(`⏸ ${payload.playerName} is answering...`,'var(--muted)');
       }
@@ -1421,8 +1409,9 @@ function handleEvent(event, payload) {
         myStatus='correct';
         setStatus(`✅ +${payload.points||100} pts!`,'var(--gold)');
         hideOptions();
+        hasAnsweredWrongThisQuestion = false;
       } else {
-        if(myStatus!=='eliminated') myStatus='waiting';
+        if(myStatus!=='eliminated' && !eliminated) myStatus='waiting';
         showCorrectPlayerOverlay(payload.playerName,payload.playerAvatar,payload.points||100);
       }
       updateBuzzerUI(); 
@@ -1435,18 +1424,17 @@ function handleEvent(event, payload) {
         setStatus('❌ Wrong! Locked out for this question','var(--red)');
         isOpen=false;
         updateBuzzerUI();
-      } else {
-        // Someone else was wrong. Show a "steal incoming" hint but do NOT
-        // self-unlock — wait for the host's explicit buzzers_reopen broadcast.
-        // This prevents stale timers from opening buzzers mid-answer.
-        if(myStatus!=='eliminated' && !hasAnsweredWrongThisQuestion){
-          setStatus('⏳ Stand by — steal incoming...','var(--amber)');
-        }
+      } else if ((myStatus === 'locked' || myStatus === 'waiting') && !hasAnsweredWrongThisQuestion && !eliminated) {
+        // STEAL opportunity - allow this player to buzz
+        setStatus('🔴 STEAL! BUZZ NOW!','var(--green)');
+        isOpen=true;
+        myStatus='waiting';
+        globalBuzzerEnabled=true;
+        updateBuzzerUI();
       }
       break;
     case 'buzzers_reopen':
-      // Only open if this player is still eligible: not eliminated and not already wrong
-      if(myStatus!=='eliminated' && !hasAnsweredWrongThisQuestion){
+      if((myStatus==='locked' || myStatus==='waiting') && !hasAnsweredWrongThisQuestion && !eliminated){
         isOpen=true;
         myStatus='waiting';
         globalBuzzerEnabled=true;
@@ -1455,8 +1443,7 @@ function handleEvent(event, payload) {
       }
       break;
     case 'reset_buzzers':
-      // Full reset: reopen for everyone who hasn't answered wrong yet this question
-      if(myStatus!=='eliminated' && !hasAnsweredWrongThisQuestion){
+      if(myStatus!=='eliminated' && !eliminated && !hasAnsweredWrongThisQuestion){
         myStatus='waiting';
         isOpen=true;
         globalBuzzerEnabled=true;
@@ -1466,12 +1453,13 @@ function handleEvent(event, payload) {
       break;
     case 'next_question':
     case 'reset_for_next_question':
-      if(myStatus==='eliminated'){
+      if(myStatus==='eliminated' || eliminated){
         hideCorrectPlayerOverlay();
         break;
       }
       hasAnsweredWrongThisQuestion = false;
       myStatus='waiting';
+      eliminated = false;
       isOpen=false;
       globalBuzzerEnabled=true;
       hideCorrectPlayerOverlay();
@@ -1483,12 +1471,13 @@ function handleEvent(event, payload) {
     case 'buzzer_toggle':
       globalBuzzerEnabled=payload.enabled;
       if(!globalBuzzerEnabled) setStatus('🔕 Buzzers OFF','var(--muted)');
-      else if(isOpen && myStatus==='waiting' && !hasAnsweredWrongThisQuestion) setStatus('🔴 BUZZ NOW!','var(--green)');
+      else if(isOpen && myStatus==='waiting' && !hasAnsweredWrongThisQuestion && !eliminated) setStatus('🔴 BUZZ NOW!','var(--green)');
       updateBuzzerUI(); 
       break;
     case 'eliminated':
       if(payload.playerId===myId){
         myStatus='eliminated';
+        eliminated = true;
         isOpen=false;
         hasAnsweredWrongThisQuestion = false;
         hideCorrectPlayerOverlay();
@@ -1520,10 +1509,11 @@ function handleEvent(event, payload) {
     case 'state_sync':
       if(payload.playerId===myId){
         myStatus=payload.status||'waiting';
+        eliminated = payload.isEliminated || false;
         if(payload.score!==undefined) updateScore(payload.score);
-        hasAnsweredWrongThisQuestion = false;
         if(payload.isEliminated){
           myStatus='eliminated';
+          eliminated = true;
           hasAnsweredWrongThisQuestion = false;
           document.getElementById('questionBox').innerText='⚡ You have been eliminated!';
           hideOptions();
@@ -1562,6 +1552,7 @@ function handleEvent(event, payload) {
 
   myId=saved.myId; myName=saved.myName; myAvatar=saved.myAvatar;
   myScore=saved.myScore||0; myStatus=saved.myStatus||'waiting'; roomCode=saved.roomCode;
+  eliminated = saved.eliminated || false;
   hasAnsweredWrongThisQuestion = false;
   document.getElementById('roomInput').value = roomCode;
   document.getElementById('nameInput').value = myName;
