@@ -538,12 +538,19 @@ function markCorrect() {
   document.getElementById('buzzerCard').style.display = 'none';
   document.getElementById('openBtn').disabled = true;
   playCorrectSound();
+  const _opts = selectedQuestionForGame
+    ? [selectedQuestionForGame.option_a, selectedQuestionForGame.option_b,
+       selectedQuestionForGame.option_c, selectedQuestionForGame.option_d]
+    : [];
+  const _cidx = selectedQuestionForGame?.correct_option ?? -1;
   broadcast('correct', {
     playerId: buzzedPlayerId,
     newScore: player?.score,
     playerName: player?.name,
     playerAvatar: player?.avatar,
-    points: pointsPerBuzz
+    points: pointsPerBuzz,
+    correctIndex: _cidx,
+    correctAnswer: _cidx >= 0 ? _opts[_cidx] : null
   });
   renderPlayersGrid(); updateSidebar();
   toast(`✅ Correct! +${pointsPerBuzz} pts`);

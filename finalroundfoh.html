@@ -208,6 +208,16 @@
       align-items: flex-start;
       gap: 12px;
       animation: optIn 0.4s cubic-bezier(0.22,1,0.36,1) both;
+      transition: background 0.4s, border-color 0.4s, transform 0.4s;
+    }
+    .opt-tile.correct {
+      background: rgba(34,211,160,0.18);
+      border-color: var(--green);
+      transform: scale(1.03);
+      box-shadow: 0 0 28px rgba(34,211,160,0.35);
+    }
+    .opt-tile.correct .opt-letter {
+      color: var(--green);
     }
     .opt-tile:nth-child(1) { animation-delay: 0.05s; }
     .opt-tile:nth-child(2) { animation-delay: 0.1s; }
@@ -795,11 +805,27 @@ function showBuzzOverlay(name, avatar) {
   overlayTimer = setTimeout(() => clearOverlay(), 6000);
 }
 
-function showCorrectOverlay(name, avatar, points) {
+function showCorrectOverlay(name, avatar, points, correctAnswer, correctIndex) {
   clearOverlay();
+
+  // Highlight the correct option tile on the question screen
+  if (correctIndex >= 0) {
+    const tiles = document.querySelectorAll('#fohOptionsContainer .opt-tile');
+    if (tiles[correctIndex]) tiles[correctIndex].classList.add('correct');
+  }
+
+  const answerLine = correctAnswer
+    ? `<div style="margin-top:14px;padding:10px 20px;background:rgba(34,211,160,0.12);border:1.5px solid rgba(34,211,160,0.4);border-radius:14px;font-size:clamp(14px,2vw,20px);font-weight:700;color:var(--green);letter-spacing:0.5px;">✅ ${escapeHtml(correctAnswer)}</div>`
+    : '';
+
   const div = document.createElement('div');
   div.className = 'overlay-container';
-  div.innerHTML = `<div class="winner-banner"><span style="font-size:70px;display:block;margin-bottom:10px;">💎</span><div class="buzz-title" style="font-size:clamp(28px,5vw,48px);">${avatar || '🏆'} ${escapeHtml(name)}</div><div style="font-size:18px;margin-top:8px;font-weight:700;color:var(--green);">CORRECT! +${points} POINTS</div></div>`;
+  div.innerHTML = `<div class="winner-banner">
+    <span style="font-size:70px;display:block;margin-bottom:10px;">💎</span>
+    <div class="buzz-title" style="font-size:clamp(28px,5vw,48px);">${avatar || '🏆'} ${escapeHtml(name)}</div>
+    <div style="font-size:18px;margin-top:8px;font-weight:700;color:var(--green);">CORRECT! +${points} POINTS</div>
+    ${answerLine}
+  </div>`;
   document.getElementById('overlayContainer').appendChild(div);
   overlayTimer = setTimeout(() => clearOverlay(), 20000);
 }
@@ -908,7 +934,7 @@ function handleBroadcast(event, payload) {
 
     case 'correct':
       clearOverlay();
-      showCorrectOverlay(payload.playerName, payload.playerAvatar, payload.points || 100);
+      showCorrectOverlay(payload.playerName, payload.playerAvatar, payload.points || 100, payload.correctAnswer, payload.correctIndex ?? -1);
       playBeep(659.25, 'sine', 0.5);
       launchConfetti(5000);
       { const p = cachedPlayers.find(p => p.id === payload.playerId); if(p) { p.score = payload.newScore; p.status = 'correct'; renderPlayersList(); saveFohSession(); } }
@@ -927,6 +953,7 @@ function handleBroadcast(event, payload) {
       buzzerOpenVisible = false;
       document.getElementById('fohBuzzerOpenIndicator').style.display = 'none';
       clearOverlay();
+      document.querySelectorAll('#fohOptionsContainer .opt-tile').forEach(t => t.classList.remove('correct'));
       cachedPlayers.forEach(p => { if(p.status !== 'eliminated') p.status = 'waiting'; });
       renderPlayersList();
       if(event === 'next_question') showScreen('waitingScreen');
