@@ -704,19 +704,6 @@ let fohReconnectTimer = null;
 let fohReconnectAttempts = 0;
 const FOH_RECONNECT_DELAYS = [3000, 6000, 12000, 20000];
 
-// ─── Session persistence ─────────────────────────────────────────────────────────────────────────────────
-function saveFohSession() {
-  try {
-    sessionStorage.setItem('foh_session', JSON.stringify({ roomCode, cachedPlayers }));
-  } catch(e) {}
-}
-function loadFohSession() {
-  try { const s = sessionStorage.getItem('foh_session'); return s ? JSON.parse(s) : null; } catch(e) { return null; }
-}
-function clearFohSession() {
-  try { sessionStorage.removeItem('foh_session'); } catch(e) {}
-}
-
 // ─── Background music ─────────────────────────────────────────────────────────
 function initBackgroundMusic() {
   bgmAudio = new Audio();
@@ -835,7 +822,6 @@ function handleBroadcast(event, payload) {
     case 'player_list_update':
       cachedPlayers = payload.players || [];
       renderPlayersList();
-      saveFohSession();
       break;
 
     case 'round_started':
@@ -887,7 +873,7 @@ function handleBroadcast(event, payload) {
       showCorrectOverlay(payload.playerName, payload.playerAvatar, payload.points || 100);
       playBeep(659.25, 'sine', 0.5);
       launchConfetti(5000);
-      { const p = cachedPlayers.find(p => p.id === payload.playerId); if(p) { p.score = payload.newScore; p.status = 'correct'; renderPlayersList(); saveFohSession(); } }
+      { const p = cachedPlayers.find(p => p.id === payload.playerId); if(p) { p.score = payload.newScore; p.status = 'correct'; renderPlayersList(); } }
       break;
 
     case 'wrong':
@@ -934,7 +920,6 @@ function handleBroadcast(event, payload) {
       cancelFohReconnect();
       roomCode = null;
       cachedPlayers = [];
-      clearFohSession();
       document.getElementById('roomEntryOverlay').style.display = 'flex';
       document.getElementById('roomDisplay').innerText = '——';
       document.getElementById('fohFooterCode').innerText = '——';
@@ -943,7 +928,6 @@ function handleBroadcast(event, payload) {
       document.getElementById('fohConnBadge').innerText = '⏳ Not connected';
       showScreen('waitingScreen');
       renderPlayersList();
-      setFohVerifyUI('idle');
       break;
   }
 }
@@ -993,9 +977,6 @@ function connectToRoom(code) {
       cancelFohReconnect();
       badge.className = 'conn-badge live';
       badge.innerText = '● LIVE';
-      // Ask control to push current player list + game state immediately
-      realtimeChannel.send({ type: 'broadcast', event: 'foh_requesting_sync', payload: { timestamp: Date.now() } }).catch(() => {});
-      saveFohSession();
     } else if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
       badge.className = 'conn-badge error';
       badge.innerText = '⚠ Disconnected';
@@ -1209,73 +1190,14 @@ function startMatrixCanvas() {
   draw();
 }
 
-// ─── Init ───────────────────────────────────────────────────────────────────────────────────
-async function init() {
+// ─── Init ─────────────────────────────────────────────────────────────────────
+function init() {
   initBackgroundMusic();
   document.body.addEventListener('click', () => {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     if(ctx.state === 'suspended') ctx.resume();
     if(bgmAudio && bgmAudio.paused && bgmEnabled) bgmAudio.play().catch(()=>{});
   }, { once: true });
-
-  // Auto-reconnect on page load / refresh / accidental browser close
-  const saved = loadFohSession();
-  if (saved?.roomCode) {
-    try {
-      const { data } = await sb
-        .from('game_rooms')
-        .select('room_code, is_active')
-        .eq('room_code', saved.roomCode)
-        .maybeSingle();
-
-      if (data?.is_active) {
-        // Restore last-known player list so the panel isn't blank while reconnecting
-        if (saved.cachedPlayers?.length) {
-          cachedPlayers = saved.cachedPlayers;
-          renderPlayersList();
-        }
-        // Silently rejoin without showing the matrix welcome screen
-        document.getElementById('roomEntryOverlay').style.display = 'none';
-        document.getElementById('roomDisplay').innerText = saved.roomCode;
-        document.getElementById('fohFooterCode').innerText = saved.roomCode;
-        const badge = document.getElementById('fohConnBadge');
-        badge.className = 'conn-badge reconnecting';
-        badge.innerText = '⟳ Reconnecting...';
-
-        roomCode = saved.roomCode.trim().toUpperCase();
-        if(realtimeChannel) { sb.removeChannel(realtimeChannel); realtimeChannel = null; }
-        realtimeChannel = sb.channel('fr-' + roomCode);
-        const events = [
-          'round_started','player_list_update','question_open','buzz_confirmed','correct','wrong',
-          'next_question','reset_for_next_question','reset_buzzers','buzzers_reopen','eliminated',
-          'show_category_picker','round_ended','timer_start','full_game_reset','show_room_code'
-        ];
-        events.forEach(ev => {
-          realtimeChannel.on('broadcast', { event: ev }, ({ payload }) => handleBroadcast(ev, payload));
-        });
-        realtimeChannel.subscribe((status) => {
-          const b = document.getElementById('fohConnBadge');
-          if(status === 'SUBSCRIBED') {
-            cancelFohReconnect();
-            b.className = 'conn-badge live';
-            b.innerText = '● LIVE';
-            // Ask control to push current player list + state right now
-            realtimeChannel.send({ type: 'broadcast', event: 'foh_requesting_sync', payload: { timestamp: Date.now() } }).catch(() => {});
-            saveFohSession();
-          } else if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-            b.className = 'conn-badge error';
-            b.innerText = '⚠ Disconnected';
-            if(roomCode) scheduleFohReconnect();
-          }
-        });
-      } else {
-        // Room no longer active — clear stale session
-        clearFohSession();
-      }
-    } catch(e) {
-      clearFohSession();
-    }
-  }
 }
 init();
 
