@@ -198,7 +198,7 @@ async function registerRoomInDatabase(newRoomCode) {
         control_id: 'ctrl_' + Date.now(),
         created_at: new Date(),
         player_count: 0
-      }, { onConflict: 'room_code' });
+      });
 
     if (error) throw error;
     console.log('✅ Room registered in database:', newRoomCode);
@@ -538,19 +538,12 @@ function markCorrect() {
   document.getElementById('buzzerCard').style.display = 'none';
   document.getElementById('openBtn').disabled = true;
   playCorrectSound();
-  const _opts = selectedQuestionForGame
-    ? [selectedQuestionForGame.option_a, selectedQuestionForGame.option_b,
-       selectedQuestionForGame.option_c, selectedQuestionForGame.option_d]
-    : [];
-  const _cidx = selectedQuestionForGame?.correct_option ?? -1;
   broadcast('correct', {
     playerId: buzzedPlayerId,
     newScore: player?.score,
     playerName: player?.name,
     playerAvatar: player?.avatar,
-    points: pointsPerBuzz,
-    correctIndex: _cidx,
-    correctAnswer: _cidx >= 0 ? _opts[_cidx] : null
+    points: pointsPerBuzz
   });
   renderPlayersGrid(); updateSidebar();
   toast(`✅ Correct! +${pointsPerBuzz} pts`);
@@ -569,21 +562,16 @@ function markWrong() {
   toast(`❌ Wrong — ${player?.name} locked out`);
 
   const remaining = Array.from(frPlayers.keys()).filter(id => !lockedPlayers.has(id) && !eliminatedPlayers.has(id));
-  document.getElementById('buzzerCard').style.display = 'none';
-
-  if(remaining.length > 0){
-    isQuestionOpen = true;
-    buzzerGlobalEnabled = true;
-    document.getElementById('buzzerToggleBtn').innerHTML = '🔔 BUZZERS ON';
-    frPlayers.forEach((p, id) => {
-      if(!eliminatedPlayers.has(id) && !lockedPlayers.has(id)) p.status = 'waiting';
-    });
-    renderPlayersGrid();
-    broadcast('buzzers_reopen', {});
-    toast(`🔴 Steal open for ${remaining.length} player${remaining.length!==1?'s':''}`);
+  if(remaining.length > 0) {
+    setTimeout(() => {
+      isQuestionOpen = true;
+      buzzerGlobalEnabled = true;
+      document.getElementById('buzzerToggleBtn').innerHTML = '🔔 BUZZERS ON';
+      broadcast('buzzers_reopen', {});
+      document.getElementById('buzzerCard').style.display = 'none';
+    }, 5000);
   } else {
-    isQuestionOpen = false;
-    toast('🔒 All players locked — move to next question');
+    document.getElementById('buzzerCard').style.display = 'none';
   }
   buzzedPlayerId = null;
 }
