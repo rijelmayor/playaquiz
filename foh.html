@@ -1575,17 +1575,33 @@ function handleEvent(evt) {
 
 function displayQuestion(q) {
   if (!q) return;
+
+  // Hard-reset all layout state from the previous question
+  const qBody  = document.getElementById('qBody');
+  const qRight = document.getElementById('qRight');
+  const respBars = document.getElementById('respBarsInline');
+  if (qBody)    { qBody.classList.remove('with-responses'); }
+  if (qRight)   { qRight.classList.remove('visible'); }
+  if (respBars) { respBars.innerHTML = ''; }
+
+  // Suppress the grid-template-columns transition so the layout snaps
+  // back to single-column instantly (no half-width flash on 2nd+ questions)
+  if (qBody) {
+    qBody.style.transition = 'none';
+    requestAnimationFrame(() => { qBody.style.transition = ''; });
+  }
+
   document.getElementById('qText').innerText = q.question_text;
   const catEl = document.getElementById('qCatBadge');
   catEl.innerHTML = `<span>${q.category_icon || '📋'}</span><span>${q.category_name || 'Quiz'}</span>`;
-  
+
   const letters = ['A', 'B', 'C', 'D'];
   const grid = document.getElementById('optionsGrid');
   const opts = [q.option_a, q.option_b, q.option_c, q.option_d];
   grid.innerHTML = opts.map((opt, i) => `
     <div class="opt-item" data-idx="${i}">
       <div class="opt-letter">${letters[i]}</div>
-      <div class="opt-text">${opt || ''}</div>
+      <div class="opt-text">${escapeHtml(opt || '')}</div>
     </div>
   `).join('');
 
