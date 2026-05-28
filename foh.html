@@ -426,24 +426,27 @@
       background: rgba(255,255,255,0.04);
       border: 1px solid rgba(255,255,255,0.08);
       border-radius: 20px;
-      padding: 16px 26px;
+      padding: 14px 26px;
       flex-shrink: 0;
+      max-height: 28vh;
+      overflow-y: auto;
+      scrollbar-width: thin;
     }
 
     .q-text {
-      font-size: clamp(18px, 2.2vw, 30px);
+      font-size: clamp(16px, 2vw, 28px);
       font-weight: 800;
-      line-height: 1.3;
+      line-height: 1.35;
       text-align: center;
     }
 
     .options-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
       gap: 10px;
       flex: 1;
       min-height: 0;
-      overflow: hidden;
     }
 
     .opt-item {
@@ -456,7 +459,7 @@
       display: flex;
       gap: 12px;
       font-weight: 600;
-      font-size: clamp(12px, 1.3vw, 15px);
+      font-size: clamp(12px, 1.2vw, 15px);
       cursor: default;
       align-items: center;
       overflow: hidden;
@@ -464,11 +467,13 @@
     }
 
     .opt-text {
+      flex: 1;
       overflow: hidden;
       display: -webkit-box;
-      -webkit-line-clamp: 3;
+      -webkit-line-clamp: 4;
       -webkit-box-orient: vertical;
-      line-height: 1.3;
+      line-height: 1.35;
+      word-break: break-word;
     }
 
     .opt-letter {
@@ -946,7 +951,7 @@
         <!-- Question Screen (can split into two columns) -->
         <div id="screen-question" class="screen">
           <div class="q-wrapper">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
               <div>
                 <div class="q-num-badge" id="qNumBadge" style="background:rgba(255,255,255,0.1);padding:6px 16px;border-radius:20px;">Q1/1</div>
                 <div class="cat-badge" id="qCatBadge" style="margin-top:8px;display:flex;align-items:center;gap:8px;"><span>📋</span><span>Quiz</span></div>
@@ -968,7 +973,7 @@
             <div class="q-body" id="qBody">
               <!-- Left side: question + options -->
               <div class="q-left">
-                <div style="text-align:center; padding:10px 0;">
+                <div class="q-text-block">
                   <div class="q-text" id="qText">Loading...</div>
                 </div>
                 <div class="options-grid" id="optionsGrid"></div>
