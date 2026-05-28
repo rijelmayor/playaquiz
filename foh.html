@@ -368,7 +368,6 @@
       pointer-events: none;
       transition: opacity 0.4s ease;
       z-index: 1;
-      overflow: hidden;
     }
 
     .screen.active {
@@ -380,14 +379,11 @@
     /* ── QUESTION SCREEN (single column by default) ── */
     .q-wrapper {
       width: min(96%, 1100px);
-      height: 100%;
-      max-height: 100%;
-      padding: 12px 20px;
+      height: 90%;
+      padding: 16px 20px;
       display: flex;
       flex-direction: column;
-      gap: 10px;
-      overflow: hidden;
-      margin: 0 auto;
+      gap: 16px;
     }
 
     .q-top-row {
@@ -402,9 +398,8 @@
       flex: 1;
       display: grid;
       grid-template-columns: 1fr;
-      gap: 16px;
+      gap: 20px;
       min-height: 0;
-      overflow: hidden;
       transition: grid-template-columns 0.5s ease;
     }
 
@@ -416,25 +411,20 @@
     .q-left {
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 14px;
       min-width: 0;
-      min-height: 0;
-      overflow: hidden;
     }
 
     .q-text-block {
       background: rgba(255,255,255,0.04);
       border: 1px solid rgba(255,255,255,0.08);
       border-radius: 20px;
-      padding: 14px 26px;
+      padding: 20px 26px;
       flex-shrink: 0;
-      max-height: 28vh;
-      overflow-y: auto;
-      scrollbar-width: thin;
     }
 
     .q-text {
-      font-size: clamp(16px, 2vw, 28px);
+      font-size: 26px;
       font-weight: 800;
       line-height: 1.35;
       text-align: center;
@@ -443,48 +433,34 @@
     .options-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      grid-template-rows: 1fr 1fr;
-      gap: 10px;
+      gap: 12px;
       flex: 1;
-      min-height: 0;
     }
 
     .opt-item {
       background: rgba(255,255,255,0.05);
       border: 2px solid rgba(255,255,255,0.1);
       border-radius: 20px;
-      padding: 12px 16px;
+      padding: 16px 20px;
       backdrop-filter: blur(8px);
       transition: all 0.3s;
       display: flex;
-      gap: 12px;
+      gap: 16px;
       font-weight: 600;
-      font-size: clamp(12px, 1.2vw, 15px);
+      font-size: 15px;
       cursor: default;
       align-items: center;
-      overflow: hidden;
-      min-height: 0;
-    }
-
-    .opt-text {
-      flex: 1;
-      overflow: hidden;
-      display: -webkit-box;
-      -webkit-line-clamp: 4;
-      -webkit-box-orient: vertical;
-      line-height: 1.35;
-      word-break: break-word;
     }
 
     .opt-letter {
-      width: 38px;
-      height: 38px;
+      width: 42px;
+      height: 42px;
       border-radius: 14px;
       display: flex;
       align-items: center;
       justify-content: center;
       font-weight: 800;
-      font-size: 18px;
+      font-size: 20px;
       background: rgba(59,130,246,0.2);
       flex-shrink: 0;
     }
@@ -693,11 +669,7 @@
     .resp-overlay-panel .resp-fill-label { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; color: rgba(255,255,255,0.9); }
     .resp-overlay-panel .resp-fill-pct { font-size: 15px; font-weight: 800; color: #fff; flex-shrink: 0; }
 
-    #screen-question {
-      align-items: stretch;
-      justify-content: center;
-      padding: 12px 0;
-    }
+    /* Waiting screen */
     .waiting-content { text-align: center; }
     .waiting-emoji { font-size: 90px; filter: drop-shadow(0 0 20px #3b82f6); animation: float 2.5s infinite; }
     @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-18px)} }
@@ -951,7 +923,7 @@
         <!-- Question Screen (can split into two columns) -->
         <div id="screen-question" class="screen">
           <div class="q-wrapper">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
               <div>
                 <div class="q-num-badge" id="qNumBadge" style="background:rgba(255,255,255,0.1);padding:6px 16px;border-radius:20px;">Q1/1</div>
                 <div class="cat-badge" id="qCatBadge" style="margin-top:8px;display:flex;align-items:center;gap:8px;"><span>📋</span><span>Quiz</span></div>
@@ -973,8 +945,8 @@
             <div class="q-body" id="qBody">
               <!-- Left side: question + options -->
               <div class="q-left">
-                <div class="q-text-block">
-                  <div class="q-text" id="qText">Loading...</div>
+                <div style="text-align:center; padding:20px 0;">
+                  <div class="q-text" id="qText" style="font-size:32px; font-weight:800;">Loading...</div>
                 </div>
                 <div class="options-grid" id="optionsGrid"></div>
               </div>
@@ -1575,33 +1547,17 @@ function handleEvent(evt) {
 
 function displayQuestion(q) {
   if (!q) return;
-
-  // Hard-reset all layout state from the previous question
-  const qBody  = document.getElementById('qBody');
-  const qRight = document.getElementById('qRight');
-  const respBars = document.getElementById('respBarsInline');
-  if (qBody)    { qBody.classList.remove('with-responses'); }
-  if (qRight)   { qRight.classList.remove('visible'); }
-  if (respBars) { respBars.innerHTML = ''; }
-
-  // Suppress the grid-template-columns transition so the layout snaps
-  // back to single-column instantly (no half-width flash on 2nd+ questions)
-  if (qBody) {
-    qBody.style.transition = 'none';
-    requestAnimationFrame(() => { qBody.style.transition = ''; });
-  }
-
   document.getElementById('qText').innerText = q.question_text;
   const catEl = document.getElementById('qCatBadge');
   catEl.innerHTML = `<span>${q.category_icon || '📋'}</span><span>${q.category_name || 'Quiz'}</span>`;
-
+  
   const letters = ['A', 'B', 'C', 'D'];
   const grid = document.getElementById('optionsGrid');
   const opts = [q.option_a, q.option_b, q.option_c, q.option_d];
   grid.innerHTML = opts.map((opt, i) => `
     <div class="opt-item" data-idx="${i}">
       <div class="opt-letter">${letters[i]}</div>
-      <div class="opt-text">${escapeHtml(opt || '')}</div>
+      <div>${opt || ''}</div>
     </div>
   `).join('');
 
