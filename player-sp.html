@@ -176,6 +176,53 @@
       width: 100%;
     }
     
+    /* Start Screen */
+    .start-card {
+      text-align: center;
+      padding: 32px 24px;
+    }
+    .start-icon { font-size: 80px; margin-bottom: 20px; animation: bounce 1s ease infinite; }
+    @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+    .start-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 36px;
+      margin-bottom: 16px;
+    }
+    .start-info {
+      background: rgba(255,255,255,0.05);
+      border-radius: 16px;
+      padding: 20px;
+      margin: 24px 0;
+      text-align: left;
+    }
+    .start-info-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    .start-info-item:last-child { border-bottom: none; }
+    .start-info-icon { font-size: 24px; }
+    .start-info-text { flex: 1; }
+    .start-info-title { font-weight: 700; margin-bottom: 4px; }
+    .start-info-desc { font-size: 12px; color: rgba(255,255,255,0.5); }
+    
+    .start-btn {
+      background: linear-gradient(135deg, #10b981, #059669);
+      border: none;
+      border-radius: 60px;
+      padding: 18px 32px;
+      font-size: 20px;
+      font-weight: 800;
+      color: white;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 16px;
+      transition: all 0.2s;
+    }
+    .start-btn:active { transform: scale(0.98); }
+    
     /* Completion Screen */
     .completion-card {
       text-align: center;
@@ -327,6 +374,47 @@
     </div>
   </div>
   
+  <!-- Start Screen (NEW - shows before first question) -->
+  <div id="startScreen" class="hidden">
+    <div class="join-card start-card">
+      <div class="start-icon">🎯</div>
+      <div class="start-title">Ready to Play?</div>
+      <div style="font-size: 14px; color: rgba(255,255,255,0.5);">Get ready to test your knowledge!</div>
+      
+      <div class="start-info">
+        <div class="start-info-item">
+          <div class="start-info-icon">⚡</div>
+          <div class="start-info-text">
+            <div class="start-info-title">Speed = More Points</div>
+            <div class="start-info-desc">Answer faster to earn higher scores</div>
+          </div>
+        </div>
+        <div class="start-info-item">
+          <div class="start-info-icon">❌</div>
+          <div class="start-info-text">
+            <div class="start-info-title">No Second Chances</div>
+            <div class="start-info-desc">You can only answer each question once</div>
+          </div>
+        </div>
+        <div class="start-info-item">
+          <div class="start-info-icon">🏆</div>
+          <div class="start-info-text">
+            <div class="start-info-title">Complete All Questions</div>
+            <div class="start-info-desc">Finish all questions to see your final score</div>
+          </div>
+        </div>
+      </div>
+      
+      <div style="background: rgba(59,130,246,0.1); border-radius: 12px; padding: 12px; margin: 16px 0;">
+        <div style="font-size: 12px; color: #3b82f6;">📊 Your Progress</div>
+        <div style="font-size: 28px; font-weight: 700;" id="startTotalQuestions">0</div>
+        <div style="font-size: 11px; color: rgba(255,255,255,0.5);">Total Questions to Answer</div>
+      </div>
+      
+      <button class="start-btn" onclick="startQuiz()">🎮 START QUIZ →</button>
+    </div>
+  </div>
+  
   <!-- Quiz Screen -->
   <div id="quizScreen" class="hidden">
     <div class="header">
@@ -408,6 +496,7 @@ let answered = false;
 let timerInterval = null;
 let reconnectAttempts = 0;
 let realtimeChannel = null;
+let quizStarted = false; // NEW: track if quiz has started
 
 // Build avatar grid
 function buildAvatarGrid() {
@@ -541,16 +630,14 @@ async function joinGame() {
       return;
     }
     
-    // Show quiz screen
-    document.getElementById('joinScreen').classList.add('hidden');
-    document.getElementById('quizScreen').classList.remove('hidden');
+    // Update player info display
     document.getElementById('playerAvatar').innerText = selectedAvatar;
     document.getElementById('playerName').innerText = playerName;
-    document.getElementById('scoreDisplay').innerText = '0 pts';
     
-    // Start from saved progress or beginning
-    const savedIndex = myPlayer.current_q_index || 0;
-    await loadQuestion(savedIndex);
+    // Show START screen instead of going directly to quiz
+    document.getElementById('joinScreen').classList.add('hidden');
+    document.getElementById('startScreen').classList.remove('hidden');
+    document.getElementById('startTotalQuestions').innerText = questions.length;
     
     // Setup realtime for score updates
     setupRealtime();
@@ -562,6 +649,18 @@ async function joinGame() {
     joinBtn.disabled = false;
     joinBtn.innerText = '🚀 Join Game';
   }
+}
+
+// NEW: Start the quiz when player clicks start button
+function startQuiz() {
+  quizStarted = true;
+  document.getElementById('startScreen').classList.add('hidden');
+  document.getElementById('quizScreen').classList.remove('hidden');
+  document.getElementById('scoreDisplay').innerHTML = '0 pts';
+  
+  // Start from saved progress or beginning
+  const savedIndex = myPlayer.current_q_index || 0;
+  loadQuestion(savedIndex);
 }
 
 async function loadQuestion(index) {
@@ -670,7 +769,7 @@ async function submitAnswer(selectedIdx) {
     const bonusText = elapsed < 10 ? ' ⚡ Speed bonus!' : '';
     feedbackDiv.innerHTML = `✅ Correct! +${pointsEarned} points${bonusText}`;
     
-    // Play correct sound effect (simple beep)
+    // Play correct sound effect
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
       const o = ctx.createOscillator();
@@ -710,14 +809,13 @@ async function loadNextQuestion() {
 async function completeQuiz() {
   if (timerInterval) clearInterval(timerInterval);
   
-  // Mark as completed (if column exists)
+  // Mark as completed
   try {
     await sb.from('players').update({
       completed: true,
       completed_at: new Date()
     }).eq('id', myPlayer.id);
   } catch(e) {
-    // Column might not exist, just log
     console.log('Completed status not saved (column may not exist)');
   }
   
@@ -765,7 +863,9 @@ function setupRealtime() {
         myPlayer = payload.new;
         score = myPlayer.score || 0;
         correctCount = myPlayer.correct_count || 0;
-        document.getElementById('scoreDisplay').innerHTML = `${score} pts`;
+        if (document.getElementById('scoreDisplay')) {
+          document.getElementById('scoreDisplay').innerHTML = `${score} pts`;
+        }
       }
     })
     .subscribe();
@@ -804,6 +904,7 @@ async function autoRejoin() {
     score = player.score || 0;
     correctCount = player.correct_count || 0;
     selectedAvatar = player.avatar_color || '😎';
+    const savedIndex = player.current_q_index || 0;
     
     // Get session to find room code
     const { data: session } = await sb
@@ -821,18 +922,40 @@ async function autoRejoin() {
     questions = qs || [];
     
     if (questions.length === 0) {
-      showError('No questions available');
       return;
     }
     
-    document.getElementById('joinScreen').classList.add('hidden');
-    document.getElementById('quizScreen').classList.remove('hidden');
     document.getElementById('playerAvatar').innerText = selectedAvatar;
     document.getElementById('playerName').innerText = player.name;
-    document.getElementById('scoreDisplay').innerHTML = `${score} pts`;
     
-    const savedIndex = player.current_q_index || 0;
-    await loadQuestion(savedIndex);
+    // Check if player has already completed
+    if (player.completed === true || savedIndex >= questions.length) {
+      // Show completion screen
+      const accuracy = questions.length > 0 ? Math.round((player.correct_count / questions.length) * 100) : 0;
+      document.getElementById('finalScore').innerText = player.score || 0;
+      document.getElementById('finalCorrect').innerText = `${player.correct_count || 0}/${questions.length}`;
+      document.getElementById('finalAccuracy').innerText = `${accuracy}%`;
+      document.getElementById('joinScreen').classList.add('hidden');
+      document.getElementById('completionScreen').classList.remove('hidden');
+    } else if (savedIndex > 0) {
+      // Resume from where they left off - show start screen with resume option
+      document.getElementById('joinScreen').classList.add('hidden');
+      document.getElementById('startScreen').classList.remove('hidden');
+      document.getElementById('startTotalQuestions').innerHTML = `${questions.length}<span style="font-size: 14px;"> (Resume from Q${savedIndex + 1})</span>`;
+      
+      // Store resume index
+      window.resumeIndex = savedIndex;
+      
+      // Modify start button to resume
+      const startBtn = document.querySelector('#startScreen .start-btn');
+      startBtn.innerHTML = '▶️ RESUME QUIZ →';
+    } else {
+      // Fresh start
+      document.getElementById('joinScreen').classList.add('hidden');
+      document.getElementById('startScreen').classList.remove('hidden');
+      document.getElementById('startTotalQuestions').innerText = questions.length;
+    }
+    
     setupRealtime();
     updateConnectionStatus(true, 'Connected');
     
@@ -841,6 +964,19 @@ async function autoRejoin() {
     localStorage.removeItem('sp_player');
   }
 }
+
+// Modified startQuiz to handle resume
+window.startQuiz = function() {
+  quizStarted = true;
+  document.getElementById('startScreen').classList.add('hidden');
+  document.getElementById('quizScreen').classList.remove('hidden');
+  document.getElementById('scoreDisplay').innerHTML = `${score} pts`;
+  
+  // Use resume index if available
+  const startIndex = window.resumeIndex || myPlayer?.current_q_index || 0;
+  loadQuestion(startIndex);
+  delete window.resumeIndex;
+};
 
 // Initialize
 buildAvatarGrid();
@@ -867,6 +1003,7 @@ window.submitAnswer = submitAnswer;
 window.loadNextQuestion = loadNextQuestion;
 window.playAgain = playAgain;
 window.viewLeaderboard = viewLeaderboard;
+window.startQuiz = startQuiz;
 </script>
 </body>
 </html>
