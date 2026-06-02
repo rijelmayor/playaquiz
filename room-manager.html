@@ -17,7 +17,6 @@
     }
     .container { max-width: 1400px; margin: 0 auto; }
     
-    /* Password Overlay */
     .password-overlay {
       position: fixed;
       inset: 0;
@@ -116,7 +115,6 @@
     .status-dot.connected { background: #10b981; }
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
     
-    /* Logout Button */
     .logout-btn {
       background: rgba(239,68,68,0.2);
       border: 1px solid rgba(239,68,68,0.3);
@@ -376,7 +374,6 @@
       gap: 6px;
     }
     
-    /* Logout Confirmation Modal */
     .confirm-overlay {
       position: fixed;
       inset: 0;
@@ -404,7 +401,6 @@
   </style>
 </head>
 <body>
-<!-- Password Overlay -->
 <div id="passwordOverlay" class="password-overlay">
   <div class="password-card">
     <div style="font-size: 48px; margin-bottom: 16px;">🔐</div>
@@ -515,7 +511,6 @@
 </div>
 </div>
 
-<!-- Logout Confirmation Modal -->
 <div id="logoutConfirm" class="confirm-overlay hidden">
   <div class="confirm-card">
     <div style="font-size: 48px; margin-bottom: 16px;">🚪</div>
@@ -533,7 +528,7 @@ const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
 const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-// Timezone Utilities
+// Timezone Utilities - FIXED!
 function getUserTimezone() {
   return Intl.DateTimeFormat().resolvedOptions().timeZone;
 }
@@ -544,6 +539,19 @@ function getTimezoneOffset() {
   const minutes = Math.abs(offset % 60);
   const sign = offset <= 0 ? '+' : '-';
   return `${sign}${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+}
+
+// Convert local date to UTC for storage
+function localToUTC(date) {
+  // date is a local Date object
+  return new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
+}
+
+// Convert UTC to local for display
+function UTCToLocal(utcDate) {
+  // utcDate is a UTC timestamp string or Date object
+  const date = new Date(utcDate);
+  return new Date(date.getTime() + (date.getTimezoneOffset() * 60000));
 }
 
 function formatLocalDate(date) {
@@ -562,7 +570,8 @@ function formatShortDate(date) {
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
+    hour12: true
   });
 }
 
@@ -572,15 +581,18 @@ function displayTimezoneInfo() {
   const offset = getTimezoneOffset();
   document.getElementById('userTimezone').innerText = tz;
   document.getElementById('utcOffset').innerHTML = `UTC ${offset}`;
+  
+  // Show current time in user's timezone for reference
+  const now = new Date();
+  console.log(`Current time in ${tz}: ${formatLocalDate(now)}`);
 }
 
 // Password configuration
-const MASTER_PASSWORD = "admin123"; // Change this to your desired password
+const MASTER_PASSWORD = "admin123";
 let isAuthenticated = false;
 let currentFilter = 'all';
 let currentDateFilter = null;
 
-// Logout functions
 function showLogoutConfirm() {
   document.getElementById('logoutConfirm').classList.remove('hidden');
 }
@@ -590,39 +602,18 @@ function closeLogoutConfirm() {
 }
 
 function logout() {
-  // Clear authentication from localStorage
   localStorage.removeItem('room_manager_auth');
   localStorage.removeItem('room_manager_auth_time');
-  
-  // Clear any other stored data
   sessionStorage.clear();
-  
-  // Reset state
   isAuthenticated = false;
-  
-  // Hide logout modal
   closeLogoutConfirm();
-  
-  // Hide main content
   document.getElementById('mainContent').style.display = 'none';
-  
-  // Show password overlay again
   const passwordOverlay = document.getElementById('passwordOverlay');
   passwordOverlay.style.display = 'flex';
-  
-  // Clear password input
   document.getElementById('passwordInput').value = '';
-  
-  // Clear any error messages
   document.getElementById('passwordError').innerText = '';
-  
-  // Show toast notification
   toast('🔐 You have been logged out', 'info');
-  
-  // Optionally reload the page to reset everything
-  setTimeout(() => {
-    location.reload();
-  }, 500);
+  setTimeout(() => location.reload(), 500);
 }
 
 function verifyPassword() {
@@ -655,7 +646,6 @@ function checkExistingAuth() {
       initializeApp();
       return true;
     } else {
-      // Session expired, clear it
       localStorage.removeItem('room_manager_auth');
       localStorage.removeItem('room_manager_auth_time');
     }
@@ -774,19 +764,27 @@ async function scheduleRoom() {
     return;
   }
   
+  // Create a date object in LOCAL TIME
   let localDateTime;
   if (scheduledTime) {
-    localDateTime = new Date(`${scheduledDate}T${scheduledTime}:00`);
+    // Parse as local time (YYYY-MM-DDTHH:MM:SS)
+    const [year, month, day] = scheduledDate.split('-');
+    const [hour, minute] = scheduledTime.split(':');
+    localDateTime = new Date(year, month - 1, day, hour, minute, 0);
   } else {
-    localDateTime = new Date(`${scheduledDate}T00:00:00`);
+    const [year, month, day] = scheduledDate.split('-');
+    localDateTime = new Date(year, month - 1, day, 0, 0, 0);
   }
   
+  // Check if date is in the future (using local time)
   const now = new Date();
   if (localDateTime < now) {
-    toast('Scheduled date must be in the future (your local time)', 'error');
+    toast('Scheduled date/time must be in the future', 'error');
     return;
   }
   
+  // Convert LOCAL time to UTC for storage
+  // For Philippines (UTC+8): 2:30 PM local = 6:30 AM UTC
   const utcDateTime = new Date(localDateTime.getTime() - (localDateTime.getTimezoneOffset() * 60000));
   
   const scheduleBtn = document.querySelector('#tab-schedule .btn-orange');
@@ -816,8 +814,10 @@ async function scheduleRoom() {
     const { error } = await sb.from('game_sessions').insert(insertData);
     if (error) throw error;
     
+    // Show confirmation with both local and UTC times
     const localDisplay = formatLocalDate(localDateTime);
-    toast(`✅ Room "${roomCode}" scheduled for ${localDisplay} (your local time)`, 'success');
+    const utcDisplay = utcDateTime.toUTCString();
+    toast(`✅ Room "${roomCode}" scheduled for ${localDisplay} (Your time) / ${utcDisplay} (UTC)`, 'success');
     
     document.getElementById('scheduledRoomCode').value = '';
     document.getElementById('scheduledTitle').value = '';
@@ -853,8 +853,9 @@ async function loadScheduledRooms() {
     }
     
     document.getElementById('scheduledRoomsGrid').innerHTML = rooms.map(room => {
-      const scheduledUTC = new Date(room.scheduled_date);
-      const scheduledLocal = new Date(scheduledUTC.getTime() + (scheduledUTC.getTimezoneOffset() * 60000));
+      // Convert UTC stored date to LOCAL for display
+      const utcDate = new Date(room.scheduled_date);
+      const localDate = new Date(utcDate.getTime() + (utcDate.getTimezoneOffset() * 60000));
       
       return `
         <div class="room-card upcoming">
@@ -863,8 +864,8 @@ async function loadScheduledRooms() {
             <div class="room-badge badge-upcoming">SCHEDULED</div>
           </div>
           <div class="room-date">
-            📅 ${formatLocalDate(scheduledLocal)}
-            <span class="timezone-badge">UTC ${getTimezoneOffset()}</span>
+            📅 ${formatLocalDate(localDate)}
+            <span class="timezone-badge">Your Local Time</span>
           </div>
           <div style="font-size: 14px; margin-bottom: 12px;">${escapeHtml(room.title || 'Untitled')}</div>
           <div class="room-actions">
@@ -957,7 +958,7 @@ async function loadRooms() {
       
       const createdLocal = new Date(room.created_at);
       const displayDate = room.scheduled_date 
-        ? `📅 Scheduled: ${formatShortDate(new Date(room.scheduled_date))}`
+        ? `📅 Scheduled: ${formatShortDate(UTCToLocal(new Date(room.scheduled_date)))}`
         : `📅 Created: ${formatShortDate(createdLocal)}`;
       
       return `
@@ -1095,6 +1096,12 @@ function toast(msg, type = 'info') {
 function escapeHtml(str) {
   if (!str) return '';
   return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
+}
+
+// Helper function for UTC to Local conversion
+function UTCToLocal(utcDate) {
+  const date = new Date(utcDate);
+  return new Date(date.getTime() + (date.getTimezoneOffset() * 60000));
 }
 
 // Initialize
