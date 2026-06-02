@@ -7,6 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
+    /* (All existing styles remain the same - unchanged) */
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body {
       background: linear-gradient(135deg, #06080f 0%, #03050b 100%);
@@ -421,6 +422,7 @@ async function checkRoomStatus(roomCode) {
         return { available: false, reason: `📅 This room is scheduled for ${formattedDate}. Please check back then.` };
       }
     }
+    // Allow joining only if status is 'waiting' or 'active'
     if (session.status !== 'active' && session.status !== 'waiting') {
       return { available: false, reason: `⚠️ This room is ${session.status}. Cannot join.` };
     }
@@ -461,10 +463,14 @@ async function joinGame() {
   const roomCode = document.getElementById('roomInput').value.trim().toUpperCase();
   const playerName = document.getElementById('nameInput').value.trim();
   const joinBtn = document.getElementById('joinBtn');
+  
   if (!roomCode) { showError('Enter room code'); return; }
   if (!playerName || playerName.length < 2) { showError('Enter your name (min 2 chars)'); return; }
+  
   joinBtn.disabled = true;
   joinBtn.innerText = 'Checking...';
+  
+  // 1. Check room exists and is either waiting or active
   const statusCheck = await checkRoomStatus(roomCode);
   if (!statusCheck.available) {
     showError(statusCheck.reason);
@@ -472,10 +478,23 @@ async function joinGame() {
     joinBtn.innerText = '🚀 Join Game';
     return;
   }
+  
   SESSION_ID = statusCheck.sessionId;
   ROOM_CODE = roomCode;
+  
+  // 2. Check if game is already active – if not, do NOT create player
+  const isActive = await checkGameStatus();
+  if (!isActive) {
+    showError('⏳ The game has not been activated yet. Please wait for the admin to start the game. You can try again later.');
+    joinBtn.disabled = false;
+    joinBtn.innerText = '🚀 Join Game';
+    return;
+  }
+  
   joinBtn.innerText = 'Joining...';
+  
   try {
+    // 3. Check name uniqueness
     const { data: existing } = await sb
       .from('players')
       .select('id')
@@ -488,6 +507,8 @@ async function joinGame() {
       joinBtn.innerText = '🚀 Join Game';
       return;
     }
+    
+    // 4. Create player
     const { data: player, error: playerError } = await sb
       .from('players')
       .insert({
@@ -506,10 +527,11 @@ async function joinGame() {
       joinBtn.innerText = '🚀 Join Game';
       return;
     }
+    
     myPlayer = player;
     localStorage.setItem('sp_player', JSON.stringify({ id: myPlayer.id, session: SESSION_ID, name: playerName, avatar: selectedAvatar }));
     
-    // Load questions – ONLY for this session
+    // 5. Load questions (only for this session)
     const { data: qs, error: qError } = await sb
       .from('questions')
       .select('*')
@@ -524,23 +546,17 @@ async function joinGame() {
       showError('No questions available. Please wait for admin to add questions.');
       return;
     }
+    
     document.getElementById('playerAvatar').innerText = selectedAvatar;
     document.getElementById('playerName').innerText = playerName;
     
-    // Check if game is activated
-    const isActive = await checkGameStatus();
-    if (!isActive) {
-      showError('⏳ The game has not been activated yet. Please wait for the admin to start the game.');
-      document.getElementById('joinScreen').classList.remove('hidden');
-      document.getElementById('startScreen').classList.add('hidden');
-      joinBtn.disabled = false;
-      joinBtn.innerText = '🚀 Join Game';
-      return;
-    }
+    // 6. Show start screen
     document.getElementById('joinScreen').classList.add('hidden');
     document.getElementById('startScreen').classList.remove('hidden');
     document.getElementById('startTotalQuestions').innerText = questions.length;
+    
     setupRealtime();
+    
   } catch (err) {
     console.error('Join error:', err);
     showError('Connection error. Please try again.');
@@ -551,9 +567,10 @@ async function joinGame() {
 }
 
 async function startQuiz() {
+  // Double-check game is still active (in case it was deactivated)
   const isActive = await checkGameStatus();
   if (!isActive) {
-    showError('Game not active yet. Please wait.');
+    showError('Game is no longer active. Please contact the host.');
     return;
   }
   quizStarted = true;
@@ -699,7 +716,7 @@ function playAgain() { localStorage.removeItem('sp_player'); location.reload(); 
 function showError(msg) {
   const errDiv = document.getElementById('joinError');
   errDiv.innerText = msg;
-  setTimeout(() => errDiv.innerText = '', 3000);
+  setTimeout(() => errDiv.innerText = '', 5000);
 }
 function setupRealtime() {
   if (realtimeChannel) try { sb.removeChannel(realtimeChannel); } catch(e) {}
@@ -733,7 +750,7 @@ async function autoRejoin() {
     const savedIndex = player.current_q_index || 0;
     const { data: session } = await sb.from('game_sessions').select('room_code').eq('id', SESSION_ID).single();
     if (session) ROOM_CODE = session.room_code;
-    const { data: qs } = await sb.from('questions').select('*').order('created_at');
+    const { data: qs } = await sb.from('questions').select('*').eq('session_id', SESSION_ID).order('created_at');
     questions = qs || [];
     if (questions.length === 0) return;
     document.getElementById('playerAvatar').innerText = selectedAvatar;
