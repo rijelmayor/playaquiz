@@ -17,6 +17,7 @@
     }
     .container { max-width: 1400px; margin: 0 auto; }
     
+    /* Password Overlay */
     .password-overlay {
       position: fixed;
       inset: 0;
@@ -114,6 +115,26 @@
     }
     .status-dot.connected { background: #10b981; }
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+    
+    /* Logout Button */
+    .logout-btn {
+      background: rgba(239,68,68,0.2);
+      border: 1px solid rgba(239,68,68,0.3);
+      color: #ef4444;
+      padding: 8px 20px;
+      border-radius: 40px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .logout-btn:hover {
+      background: rgba(239,68,68,0.4);
+      border-color: #ef4444;
+      transform: translateY(-1px);
+    }
     
     .tabs {
       display: flex;
@@ -354,9 +375,36 @@
       align-items: center;
       gap: 6px;
     }
+    
+    /* Logout Confirmation Modal */
+    .confirm-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.8);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 3000;
+    }
+    .confirm-card {
+      background: #0d1120;
+      border: 1px solid #2d3b52;
+      border-radius: 20px;
+      padding: 32px;
+      max-width: 400px;
+      text-align: center;
+    }
+    .confirm-buttons {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+    }
+    .hidden { display: none; }
   </style>
 </head>
 <body>
+<!-- Password Overlay -->
 <div id="passwordOverlay" class="password-overlay">
   <div class="password-card">
     <div style="font-size: 48px; margin-bottom: 16px;">🔐</div>
@@ -386,6 +434,9 @@
       <div class="status-dot" id="connDot"></div>
       <span id="connText">Connecting...</span>
     </div>
+    <button class="logout-btn" onclick="showLogoutConfirm()">
+      🚪 Logout
+    </button>
   </div>
 
   <div class="stats-summary">
@@ -464,6 +515,19 @@
 </div>
 </div>
 
+<!-- Logout Confirmation Modal -->
+<div id="logoutConfirm" class="confirm-overlay hidden">
+  <div class="confirm-card">
+    <div style="font-size: 48px; margin-bottom: 16px;">🚪</div>
+    <div style="font-size: 20px; font-weight: 700; margin-bottom: 8px;">Logout Confirmation</div>
+    <div style="font-size: 14px; color: #6b7a99;">Are you sure you want to logout? You'll need to enter the password again to access the manager.</div>
+    <div class="confirm-buttons">
+      <button class="btn btn-green" onclick="logout()" style="flex:1;">Yes, Logout</button>
+      <button class="btn btn-ghost" onclick="closeLogoutConfirm()" style="flex:1;">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
 const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
@@ -502,36 +566,64 @@ function formatShortDate(date) {
   });
 }
 
-function toUTC(date) {
-  return new Date(Date.UTC(
-    date.getFullYear(),
-    date.getMonth(),
-    date.getDate(),
-    date.getHours(),
-    date.getMinutes(),
-    date.getSeconds()
-  ));
-}
-
 // Display user timezone info
 function displayTimezoneInfo() {
   const tz = getUserTimezone();
   const offset = getTimezoneOffset();
   document.getElementById('userTimezone').innerText = tz;
   document.getElementById('utcOffset').innerHTML = `UTC ${offset}`;
-  
-  // Show Philippines time for reference if not already in PH
-  if (!tz.includes('Manila') && !tz.includes('Philippines')) {
-    const phTime = new Date().toLocaleString('en-US', { timeZone: 'Asia/Manila' });
-    console.log('Philippines time reference:', phTime);
-  }
 }
 
 // Password configuration
-const MASTER_PASSWORD = "admin123";
+const MASTER_PASSWORD = "admin123"; // Change this to your desired password
 let isAuthenticated = false;
 let currentFilter = 'all';
 let currentDateFilter = null;
+
+// Logout functions
+function showLogoutConfirm() {
+  document.getElementById('logoutConfirm').classList.remove('hidden');
+}
+
+function closeLogoutConfirm() {
+  document.getElementById('logoutConfirm').classList.add('hidden');
+}
+
+function logout() {
+  // Clear authentication from localStorage
+  localStorage.removeItem('room_manager_auth');
+  localStorage.removeItem('room_manager_auth_time');
+  
+  // Clear any other stored data
+  sessionStorage.clear();
+  
+  // Reset state
+  isAuthenticated = false;
+  
+  // Hide logout modal
+  closeLogoutConfirm();
+  
+  // Hide main content
+  document.getElementById('mainContent').style.display = 'none';
+  
+  // Show password overlay again
+  const passwordOverlay = document.getElementById('passwordOverlay');
+  passwordOverlay.style.display = 'flex';
+  
+  // Clear password input
+  document.getElementById('passwordInput').value = '';
+  
+  // Clear any error messages
+  document.getElementById('passwordError').innerText = '';
+  
+  // Show toast notification
+  toast('🔐 You have been logged out', 'info');
+  
+  // Optionally reload the page to reset everything
+  setTimeout(() => {
+    location.reload();
+  }, 500);
+}
 
 function verifyPassword() {
   const password = document.getElementById('passwordInput').value;
@@ -562,6 +654,10 @@ function checkExistingAuth() {
       document.getElementById('mainContent').style.display = 'block';
       initializeApp();
       return true;
+    } else {
+      // Session expired, clear it
+      localStorage.removeItem('room_manager_auth');
+      localStorage.removeItem('room_manager_auth_time');
     }
   }
   return false;
@@ -642,7 +738,7 @@ async function createRoom() {
       room_code: roomCode,
       title: title,
       status: 'waiting',
-      created_at: new Date().toISOString() // Store in UTC
+      created_at: new Date().toISOString()
     };
     
     const { error } = await sb.from('game_sessions').insert(insertData);
@@ -678,7 +774,6 @@ async function scheduleRoom() {
     return;
   }
   
-  // Create date in local timezone, then convert to UTC for storage
   let localDateTime;
   if (scheduledTime) {
     localDateTime = new Date(`${scheduledDate}T${scheduledTime}:00`);
@@ -686,14 +781,12 @@ async function scheduleRoom() {
     localDateTime = new Date(`${scheduledDate}T00:00:00`);
   }
   
-  // Check if date is in the future (using local time comparison)
   const now = new Date();
   if (localDateTime < now) {
     toast('Scheduled date must be in the future (your local time)', 'error');
     return;
   }
   
-  // Convert to UTC for storage
   const utcDateTime = new Date(localDateTime.getTime() - (localDateTime.getTimezoneOffset() * 60000));
   
   const scheduleBtn = document.querySelector('#tab-schedule .btn-orange');
@@ -723,7 +816,6 @@ async function scheduleRoom() {
     const { error } = await sb.from('game_sessions').insert(insertData);
     if (error) throw error;
     
-    // Show the scheduled time in both UTC and local for clarity
     const localDisplay = formatLocalDate(localDateTime);
     toast(`✅ Room "${roomCode}" scheduled for ${localDisplay} (your local time)`, 'success');
     
@@ -761,7 +853,6 @@ async function loadScheduledRooms() {
     }
     
     document.getElementById('scheduledRoomsGrid').innerHTML = rooms.map(room => {
-      // Convert UTC stored date to local for display
       const scheduledUTC = new Date(room.scheduled_date);
       const scheduledLocal = new Date(scheduledUTC.getTime() + (scheduledUTC.getTimezoneOffset() * 60000));
       
@@ -1024,6 +1115,9 @@ window.filterRooms = filterRooms;
 window.filterByDate = filterByDate;
 window.clearDateFilter = clearDateFilter;
 window.switchTab = switchTab;
+window.showLogoutConfirm = showLogoutConfirm;
+window.closeLogoutConfirm = closeLogoutConfirm;
+window.logout = logout;
 </script>
 </body>
 </html>
