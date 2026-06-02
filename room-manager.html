@@ -107,7 +107,6 @@
     .status-dot.connected { background: #10b981; }
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
     
-    /* Tabs */
     .tabs {
       display: flex;
       gap: 4px;
@@ -394,10 +393,6 @@
           <label>Game Title</label>
           <input type="text" id="roomTitle" placeholder="My Quiz Game" value="Self-Paced Quiz">
         </div>
-        <div class="input-field">
-          <label>Use Date (optional)</label>
-          <input type="date" id="roomDate">
-        </div>
         <button class="btn btn-green" onclick="createRoom()">✨ Create Room</button>
         <button class="btn btn-purple" onclick="generateRandomCode()">🎲 Random Code</button>
       </div>
@@ -435,11 +430,15 @@
           <input type="date" id="scheduledDate">
         </div>
         <div class="input-field">
-          <label>Scheduled Time</label>
+          <label>Scheduled Time (optional)</label>
           <input type="time" id="scheduledTime">
         </div>
         <button class="btn btn-orange" onclick="scheduleRoom()">📅 Schedule Room</button>
       </div>
+      <p style="font-size: 12px; color: #6b7a99; margin-top: 16px;">
+        ⚡ Scheduled rooms will appear as "Upcoming" until the scheduled date.
+        <br>On the scheduled date, they can be activated from the Manage tab.
+      </p>
     </div>
     
     <h3 style="margin: 20px 0 10px;">📅 Upcoming Scheduled Rooms</h3>
@@ -453,7 +452,7 @@ const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
 const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-// Password configuration
+// Password configuration - CHANGE THIS!
 const MASTER_PASSWORD = "admin123"; // Change this to your desired password
 let isAuthenticated = false;
 let currentFilter = 'all';
@@ -483,7 +482,6 @@ function checkExistingAuth() {
   const authTime = localStorage.getItem('room_manager_auth_time');
   
   if (auth === 'true' && authTime) {
-    // Session expires after 24 hours
     const hoursSince = (Date.now() - parseInt(authTime)) / (1000 * 60 * 60);
     if (hoursSince < 24) {
       isAuthenticated = true;
@@ -503,13 +501,8 @@ function initializeApp() {
   loadScheduledRooms();
   updateSummaryStats();
   
-  // Auto-refresh
-  setInterval(() => { loadRooms(); updateSummaryStats(); }, 10000);
+  setInterval(() => { loadRooms(); updateSummaryStats(); }, 15000);
   setInterval(checkConnection, 5000);
-  
-  // Set default date to today
-  const today = new Date().toISOString().split('T')[0];
-  document.getElementById('roomDate').value = today;
 }
 
 // Check Supabase connection
@@ -542,11 +535,10 @@ function generateRandomCode() {
   document.getElementById('manualRoomCode').value = code;
 }
 
-// Create a new room
+// Create a new room (immediate)
 async function createRoom() {
   let roomCode = document.getElementById('manualRoomCode').value.trim().toUpperCase();
   const title = document.getElementById('roomTitle').value.trim() || 'Quiz Game';
-  const useDate = document.getElementById('roomDate').value;
   
   if (!roomCode) {
     generateRandomCode();
@@ -563,7 +555,6 @@ async function createRoom() {
   createBtn.innerText = 'Creating...';
   
   try {
-    // Check if room code already exists
     const { data: existing } = await sb
       .from('game_sessions')
       .select('id')
@@ -581,17 +572,11 @@ async function createRoom() {
       room_code: roomCode,
       title: title,
       status: 'waiting',
-      created_at: new Date(),
-      scheduled_date: useDate || null
+      created_at: new Date()
     };
     
-    const { error: insertError } = await sb
-      .from('game_sessions')
-      .insert(insertData)
-      .select()
-      .single();
-    
-    if (insertError) throw insertError;
+    const { error } = await sb.from('game_sessions').insert(insertData);
+    if (error) throw error;
     
     toast(`✅ Room "${roomCode}" created successfully!`, 'success');
     document.getElementById('manualRoomCode').value = '';
@@ -624,7 +609,12 @@ async function scheduleRoom() {
     return;
   }
   
-  const scheduledDateTime = scheduledTime ? `${scheduledDate}T${scheduledTime}:00` : scheduledDate;
+  // Check if date is in the future
+  const scheduleDateTime = scheduledTime ? new Date(`${scheduledDate}T${scheduledTime}:00`) : new Date(scheduledDate);
+  if (scheduleDateTime < new Date()) {
+    toast('Scheduled date must be in the future', 'error');
+    return;
+  }
   
   const scheduleBtn = document.querySelector('#tab-schedule .btn-orange');
   scheduleBtn.disabled = true;
@@ -645,8 +635,8 @@ async function scheduleRoom() {
     const insertData = {
       room_code: roomCode,
       title: title,
-      status: 'scheduled',
-      scheduled_date: scheduledDateTime,
+      status: 'scheduled',  // This is now allowed after running the SQL fix
+      scheduled_date: scheduleDateTime.toISOString(),
       created_at: new Date()
     };
     
@@ -664,6 +654,7 @@ async function scheduleRoom() {
     updateSummaryStats();
     
   } catch (err) {
+    console.error('Schedule error:', err);
     toast('Error scheduling room: ' + err.message, 'error');
   } finally {
     scheduleBtn.disabled = false;
@@ -671,15 +662,12 @@ async function scheduleRoom() {
   }
 }
 
-// Load scheduled rooms
+// Load scheduled (upcoming) rooms
 async function loadScheduledRooms() {
   try {
-    const today = new Date().toISOString().split('T')[0];
-    
     const { data: rooms, error } = await sb
       .from('game_sessions')
       .select('*')
-      .gte('scheduled_date', today)
       .eq('status', 'scheduled')
       .order('scheduled_date', { ascending: true });
     
@@ -710,9 +698,9 @@ async function loadScheduledRooms() {
   }
 }
 
-// Activate a scheduled room
+// Activate a scheduled room early
 async function activateScheduledRoom(sessionId, roomCode) {
-  if (!confirm(`Activate room "${roomCode}" now?`)) return;
+  if (!confirm(`Activate room "${roomCode}" now? This will make it available for players.`)) return;
   
   try {
     await sb.from('game_sessions').update({ 
@@ -735,11 +723,11 @@ async function loadRooms() {
   try {
     let query = sb.from('game_sessions').select('*').order('created_at', { ascending: false });
     
-    // Apply date filter
     if (currentDateFilter) {
-      const nextDay = new Date(currentDateFilter);
-      nextDay.setDate(nextDay.getDate() + 1);
-      query = query.gte('created_at', currentDateFilter).lt('created_at', nextDay.toISOString().split('T')[0]);
+      const startDate = currentDateFilter;
+      const endDate = new Date(currentDateFilter);
+      endDate.setDate(endDate.getDate() + 1);
+      query = query.gte('created_at', startDate).lt('created_at', endDate.toISOString());
     }
     
     const { data: rooms, error } = await query;
@@ -750,7 +738,6 @@ async function loadRooms() {
       return;
     }
     
-    // Apply status filter
     let filteredRooms = rooms;
     if (currentFilter === 'active') {
       filteredRooms = rooms.filter(r => r.status === 'active' || r.status === 'waiting');
@@ -760,15 +747,13 @@ async function loadRooms() {
       filteredRooms = rooms.filter(r => r.status === 'ended');
     }
     
-    // Get player counts
     const roomsWithCounts = await Promise.all(filteredRooms.map(async (room) => {
       try {
-        const { count: playerCount } = await sb
+        const { count } = await sb
           .from('players')
           .select('*', { count: 'exact', head: true })
           .eq('session_id', room.id);
-        
-        return { ...room, playerCount: playerCount || 0 };
+        return { ...room, playerCount: count || 0 };
       } catch(e) {
         return { ...room, playerCount: 0 };
       }
@@ -790,8 +775,9 @@ async function loadRooms() {
         cardClass = 'upcoming';
       }
       
-      const isScheduled = room.status === 'scheduled';
-      const dateDisplay = room.scheduled_date ? `📅 ${new Date(room.scheduled_date).toLocaleDateString()}` : `📅 ${new Date(room.created_at).toLocaleDateString()}`;
+      const displayDate = room.scheduled_date 
+        ? `📅 Scheduled: ${new Date(room.scheduled_date).toLocaleDateString()}`
+        : `📅 Created: ${new Date(room.created_at).toLocaleDateString()}`;
       
       return `
         <div class="room-card ${cardClass}">
@@ -799,7 +785,7 @@ async function loadRooms() {
             <div class="room-code-display">${escapeHtml(room.room_code)}</div>
             <div class="room-badge ${statusClass}">${statusText}</div>
           </div>
-          <div class="room-date">${dateDisplay}</div>
+          <div class="room-date">${displayDate}</div>
           <div style="font-size: 14px; color: #6b7a99; margin-bottom: 12px;">${escapeHtml(room.title || 'Untitled')}</div>
           
           <div class="room-stats">
@@ -833,7 +819,7 @@ async function updateSummaryStats() {
     
     const today = new Date().toISOString().split('T')[0];
     const activeToday = rooms?.filter(r => {
-      const roomDate = r.scheduled_date ? r.scheduled_date.split('T')[0] : r.created_at?.split('T')[0];
+      const roomDate = r.created_at?.split('T')[0];
       return roomDate === today && (r.status === 'active' || r.status === 'waiting');
     }).length || 0;
     
@@ -849,7 +835,6 @@ async function updateSummaryStats() {
   }
 }
 
-// Filter functions
 function filterRooms(filter) {
   currentFilter = filter;
   document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
@@ -873,7 +858,7 @@ function switchTab(tab) {
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
   
   if (tab === 'create') {
-    document.querySelector('.tab').classList.add('active');
+    document.querySelectorAll('.tab')[0].classList.add('active');
     document.getElementById('tab-create').classList.add('active');
   } else if (tab === 'manage') {
     document.querySelectorAll('.tab')[1].classList.add('active');
@@ -886,24 +871,20 @@ function switchTab(tab) {
   }
 }
 
-// Open Admin Console
 function openAdmin(sessionId, roomCode) {
   window.open(`admin-sp.html?session=${sessionId}&room=${roomCode}`, '_blank');
 }
 
-// Open FOH Display
 function openFOH(sessionId, roomCode) {
   window.open(`foh-sp.html?session=${sessionId}&room=${roomCode}`, '_blank');
 }
 
-// Copy join link
 function copyRoomLink(roomCode) {
   const joinUrl = `${window.location.origin}/player-sp.html?room=${roomCode}`;
   navigator.clipboard.writeText(joinUrl);
   toast(`📋 Join link copied!`, 'success');
 }
 
-// Delete room
 async function deleteRoom(sessionId, roomCode) {
   if (!confirm(`Delete room "${roomCode}" and all its data? This cannot be undone!`)) return;
   
