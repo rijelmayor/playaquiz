@@ -1066,21 +1066,32 @@ function copyRoomLink(roomCode) {
   toast(`📋 Join link copied!`, 'success');
 }
 
+// ========== FIXED deleteRoom FUNCTION ==========
 async function deleteRoom(sessionId, roomCode) {
   if (!confirm(`Delete room "${roomCode}" and all its data? This cannot be undone!`)) return;
   
   try {
+    // Delete in correct order to respect foreign keys
     await sb.from('answers').delete().eq('session_id', sessionId);
     await sb.from('players').delete().eq('session_id', sessionId);
     await sb.from('game_events').delete().eq('session_id', sessionId);
-    await sb.from('questions').delete().eq('session_id', sessionId);
-    await sb.from('game_sessions').delete().eq('id', sessionId);
     
-    toast(`🗑️ Room "${roomCode}" deleted`, 'success');
+    // Delete questions (they reference categories, but categories are independent)
+    await sb.from('questions').delete().eq('session_id', sessionId);
+    
+    // Delete categories (they reference game_sessions via session_id)
+    await sb.from('categories').delete().eq('session_id', sessionId);
+    
+    // Finally delete the game session
+    const { error } = await sb.from('game_sessions').delete().eq('id', sessionId);
+    if (error) throw error;
+    
+    toast(`🗑️ Room "${roomCode}" deleted successfully`, 'success');
     await loadRooms();
     await loadScheduledRooms();
     updateSummaryStats();
   } catch (err) {
+    console.error('Delete error:', err);
     toast('Error deleting room: ' + err.message, 'error');
   }
 }
