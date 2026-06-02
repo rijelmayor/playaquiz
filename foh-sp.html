@@ -6,6 +6,7 @@
   <title>PlayAQuiz — FOH Display (Self-Paced)</title>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -39,21 +40,41 @@
     .qr-container {
       display: flex;
       justify-content: center;
+      align-items: center;
       margin: 20px 0;
+      min-height: 220px;
     }
-    .qr-placeholder {
+    #qrcode {
       background: white;
+      padding: 16px;
       border-radius: 20px;
-      padding: 20px;
       display: inline-block;
+    }
+    #qrcode canvas, #qrcode img {
+      display: block;
+      margin: 0 auto;
     }
     .room-code-big {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 48px;
+      font-size: 56px;
       font-weight: 700;
       color: #3b82f6;
       letter-spacing: 8px;
       margin: 20px 0;
+      background: rgba(0,0,0,0.3);
+      padding: 16px 32px;
+      border-radius: 20px;
+      display: inline-block;
+    }
+    .join-link {
+      font-family: monospace;
+      font-size: 12px;
+      color: rgba(255,255,255,0.4);
+      word-break: break-all;
+      margin-top: 16px;
+      padding: 8px;
+      background: rgba(0,0,0,0.3);
+      border-radius: 8px;
     }
     
     .stats-container {
@@ -101,6 +122,8 @@
       display: flex;
       flex-direction: column;
       gap: 10px;
+      max-height: 400px;
+      overflow-y: auto;
     }
     .leaderboard-row {
       display: flex;
@@ -167,7 +190,19 @@
       width: 100%;
       margin: 20px 0;
     }
+    .error-msg {
+      color: #ef4444;
+      font-size: 13px;
+      margin-top: 12px;
+    }
     .hidden { display: none !important; }
+    
+    .footer {
+      text-align: center;
+      padding: 20px;
+      color: rgba(255,255,255,0.3);
+      font-size: 12px;
+    }
   </style>
 </head>
 <body>
@@ -175,19 +210,26 @@
   <div class="entry-card">
     <div style="font-size: 36px; font-weight: 800; margin-bottom: 8px;">PLAY<span style="color:#3b82f6">A</span>QUIZ</div>
     <div style="font-size: 14px; color: rgba(255,255,255,0.5);">Enter Room Code to Display</div>
-    <input type="text" id="roomInput" class="entry-input" placeholder="CODE" maxlength="8">
+    <input type="text" id="roomInput" class="entry-input" placeholder="CODE" maxlength="8" autocomplete="off">
     <button class="btn" onclick="connectToRoom()">Connect →</button>
-    <div id="roomError" style="color: #ef4444; margin-top: 16px;"></div>
+    <div id="roomError" class="error-msg"></div>
   </div>
 </div>
 
 <div id="mainContent" class="hidden">
   <div class="qr-section">
-    <div class="qr-title">SCAN TO JOIN</div>
+    <div class="qr-title">📱 SCAN TO JOIN</div>
     <div class="qr-subtitle">Use your phone to scan the QR code and start playing</div>
-    <div class="qr-container" id="qrCode"></div>
-    <div class="room-code-big" id="roomCodeDisplay">——</div>
-    <div style="font-size:14px; color:rgba(255,255,255,0.5);">Or enter code manually on your device</div>
+    <div class="qr-container">
+      <div id="qrcode"></div>
+    </div>
+    <div>
+      <div class="room-code-big" id="roomCodeDisplay">——</div>
+    </div>
+    <div class="join-link" id="joinUrlDisplay"></div>
+    <div style="font-size:14px; color:rgba(255,255,255,0.5); margin-top: 16px;">
+      Or enter code manually on your device
+    </div>
   </div>
 
   <div class="stats-container">
@@ -198,7 +240,13 @@
 
   <div class="leaderboard-container">
     <div class="leaderboard-title">🏆 LIVE LEADERBOARD</div>
-    <div class="leaderboard-list" id="leaderboardList"></div>
+    <div class="leaderboard-list" id="leaderboardList">
+      <div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.5);">Waiting for players...</div>
+    </div>
+  </div>
+  
+  <div class="footer">
+    PlayAQuiz — Self-Paced Mode | Room active until game ends
   </div>
 </div>
 
@@ -210,7 +258,9 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 let SESSION_ID = null;
 let ROOM_CODE = null;
 let refreshInterval = null;
+let realtimeChannel = null;
 
+// Get URL parameters
 const urlParams = new URLSearchParams(window.location.search);
 const sessionFromUrl = urlParams.get('session');
 const roomFromUrl = urlParams.get('room');
@@ -221,6 +271,7 @@ if (sessionFromUrl && roomFromUrl) {
   document.getElementById('roomEntry').classList.add('hidden');
   document.getElementById('mainContent').classList.remove('hidden');
   document.getElementById('roomCodeDisplay').innerText = ROOM_CODE;
+  generateQRCode();
   init();
 }
 
@@ -228,34 +279,79 @@ async function connectToRoom() {
   const code = document.getElementById('roomInput').value.trim().toUpperCase();
   if (!code) { showError('Enter room code'); return; }
   
-  const { data: session, error } = await sb
-    .from('game_sessions')
-    .select('id, room_code')
-    .eq('room_code', code)
-    .maybeSingle();
+  const btn = document.querySelector('#roomEntry .btn');
+  btn.disabled = true;
+  btn.innerText = 'Connecting...';
   
-  if (error || !session) {
-    showError('Room not found');
-    return;
+  try {
+    const { data: session, error } = await sb
+      .from('game_sessions')
+      .select('id, room_code')
+      .eq('room_code', code)
+      .maybeSingle();
+    
+    if (error || !session) {
+      showError('Room not found');
+      btn.disabled = false;
+      btn.innerText = 'Connect →';
+      return;
+    }
+    
+    SESSION_ID = session.id;
+    ROOM_CODE = session.room_code;
+    
+    document.getElementById('roomEntry').classList.add('hidden');
+    document.getElementById('mainContent').classList.remove('hidden');
+    document.getElementById('roomCodeDisplay').innerText = ROOM_CODE;
+    
+    generateQRCode();
+    init();
+    
+  } catch (err) {
+    showError('Connection error: ' + err.message);
+    btn.disabled = false;
+    btn.innerText = 'Connect →';
   }
-  
-  SESSION_ID = session.id;
-  ROOM_CODE = session.room_code;
-  document.getElementById('roomEntry').classList.add('hidden');
-  document.getElementById('mainContent').classList.remove('hidden');
-  document.getElementById('roomCodeDisplay').innerText = ROOM_CODE;
-  
-  // Generate QR code display
+}
+
+function generateQRCode() {
   const joinUrl = `${window.location.origin}/player-sp.html?room=${ROOM_CODE}`;
-  const qrContainer = document.getElementById('qrCode');
-  qrContainer.innerHTML = `
-    <div style="background:#fff; border-radius:16px; padding:20px;">
-      <div style="width:180px; height:180px; background: repeating-linear-gradient(45deg, #000 0px, #000 4px, #fff 4px, #fff 12px); border-radius:8px;"></div>
-      <div style="margin-top:12px; font-family:monospace; font-size:11px; color:#000; word-break:break-all;">${joinUrl}</div>
+  document.getElementById('joinUrlDisplay').innerText = joinUrl;
+  
+  const qrContainer = document.getElementById('qrcode');
+  qrContainer.innerHTML = '';
+  
+  // Use QRCode.js library if available
+  if (typeof QRCode !== 'undefined') {
+    try {
+      new QRCode(qrContainer, {
+        text: joinUrl,
+        width: 200,
+        height: 200,
+        colorDark: "#000000",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.H
+      });
+      console.log('QR Code generated for:', joinUrl);
+    } catch(e) {
+      console.error('QRCode error:', e);
+      fallbackQRDisplay(qrContainer, joinUrl);
+    }
+  } else {
+    console.warn('QRCode library not loaded, using fallback');
+    fallbackQRDisplay(qrContainer, joinUrl);
+  }
+}
+
+function fallbackQRDisplay(container, url) {
+  // Fallback: Create a visual representation
+  container.innerHTML = `
+    <div style="background: white; border-radius: 16px; padding: 16px; text-align: center;">
+      <div style="width: 180px; height: 180px; background: repeating-linear-gradient(45deg, #000 0px, #000 4px, #fff 4px, #fff 12px); border-radius: 8px; margin: 0 auto;"></div>
+      <div style="margin-top: 12px; font-family: monospace; font-size: 10px; color: #000; word-break: break-all;">${url}</div>
+      <div style="margin-top: 8px; font-size: 11px; color: #666;">Enter code: ${ROOM_CODE}</div>
     </div>
   `;
-  
-  init();
 }
 
 function showError(msg) {
@@ -274,63 +370,76 @@ async function init() {
 async function loadStats() {
   if (!SESSION_ID) return;
   
-  // Get all players for this session
-  const { data: players, error } = await sb
-    .from('players')
-    .select('*')
-    .eq('session_id', SESSION_ID);
-  
-  if (error) {
-    console.error('Error loading players:', error);
-    return;
-  }
-  
-  if (!players) return;
-  
-  // Calculate stats safely (check if completed column exists, if not use fallback)
-  const totalPlayers = players.length;
-  const activePlayers = players.filter(p => {
-    // If completed column doesn't exist, assume all are active
-    if (p.completed === undefined) return true;
-    return !p.completed && !p.is_eliminated;
-  }).length;
-  const completedPlayers = players.filter(p => p.completed === true).length;
-  
-  document.getElementById('statPlayers').innerText = totalPlayers;
-  document.getElementById('statActive').innerText = activePlayers;
-  document.getElementById('statCompleted').innerText = completedPlayers;
-  
-  // Sort by score
-  const sorted = [...players].sort((a, b) => (b.score || 0) - (a.score || 0));
-  
-  document.getElementById('leaderboardList').innerHTML = sorted.slice(0, 10).map((p, i) => {
-    let statusText = 'Playing';
-    let statusClass = 'status-active';
-    if (p.completed === true) {
-      statusText = '✓ Completed';
-      statusClass = 'status-complete';
-    } else if (p.is_eliminated) {
-      statusText = '❌ Eliminated';
-      statusClass = 'status-active';
+  try {
+    // Get all players for this session
+    const { data: players, error } = await sb
+      .from('players')
+      .select('*')
+      .eq('session_id', SESSION_ID);
+    
+    if (error) throw error;
+    
+    if (!players || players.length === 0) {
+      document.getElementById('statPlayers').innerText = '0';
+      document.getElementById('statActive').innerText = '0';
+      document.getElementById('statCompleted').innerText = '0';
+      document.getElementById('leaderboardList').innerHTML = '<div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.5);">Waiting for players to join...</div>';
+      return;
     }
     
-    return `
-      <div class="leaderboard-row">
-        <div class="rank">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}`}</div>
-        <div class="avatar">${p.avatar_color || '👤'}</div>
-        <div class="name">${escapeHtml(p.name)}</div>
-        <div class="score">${p.score || 0}</div>
-        <div class="status ${statusClass}">${statusText}</div>
-      </div>
-    `;
-  }).join('');
+    // Calculate stats
+    const totalPlayers = players.length;
+    const activePlayers = players.filter(p => !p.completed && !p.is_eliminated).length;
+    const completedPlayers = players.filter(p => p.completed === true).length;
+    
+    document.getElementById('statPlayers').innerText = totalPlayers;
+    document.getElementById('statActive').innerText = activePlayers;
+    document.getElementById('statCompleted').innerText = completedPlayers;
+    
+    // Sort by score for leaderboard
+    const sorted = [...players].sort((a, b) => (b.score || 0) - (a.score || 0));
+    
+    if (sorted.length === 0) {
+      document.getElementById('leaderboardList').innerHTML = '<div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.5);">No players yet</div>';
+      return;
+    }
+    
+    document.getElementById('leaderboardList').innerHTML = sorted.slice(0, 10).map((p, i) => {
+      let statusText = 'Playing';
+      let statusClass = 'status-active';
+      if (p.completed === true) {
+        statusText = '✓ Completed';
+        statusClass = 'status-complete';
+      } else if (p.is_eliminated) {
+        statusText = '❌ Eliminated';
+        statusClass = 'status-active';
+      }
+      
+      const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}`;
+      
+      return `
+        <div class="leaderboard-row">
+          <div class="rank">${medal}</div>
+          <div class="avatar">${p.avatar_color || '👤'}</div>
+          <div class="name">${escapeHtml(p.name)}</div>
+          <div class="score">${p.score || 0}</div>
+          <div class="status ${statusClass}">${statusText}</div>
+        </div>
+      `;
+    }).join('');
+    
+  } catch (err) {
+    console.error('Error loading stats:', err);
+  }
 }
 
 function setupRealtime() {
-  if (!SESSION_ID) return;
+  if (realtimeChannel) {
+    try { sb.removeChannel(realtimeChannel); } catch(e) {}
+  }
   
-  const channel = sb.channel(`foh-${SESSION_ID}`);
-  channel
+  realtimeChannel = sb.channel(`foh-${SESSION_ID}`);
+  realtimeChannel
     .on('postgres_changes', { 
       event: '*', 
       schema: 'public', 
@@ -345,10 +454,18 @@ function escapeHtml(str) {
   return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
 }
 
-// Check for saved session in URL
+// Auto-start if URL params provided
 if (!SESSION_ID && !roomFromUrl && !sessionFromUrl) {
-  // Show entry screen - do nothing, wait for input
+  // Show entry screen - wait for input
+  console.log('Waiting for room code input');
 }
+
+// Refresh QR code every 30 seconds to ensure it's visible
+setInterval(() => {
+  if (ROOM_CODE) {
+    generateQRCode();
+  }
+}, 30000);
 </script>
 </body>
 </html>
