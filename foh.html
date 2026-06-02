@@ -1091,6 +1091,14 @@
 </div>
 <div class="reveal-banner" id="revealBanner"></div>
 
+
+<!-- Add these script tags to all 6 files -->
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script src="phase-config.js"></script>
+<script src="qr-manager.js"></script>
+<script src="phase-manager.js"></script>
+
+
 <script>
 const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
 const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
@@ -1995,6 +2003,42 @@ async function init() {
 
   // 3. Fresh start — entry overlay is already wired, wait for operator input
   // (nothing else to do; setupEntryUI() was called at the top)
+}
+
+// Add to foh.html - near top bar or in waiting screen
+function showPhase1QR() {
+  if (!SESSION_ID) return;
+  const roomCode = document.getElementById('roomCode').innerText;
+  const joinUrl = `${window.location.origin}/player.html?room=${roomCode}`;
+  
+  const qrContainer = document.getElementById('qrContainer');
+  if (qrContainer && window.QRManager) {
+    window.QRManager.renderQR('qrContainer', joinUrl, 200);
+  }
+}
+
+// Listen for Phase 2 transition
+window.addEventListener('phase2started', (e) => {
+  const { topPlayers, roomCode } = e.detail;
+  showPhase2Ready(topPlayers, roomCode);
+});
+
+function showPhase2Ready(topPlayers, roomCode) {
+  const qrContainer = document.getElementById('qrContainer');
+  if (qrContainer) {
+    const finalUrl = `${window.location.origin}/finalroundplayer.html?room=${roomCode}`;
+    qrContainer.innerHTML = `
+      <div style="text-align:center;padding:20px;">
+        <div style="font-size:28px;margin-bottom:16px;">🏆 FINAL ROUND</div>
+        <div style="font-size:14px;margin-bottom:12px;">Top 5: ${topPlayers.map(p => p.name).join(', ')}</div>
+        <div id="finalQr" style="margin:16px auto;"></div>
+        <div style="font-size:12px;color:var(--muted);">Scan to join Final Round</div>
+      </div>
+    `;
+    if (window.QRManager) {
+      window.QRManager.renderQR('finalQr', finalUrl, 180);
+    }
+  }
 }
 
 init();

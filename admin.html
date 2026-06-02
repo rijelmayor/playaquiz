@@ -223,6 +223,7 @@
     <button class="nav-item" data-panel="players" onclick="switchPanel(this,'players')">👥 Players</button>
     <button class="nav-item" data-panel="catsel" onclick="switchPanel(this,'catsel')">🎡 Category Selection</button>
     <button class="nav-item" data-panel="foh" onclick="switchPanel(this,'foh')">📺 FOH Display</button>
+    <button class="btn btn-purple" onclick="finishPhase1AndTransition()">🏆 End Phase 1 → Final Round</button>
     <div class="nav-divider"></div>
     <div class="sidebar-bottom">
       <div class="room-display">
@@ -573,6 +574,13 @@
     </div>
   </div>
 </div>
+
+
+<!-- Add these script tags to all 6 files -->
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script src="phase-config.js"></script>
+<script src="qr-manager.js"></script>
+<script src="phase-manager.js"></script>
 
 <script>
 const SUPABASE_URL  = 'https://efgirqbaayfjwswnwbop.supabase.co';
@@ -1464,6 +1472,47 @@ async function fireEmergencyQuestion() {
   await gameNext();
   toast('🚨 Emergency question fired!', 'success');
 }
+
+// Add to admin.html - after game reset function
+async function finishPhase1AndTransition() {
+  if (!confirm('End Phase 1 and transition Top 5 to Final Round?')) return;
+  
+  // Get top 5 players
+  const { data: topPlayers } = await sb
+    .from('players')
+    .select('id, name, avatar_color, score')
+    .eq('session_id', SESSION_ID)
+    .order('score', { ascending: false })
+    .limit(5);
+  
+  if (!topPlayers || topPlayers.length === 0) {
+    toast('No players to transition', 'error');
+    return;
+  }
+  
+  // Store top players for Phase 2
+  const transitionData = {
+    topPlayers: topPlayers.map((p, idx) => ({
+      ...p,
+      rank: idx + 1,
+      avatar: p.avatar_color || '🎮'
+    })),
+    phase1SessionId: SESSION_ID
+  };
+  
+  // Use PhaseManager if available
+  if (window.PhaseManager) {
+    const result = await window.PhaseManager.endPhase1AndTransition(transitionData.topPlayers);
+    if (result) {
+      toast(`🎉 Phase 2 Ready! Room: ${result.roomCode}`, 'success');
+      // Also broadcast to FOH
+      await broadcastFOH('phase2_ready', { roomCode: result.roomCode, topPlayers: transitionData.topPlayers });
+    }
+  }
+}
+
+// Add button in Dashboard:
+// <button class="btn btn-purple" onclick="finishPhase1AndTransition()">🏆 End Phase 1 → Final Round</button>
 
 // Expose
 window.switchPanel=switchPanel; window.openCatDetail=openCatDetail; window.closeCatDetail=closeCatDetail;

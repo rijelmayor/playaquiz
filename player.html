@@ -466,6 +466,13 @@
 
 </div>
 
+<!-- Add these script tags to all 6 files -->
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script src="phase-config.js"></script>
+<script src="qr-manager.js"></script>
+<script src="phase-manager.js"></script>
+
+
 <script>
 const SUPABASE_URL  = 'https://efgirqbaayfjwswnwbop.supabase.co';
 const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
@@ -509,6 +516,21 @@ function nextReconnectDelay() {
 let heartbeatIv = null;
 const HEARTBEAT_MS = 10000; // 10 s
 let lastEventAt   = Date.now();
+
+
+// Add to player.html init section
+function getUrlParams() {
+  const params = new URLSearchParams(window.location.search);
+  const roomFromUrl = params.get('room');
+  if (roomFromUrl) {
+    document.getElementById('roomCodeInput').value = roomFromUrl.toUpperCase();
+    setTimeout(() => document.getElementById('joinBtn').click(), 500);
+  }
+}
+
+// Call at end of init or on page load
+getUrlParams();
+
 
 // ── answer offline queue — flush on reconnect if upsert failed while offline ──
 // Stored in localStorage as JSON array under key 'paq_answer_queue'
@@ -1196,6 +1218,8 @@ function playerTick(timeLeft) {
     o.start(); o.stop(ctx.currentTime + 0.09);
   } catch(e) {}
 }
+
+
 
 
 

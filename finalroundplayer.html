@@ -824,6 +824,12 @@
   </div>
 </div>
 
+<!-- Add these script tags to all 6 files -->
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script src="phase-config.js"></script>
+<script src="qr-manager.js"></script>
+<script src="phase-manager.js"></script>
+
 <script>
 const SUPABASE_URL  = 'https://efgirqbaayfjwswnwbop.supabase.co';
 const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
@@ -849,6 +855,28 @@ const ROOM_POLL_MS  = 20000;
 document.getElementById('avatarGrid').innerHTML = AVATARS.map((a,i) =>
   `<div class="avatar-opt ${i===0?'selected':''}" onclick="pickAvatar(this,'${a}')">${a}</div>`
 ).join('');
+
+
+// Add to finalroundplayer.html
+function autoJoinFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const roomFromUrl = params.get('room');
+  if (roomFromUrl) {
+    document.getElementById('roomInput').value = roomFromUrl.toUpperCase();
+    setTimeout(() => {
+      if (roomVerified) {
+        joinGame();
+      } else {
+        verifyRoom(roomFromUrl.toUpperCase()).then(() => {
+          if (roomVerified) joinGame();
+        });
+      }
+    }, 800);
+  }
+}
+
+// Call after initialization
+autoJoinFromUrl();
 
 function pickAvatar(el, avatar) {
   document.querySelectorAll('.avatar-opt').forEach(x => x.classList.remove('selected'));
