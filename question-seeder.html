@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lola's 70th — Balanced Trivia Seeder</title>
+<title>Lola's 70th — Room‑Specific Trivia Seeder</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;600;700&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -14,35 +14,54 @@
   }
   body { background: var(--bg); font-family: 'Space Grotesk', sans-serif; color: var(--text); padding: 40px 20px; }
   h1 { font-family: 'Bebas Neue', sans-serif; font-size: 50px; text-align: center; color: var(--gold); }
-  .controls { display: flex; gap: 20px; justify-content: center; margin: 30px 0; }
+  .room-selector {
+    background: var(--surface); padding: 20px; border-radius: 16px;
+    max-width: 400px; margin: 0 auto 30px; text-align: center;
+    border: 1px solid var(--border);
+  }
+  .room-input {
+    background: #000; border: 1px solid var(--border); padding: 12px;
+    border-radius: 10px; width: 200px; font-family: monospace;
+    font-size: 20px; text-align: center; color: var(--gold);
+  }
+  .controls { display: flex; gap: 20px; justify-content: center; margin: 20px 0; }
   .btn { border: none; padding: 16px 32px; border-radius: 12px; font-weight: 700; cursor: pointer; transition: 0.3s; }
   .btn-seed { background: var(--green); color: #000; width: 300px; font-size: 18px; }
+  .btn-load { background: var(--accent); color: #000; }
   .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
   .cat-card { background: var(--surface); border: 2px solid var(--border); padding: 20px; border-radius: 15px; }
   .progress-bar { height: 10px; background: #000; border-radius: 5px; margin-top: 10px; overflow: hidden; border: 1px solid var(--border); }
   .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--gold)); width: 0%; transition: 0.3s; }
   .log-box { background: #000; padding: 15px; border-radius: 10px; font-family: monospace; height: 180px; overflow-y: auto; margin-top: 30px; font-size: 12px; border: 1px solid var(--border); color: #888; }
+  .warning { color: var(--gold); font-size: 12px; margin-top: 8px; }
 </style>
 </head>
 <body>
 
-<h1>Lola's 70th: Balanced Seeder</h1>
-<p style="text-align:center; color: var(--muted);">Mixing English Trivia with Pinoy & Family Favorites.</p>
+<h1>Lola's 70th: Room‑Specific Seeder</h1>
+<p style="text-align:center; color: var(--muted);">Seed categories & questions for ONE room only.</p>
+
+<div class="room-selector">
+  <label style="display: block; margin-bottom: 8px;">🎯 Target Room Code</label>
+  <input type="text" id="roomCodeInput" class="room-input" placeholder="e.g., PARTY70" maxlength="8" autocomplete="off">
+  <div class="warning">⚠️ This will replace ALL categories/questions in that room with 800 balanced questions.</div>
+</div>
 
 <div class="controls">
-  <button class="btn btn-seed" id="btnSeed" onclick="seedAll()">🎂 Load 800 Balanced Questions</button>
+  <button class="btn btn-seed" id="btnSeed" onclick="seedForRoom()">🌱 Seed Questions for this Room</button>
+  <button class="btn btn-load" onclick="loadRoomFromURL()">📋 Load from URL</button>
 </div>
 
 <div class="grid" id="catGrid"></div>
-<div class="log-box" id="logBox">Status: Ready to seed a mix of Trivia and Family questions...</div>
+<div class="log-box" id="logBox">Status: Enter a room code above and click Seed.</div>
 
 <script>
 const SUPABASE_URL  = 'https://efgirqbaayfjwswnwbop.supabase.co';
 const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
+// ---------- Balanced question bank ----------
 const CATEGORIES = {
-  // --- NEW ENGLISH TRIVIA ---
   'General Knowledge': { icon: '🌍', color: '#00e5ff', q: [
     {q:"Which planet is known as the Red Planet?", a:"Mars", b:"Venus", c:"Jupiter", d:"Saturn", c_opt:0},
     {q:"Who painted the Mona Lisa?", a:"Leonardo da Vinci", b:"Pablo Picasso", c:"Vincent van Gogh", d:"Claude Monet", c_opt:0},
@@ -56,7 +75,6 @@ const CATEGORIES = {
     {q:"Who wrote the play 'Romeo and Juliet'?", a:"William Shakespeare", b:"Charles Dickens", c:"Mark Twain", d:"Jane Austen", c_opt:0},
     {q:"What is the first book of the 'Harry Potter' series?", a:"The Sorcerer's Stone", b:"The Chamber of Secrets", c:"The Goblet of Fire", d:"The Half-Blood Prince", c_opt:0}
   ]},
-  // --- PINOY & LOLA FAVORITES ---
   'Family & Traditions': { icon: '🏠', color: '#f472b6', q: [
     {q:"What is the respectful Bisaya greeting for elders?", a:"Mano", b:"Hi", c:"Hug", d:"Wink", c_opt:0},
     {q:"What is 'Pamanhikan' in Filipino tradition?", a:"Engagement tradition", b:"Cooking contest", c:"Birthday", d:"Baptism", c_opt:0}
@@ -83,81 +101,151 @@ function log(msg, isErr=false) {
 
 function generateVolume(catName, baseQs) {
   let finalQs = [...baseQs];
-  
-  // Mixed fillers: English Trivia and Lola Trivia
   const triviaFillers = [
-    "What is the capital city of France?",
-    "How many continents are there on Earth?",
-    "What is the square root of 64?",
-    "Who is the author of 'The Great Gatsby'?",
+    "What is the capital city of France?", "How many continents are there on Earth?",
+    "What is the square root of 64?", "Who is the author of 'The Great Gatsby'?",
     "What is the tallest mountain in the world?"
   ];
-  
   const lolaFillers = [
-    "What is Lola's favorite color?",
-    "Which family member is the best cook after Lola?",
-    "What year was Lola born?",
-    "What is Lola's favorite 70s song?",
+    "What is Lola's favorite color?", "Which family member is the best cook after Lola?",
+    "What year was Lola born?", "What is Lola's favorite 70s song?",
     "Who is Lola's eldest grandchild?"
   ];
-
   for(let i = finalQs.length; i < 100; i++) {
-    // Alternate between English trivia and Lola trivia for variety
     const fillerText = (i % 2 === 0) ? triviaFillers[Math.floor(i/2) % triviaFillers.length] : lolaFillers[Math.floor(i/2) % lolaFillers.length];
-    
     finalQs.push({
-      q: fillerText, 
-      a: "Option A", b: "Option B", c: "Option C", d: "Option D", c_opt: Math.floor(Math.random() * 4)
+      q: fillerText, a: "Option A", b: "Option B", c: "Option C", d: "Option D",
+      c_opt: Math.floor(Math.random() * 4)
     });
   }
   return finalQs;
 }
 
-async function seedAll() {
+async function seedForRoom() {
+  const roomCode = document.getElementById('roomCodeInput').value.trim().toUpperCase();
+  if (!roomCode) {
+    log("❌ Please enter a room code", true);
+    return;
+  }
+
   const btn = document.getElementById('btnSeed');
   btn.disabled = true;
-  btn.innerText = "⏳ Loading 800 Mixed Questions...";
+  btn.innerText = "🔍 Looking up room...";
 
+  // 1. Get session ID
+  const { data: session, error: sessionErr } = await sb
+    .from('game_sessions')
+    .select('id')
+    .eq('room_code', roomCode)
+    .maybeSingle();
+
+  if (sessionErr || !session) {
+    log(`❌ Room "${roomCode}" not found. Create it first in Room Manager.`, true);
+    btn.disabled = false;
+    btn.innerText = "🌱 Seed Questions for this Room";
+    return;
+  }
+
+  const sessionId = session.id;
+  log(`🎯 Found room ${roomCode} (ID: ${sessionId})`);
+
+  // 2. Delete existing categories & questions for this session ONLY
+  btn.innerText = "🗑️ Clearing old data for this room...";
+  log(`🧹 Deleting existing categories/questions for session ${sessionId}...`);
+
+  // Delete questions first (foreign key to categories)
+  const { error: delQuestions } = await sb
+    .from('questions')
+    .delete()
+    .eq('session_id', sessionId);
+  if (delQuestions) log(`⚠️ Question delete warning: ${delQuestions.message}`, true);
+
+  const { error: delCats } = await sb
+    .from('categories')
+    .delete()
+    .eq('session_id', sessionId);
+  if (delCats) log(`⚠️ Category delete warning: ${delCats.message}`, true);
+
+  log(`✅ Cleaned old data for room ${roomCode}`);
+
+  // 3. Insert fresh categories & questions with session_id
+  btn.innerText = "🌱 Seeding 800 questions...";
   for (const [name, info] of Object.entries(CATEGORIES)) {
-    log(`Syncing category: ${name}`);
-    
-    const { data: cat, error: cErr } = await sb.from('categories')
-      .upsert({ name: name, icon: info.icon, color: info.color }, { onConflict: 'name' })
-      .select().single();
+    log(`📁 Adding category: ${name}`);
 
-    if(cErr) { log(`Error: ${cErr.message}`, true); continue; }
+    const { data: cat, error: cErr } = await sb
+      .from('categories')
+      .insert({
+        name: name,
+        icon: info.icon,
+        color: info.color,
+        session_id: sessionId
+      })
+      .select()
+      .single();
+
+    if (cErr) {
+      log(`❌ Failed to create category ${name}: ${cErr.message}`, true);
+      continue;
+    }
 
     const questions = generateVolume(name, info.q);
-    const fill = document.getElementById(`fill-${name.replace(/\s/g, '').replace(/[^a-zA-Z]/g, '')}`);
+    const fillId = `fill-${name.replace(/\s/g, '').replace(/[^a-zA-Z]/g, '')}`;
+    const fillEl = document.getElementById(fillId);
 
-    await sb.from('questions').delete().eq('category_id', cat.id);
-
+    // Insert in batches
     for (let i = 0; i < questions.length; i += 25) {
       const batch = questions.slice(i, i + 25).map(q => ({
         category_id: cat.id,
+        session_id: sessionId,
         question_text: q.q,
         option_a: q.a, option_b: q.b, option_c: q.c, option_d: q.d,
         correct_option: q.c_opt,
         time_limit: 20, points: 100
       }));
       const { error: qErr } = await sb.from('questions').insert(batch);
-      if(qErr) log(`Insert Error: ${qErr.message}`, true);
-      if(fill) fill.style.width = `${((i + 25) / 100) * 100}%`;
+      if (qErr) log(`❌ Batch insert error: ${qErr.message}`, true);
+      if (fillEl) fillEl.style.width = `${((i + 25) / 100) * 100}%`;
     }
-    log(`✅ ${name} (100 Questions) Loaded`);
+    log(`✅ ${name} → 100 questions added for room ${roomCode}`);
   }
-  log("🎉 SUCCESS: Balanced 800 Questions Ready!");
-  btn.innerText = "✅ Loading Complete";
+
+  log(`🎉 SUCCESS! Room "${roomCode}" now has its own 800 questions.`);
+  btn.innerText = "✅ Seeding Complete";
+  btn.disabled = false;
+  setTimeout(() => {
+    btn.innerText = "🌱 Seed Questions for this Room";
+  }, 3000);
+}
+
+function loadRoomFromURL() {
+  const params = new URLSearchParams(window.location.search);
+  const room = params.get('room');
+  if (room) {
+    document.getElementById('roomCodeInput').value = room.toUpperCase();
+    log(`📋 Loaded room code from URL: ${room}`);
+  } else {
+    log("ℹ️ No ?room=CODE parameter found in URL.");
+  }
 }
 
 function initUI() {
-  document.getElementById('catGrid').innerHTML = Object.entries(CATEGORIES).map(([name, info]) => `
-    <div class="cat-card">
-      <strong>${info.icon} ${name}</strong>
-      <div class="progress-bar"><div class="progress-fill" id="fill-${name.replace(/\s/g, '').replace(/[^a-zA-Z]/g, '')}"></div></div>
-    </div>
-  `).join('');
+  const grid = document.getElementById('catGrid');
+  grid.innerHTML = Object.entries(CATEGORIES).map(([name, info]) => {
+    const safeId = name.replace(/\s/g, '').replace(/[^a-zA-Z]/g, '');
+    return `
+      <div class="cat-card">
+        <strong>${info.icon} ${name}</strong>
+        <div class="progress-bar">
+          <div class="progress-fill" id="fill-${safeId}"></div>
+        </div>
+      </div>
+    `;
+  }).join('');
 }
+
+// Auto-load room from URL
+loadRoomFromURL();
 initUI();
 </script>
 </body>

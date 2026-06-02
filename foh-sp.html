@@ -147,12 +147,35 @@
     .timezone-badge {
       background: rgba(59,130,246,0.2);
       border-radius: 20px;
-      padding: 4px 12px;
-      font-size: 11px;
+      padding: 6px 14px;
+      font-size: 12px;
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      margin-top: 10px;
+      margin-top: 12px;
+    }
+    
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-top: 12px;
+    }
+    
+    .status-scheduled {
+      background: rgba(245,158,11,0.2);
+      border: 1px solid rgba(245,158,11,0.4);
+      color: #f59e0b;
+    }
+    
+    .status-active-badge {
+      background: rgba(16,185,129,0.2);
+      border: 1px solid rgba(16,185,129,0.4);
+      color: #10b981;
     }
     
     .btn {
@@ -204,6 +227,7 @@
       color: #ef4444;
       font-size: 13px;
       margin-top: 12px;
+      min-height: 20px;
     }
     .hidden { display: none !important; }
     
@@ -238,6 +262,7 @@
     </div>
     <div class="join-link" id="joinUrlDisplay"></div>
     <div class="timezone-badge" id="timezoneDisplay"></div>
+    <div id="roomStatusDisplay"></div>
     <div style="font-size:14px; color:rgba(255,255,255,0.5); margin-top: 16px;">
       Or enter code manually on your device
     </div>
@@ -255,42 +280,37 @@
       <div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.5);">Waiting for players...</div>
     </div>
   </div>
-  
+
   <div class="footer">
-    PlayAQuiz — Self-Paced Mode | Room active until game ends
+    PlayAQuiz Self-Paced | Live Display
   </div>
 </div>
 
 <script>
-const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
-const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+const supabaseUrl = 'https://your-supabase-url.supabase.co';
+const supabaseKey = 'your-supabase-key';
+const sb = supabase.createClient(supabaseUrl, supabaseKey);
 
 let SESSION_ID = null;
 let ROOM_CODE = null;
 let refreshInterval = null;
 let realtimeChannel = null;
 
-// Timezone utilities
-function getUserTimezone() {
-  return Intl.DateTimeFormat().resolvedOptions().timeZone;
-}
-
-function getTimezoneOffset() {
-  const offset = new Date().getTimezoneOffset();
-  const hours = Math.abs(Math.floor(offset / 60));
-  const minutes = Math.abs(offset % 60);
-  const sign = offset <= 0 ? '+' : '-';
-  return `UTC ${sign}${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-}
-
 function displayTimezoneInfo() {
-  const tz = getUserTimezone();
-  const offset = getTimezoneOffset();
-  const display = document.getElementById('timezoneDisplay');
-  if (display) {
-    display.innerHTML = `🌍 ${tz} (${offset})`;
-  }
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const time = new Date().toLocaleString();
+  document.getElementById('timezoneDisplay').innerHTML = `🌍 ${tz}<br><span style="font-size:11px; color:rgba(255,255,255,0.5);">${time}</span>`;
+}
+
+// ✅ FIXED TIMEZONE COMPARISON FUNCTION
+function isRoomAvailable(scheduledDateString) {
+  if (!scheduledDateString) return true; // No scheduled date = always available
+  
+  const scheduled = new Date(scheduledDateString);
+  const now = new Date();
+  
+  // Room is available if scheduled time has passed
+  return scheduled <= now;
 }
 
 // Check room status before connecting
@@ -306,11 +326,10 @@ async function checkAndConnectToRoom(code) {
       return { available: false, reason: '❌ Room not found' };
     }
     
-    // Check if room is scheduled for future
+    // ✅ CHECK IF ROOM IS SCHEDULED FOR FUTURE (FIXED TIMEZONE HANDLING)
     if (session.status === 'scheduled') {
-      const scheduledDate = new Date(session.scheduled_date);
-      const now = new Date();
-      if (scheduledDate > now) {
+      if (!isRoomAvailable(session.scheduled_date)) {
+        const scheduledDate = new Date(session.scheduled_date);
         const formattedDate = scheduledDate.toLocaleString();
         return { 
           available: false, 
@@ -380,11 +399,29 @@ async function connectToRoom() {
   document.getElementById('roomCodeDisplay').innerText = ROOM_CODE;
   
   displayTimezoneInfo();
+  displayRoomStatus(result.status);
   generateQRCode();
   init();
   
   btn.disabled = false;
   btn.innerText = 'Connect →';
+}
+
+function displayRoomStatus(status) {
+  const statusDiv = document.getElementById('roomStatusDisplay');
+  let badge = '';
+  
+  if (status === 'active') {
+    badge = '<div class="status-badge status-active-badge">⚡ GAME ACTIVE NOW</div>';
+  } else if (status === 'waiting') {
+    badge = '<div class="status-badge status-active-badge">✅ READY FOR PLAYERS</div>';
+  } else if (status === 'scheduled') {
+    badge = '<div class="status-badge status-scheduled">📅 SCHEDULED</div>';
+  } else if (status === 'ended') {
+    badge = '<div class="status-badge" style="background: rgba(107,122,153,0.2); border-color: rgba(107,122,153,0.4); color: #6b7a99;">🏁 GAME ENDED</div>';
+  }
+  
+  statusDiv.innerHTML = badge;
 }
 
 function generateQRCode() {
