@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1">
+  <title>PlayAQuiz — Player (Self-Paced)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      background: linear-gradient(135deg, #06080f 0%, #03050b 100%);
+      font-family: 'Space Grotesk', sans-serif;
+      color: #fff;
+      min-height: 100vh;
+      padding: 16px;
+    }
+    
+    .container { max-width: 600px; margin: 0 auto; }
+    
+    /* Header */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding: 12px 16px;
+      background: rgba(13,17,32,0.8);
+      border-radius: 20px;
+      backdrop-filter: blur(10px);
+    }
+    .player-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .player-avatar { font-size: 32px; }
+    .player-name { font-weight: 700; }
+    .score-chip {
+      background: rgba(245,158,11,0.15);
+      border: 1px solid rgba(245,158,11,0.3);
+      padding: 8px 16px;
+      border-radius: 40px;
+      font-weight: 800;
+      color: #f59e0b;
+    }
+    
+    /* Progress Bar */
+    .progress-section {
+      background: rgba(13,17,32,0.8);
+      border-radius: 16px;
+      padding: 12px 16px;
+      margin-bottom: 20px;
+    }
+    .progress-bar {
+      height: 8px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 8px 0;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #3b82f6, #10b981);
+      border-radius: 10px;
+      transition: width 0.3s ease;
+    }
+    
+    /* Question Card */
+    .question-card {
+      background: rgba(13,17,32,0.9);
+      border: 1px solid rgba(59,130,246,0.2);
+      border-radius: 24px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .question-text {
+      font-size: 20px;
+      font-weight: 700;
+      line-height: 1.4;
+      margin-bottom: 24px;
+    }
+    
+    /* Timer Display */
+    .timer-bar {
+      background: rgba(0,0,0,0.5);
+      border-radius: 40px;
+      padding: 8px 16px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .timer-label { font-size: 12px; color: rgba(255,255,255,0.5); }
+    .timer-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 20px;
+      font-weight: 700;
+      color: #f59e0b;
+    }
+    
+    /* Options */
+    .options-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .option-btn {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: rgba(255,255,255,0.05);
+      border: 2px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      padding: 16px 20px;
+      font-size: 16px;
+      font-weight: 600;
+      color: #fff;
+      cursor: pointer;
+      transition: all 0.15s;
+      width: 100%;
+      text-align: left;
+    }
+    .option-btn:active { transform: scale(0.98); }
+    .option-btn.disabled, .option-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .option-letter {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: rgba(59,130,246,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 18px;
+    }
+    .option-text { flex: 1; }
+    
+    /* Feedback */
+    .feedback {
+      margin-top: 20px;
+      padding: 16px;
+      border-radius: 16px;
+      text-align: center;
+      font-weight: 600;
+      animation: fadeIn 0.3s ease;
+    }
+    .feedback-correct {
+      background: rgba(16,185,129,0.15);
+      border: 2px solid rgba(16,185,129,0.4);
+      color: #10b981;
+    }
+    .feedback-wrong {
+      background: rgba(239,68,68,0.1);
+      border: 2px solid rgba(239,68,68,0.3);
+      color: #ef4444;
+    }
+    .next-btn {
+      background: #3b82f6;
+      border: none;
+      border-radius: 40px;
+      padding: 16px;
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+      cursor: pointer;
+      margin-top: 20px;
+      width: 100%;
+    }
+    
+    /* Completion Screen */
+    .completion-card {
+      text-align: center;
+      padding: 48px 24px;
+    }
+    .completion-icon { font-size: 80px; margin-bottom: 20px; }
+    .completion-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+    
+    /* Join Screen */
+    .join-card {
+      background: rgba(13,17,32,0.9);
+      border: 1px solid rgba(59,130,246,0.3);
+      border-radius: 32px;
+      padding: 40px 24px;
+      text-align: center;
+    }
+    .join-input {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(59,130,246,0.3);
+      border-radius: 16px;
+      padding: 16px;
+      width: 100%;
+      color: #fff;
+      font-size: 18px;
+      text-align: center;
+      margin: 16px 0;
+    }
+    .avatar-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 8px;
+      margin: 16px 0;
+    }
+    .avatar-opt {
+      font-size: 28px;
+      padding: 8px;
+      text-align: center;
+      background: rgba(255,255,255,0.05);
+      border-radius: 12px;
+      cursor: pointer;
+    }
+    .avatar-opt.selected {
+      background: rgba(59,130,246,0.3);
+      border: 1px solid #3b82f6;
+    }
+    .btn {
+      background: #3b82f6;
+      border: none;
+      border-radius: 16px;
+      padding: 14px 24px;
+      font-weight: 700;
+      color: #fff;
+      cursor: pointer;
+      width: 100%;
+      font-size: 16px;
+    }
+    
+    .hidden { display: none; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body>
+<div class="container">
+  <!-- Join Screen -->
+  <div id="joinScreen">
+    <div class="join-card">
+      <div style="font-size: 36px; font-weight: 800; margin-bottom: 8px;">PLAY<span style="color:#3b82f6">A</span>QUIZ</div>
+      <div style="font-size: 14px; color: rgba(255,255,255,0.5); margin-bottom: 24px;">Self-Paced Quiz Challenge</div>
+      
+      <input type="text" id="roomInput" class="join-input" placeholder="Room Code" maxlength="8" autocomplete="off">
+      <input type="text" id="nameInput" class="join-input" placeholder="Your Name" maxlength="20">
+      
+      <div style="font-size: 12px; color: rgba(255,255,255,0.5); margin: 16px 0 8px;">Choose Avatar</div>
+      <div class="avatar-grid" id="avatarGrid"></div>
+      
+      <button class="btn" onclick="joinGame()">🚀 Join Game</button>
+      <div id="joinError" style="color: #ef4444; font-size: 13px; margin-top: 16px;"></div>
+    </div>
+  </div>
+  
+  <!-- Quiz Screen -->
+  <div id="quizScreen" class="hidden">
+    <div class="header">
+      <div class="player-info">
+        <div class="player-avatar" id="playerAvatar">😎</div>
+        <div class="player-name" id="playerName">Player</div>
+      </div>
+      <div class="score-chip" id="scoreDisplay">0 pts</div>
+    </div>
+    
+    <div class="progress-section">
+      <div style="display: flex; justify-content: space-between; font-size: 12px;">
+        <span>Progress</span>
+        <span id="progressText">0 / 0</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width: 0%"></div></div>
+    </div>
+    
+    <div class="question-card">
+      <div class="timer-bar">
+        <span class="timer-label">⏱️ TIME BONUS</span>
+        <span class="timer-value" id="timerDisplay">—</span>
+      </div>
+      <div class="question-text" id="questionText">Loading...</div>
+      <div class="options-list" id="optionsList"></div>
+      <div id="feedback" class="hidden"></div>
+      <button class="next-btn hidden" id="nextBtn" onclick="loadNextQuestion()">Next Question →</button>
+    </div>
+  </div>
+  
+  <!-- Completion Screen -->
+  <div id="completionScreen" class="hidden">
+    <div class="join-card completion-card">
+      <div class="completion-icon">🏆</div>
+      <div class="completion-title">QUIZ COMPLETE!</div>
+      <div style="font-size: 48px; font-weight: 800; color: #f59e0b; margin: 16px 0;" id="finalScore">0</div>
+      <div style="font-size: 14px; color: rgba(255,255,255,0.5);">Total Points</div>
+      <div style="margin-top: 24px; display: flex; gap: 12px;">
+        <button class="btn" onclick="viewLeaderboard()">🏆 View Leaderboard</button>
+        <button class="btn" style="background: #111827;" onclick="playAgain()">🔄 Play Again</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
+const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+const AVATARS = ['😎','🦁','🐯','🐱','🐶','🐺','🦊','🐸','🐧','🐙','🦄','🐲','🚀','⭐','🔥','⚡','🎮','🏆'];
+
+let SESSION_ID = null;
+let myPlayer = null;
+let questions = [];
+let currentIndex = 0;
+let score = 0;
+let correctCount = 0;
+let questionStartTime = null;
+let answered = false;
+let timerInterval = null;
+
+// Build avatar grid
+function buildAvatarGrid() {
+  const grid = document.getElementById('avatarGrid');
+  grid.innerHTML = AVATARS.map(a => `<div class="avatar-opt" onclick="selectAvatar(this, '${a}')">${a}</div>`).join('');
+}
+let selectedAvatar = '😎';
+function selectAvatar(el, avatar) {
+  document.querySelectorAll('.avatar-opt').forEach(opt => opt.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedAvatar = avatar;
+}
+
+async function joinGame() {
+  const roomCode = document.getElementById('roomInput').value.trim().toUpperCase();
+  const playerName = document.getElementById('nameInput').value.trim();
+  
+  if (!roomCode) { showError('Enter room code'); return; }
+  if (!playerName || playerName.length < 2) { showError('Enter your name (min 2 chars)'); return; }
+  
+  // Find session
+  const { data: session } = await sb
+    .from('game_sessions')
+    .select('id, status')
+    .eq('room_code', roomCode)
+    .eq('type', 'self_paced')
+    .maybeSingle();
+  
+  if (!session) { showError('Room not found'); return; }
+  
+  SESSION_ID = session.id;
+  
+  // Check if name exists
+  const { data: existing } = await sb.from('players').select('id').eq('session_id', SESSION_ID).eq('name', playerName).maybeSingle();
+  if (existing) { showError('Name already taken'); return; }
+  
+  // Create player
+  const { data: player, error } = await sb.from('players').insert({
+    session_id: SESSION_ID,
+    name: playerName,
+    avatar_color: selectedAvatar,
+    score: 0,
+    correct_count: 0,
+    current_q_index: 0,
+    completed: false
+  }).select().single();
+  
+  if (error) { showError('Could not join'); return; }
+  
+  myPlayer = player;
+  localStorage.setItem('sp_player', JSON.stringify({ id: myPlayer.id, session: SESSION_ID, name: playerName }));
+  
+  // Load questions
+  const { data: qs } = await sb.from('questions').select('*').order('id');
+  questions = qs || [];
+  
+  document.getElementById('joinScreen').classList.add('hidden');
+  document.getElementById('quizScreen').classList.remove('hidden');
+  document.getElementById('playerAvatar').innerText = selectedAvatar;
+  document.getElementById('playerName').innerText = playerName;
+  
+  loadQuestion(0);
+}
+
+async function loadQuestion(index) {
+  if (index >= questions.length) {
+    completeQuiz();
+    return;
+  }
+  
+  answered = false;
+  if (timerInterval) clearInterval(timerInterval);
+  
+  const q = questions[index];
+  document.getElementById('questionText').innerText = q.question_text;
+  document.getElementById('progressText').innerText = `${index + 1} / ${questions.length}`;
+  document.getElementById('progressFill').style.width = `${((index) / questions.length) * 100}%`;
+  document.getElementById('scoreDisplay').innerText = `${score} pts`;
+  document.getElementById('feedback').classList.add('hidden');
+  document.getElementById('nextBtn').classList.add('hidden');
+  
+  const letters = ['A', 'B', 'C', 'D'];
+  const opts = [q.option_a, q.option_b, q.option_c, q.option_d];
+  document.getElementById('optionsList').innerHTML = opts.map((opt, i) => `
+    <button class="option-btn" onclick="submitAnswer(${i})">
+      <div class="option-letter">${letters[i]}</div>
+      <div class="option-text">${escapeHtml(opt)}</div>
+    </button>
+  `).join('');
+  
+  // Start timer for speed bonus
+  questionStartTime = Date.now();
+  const baseTime = 30; // Base time for full points
+  updateTimerDisplay(baseTime);
+  
+  timerInterval = setInterval(() => {
+    const elapsed = (Date.now() - questionStartTime) / 1000;
+    const remaining = Math.max(0, baseTime - elapsed);
+    updateTimerDisplay(remaining);
+  }, 100);
+}
+
+function updateTimerDisplay(remaining) {
+  const display = document.getElementById('timerDisplay');
+  if (remaining <= 0) {
+    display.innerText = '0s';
+    display.style.color = '#ef4444';
+  } else {
+    display.innerText = `${Math.ceil(remaining)}s`;
+    display.style.color = remaining <= 5 ? '#ef4444' : remaining <= 10 ? '#f59e0b' : '#10b981';
+  }
+}
+
+async function submitAnswer(selectedIdx) {
+  if (answered) return;
+  answered = true;
+  if (timerInterval) clearInterval(timerInterval);
+  
+  const q = questions[currentIndex];
+  const isCorrect = (selectedIdx === q.correct_option);
+  const elapsed = (Date.now() - questionStartTime) / 1000;
+  const basePoints = q.points || 100;
+  
+  // Speed bonus: faster = more points (max at 5s, min at 30s)
+  let pointsEarned = 0;
+  if (isCorrect) {
+    const speedBonus = Math.max(0.3, Math.min(1.0, 1 - (elapsed / 35)));
+    pointsEarned = Math.round(basePoints * speedBonus);
+    score += pointsEarned;
+    correctCount++;
+  }
+  
+  // Update player score in DB
+  await sb.from('players').update({
+    score: score,
+    correct_count: correctCount,
+    current_q_index: currentIndex + 1
+  }).eq('id', myPlayer.id);
+  
+  // Save answer
+  await sb.from('answers').insert({
+    session_id: SESSION_ID,
+    question_id: q.id,
+    player_id: myPlayer.id,
+    chosen_option: selectedIdx,
+    is_correct: isCorrect,
+    points_earned: pointsEarned,
+    time_taken_ms: elapsed * 1000
+  });
+  
+  // Show feedback
+  const letters = ['A', 'B', 'C', 'D'];
+  const feedbackDiv = document.getElementById('feedback');
+  feedbackDiv.classList.remove('hidden');
+  if (isCorrect) {
+    feedbackDiv.className = 'feedback feedback-correct';
+    feedbackDiv.innerHTML = `✅ Correct! +${pointsEarned} points ${elapsed < 10 ? '⚡ Speed bonus!' : ''}`;
+  } else {
+    feedbackDiv.className = 'feedback feedback-wrong';
+    feedbackDiv.innerHTML = `❌ Wrong! Correct answer: ${letters[q.correct_option]}: ${q[`option_${String.fromCharCode(97 + q.correct_option)}`]}`;
+  }
+  
+  // Disable options
+  document.querySelectorAll('.option-btn').forEach(btn => btn.disabled = true);
+  
+  // Show next button
+  document.getElementById('nextBtn').classList.remove('hidden');
+  document.getElementById('scoreDisplay').innerText = `${score} pts`;
+}
+
+async function loadNextQuestion() {
+  currentIndex++;
+  if (currentIndex < questions.length) {
+    await loadQuestion(currentIndex);
+  } else {
+    await completeQuiz();
+  }
+}
+
+async function completeQuiz() {
+  if (timerInterval) clearInterval(timerInterval);
+  
+  await sb.from('players').update({
+    completed: true,
+    completed_at: new Date()
+  }).eq('id', myPlayer.id);
+  
+  document.getElementById('quizScreen').classList.add('hidden');
+  document.getElementById('completionScreen').classList.remove('hidden');
+  document.getElementById('finalScore').innerText = score;
+}
+
+function viewLeaderboard() {
+  window.open(`foh-sp.html?session=${SESSION_ID}`, '_blank');
+}
+
+function playAgain() {
+  localStorage.removeItem('sp_player');
+  location.reload();
+}
+
+function showError(msg) {
+  const errDiv = document.getElementById('joinError');
+  errDiv.innerText = msg;
+  setTimeout(() => errDiv.innerText = '', 3000);
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
+}
+
+// Check for saved player
+const savedPlayer = localStorage.getItem('sp_player');
+if (savedPlayer) {
+  try {
+    const sp = JSON.parse(savedPlayer);
+    sb.from('players').select('id').eq('id', sp.id).maybeSingle().then(({ data }) => {
+      if (data) {
+        window.location.reload();
+      }
+    });
+  } catch(e) {}
+}
+
+buildAvatarGrid();
+</script>
+</body>
+</html>
