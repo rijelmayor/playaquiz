@@ -15,7 +15,6 @@
       min-height: 100vh;
     }
     
-    /* QR Display */
     .qr-section {
       background: linear-gradient(135deg, #0d1120, #06080f);
       border: 2px solid rgba(59,130,246,0.3);
@@ -57,7 +56,6 @@
       margin: 20px 0;
     }
     
-    /* Stats */
     .stats-container {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -84,7 +82,6 @@
       margin-top: 8px;
     }
     
-    /* Leaderboard */
     .leaderboard-container {
       background: rgba(13,17,32,0.8);
       border: 1px solid rgba(59,130,246,0.2);
@@ -125,8 +122,21 @@
     .status-active { background: rgba(16,185,129,0.2); color: #10b981; }
     .status-complete { background: rgba(59,130,246,0.2); color: #3b82f6; }
     
-    /* Room Entry Overlay */
-    #roomEntryOverlay {
+    .btn {
+      background: #3b82f6;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 12px;
+      font-weight: 700;
+      color: white;
+      cursor: pointer;
+    }
+    .btn-ghost {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    
+    .room-entry {
       position: fixed;
       inset: 0;
       background: rgba(3,5,11,0.98);
@@ -161,12 +171,13 @@
   </style>
 </head>
 <body>
-<div id="roomEntryOverlay">
+<div id="roomEntry" class="room-entry">
   <div class="entry-card">
-    <div class="qr-title">PLAY<span style="color:#3b82f6">A</span>QUIZ</div>
-    <div style="font-size:14px; color:rgba(255,255,255,0.5);">Enter Room Code</div>
-    <input type="text" id="roomInput" class="entry-input" placeholder="ROOM" maxlength="8">
-    <button class="btn" onclick="connectToRoom()" style="background:#3b82f6; border:none; padding:14px 28px; border-radius:12px; color:white; font-weight:700; cursor:pointer;">Connect →</button>
+    <div style="font-size: 36px; font-weight: 800; margin-bottom: 8px;">PLAY<span style="color:#3b82f6">A</span>QUIZ</div>
+    <div style="font-size: 14px; color: rgba(255,255,255,0.5);">Enter Room Code to Display</div>
+    <input type="text" id="roomInput" class="entry-input" placeholder="CODE" maxlength="8">
+    <button class="btn" onclick="connectToRoom()">Connect →</button>
+    <div id="roomError" style="color: #ef4444; margin-top: 16px;"></div>
   </div>
 </div>
 
@@ -174,9 +185,7 @@
   <div class="qr-section">
     <div class="qr-title">SCAN TO JOIN</div>
     <div class="qr-subtitle">Use your phone to scan the QR code and start playing</div>
-    <div class="qr-container">
-      <div class="qr-placeholder" id="qrCode"></div>
-    </div>
+    <div class="qr-container" id="qrCode"></div>
     <div class="room-code-big" id="roomCodeDisplay">——</div>
     <div style="font-size:14px; color:rgba(255,255,255,0.5);">Or enter code manually on your device</div>
   </div>
@@ -199,76 +208,135 @@ const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
 let SESSION_ID = null;
-let roomCode = null;
+let ROOM_CODE = null;
+let refreshInterval = null;
+
+const urlParams = new URLSearchParams(window.location.search);
+const sessionFromUrl = urlParams.get('session');
+const roomFromUrl = urlParams.get('room');
+
+if (sessionFromUrl && roomFromUrl) {
+  SESSION_ID = sessionFromUrl;
+  ROOM_CODE = roomFromUrl;
+  document.getElementById('roomEntry').classList.add('hidden');
+  document.getElementById('mainContent').classList.remove('hidden');
+  document.getElementById('roomCodeDisplay').innerText = ROOM_CODE;
+  init();
+}
 
 async function connectToRoom() {
   const code = document.getElementById('roomInput').value.trim().toUpperCase();
-  if (!code) return;
+  if (!code) { showError('Enter room code'); return; }
   
-  const { data: session } = await sb
+  const { data: session, error } = await sb
     .from('game_sessions')
-    .select('id, room_code, status')
+    .select('id, room_code')
     .eq('room_code', code)
-    .eq('type', 'self_paced')
     .maybeSingle();
   
-  if (!session) {
-    alert('Room not found!');
+  if (error || !session) {
+    showError('Room not found');
     return;
   }
   
   SESSION_ID = session.id;
-  roomCode = session.room_code;
-  localStorage.setItem('sp_foh_session', SESSION_ID);
-  
-  document.getElementById('roomEntryOverlay').classList.add('hidden');
+  ROOM_CODE = session.room_code;
+  document.getElementById('roomEntry').classList.add('hidden');
   document.getElementById('mainContent').classList.remove('hidden');
-  document.getElementById('roomCodeDisplay').innerText = roomCode;
+  document.getElementById('roomCodeDisplay').innerText = ROOM_CODE;
   
-  // Generate QR code
-  const joinUrl = `${window.location.origin}/player-sp.html?room=${roomCode}`;
+  // Generate QR code display
+  const joinUrl = `${window.location.origin}/player-sp.html?room=${ROOM_CODE}`;
   const qrContainer = document.getElementById('qrCode');
-  qrContainer.innerHTML = '';
-  
-  // Simple QR representation
   qrContainer.innerHTML = `
     <div style="background:#fff; border-radius:16px; padding:20px;">
       <div style="width:180px; height:180px; background: repeating-linear-gradient(45deg, #000 0px, #000 4px, #fff 4px, #fff 12px); border-radius:8px;"></div>
-      <div style="margin-top:12px; font-family:monospace; font-size:12px; color:#000;">${joinUrl.substring(0, 40)}...</div>
+      <div style="margin-top:12px; font-family:monospace; font-size:11px; color:#000; word-break:break-all;">${joinUrl}</div>
     </div>
   `;
   
-  loadStats();
+  init();
+}
+
+function showError(msg) {
+  const err = document.getElementById('roomError');
+  err.innerText = msg;
+  setTimeout(() => err.innerText = '', 3000);
+}
+
+async function init() {
+  await loadStats();
+  if (refreshInterval) clearInterval(refreshInterval);
+  refreshInterval = setInterval(loadStats, 5000);
   setupRealtime();
 }
 
 async function loadStats() {
   if (!SESSION_ID) return;
   
-  const { data: players } = await sb.from('players').select('*').eq('session_id', SESSION_ID);
-  if (players) {
-    document.getElementById('statPlayers').innerText = players.length;
-    document.getElementById('statActive').innerText = players.filter(p => !p.completed && !p.is_eliminated).length;
-    document.getElementById('statCompleted').innerText = players.filter(p => p.completed).length;
+  // Get all players for this session
+  const { data: players, error } = await sb
+    .from('players')
+    .select('*')
+    .eq('session_id', SESSION_ID);
+  
+  if (error) {
+    console.error('Error loading players:', error);
+    return;
+  }
+  
+  if (!players) return;
+  
+  // Calculate stats safely (check if completed column exists, if not use fallback)
+  const totalPlayers = players.length;
+  const activePlayers = players.filter(p => {
+    // If completed column doesn't exist, assume all are active
+    if (p.completed === undefined) return true;
+    return !p.completed && !p.is_eliminated;
+  }).length;
+  const completedPlayers = players.filter(p => p.completed === true).length;
+  
+  document.getElementById('statPlayers').innerText = totalPlayers;
+  document.getElementById('statActive').innerText = activePlayers;
+  document.getElementById('statCompleted').innerText = completedPlayers;
+  
+  // Sort by score
+  const sorted = [...players].sort((a, b) => (b.score || 0) - (a.score || 0));
+  
+  document.getElementById('leaderboardList').innerHTML = sorted.slice(0, 10).map((p, i) => {
+    let statusText = 'Playing';
+    let statusClass = 'status-active';
+    if (p.completed === true) {
+      statusText = '✓ Completed';
+      statusClass = 'status-complete';
+    } else if (p.is_eliminated) {
+      statusText = '❌ Eliminated';
+      statusClass = 'status-active';
+    }
     
-    const sorted = [...players].sort((a, b) => (b.score || 0) - (a.score || 0));
-    document.getElementById('leaderboardList').innerHTML = sorted.slice(0, 10).map((p, i) => `
+    return `
       <div class="leaderboard-row">
         <div class="rank">${i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}`}</div>
         <div class="avatar">${p.avatar_color || '👤'}</div>
         <div class="name">${escapeHtml(p.name)}</div>
         <div class="score">${p.score || 0}</div>
-        <div class="status ${p.completed ? 'status-complete' : 'status-active'}">${p.completed ? '✓ Completed' : 'Playing'}</div>
+        <div class="status ${statusClass}">${statusText}</div>
       </div>
-    `).join('');
-  }
+    `;
+  }).join('');
 }
 
 function setupRealtime() {
   if (!SESSION_ID) return;
   
-  sb.channel(`sp-foh-${SESSION_ID}`)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'players', filter: `session_id=eq.${SESSION_ID}` }, () => loadStats())
+  const channel = sb.channel(`foh-${SESSION_ID}`);
+  channel
+    .on('postgres_changes', { 
+      event: '*', 
+      schema: 'public', 
+      table: 'players', 
+      filter: `session_id=eq.${SESSION_ID}` 
+    }, () => loadStats())
     .subscribe();
 }
 
@@ -277,21 +345,9 @@ function escapeHtml(str) {
   return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
 }
 
-// Check for saved session
-const savedSession = localStorage.getItem('sp_foh_session');
-if (savedSession) {
-  sb.from('game_sessions').select('id, room_code').eq('id', savedSession).eq('type', 'self_paced').maybeSingle()
-    .then(({ data }) => {
-      if (data) {
-        SESSION_ID = data.id;
-        roomCode = data.room_code;
-        document.getElementById('roomEntryOverlay').classList.add('hidden');
-        document.getElementById('mainContent').classList.remove('hidden');
-        document.getElementById('roomCodeDisplay').innerText = roomCode;
-        loadStats();
-        setupRealtime();
-      }
-    });
+// Check for saved session in URL
+if (!SESSION_ID && !roomFromUrl && !sessionFromUrl) {
+  // Show entry screen - do nothing, wait for input
 }
 </script>
 </body>

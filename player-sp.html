@@ -28,6 +28,7 @@
       background: rgba(13,17,32,0.8);
       border-radius: 20px;
       backdrop-filter: blur(10px);
+      border: 1px solid rgba(59,130,246,0.2);
     }
     .player-info {
       display: flex;
@@ -35,7 +36,7 @@
       gap: 12px;
     }
     .player-avatar { font-size: 32px; }
-    .player-name { font-weight: 700; }
+    .player-name { font-weight: 700; font-size: 14px; }
     .score-chip {
       background: rgba(245,158,11,0.15);
       border: 1px solid rgba(245,158,11,0.3);
@@ -43,14 +44,16 @@
       border-radius: 40px;
       font-weight: 800;
       color: #f59e0b;
+      font-size: 14px;
     }
     
-    /* Progress Bar */
+    /* Progress Section */
     .progress-section {
       background: rgba(13,17,32,0.8);
       border-radius: 16px;
       padding: 12px 16px;
       margin-bottom: 20px;
+      border: 1px solid rgba(59,130,246,0.2);
     }
     .progress-bar {
       height: 8px;
@@ -65,6 +68,12 @@
       border-radius: 10px;
       transition: width 0.3s ease;
     }
+    .progress-text {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: rgba(255,255,255,0.5);
+    }
     
     /* Question Card */
     .question-card {
@@ -74,18 +83,10 @@
       padding: 24px;
       margin-bottom: 20px;
     }
-    .question-text {
-      font-size: 20px;
-      font-weight: 700;
-      line-height: 1.4;
-      margin-bottom: 24px;
-    }
-    
-    /* Timer Display */
     .timer-bar {
       background: rgba(0,0,0,0.5);
       border-radius: 40px;
-      padding: 8px 16px;
+      padding: 10px 16px;
       margin-bottom: 20px;
       display: flex;
       align-items: center;
@@ -94,9 +95,15 @@
     .timer-label { font-size: 12px; color: rgba(255,255,255,0.5); }
     .timer-value {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 20px;
+      font-size: 24px;
       font-weight: 700;
       color: #f59e0b;
+    }
+    .question-text {
+      font-size: 20px;
+      font-weight: 700;
+      line-height: 1.4;
+      margin-bottom: 24px;
     }
     
     /* Options */
@@ -133,8 +140,9 @@
       justify-content: center;
       font-weight: 800;
       font-size: 18px;
+      flex-shrink: 0;
     }
-    .option-text { flex: 1; }
+    .option-text { flex: 1; line-height: 1.3; }
     
     /* Feedback */
     .feedback {
@@ -179,6 +187,24 @@
       font-size: 48px;
       margin-bottom: 16px;
     }
+    .final-stats {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      margin: 24px 0;
+    }
+    .final-stat {
+      text-align: center;
+    }
+    .final-stat-value {
+      font-size: 36px;
+      font-weight: 800;
+      color: #f59e0b;
+    }
+    .final-stat-label {
+      font-size: 12px;
+      color: rgba(255,255,255,0.5);
+    }
     
     /* Join Screen */
     .join-card {
@@ -187,6 +213,17 @@
       border-radius: 32px;
       padding: 40px 24px;
       text-align: center;
+    }
+    .join-logo {
+      font-size: 36px;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+    .join-logo span { color: #3b82f6; }
+    .join-sub {
+      font-size: 14px;
+      color: rgba(255,255,255,0.5);
+      margin-bottom: 24px;
     }
     .join-input {
       background: rgba(255,255,255,0.05);
@@ -197,13 +234,15 @@
       color: #fff;
       font-size: 18px;
       text-align: center;
-      margin: 16px 0;
+      margin: 12px 0;
     }
     .avatar-grid {
       display: grid;
       grid-template-columns: repeat(6, 1fr);
       gap: 8px;
       margin: 16px 0;
+      max-height: 180px;
+      overflow-y: auto;
     }
     .avatar-opt {
       font-size: 28px;
@@ -212,10 +251,12 @@
       background: rgba(255,255,255,0.05);
       border-radius: 12px;
       cursor: pointer;
+      transition: all 0.1s;
     }
     .avatar-opt.selected {
       background: rgba(59,130,246,0.3);
-      border: 1px solid #3b82f6;
+      border: 2px solid #3b82f6;
+      transform: scale(1.05);
     }
     .btn {
       background: #3b82f6;
@@ -227,10 +268,44 @@
       cursor: pointer;
       width: 100%;
       font-size: 16px;
+      transition: all 0.15s;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn-secondary {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+    }
+    .error-msg {
+      color: #ef4444;
+      font-size: 13px;
+      margin-top: 12px;
     }
     
     .hidden { display: none; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    
+    /* Connection Status */
+    .conn-status {
+      position: fixed;
+      bottom: 16px;
+      left: 16px;
+      background: rgba(0,0,0,0.6);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      z-index: 100;
+    }
+    .conn-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ef4444;
+    }
+    .conn-dot.connected { background: #10b981; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
   </style>
 </head>
 <body>
@@ -238,17 +313,17 @@
   <!-- Join Screen -->
   <div id="joinScreen">
     <div class="join-card">
-      <div style="font-size: 36px; font-weight: 800; margin-bottom: 8px;">PLAY<span style="color:#3b82f6">A</span>QUIZ</div>
-      <div style="font-size: 14px; color: rgba(255,255,255,0.5); margin-bottom: 24px;">Self-Paced Quiz Challenge</div>
+      <div class="join-logo">PLAY<span>A</span>QUIZ</div>
+      <div class="join-sub">Self-Paced Quiz Challenge</div>
       
       <input type="text" id="roomInput" class="join-input" placeholder="Room Code" maxlength="8" autocomplete="off">
       <input type="text" id="nameInput" class="join-input" placeholder="Your Name" maxlength="20">
       
-      <div style="font-size: 12px; color: rgba(255,255,255,0.5); margin: 16px 0 8px;">Choose Avatar</div>
+      <div style="font-size: 12px; color: rgba(255,255,255,0.5); margin: 16px 0 8px; text-align: left;">Choose Avatar</div>
       <div class="avatar-grid" id="avatarGrid"></div>
       
       <button class="btn" onclick="joinGame()">🚀 Join Game</button>
-      <div id="joinError" style="color: #ef4444; font-size: 13px; margin-top: 16px;"></div>
+      <div id="joinError" class="error-msg"></div>
     </div>
   </div>
   
@@ -263,8 +338,8 @@
     </div>
     
     <div class="progress-section">
-      <div style="display: flex; justify-content: space-between; font-size: 12px;">
-        <span>Progress</span>
+      <div class="progress-text">
+        <span>📊 Progress</span>
         <span id="progressText">0 / 0</span>
       </div>
       <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width: 0%"></div></div>
@@ -272,7 +347,7 @@
     
     <div class="question-card">
       <div class="timer-bar">
-        <span class="timer-label">⏱️ TIME BONUS</span>
+        <span class="timer-label">⚡ SPEED BONUS</span>
         <span class="timer-value" id="timerDisplay">—</span>
       </div>
       <div class="question-text" id="questionText">Loading...</div>
@@ -287,13 +362,31 @@
     <div class="join-card completion-card">
       <div class="completion-icon">🏆</div>
       <div class="completion-title">QUIZ COMPLETE!</div>
-      <div style="font-size: 48px; font-weight: 800; color: #f59e0b; margin: 16px 0;" id="finalScore">0</div>
-      <div style="font-size: 14px; color: rgba(255,255,255,0.5);">Total Points</div>
-      <div style="margin-top: 24px; display: flex; gap: 12px;">
+      <div class="final-stats">
+        <div class="final-stat">
+          <div class="final-stat-value" id="finalScore">0</div>
+          <div class="final-stat-label">Total Points</div>
+        </div>
+        <div class="final-stat">
+          <div class="final-stat-value" id="finalCorrect">0</div>
+          <div class="final-stat-label">Correct</div>
+        </div>
+        <div class="final-stat">
+          <div class="final-stat-value" id="finalAccuracy">0%</div>
+          <div class="final-stat-label">Accuracy</div>
+        </div>
+      </div>
+      <div style="display: flex; gap: 12px;">
         <button class="btn" onclick="viewLeaderboard()">🏆 View Leaderboard</button>
-        <button class="btn" style="background: #111827;" onclick="playAgain()">🔄 Play Again</button>
+        <button class="btn btn-secondary" onclick="playAgain()">🔄 Play Again</button>
       </div>
     </div>
+  </div>
+  
+  <!-- Connection Status -->
+  <div class="conn-status" id="connStatus">
+    <div class="conn-dot" id="connDot"></div>
+    <span id="connText">Connecting...</span>
   </div>
 </div>
 
@@ -302,7 +395,7 @@ const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
 const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-const AVATARS = ['😎','🦁','🐯','🐱','🐶','🐺','🦊','🐸','🐧','🐙','🦄','🐲','🚀','⭐','🔥','⚡','🎮','🏆'];
+const AVATARS = ['😎','🦁','🐯','🐱','🐶','🐺','🦊','🐸','🐧','🐙','🦄','🐲','🚀','⭐','🔥','⚡','🎮','🏆','💎','🌈'];
 
 let SESSION_ID = null;
 let myPlayer = null;
@@ -313,6 +406,8 @@ let correctCount = 0;
 let questionStartTime = null;
 let answered = false;
 let timerInterval = null;
+let reconnectAttempts = 0;
+let realtimeChannel = null;
 
 // Build avatar grid
 function buildAvatarGrid() {
@@ -326,6 +421,36 @@ function selectAvatar(el, avatar) {
   selectedAvatar = avatar;
 }
 
+// Update connection status
+function updateConnectionStatus(connected, message) {
+  const dot = document.getElementById('connDot');
+  const text = document.getElementById('connText');
+  if (connected) {
+    dot.classList.add('connected');
+    text.innerText = message || 'Connected';
+  } else {
+    dot.classList.remove('connected');
+    text.innerText = message || 'Reconnecting...';
+  }
+}
+
+// Check connection
+async function checkConnection() {
+  try {
+    const { error } = await sb.from('game_sessions').select('id').limit(1);
+    if (!error) {
+      updateConnectionStatus(true, 'Connected');
+      reconnectAttempts = 0;
+      return true;
+    }
+    throw error;
+  } catch(e) {
+    updateConnectionStatus(false, 'Reconnecting...');
+    return false;
+  }
+}
+
+// Join game
 async function joinGame() {
   const roomCode = document.getElementById('roomInput').value.trim().toUpperCase();
   const playerName = document.getElementById('nameInput').value.trim();
@@ -333,64 +458,127 @@ async function joinGame() {
   if (!roomCode) { showError('Enter room code'); return; }
   if (!playerName || playerName.length < 2) { showError('Enter your name (min 2 chars)'); return; }
   
-  // Find session
-  const { data: session } = await sb
-    .from('game_sessions')
-    .select('id, status')
-    .eq('room_code', roomCode)
-    .eq('type', 'self_paced')
-    .maybeSingle();
+  const joinBtn = document.querySelector('#joinScreen .btn');
+  joinBtn.disabled = true;
+  joinBtn.innerText = 'Joining...';
   
-  if (!session) { showError('Room not found'); return; }
-  
-  SESSION_ID = session.id;
-  
-  // Check if name exists
-  const { data: existing } = await sb.from('players').select('id').eq('session_id', SESSION_ID).eq('name', playerName).maybeSingle();
-  if (existing) { showError('Name already taken'); return; }
-  
-  // Create player
-  const { data: player, error } = await sb.from('players').insert({
-    session_id: SESSION_ID,
-    name: playerName,
-    avatar_color: selectedAvatar,
-    score: 0,
-    correct_count: 0,
-    current_q_index: 0,
-    completed: false
-  }).select().single();
-  
-  if (error) { showError('Could not join'); return; }
-  
-  myPlayer = player;
-  localStorage.setItem('sp_player', JSON.stringify({ id: myPlayer.id, session: SESSION_ID, name: playerName }));
-  
-  // Load questions
-  const { data: qs } = await sb.from('questions').select('*').order('id');
-  questions = qs || [];
-  
-  document.getElementById('joinScreen').classList.add('hidden');
-  document.getElementById('quizScreen').classList.remove('hidden');
-  document.getElementById('playerAvatar').innerText = selectedAvatar;
-  document.getElementById('playerName').innerText = playerName;
-  
-  loadQuestion(0);
+  try {
+    // Find session
+    const { data: session, error: sessionError } = await sb
+      .from('game_sessions')
+      .select('id, status')
+      .eq('room_code', roomCode)
+      .maybeSingle();
+    
+    if (sessionError || !session) {
+      showError('Room not found');
+      joinBtn.disabled = false;
+      joinBtn.innerText = '🚀 Join Game';
+      return;
+    }
+    
+    SESSION_ID = session.id;
+    
+    // Check if name exists
+    const { data: existing, error: existingError } = await sb
+      .from('players')
+      .select('id')
+      .eq('session_id', SESSION_ID)
+      .eq('name', playerName)
+      .maybeSingle();
+    
+    if (existing) {
+      showError('Name already taken');
+      joinBtn.disabled = false;
+      joinBtn.innerText = '🚀 Join Game';
+      return;
+    }
+    
+    // Create player
+    const { data: player, error: playerError } = await sb
+      .from('players')
+      .insert({
+        session_id: SESSION_ID,
+        name: playerName,
+        avatar_color: selectedAvatar,
+        score: 0,
+        correct_count: 0,
+        current_q_index: 0
+      })
+      .select()
+      .single();
+    
+    if (playerError) {
+      showError('Could not join: ' + playerError.message);
+      joinBtn.disabled = false;
+      joinBtn.innerText = '🚀 Join Game';
+      return;
+    }
+    
+    myPlayer = player;
+    localStorage.setItem('sp_player', JSON.stringify({ 
+      id: myPlayer.id, 
+      session: SESSION_ID, 
+      name: playerName,
+      avatar: selectedAvatar 
+    }));
+    
+    // Load questions
+    const { data: qs, error: qError } = await sb
+      .from('questions')
+      .select('*')
+      .order('created_at');
+    
+    if (qError) {
+      showError('Error loading questions');
+      return;
+    }
+    
+    questions = qs || [];
+    
+    if (questions.length === 0) {
+      showError('No questions available. Please wait for admin to add questions.');
+      return;
+    }
+    
+    // Show quiz screen
+    document.getElementById('joinScreen').classList.add('hidden');
+    document.getElementById('quizScreen').classList.remove('hidden');
+    document.getElementById('playerAvatar').innerText = selectedAvatar;
+    document.getElementById('playerName').innerText = playerName;
+    document.getElementById('scoreDisplay').innerText = '0 pts';
+    
+    // Start from saved progress or beginning
+    const savedIndex = myPlayer.current_q_index || 0;
+    await loadQuestion(savedIndex);
+    
+    // Setup realtime for score updates
+    setupRealtime();
+    
+  } catch (err) {
+    console.error('Join error:', err);
+    showError('Connection error. Please try again.');
+  } finally {
+    joinBtn.disabled = false;
+    joinBtn.innerText = '🚀 Join Game';
+  }
 }
 
 async function loadQuestion(index) {
   if (index >= questions.length) {
-    completeQuiz();
+    await completeQuiz();
     return;
   }
   
+  currentIndex = index;
   answered = false;
   if (timerInterval) clearInterval(timerInterval);
   
   const q = questions[index];
-  document.getElementById('questionText').innerText = q.question_text;
-  document.getElementById('progressText').innerText = `${index + 1} / ${questions.length}`;
+  document.getElementById('questionText').innerHTML = escapeHtml(q.question_text);
+  document.getElementById('progressText').innerHTML = `${index + 1} / ${questions.length}`;
   document.getElementById('progressFill').style.width = `${((index) / questions.length) * 100}%`;
-  document.getElementById('scoreDisplay').innerText = `${score} pts`;
+  document.getElementById('scoreDisplay').innerHTML = `${score} pts`;
   document.getElementById('feedback').classList.add('hidden');
   document.getElementById('nextBtn').classList.add('hidden');
   
@@ -405,7 +593,7 @@ async function loadQuestion(index) {
   
   // Start timer for speed bonus
   questionStartTime = Date.now();
-  const baseTime = 30; // Base time for full points
+  const baseTime = 30;
   updateTimerDisplay(baseTime);
   
   timerInterval = setInterval(() => {
@@ -422,7 +610,9 @@ function updateTimerDisplay(remaining) {
     display.style.color = '#ef4444';
   } else {
     display.innerText = `${Math.ceil(remaining)}s`;
-    display.style.color = remaining <= 5 ? '#ef4444' : remaining <= 10 ? '#f59e0b' : '#10b981';
+    if (remaining <= 5) display.style.color = '#ef4444';
+    else if (remaining <= 10) display.style.color = '#f59e0b';
+    else display.style.color = '#10b981';
   }
 }
 
@@ -436,7 +626,7 @@ async function submitAnswer(selectedIdx) {
   const elapsed = (Date.now() - questionStartTime) / 1000;
   const basePoints = q.points || 100;
   
-  // Speed bonus: faster = more points (max at 5s, min at 30s)
+  // Speed bonus: faster = more points
   let pointsEarned = 0;
   if (isCorrect) {
     const speedBonus = Math.max(0.3, Math.min(1.0, 1 - (elapsed / 35)));
@@ -445,23 +635,31 @@ async function submitAnswer(selectedIdx) {
     correctCount++;
   }
   
-  // Update player score in DB
-  await sb.from('players').update({
-    score: score,
-    correct_count: correctCount,
-    current_q_index: currentIndex + 1
-  }).eq('id', myPlayer.id);
+  // Update player progress in DB
+  try {
+    await sb.from('players').update({
+      score: score,
+      correct_count: correctCount,
+      current_q_index: currentIndex + 1
+    }).eq('id', myPlayer.id);
+  } catch(e) {
+    console.log('Score update error (may not affect gameplay):', e);
+  }
   
   // Save answer
-  await sb.from('answers').insert({
-    session_id: SESSION_ID,
-    question_id: q.id,
-    player_id: myPlayer.id,
-    chosen_option: selectedIdx,
-    is_correct: isCorrect,
-    points_earned: pointsEarned,
-    time_taken_ms: elapsed * 1000
-  });
+  try {
+    await sb.from('answers').insert({
+      session_id: SESSION_ID,
+      question_id: q.id,
+      player_id: myPlayer.id,
+      chosen_option: selectedIdx,
+      is_correct: isCorrect,
+      points_earned: pointsEarned,
+      time_taken_ms: elapsed * 1000
+    });
+  } catch(e) {
+    console.log('Answer save error:', e);
+  }
   
   // Show feedback
   const letters = ['A', 'B', 'C', 'D'];
@@ -469,10 +667,27 @@ async function submitAnswer(selectedIdx) {
   feedbackDiv.classList.remove('hidden');
   if (isCorrect) {
     feedbackDiv.className = 'feedback feedback-correct';
-    feedbackDiv.innerHTML = `✅ Correct! +${pointsEarned} points ${elapsed < 10 ? '⚡ Speed bonus!' : ''}`;
+    const bonusText = elapsed < 10 ? ' ⚡ Speed bonus!' : '';
+    feedbackDiv.innerHTML = `✅ Correct! +${pointsEarned} points${bonusText}`;
+    
+    // Play correct sound effect (simple beep)
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.connect(g);
+      g.connect(ctx.destination);
+      o.frequency.value = 880;
+      g.gain.value = 0.1;
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+      o.start();
+      o.stop(ctx.currentTime + 0.3);
+    } catch(e) {}
   } else {
     feedbackDiv.className = 'feedback feedback-wrong';
-    feedbackDiv.innerHTML = `❌ Wrong! Correct answer: ${letters[q.correct_option]}: ${q[`option_${String.fromCharCode(97 + q.correct_option)}`]}`;
+    const correctLetter = letters[q.correct_option];
+    const correctText = q[`option_${String.fromCharCode(97 + q.correct_option)}`];
+    feedbackDiv.innerHTML = `❌ Wrong! Correct answer: ${correctLetter}. ${escapeHtml(correctText)}`;
   }
   
   // Disable options
@@ -480,7 +695,7 @@ async function submitAnswer(selectedIdx) {
   
   // Show next button
   document.getElementById('nextBtn').classList.remove('hidden');
-  document.getElementById('scoreDisplay').innerText = `${score} pts`;
+  document.getElementById('scoreDisplay').innerHTML = `${score} pts`;
 }
 
 async function loadNextQuestion() {
@@ -495,18 +710,31 @@ async function loadNextQuestion() {
 async function completeQuiz() {
   if (timerInterval) clearInterval(timerInterval);
   
-  await sb.from('players').update({
-    completed: true,
-    completed_at: new Date()
-  }).eq('id', myPlayer.id);
+  // Mark as completed (if column exists)
+  try {
+    await sb.from('players').update({
+      completed: true,
+      completed_at: new Date()
+    }).eq('id', myPlayer.id);
+  } catch(e) {
+    // Column might not exist, just log
+    console.log('Completed status not saved (column may not exist)');
+  }
+  
+  const accuracy = questions.length > 0 ? Math.round((correctCount / questions.length) * 100) : 0;
+  
+  document.getElementById('finalScore').innerText = score;
+  document.getElementById('finalCorrect').innerText = `${correctCount}/${questions.length}`;
+  document.getElementById('finalAccuracy').innerText = `${accuracy}%`;
   
   document.getElementById('quizScreen').classList.add('hidden');
   document.getElementById('completionScreen').classList.remove('hidden');
-  document.getElementById('finalScore').innerText = score;
 }
 
 function viewLeaderboard() {
-  window.open(`foh-sp.html?session=${SESSION_ID}`, '_blank');
+  if (SESSION_ID) {
+    window.open(`foh-sp.html?session=${SESSION_ID}&room=${ROOM_CODE || ''}`, '_blank');
+  }
 }
 
 function playAgain() {
@@ -520,25 +748,125 @@ function showError(msg) {
   setTimeout(() => errDiv.innerText = '', 3000);
 }
 
+function setupRealtime() {
+  if (realtimeChannel) {
+    try { sb.removeChannel(realtimeChannel); } catch(e) {}
+  }
+  
+  realtimeChannel = sb.channel(`player-${myPlayer.id}`);
+  realtimeChannel
+    .on('postgres_changes', {
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'players',
+      filter: `id=eq.${myPlayer.id}`
+    }, (payload) => {
+      if (payload.new) {
+        myPlayer = payload.new;
+        score = myPlayer.score || 0;
+        correctCount = myPlayer.correct_count || 0;
+        document.getElementById('scoreDisplay').innerHTML = `${score} pts`;
+      }
+    })
+    .subscribe();
+}
+
 function escapeHtml(str) {
   if (!str) return '';
   return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
 }
 
-// Check for saved player
-const savedPlayer = localStorage.getItem('sp_player');
-if (savedPlayer) {
+// Auto-rejoin on page load
+async function autoRejoin() {
+  const saved = localStorage.getItem('sp_player');
+  if (!saved) return;
+  
   try {
-    const sp = JSON.parse(savedPlayer);
-    sb.from('players').select('id').eq('id', sp.id).maybeSingle().then(({ data }) => {
-      if (data) {
-        window.location.reload();
-      }
-    });
-  } catch(e) {}
+    const data = JSON.parse(saved);
+    const { data: player, error } = await sb
+      .from('players')
+      .select('*')
+      .eq('id', data.id)
+      .maybeSingle();
+    
+    if (error || !player) {
+      localStorage.removeItem('sp_player');
+      return;
+    }
+    
+    if (player.is_eliminated) {
+      localStorage.removeItem('sp_player');
+      return;
+    }
+    
+    myPlayer = player;
+    SESSION_ID = player.session_id;
+    score = player.score || 0;
+    correctCount = player.correct_count || 0;
+    selectedAvatar = player.avatar_color || '😎';
+    
+    // Get session to find room code
+    const { data: session } = await sb
+      .from('game_sessions')
+      .select('room_code')
+      .eq('id', SESSION_ID)
+      .single();
+    
+    if (session) {
+      window.ROOM_CODE = session.room_code;
+    }
+    
+    // Load questions
+    const { data: qs } = await sb.from('questions').select('*').order('created_at');
+    questions = qs || [];
+    
+    if (questions.length === 0) {
+      showError('No questions available');
+      return;
+    }
+    
+    document.getElementById('joinScreen').classList.add('hidden');
+    document.getElementById('quizScreen').classList.remove('hidden');
+    document.getElementById('playerAvatar').innerText = selectedAvatar;
+    document.getElementById('playerName').innerText = player.name;
+    document.getElementById('scoreDisplay').innerHTML = `${score} pts`;
+    
+    const savedIndex = player.current_q_index || 0;
+    await loadQuestion(savedIndex);
+    setupRealtime();
+    updateConnectionStatus(true, 'Connected');
+    
+  } catch(e) {
+    console.log('Auto-rejoin failed:', e);
+    localStorage.removeItem('sp_player');
+  }
 }
 
+// Initialize
 buildAvatarGrid();
+selectAvatar(document.querySelector('.avatar-opt'), '😎');
+
+// Check for room code in URL
+const urlParams = new URLSearchParams(window.location.search);
+const roomFromUrl = urlParams.get('room');
+if (roomFromUrl) {
+  document.getElementById('roomInput').value = roomFromUrl.toUpperCase();
+}
+
+// Auto-rejoin or show join screen
+autoRejoin();
+
+// Connection checker
+setInterval(checkConnection, 5000);
+checkConnection();
+
+// Expose functions
+window.joinGame = joinGame;
+window.selectAvatar = selectAvatar;
+window.submitAnswer = submitAnswer;
+window.loadNextQuestion = loadNextQuestion;
+window.playAgain = playAgain;
+window.viewLeaderboard = viewLeaderboard;
 </script>
 </body>
 </html>
