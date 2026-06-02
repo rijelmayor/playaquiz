@@ -266,229 +266,196 @@
     }
     .join-input {
       background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(59,130,246,0.4);
+      border: 1px solid rgba(59,130,246,0.3);
       border-radius: 16px;
-      padding: 16px 20px;
-      font-size: 28px;
-      font-family: monospace;
-      text-align: center;
-      letter-spacing: 6px;
+      padding: 16px;
+      width: 100%;
       color: #fff;
-      width: 100%;
-      margin: 20px 0;
-    }
-    .join-btn {
-      background: linear-gradient(135deg, #3b82f6, #2563eb);
-      border: none;
-      border-radius: 40px;
-      padding: 16px 32px;
       font-size: 18px;
-      font-weight: 800;
-      color: white;
-      cursor: pointer;
-      width: 100%;
+      text-align: center;
+      margin: 12px 0;
     }
-    .join-error {
-      color: #ef4444;
-      font-size: 14px;
-      margin-top: 12px;
-    }
-    .timezone-badge {
-      background: rgba(59,130,246,0.2);
-      border-radius: 20px;
-      padding: 4px 12px;
-      font-size: 11px;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      margin-top: 10px;
-    }
-    
-    .screen { display: none; }
-    .screen.active { display: block; }
-    .hidden { display: none !important; }
-    
     .avatar-grid {
       display: grid;
       grid-template-columns: repeat(6, 1fr);
-      gap: 12px;
-      margin: 20px 0;
+      gap: 8px;
+      margin: 16px 0;
+      max-height: 180px;
+      overflow-y: auto;
     }
     .avatar-opt {
-      padding: 16px;
-      border: 2px solid rgba(59,130,246,0.2);
-      border-radius: 16px;
-      background: rgba(255,255,255,0.03);
-      font-size: 36px;
+      font-size: 28px;
+      padding: 8px;
+      text-align: center;
+      background: rgba(255,255,255,0.05);
+      border-radius: 12px;
       cursor: pointer;
-      transition: all 0.15s;
+      transition: all 0.1s;
     }
     .avatar-opt.selected {
-      border-color: #3b82f6;
-      background: rgba(59,130,246,0.15);
+      background: rgba(59,130,246,0.3);
+      border: 2px solid #3b82f6;
+      transform: scale(1.05);
     }
-    
-    .status-message {
-      background: rgba(59,130,246,0.15);
-      border: 1px solid rgba(59,130,246,0.3);
-      border-radius: 12px;
-      padding: 12px;
-      margin-bottom: 16px;
-      font-size: 13px;
+    .btn {
+      background: #3b82f6;
+      border: none;
+      border-radius: 16px;
+      padding: 14px 24px;
+      font-weight: 700;
+      color: #fff;
+      cursor: pointer;
+      width: 100%;
+      font-size: 16px;
+      transition: all 0.15s;
     }
-    .status-scheduled {
-      background: rgba(245,158,11,0.15);
-      border-color: rgba(245,158,11,0.3);
-      color: #f59e0b;
+    .btn:active { transform: scale(0.98); }
+    .btn-secondary {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
     }
-    .status-error {
-      background: rgba(239,68,68,0.15);
-      border-color: rgba(239,68,68,0.3);
+    .error-msg {
       color: #ef4444;
+      font-size: 13px;
+      margin-top: 12px;
     }
     
-    .btn { padding: 12px 24px; border-radius: 8px; font-weight: 700; cursor: pointer; border: none; }
-    .btn-ghost { background: rgba(255,255,255,0.1); color: #fff; }
+    .hidden { display: none; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    
+    .conn-status {
+      position: fixed;
+      bottom: 16px;
+      left: 16px;
+      background: rgba(0,0,0,0.6);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 10px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      z-index: 100;
+    }
+    .conn-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ef4444;
+    }
+    .conn-dot.connected { background: #10b981; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+    
+    .timezone-badge {
+      background: rgba(59,130,246,0.15);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 8px;
+    }
   </style>
 </head>
 <body>
-
 <div class="container">
-
-  <!-- JOIN SCREEN -->
-  <div id="joinScreen" class="screen active">
+  <div id="joinScreen">
     <div class="join-card">
       <div class="join-logo">PLAY<span>A</span>QUIZ</div>
       <div class="join-sub">Self-Paced Quiz Challenge</div>
       
-      <div style="margin: 24px 0;">
-        <label style="display:block; font-size:12px; color:#6b7a99; margin-bottom:8px; text-transform:uppercase;">Select Your Avatar</label>
-        <div class="avatar-grid" id="avatarGrid"></div>
-      </div>
+      <input type="text" id="roomInput" class="join-input" placeholder="Room Code" maxlength="8" autocomplete="off">
+      <input type="text" id="nameInput" class="join-input" placeholder="Your Name" maxlength="20">
       
-      <div>
-        <label style="display:block; font-size:12px; color:#6b7a99; margin-bottom:8px; text-transform:uppercase;">Enter Your Name</label>
-        <input type="text" id="playerName" class="join-input" placeholder="Your Name" maxlength="30">
-      </div>
+      <div style="font-size: 12px; color: rgba(255,255,255,0.5); margin: 16px 0 8px; text-align: left;">Choose Avatar</div>
+      <div class="avatar-grid" id="avatarGrid"></div>
       
-      <div>
-        <label style="display:block; font-size:12px; color:#6b7a99; margin-bottom:8px; text-transform:uppercase;">Room Code</label>
-        <input type="text" id="roomInput" class="join-input" placeholder="CODE" maxlength="8" autocomplete="off">
-      </div>
-      
-      <button class="join-btn" onclick="joinGame()">ENTER →</button>
-      <div id="joinError" class="join-error"></div>
+      <button class="btn" id="joinBtn" onclick="joinGame()">🚀 Join Game</button>
+      <div id="joinError" class="error-msg"></div>
       <div class="timezone-badge" id="timezoneDisplay"></div>
     </div>
   </div>
-
-  <!-- START SCREEN -->
-  <div id="startScreen" class="screen">
+  
+  <div id="startScreen" class="hidden">
+    <div class="join-card start-card">
+      <div class="start-icon">🎯</div>
+      <div class="start-title">Ready to Play?</div>
+      <div style="font-size: 14px; color: rgba(255,255,255,0.5);">Get ready to test your knowledge!</div>
+      
+      <div class="start-info">
+        <div class="start-info-item">
+          <div class="start-info-icon">⚡</div>
+          <div class="start-info-text">
+            <div class="start-info-title">Speed = More Points</div>
+            <div class="start-info-desc">Answer faster to earn higher scores</div>
+          </div>
+        </div>
+        <div class="start-info-item">
+          <div class="start-info-icon">❌</div>
+          <div class="start-info-text">
+            <div class="start-info-title">No Second Chances</div>
+            <div class="start-info-desc">You can only answer each question once</div>
+          </div>
+        </div>
+        <div class="start-info-item">
+          <div class="start-info-icon">🏆</div>
+          <div class="start-info-text">
+            <div class="start-info-title">Complete All Questions</div>
+            <div class="start-info-desc">Finish all questions to see your final score</div>
+          </div>
+        </div>
+      </div>
+      
+      <div style="background: rgba(59,130,246,0.1); border-radius: 12px; padding: 12px; margin: 16px 0;">
+        <div style="font-size: 12px; color: #3b82f6;">📊 Your Progress</div>
+        <div style="font-size: 28px; font-weight: 700;" id="startTotalQuestions">0</div>
+        <div style="font-size: 11px; color: rgba(255,255,255,0.5);">Total Questions to Answer</div>
+      </div>
+      
+      <button class="start-btn" id="startQuizBtn" onclick="startQuiz()">🎮 START QUIZ →</button>
+    </div>
+  </div>
+  
+  <div id="quizScreen" class="hidden">
     <div class="header">
       <div class="player-info">
-        <div class="player-avatar" id="playerAvatar">👤</div>
-        <div>
-          <div class="player-name" id="playerName2">Loading...</div>
-          <div style="font-size:11px; color:#6b7a99;">Ready to play</div>
-        </div>
+        <div class="player-avatar" id="playerAvatar">😎</div>
+        <div class="player-name" id="playerName">Player</div>
       </div>
       <div class="score-chip" id="scoreDisplay">0 pts</div>
     </div>
     
-    <div class="question-card">
-      <div class="start-card">
-        <div class="start-icon">🎮</div>
-        <div class="start-title">Ready?</div>
-        <p style="color: rgba(255,255,255,0.6); margin-bottom: 24px;">You're about to start a self-paced quiz</p>
-        
-        <div class="start-info">
-          <div class="start-info-item">
-            <div class="start-info-icon">❓</div>
-            <div class="start-info-text">
-              <div class="start-info-title">Questions</div>
-              <div class="start-info-desc" id="startTotalQuestions">0 questions</div>
-            </div>
-          </div>
-          <div class="start-info-item">
-            <div class="start-info-icon">⏱️</div>
-            <div class="start-info-text">
-              <div class="start-info-title">Time Limit</div>
-              <div class="start-info-desc">35 seconds per question</div>
-            </div>
-          </div>
-          <div class="start-info-item">
-            <div class="start-info-icon">⭐</div>
-            <div class="start-info-text">
-              <div class="start-info-title">Points</div>
-              <div class="start-info-desc">Speed bonus included</div>
-            </div>
-          </div>
-        </div>
-        
-        <button class="start-btn" id="startBtn" onclick="startQuiz()">▶️ START QUIZ →</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- QUIZ SCREEN -->
-  <div id="quizScreen" class="screen">
-    <div class="header">
-      <div class="player-info">
-        <div class="player-avatar" id="playerAvatar2">👤</div>
-        <div>
-          <div class="player-name" id="playerName3">Loading...</div>
-          <div style="font-size:11px; color:#6b7a99;" id="qIndex">Q1</div>
-        </div>
-      </div>
-      <div class="score-chip" id="scoreDisplay2">0 pts</div>
-    </div>
-    
     <div class="progress-section">
-      <div class="progress-bar">
-        <div class="progress-fill" id="progressFill" style="width: 0%"></div>
-      </div>
       <div class="progress-text">
-        <span id="progressLabel">Question 1 of 10</span>
-        <span id="progressPercent">0%</span>
+        <span>📊 Progress</span>
+        <span id="progressText">0 / 0</span>
       </div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width: 0%"></div></div>
     </div>
     
     <div class="question-card">
       <div class="timer-bar">
-        <div class="timer-label">TIME LEFT</div>
-        <div class="timer-value" id="timerDisplay">35s</div>
+        <span class="timer-label">⚡ SPEED BONUS</span>
+        <span class="timer-value" id="timerDisplay">—</span>
       </div>
-      
-      <div class="question-text" id="questionText">Loading question...</div>
-      
+      <div class="question-text" id="questionText">Loading...</div>
       <div class="options-list" id="optionsList"></div>
-      
-      <div class="feedback hidden" id="feedback"></div>
-      
-      <button class="next-btn hidden" id="nextBtn" onclick="loadNextQuestion()">NEXT →</button>
+      <div id="feedback" class="hidden"></div>
+      <button class="next-btn hidden" id="nextBtn" onclick="loadNextQuestion()">Next Question →</button>
     </div>
   </div>
-
-  <!-- COMPLETION SCREEN -->
-  <div id="completionScreen" class="screen">
-    <div class="header">
-      <div class="player-info">
-        <div class="player-avatar" id="completionAvatar">👤</div>
-        <div>
-          <div class="player-name" id="completionName">Player</div>
-          <div style="font-size:11px; color:#6b7a99;">Quiz completed</div>
-        </div>
-      </div>
-    </div>
-    
-    <div class="question-card completion-card">
-      <div class="completion-icon">🎉</div>
-      <div class="completion-title" id="finalScore">100</div>
-      <div style="color: rgba(255,255,255,0.6); margin-bottom: 20px;">Points</div>
-      
+  
+  <div id="completionScreen" class="hidden">
+    <div class="join-card completion-card">
+      <div class="completion-icon">🏆</div>
+      <div class="completion-title">QUIZ COMPLETE!</div>
       <div class="final-stats">
         <div class="final-stat">
-          <div class="final-stat-value" id="finalCorrect">0/10</div>
+          <div class="final-stat-value" id="finalScore">0</div>
+          <div class="final-stat-label">Total Points</div>
+        </div>
+        <div class="final-stat">
+          <div class="final-stat-value" id="finalCorrect">0</div>
           <div class="final-stat-label">Correct</div>
         </div>
         <div class="final-stat">
@@ -496,190 +463,296 @@
           <div class="final-stat-label">Accuracy</div>
         </div>
       </div>
-      
-      <button class="start-btn" onclick="viewLeaderboard()" style="margin-top:24px;">🏆 VIEW LEADERBOARD</button>
-      <button class="btn btn-ghost" onclick="playAgain()" style="margin-top:12px; width:100%; color:#fff;">PLAY AGAIN</button>
+      <div style="display: flex; gap: 12px;">
+        <button class="btn" onclick="viewLeaderboard()">🏆 View Leaderboard</button>
+        <button class="btn btn-secondary" onclick="playAgain()">🔄 Play Again</button>
+      </div>
     </div>
   </div>
-
+  
+  <div class="conn-status" id="connStatus">
+    <div class="conn-dot" id="connDot"></div>
+    <span id="connText">Connecting...</span>
+  </div>
 </div>
 
 <script>
-const supabaseUrl = 'https://your-supabase-url.supabase.co';
-const supabaseKey = 'your-supabase-key';
-const sb = supabase.createClient(supabaseUrl, supabaseKey);
+const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
+const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+const AVATARS = ['😎','🦁','🐯','🐱','🐶','🐺','🦊','🐸','🐧','🐙','🦄','🐲','🚀','⭐','🔥','⚡','🎮','🏆','💎','🌈'];
 
 let SESSION_ID = null;
-let ROOM_CODE = null;
 let myPlayer = null;
 let questions = [];
 let currentIndex = 0;
 let score = 0;
 let correctCount = 0;
+let questionStartTime = null;
 let answered = false;
-let questionStartTime = 0;
 let timerInterval = null;
+let reconnectAttempts = 0;
 let realtimeChannel = null;
-let selectedAvatar = '😎';
+let quizStarted = false;
+let ROOM_CODE = null;
 
-function showScreen(screenId) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(screenId).classList.add('active');
+// Timezone utilities
+function getUserTimezone() {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone;
 }
 
-async function joinGame() {
-  const code = document.getElementById('roomInput').value.trim().toUpperCase();
-  const name = document.getElementById('playerName').value.trim();
-  
-  if (!code || !name) {
-    showError('Enter room code and name');
-    return;
+function getTimezoneOffset() {
+  const offset = new Date().getTimezoneOffset();
+  const hours = Math.abs(Math.floor(offset / 60));
+  const minutes = Math.abs(offset % 60);
+  const sign = offset <= 0 ? '+' : '-';
+  return `UTC ${sign}${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+}
+
+function displayTimezoneInfo() {
+  const tz = getUserTimezone();
+  const offset = getTimezoneOffset();
+  const display = document.getElementById('timezoneDisplay');
+  if (display) {
+    display.innerHTML = `🌍 ${tz} (${offset})`;
   }
-  
+  console.log(`Timezone: ${tz} (${offset})`);
+}
+
+function buildAvatarGrid() {
+  const grid = document.getElementById('avatarGrid');
+  grid.innerHTML = AVATARS.map(a => `<div class="avatar-opt" onclick="selectAvatar(this, '${a}')">${a}</div>`).join('');
+}
+
+let selectedAvatar = '😎';
+function selectAvatar(el, avatar) {
+  document.querySelectorAll('.avatar-opt').forEach(opt => opt.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedAvatar = avatar;
+}
+
+// Room status check function
+async function checkRoomStatus(roomCode) {
   try {
-    // Fetch the room session
-    const { data: session, error: sessionError } = await sb
+    const { data: session, error } = await sb
       .from('game_sessions')
-      .select('id, room_code, status, scheduled_date')
-      .eq('room_code', code)
+      .select('id, status, scheduled_date')
+      .eq('room_code', roomCode)
       .maybeSingle();
     
-    if (sessionError || !session) {
-      showError('❌ Room not found');
-      return;
+    if (error || !session) {
+      return { available: false, reason: '❌ Room not found. Please check the code.' };
     }
     
-    // ✅ CHECK IF ROOM IS SCHEDULED FOR FUTURE DATE
-    if (session.status === 'scheduled' && session.scheduled_date) {
+    // Check if room is scheduled for future
+    if (session.status === 'scheduled') {
       const scheduledDate = new Date(session.scheduled_date);
       const now = new Date();
-      
       if (scheduledDate > now) {
         const formattedDate = scheduledDate.toLocaleString();
-        showError(`📅 This room is scheduled for ${formattedDate}`);
-        return;
+        return { 
+          available: false, 
+          reason: `📅 This room is scheduled for ${formattedDate}. Please check back then.` 
+        };
       }
     }
     
-    SESSION_ID = session.id;
-    ROOM_CODE = session.room_code;
+    // Check if room is active or waiting
+    if (session.status !== 'active' && session.status !== 'waiting') {
+      return { available: false, reason: `⚠️ This room is ${session.status}. Cannot join.` };
+    }
     
-    // Load room-specific questions
-    const { data: qs, error: qError } = await sb
-      .from('questions')
-      .select('*')
+    return { available: true, sessionId: session.id, session: session };
+    
+  } catch (err) {
+    console.error('Status check error:', err);
+    return { available: false, reason: '🔌 Connection error. Please try again.' };
+  }
+}
+
+function updateConnectionStatus(connected, message) {
+  const dot = document.getElementById('connDot');
+  const text = document.getElementById('connText');
+  if (connected) {
+    dot.classList.add('connected');
+    text.innerText = message || 'Connected';
+  } else {
+    dot.classList.remove('connected');
+    text.innerText = message || 'Reconnecting...';
+  }
+}
+
+async function checkConnection() {
+  try {
+    const { error } = await sb.from('game_sessions').select('id').limit(1);
+    if (!error) {
+      updateConnectionStatus(true, 'Connected');
+      reconnectAttempts = 0;
+      return true;
+    }
+    throw error;
+  } catch(e) {
+    updateConnectionStatus(false, 'Reconnecting...');
+    return false;
+  }
+}
+
+// Fixed joinGame function
+async function joinGame() {
+  const roomCode = document.getElementById('roomInput').value.trim().toUpperCase();
+  const playerName = document.getElementById('nameInput').value.trim();
+  const joinBtn = document.getElementById('joinBtn');
+  
+  if (!roomCode) { showError('Enter room code'); return; }
+  if (!playerName || playerName.length < 2) { showError('Enter your name (min 2 chars)'); return; }
+  
+  joinBtn.disabled = true;
+  joinBtn.innerText = 'Checking...';
+  
+  // Check room status first
+  const statusCheck = await checkRoomStatus(roomCode);
+  if (!statusCheck.available) {
+    showError(statusCheck.reason);
+    joinBtn.disabled = false;
+    joinBtn.innerText = '🚀 Join Game';
+    return;
+  }
+  
+  SESSION_ID = statusCheck.sessionId;
+  ROOM_CODE = roomCode;
+  joinBtn.innerText = 'Joining...';
+  
+  try {
+    // Check if name exists
+    const { data: existing } = await sb
+      .from('players')
+      .select('id')
       .eq('session_id', SESSION_ID)
-      .order('created_at');
+      .eq('name', playerName)
+      .maybeSingle();
     
-    if (qError || !qs || qs.length === 0) {
-      showError('❌ No questions found for this room');
+    if (existing) {
+      showError('Name already taken in this room');
+      joinBtn.disabled = false;
+      joinBtn.innerText = '🚀 Join Game';
       return;
     }
     
-    questions = qs;
-    
-    // Create player record
+    // Create player
     const { data: player, error: playerError } = await sb
       .from('players')
       .insert({
         session_id: SESSION_ID,
-        name: name,
+        name: playerName,
         avatar_color: selectedAvatar,
         score: 0,
         correct_count: 0,
-        current_q_index: 0,
-        completed: false,
-        is_eliminated: false
+        current_q_index: 0
       })
       .select()
       .single();
     
-    if (playerError || !player) {
-      showError('Error creating player: ' + playerError?.message);
+    if (playerError) {
+      showError('Could not join: ' + playerError.message);
+      joinBtn.disabled = false;
+      joinBtn.innerText = '🚀 Join Game';
       return;
     }
     
     myPlayer = player;
-    localStorage.setItem('sp_player', JSON.stringify(player));
+    localStorage.setItem('sp_player', JSON.stringify({ 
+      id: myPlayer.id, 
+      session: SESSION_ID, 
+      name: playerName,
+      avatar: selectedAvatar 
+    }));
     
-    // Show start screen
-    document.getElementById('playerName2').innerText = name;
+    // Load questions
+    const { data: qs, error: qError } = await sb
+      .from('questions')
+      .select('*')
+      .order('created_at');
+    
+    if (qError) {
+      showError('Error loading questions');
+      return;
+    }
+    
+    questions = qs || [];
+    
+    if (questions.length === 0) {
+      showError('No questions available. Please wait for admin to add questions.');
+      return;
+    }
+    
+    // Update player info display
     document.getElementById('playerAvatar').innerText = selectedAvatar;
-    document.getElementById('playerAvatar2').innerText = selectedAvatar;
-    document.getElementById('playerName3').innerText = name;
-    document.getElementById('startTotalQuestions').innerText = `${questions.length} questions`;
+    document.getElementById('playerName').innerText = playerName;
     
-    showScreen('startScreen');
+    // Show START screen
+    document.getElementById('joinScreen').classList.add('hidden');
+    document.getElementById('startScreen').classList.remove('hidden');
+    document.getElementById('startTotalQuestions').innerText = questions.length;
+    
+    // Setup realtime for score updates
     setupRealtime();
     
   } catch (err) {
     console.error('Join error:', err);
-    showError('Connection error: ' + err.message);
+    showError('Connection error. Please try again.');
+  } finally {
+    joinBtn.disabled = false;
+    joinBtn.innerText = '🚀 Join Game';
   }
 }
 
-async function startQuiz() {
-  if (questions.length === 0) {
-    showError('No questions available');
-    return;
-  }
+function startQuiz() {
+  quizStarted = true;
+  document.getElementById('startScreen').classList.add('hidden');
+  document.getElementById('quizScreen').classList.remove('hidden');
+  document.getElementById('scoreDisplay').innerHTML = '0 pts';
   
-  currentIndex = 0;
-  score = 0;
-  correctCount = 0;
-  
-  document.getElementById('completionAvatar').innerText = selectedAvatar;
-  document.getElementById('completionName').innerText = myPlayer.name;
-  
-  showScreen('quizScreen');
-  await loadQuestion(0);
+  const savedIndex = myPlayer?.current_q_index || 0;
+  loadQuestion(savedIndex);
 }
 
-async function loadQuestion(idx) {
-  if (idx >= questions.length) {
+async function loadQuestion(index) {
+  if (index >= questions.length) {
     await completeQuiz();
     return;
   }
   
-  currentIndex = idx;
-  const q = questions[idx];
+  currentIndex = index;
   answered = false;
-  questionStartTime = Date.now();
-  
   if (timerInterval) clearInterval(timerInterval);
   
-  // Update progress
-  const progress = ((idx + 1) / questions.length) * 100;
-  document.getElementById('progressFill').style.width = progress + '%';
-  document.getElementById('progressLabel').innerText = `Question ${idx + 1} of ${questions.length}`;
-  document.getElementById('progressPercent').innerText = `${Math.round(progress)}%`;
-  document.getElementById('qIndex').innerText = `Q${idx + 1}`;
+  const q = questions[index];
+  document.getElementById('questionText').innerHTML = escapeHtml(q.question_text);
+  document.getElementById('progressText').innerHTML = `${index + 1} / ${questions.length}`;
+  document.getElementById('progressFill').style.width = `${((index) / questions.length) * 100}%`;
+  document.getElementById('scoreDisplay').innerHTML = `${score} pts`;
+  document.getElementById('feedback').classList.add('hidden');
+  document.getElementById('nextBtn').classList.add('hidden');
   
-  // Display question
-  document.getElementById('questionText').innerText = q.question_text;
-  const options = [q.option_a, q.option_b, q.option_c, q.option_d];
-  document.getElementById('optionsList').innerHTML = options.map((opt, i) => `
+  const letters = ['A', 'B', 'C', 'D'];
+  const opts = [q.option_a, q.option_b, q.option_c, q.option_d];
+  document.getElementById('optionsList').innerHTML = opts.map((opt, i) => `
     <button class="option-btn" onclick="submitAnswer(${i})">
-      <div class="option-letter">${String.fromCharCode(65 + i)}</div>
+      <div class="option-letter">${letters[i]}</div>
       <div class="option-text">${escapeHtml(opt)}</div>
     </button>
   `).join('');
   
-  document.getElementById('feedback').classList.add('hidden');
-  document.getElementById('nextBtn').classList.add('hidden');
-  document.querySelector('#quizScreen .options-list').querySelectorAll('button').forEach(b => b.disabled = false);
+  questionStartTime = Date.now();
+  const baseTime = 30;
+  updateTimerDisplay(baseTime);
   
-  // Timer
-  let remaining = 35;
-  updateTimerDisplay(remaining);
   timerInterval = setInterval(() => {
-    remaining--;
+    const elapsed = (Date.now() - questionStartTime) / 1000;
+    const remaining = Math.max(0, baseTime - elapsed);
     updateTimerDisplay(remaining);
-    if (remaining <= 0) {
-      clearInterval(timerInterval);
-      if (!answered) submitAnswer(-1);
-    }
-  }, 1000);
+  }, 100);
 }
 
 function updateTimerDisplay(remaining) {
@@ -688,7 +761,7 @@ function updateTimerDisplay(remaining) {
     display.innerText = '0s';
     display.style.color = '#ef4444';
   } else {
-    display.innerText = `${remaining}s`;
+    display.innerText = `${Math.ceil(remaining)}s`;
     if (remaining <= 5) display.style.color = '#ef4444';
     else if (remaining <= 10) display.style.color = '#f59e0b';
     else display.style.color = '#10b981';
@@ -740,7 +813,6 @@ async function submitAnswer(selectedIdx) {
   const letters = ['A', 'B', 'C', 'D'];
   const feedbackDiv = document.getElementById('feedback');
   feedbackDiv.classList.remove('hidden');
-  
   if (isCorrect) {
     feedbackDiv.className = 'feedback feedback-correct';
     const bonusText = elapsed < 10 ? ' ⚡ Speed bonus!' : '';
@@ -768,7 +840,6 @@ async function submitAnswer(selectedIdx) {
   document.querySelectorAll('.option-btn').forEach(btn => btn.disabled = true);
   document.getElementById('nextBtn').classList.remove('hidden');
   document.getElementById('scoreDisplay').innerHTML = `${score} pts`;
-  document.getElementById('scoreDisplay2').innerHTML = `${score} pts`;
 }
 
 async function loadNextQuestion() {
@@ -798,7 +869,8 @@ async function completeQuiz() {
   document.getElementById('finalCorrect').innerText = `${correctCount}/${questions.length}`;
   document.getElementById('finalAccuracy').innerText = `${accuracy}%`;
   
-  showScreen('completionScreen');
+  document.getElementById('quizScreen').classList.add('hidden');
+  document.getElementById('completionScreen').classList.remove('hidden');
 }
 
 function viewLeaderboard() {
@@ -815,7 +887,7 @@ function playAgain() {
 function showError(msg) {
   const errDiv = document.getElementById('joinError');
   errDiv.innerText = msg;
-  setTimeout(() => errDiv.innerText = '', 5000);
+  setTimeout(() => errDiv.innerText = '', 3000);
 }
 
 function setupRealtime() {
@@ -835,6 +907,9 @@ function setupRealtime() {
         myPlayer = payload.new;
         score = myPlayer.score || 0;
         correctCount = myPlayer.correct_count || 0;
+        if (document.getElementById('scoreDisplay')) {
+          document.getElementById('scoreDisplay').innerHTML = `${score} pts`;
+        }
       }
     })
     .subscribe();
@@ -845,26 +920,80 @@ function escapeHtml(str) {
   return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
 }
 
-function buildAvatarGrid() {
-  const avatars = ['😎', '🤓', '🚀', '⚡', '🎯', '🏆', '🎨', '🎭', '🎪', '🎬', '🎤', '🎸'];
-  const grid = document.getElementById('avatarGrid') || document.createElement('div');
-  grid.innerHTML = avatars.map(avatar => `
-    <div class="avatar-opt" onclick="selectAvatar(this, '${avatar}')">${avatar}</div>
-  `).join('');
-  if (!document.getElementById('avatarGrid')) {
-    document.body.appendChild(grid);
+async function autoRejoin() {
+  const saved = localStorage.getItem('sp_player');
+  if (!saved) return;
+  
+  try {
+    const data = JSON.parse(saved);
+    const { data: player, error } = await sb
+      .from('players')
+      .select('*')
+      .eq('id', data.id)
+      .maybeSingle();
+    
+    if (error || !player) {
+      localStorage.removeItem('sp_player');
+      return;
+    }
+    
+    if (player.is_eliminated) {
+      localStorage.removeItem('sp_player');
+      return;
+    }
+    
+    myPlayer = player;
+    SESSION_ID = player.session_id;
+    score = player.score || 0;
+    correctCount = player.correct_count || 0;
+    selectedAvatar = player.avatar_color || '😎';
+    const savedIndex = player.current_q_index || 0;
+    
+    const { data: session } = await sb
+      .from('game_sessions')
+      .select('room_code')
+      .eq('id', SESSION_ID)
+      .single();
+    
+    if (session) {
+      ROOM_CODE = session.room_code;
+    }
+    
+    const { data: qs } = await sb.from('questions').select('*').order('created_at');
+    questions = qs || [];
+    
+    if (questions.length === 0) return;
+    
+    document.getElementById('playerAvatar').innerText = selectedAvatar;
+    document.getElementById('playerName').innerText = player.name;
+    
+    if (player.completed === true || savedIndex >= questions.length) {
+      const accuracy = questions.length > 0 ? Math.round((player.correct_count / questions.length) * 100) : 0;
+      document.getElementById('finalScore').innerText = player.score || 0;
+      document.getElementById('finalCorrect').innerText = `${player.correct_count || 0}/${questions.length}`;
+      document.getElementById('finalAccuracy').innerText = `${accuracy}%`;
+      document.getElementById('joinScreen').classList.add('hidden');
+      document.getElementById('completionScreen').classList.remove('hidden');
+    } else if (savedIndex > 0) {
+      document.getElementById('joinScreen').classList.add('hidden');
+      document.getElementById('startScreen').classList.remove('hidden');
+      document.getElementById('startTotalQuestions').innerHTML = `${questions.length}<span style="font-size: 14px;"> (Resume from Q${savedIndex + 1})</span>`;
+      window.resumeIndex = savedIndex;
+      const startBtn = document.querySelector('#startScreen .start-btn');
+      startBtn.innerHTML = '▶️ RESUME QUIZ →';
+    } else {
+      document.getElementById('joinScreen').classList.add('hidden');
+      document.getElementById('startScreen').classList.remove('hidden');
+      document.getElementById('startTotalQuestions').innerText = questions.length;
+    }
+    
+    setupRealtime();
+    updateConnectionStatus(true, 'Connected');
+    
+  } catch(e) {
+    console.log('Auto-rejoin failed:', e);
+    localStorage.removeItem('sp_player');
   }
-}
-
-function selectAvatar(element, avatar) {
-  document.querySelectorAll('.avatar-opt').forEach(a => a.classList.remove('selected'));
-  element.classList.add('selected');
-  selectedAvatar = avatar;
-}
-
-function displayTimezoneInfo() {
-  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  document.getElementById('timezoneDisplay').innerHTML = `🌍 ${tz}`;
 }
 
 // Initialize
@@ -877,6 +1006,11 @@ const roomFromUrl = urlParams.get('room');
 if (roomFromUrl) {
   document.getElementById('roomInput').value = roomFromUrl.toUpperCase();
 }
+
+autoRejoin();
+
+setInterval(checkConnection, 5000);
+checkConnection();
 
 window.joinGame = joinGame;
 window.selectAvatar = selectAvatar;
