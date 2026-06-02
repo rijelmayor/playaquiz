@@ -344,6 +344,17 @@
     }
     .conn-dot.connected { background: #10b981; animation: pulse 1.5s infinite; }
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+    
+    .timezone-badge {
+      background: rgba(59,130,246,0.15);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 8px;
+    }
   </style>
 </head>
 <body>
@@ -361,6 +372,7 @@
       
       <button class="btn" id="joinBtn" onclick="joinGame()">🚀 Join Game</button>
       <div id="joinError" class="error-msg"></div>
+      <div class="timezone-badge" id="timezoneDisplay"></div>
     </div>
   </div>
   
@@ -485,6 +497,29 @@ let realtimeChannel = null;
 let quizStarted = false;
 let ROOM_CODE = null;
 
+// Timezone utilities
+function getUserTimezone() {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone;
+}
+
+function getTimezoneOffset() {
+  const offset = new Date().getTimezoneOffset();
+  const hours = Math.abs(Math.floor(offset / 60));
+  const minutes = Math.abs(offset % 60);
+  const sign = offset <= 0 ? '+' : '-';
+  return `UTC ${sign}${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+}
+
+function displayTimezoneInfo() {
+  const tz = getUserTimezone();
+  const offset = getTimezoneOffset();
+  const display = document.getElementById('timezoneDisplay');
+  if (display) {
+    display.innerHTML = `🌍 ${tz} (${offset})`;
+  }
+  console.log(`Timezone: ${tz} (${offset})`);
+}
+
 function buildAvatarGrid() {
   const grid = document.getElementById('avatarGrid');
   grid.innerHTML = AVATARS.map(a => `<div class="avatar-opt" onclick="selectAvatar(this, '${a}')">${a}</div>`).join('');
@@ -515,9 +550,10 @@ async function checkRoomStatus(roomCode) {
       const scheduledDate = new Date(session.scheduled_date);
       const now = new Date();
       if (scheduledDate > now) {
+        const formattedDate = scheduledDate.toLocaleString();
         return { 
           available: false, 
-          reason: `📅 This room is scheduled for ${scheduledDate.toLocaleString()}. Please check back then.` 
+          reason: `📅 This room is scheduled for ${formattedDate}. Please check back then.` 
         };
       }
     }
@@ -963,6 +999,7 @@ async function autoRejoin() {
 // Initialize
 buildAvatarGrid();
 selectAvatar(document.querySelector('.avatar-opt'), '😎');
+displayTimezoneInfo();
 
 const urlParams = new URLSearchParams(window.location.search);
 const roomFromUrl = urlParams.get('room');
