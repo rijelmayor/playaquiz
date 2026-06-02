@@ -108,9 +108,8 @@
       border: 1px solid rgba(59,130,246,0.2);
       border-radius: 24px;
       padding: 24px;
-      margin: 20px;
-      max-width: 800px;
       margin: 20px auto;
+      max-width: 800px;
     }
     .leaderboard-title {
       font-family: 'Bebas Neue', sans-serif;
@@ -144,6 +143,17 @@
     .status { font-size: 12px; padding: 4px 12px; border-radius: 20px; }
     .status-active { background: rgba(16,185,129,0.2); color: #10b981; }
     .status-complete { background: rgba(59,130,246,0.2); color: #3b82f6; }
+    
+    .timezone-badge {
+      background: rgba(59,130,246,0.2);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 11px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 10px;
+    }
     
     .btn {
       background: #3b82f6;
@@ -211,7 +221,7 @@
     <div style="font-size: 36px; font-weight: 800; margin-bottom: 8px;">PLAY<span style="color:#3b82f6">A</span>QUIZ</div>
     <div style="font-size: 14px; color: rgba(255,255,255,0.5);">Enter Room Code to Display</div>
     <input type="text" id="roomInput" class="entry-input" placeholder="CODE" maxlength="8" autocomplete="off">
-    <button class="btn" onclick="connectToRoom()">Connect →</button>
+    <button class="btn" id="connectBtn" onclick="connectToRoom()">Connect →</button>
     <div id="roomError" class="error-msg"></div>
   </div>
 </div>
@@ -227,6 +237,7 @@
       <div class="room-code-big" id="roomCodeDisplay">——</div>
     </div>
     <div class="join-link" id="joinUrlDisplay"></div>
+    <div class="timezone-badge" id="timezoneDisplay"></div>
     <div style="font-size:14px; color:rgba(255,255,255,0.5); margin-top: 16px;">
       Or enter code manually on your device
     </div>
@@ -260,112 +271,120 @@ let ROOM_CODE = null;
 let refreshInterval = null;
 let realtimeChannel = null;
 
-// Get URL parameters
-const urlParams = new URLSearchParams(window.location.search);
-const sessionFromUrl = urlParams.get('session');
-const roomFromUrl = urlParams.get('room');
-
-if (sessionFromUrl && roomFromUrl) {
-  SESSION_ID = sessionFromUrl;
-  ROOM_CODE = roomFromUrl;
-  document.getElementById('roomEntry').classList.add('hidden');
-  document.getElementById('mainContent').classList.remove('hidden');
-  document.getElementById('roomCodeDisplay').innerText = ROOM_CODE;
-  generateQRCode();
-  init();
+// Timezone utilities
+function getUserTimezone() {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone;
 }
 
+function getTimezoneOffset() {
+  const offset = new Date().getTimezoneOffset();
+  const hours = Math.abs(Math.floor(offset / 60));
+  const minutes = Math.abs(offset % 60);
+  const sign = offset <= 0 ? '+' : '-';
+  return `UTC ${sign}${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+}
 
-async function connectToRoom() {
-  const code = document.getElementById('roomInput').value.trim().toUpperCase();
-  if (!code) { showError('Enter room code'); return; }
-  
-  const btn = document.querySelector('#roomEntry .btn');
-  btn.disabled = true;
-  btn.innerText = 'Connecting...';
-  
+function displayTimezoneInfo() {
+  const tz = getUserTimezone();
+  const offset = getTimezoneOffset();
+  const display = document.getElementById('timezoneDisplay');
+  if (display) {
+    display.innerHTML = `🌍 ${tz} (${offset})`;
+  }
+}
+
+// Check room status before connecting
+async function checkAndConnectToRoom(code) {
   try {
     const { data: session, error } = await sb
       .from('game_sessions')
-      .select('id, room_code')
+      .select('id, room_code, status, scheduled_date, title')
       .eq('room_code', code)
       .maybeSingle();
     
     if (error || !session) {
-      showError('Room not found');
-      btn.disabled = false;
-      btn.innerText = 'Connect →';
-      return;
+      return { available: false, reason: '❌ Room not found' };
     }
     
-    SESSION_ID = session.id;
-    ROOM_CODE = session.room_code;
+    // Check if room is scheduled for future
+    if (session.status === 'scheduled') {
+      const scheduledDate = new Date(session.scheduled_date);
+      const now = new Date();
+      if (scheduledDate > now) {
+        const formattedDate = scheduledDate.toLocaleString();
+        return { 
+          available: false, 
+          reason: `📅 This room is scheduled for ${formattedDate}. FOH display will activate at that time.` 
+        };
+      }
+    }
     
-    document.getElementById('roomEntry').classList.add('hidden');
-    document.getElementById('mainContent').classList.remove('hidden');
-    document.getElementById('roomCodeDisplay').innerText = ROOM_CODE;
+    // Allow FOH for waiting, active, and ended rooms
+    let warning = null;
+    if (session.status === 'ended') {
+      warning = '🏁 This game has ended. Displaying final results.';
+    } else if (session.status === 'waiting') {
+      console.log('🎮 Room is ready! Players can join.');
+    } else if (session.status === 'active') {
+      console.log('⚡ Game in progress!');
+    }
     
-    generateQRCode();
-    init();
+    return { 
+      available: true, 
+      sessionId: session.id, 
+      roomCode: session.room_code,
+      status: session.status,
+      warning: warning
+    };
     
   } catch (err) {
-    showError('Connection error: ' + err.message);
-    btn.disabled = false;
-    btn.innerText = 'Connect →';
+    console.error('Connection check error:', err);
+    return { available: false, reason: '🔌 Connection error. Please try again.' };
   }
 }
 
-// Add to foh-sp.html
-async function checkAndConnectToRoom(code) {
-  const { data: session, error } = await sb
-    .from('game_sessions')
-    .select('id, room_code, status, scheduled_date')
-    .eq('room_code', code)
-    .maybeSingle();
-  
-  if (error || !session) {
-    showError('Room not found');
-    return false;
-  }
-  
-  // Check if room is scheduled for future
-  if (session.status === 'scheduled') {
-    const scheduledDate = new Date(session.scheduled_date);
-    const now = new Date();
-    if (scheduledDate > now) {
-      showError(`This room is scheduled for ${scheduledDate.toLocaleString()}. FOH display will activate at that time.`);
-      return false;
-    }
-  }
-  
-  // Check if room is active/waiting/ended - allow FOH for all except scheduled future
-  if (session.status === 'ended') {
-    // FOH can still show ended rooms for leaderboard viewing
-    console.log('Room has ended, displaying in read-only mode');
-  }
-  
-  SESSION_ID = session.id;
-  ROOM_CODE = session.room_code;
-  return true;
-}
-
-// Update connectToRoom function
+// Main connect function
 async function connectToRoom() {
   const code = document.getElementById('roomInput').value.trim().toUpperCase();
   if (!code) { showError('Enter room code'); return; }
   
-  const btn = document.querySelector('#roomEntry .btn');
+  const btn = document.getElementById('connectBtn');
   btn.disabled = true;
-  btn.innerText = 'Connecting...';
+  btn.innerText = 'Checking...';
   
-  const connected = await checkAndConnectToRoom(code);
-  if (!connected) {
+  const result = await checkAndConnectToRoom(code);
+  if (!result.available) {
+    showError(result.reason);
     btn.disabled = false;
     btn.innerText = 'Connect →';
     return;
   }
   
-  // Continue with connection...
+  SESSION_ID = result.sessionId;
+  ROOM_CODE = result.roomCode;
+  
+  btn.innerText = 'Connecting...';
+  
+  // Show warning if any
+  if (result.warning) {
+    showError(result.warning);
+    setTimeout(() => {
+      const errDiv = document.getElementById('roomError');
+      if (errDiv) errDiv.innerText = '';
+    }, 4000);
+  }
+  
+  // Proceed to display
+  document.getElementById('roomEntry').classList.add('hidden');
+  document.getElementById('mainContent').classList.remove('hidden');
+  document.getElementById('roomCodeDisplay').innerText = ROOM_CODE;
+  
+  displayTimezoneInfo();
+  generateQRCode();
+  init();
+  
+  btn.disabled = false;
+  btn.innerText = 'Connect →';
 }
 
 function generateQRCode() {
@@ -375,7 +394,6 @@ function generateQRCode() {
   const qrContainer = document.getElementById('qrcode');
   qrContainer.innerHTML = '';
   
-  // Use QRCode.js library if available
   if (typeof QRCode !== 'undefined') {
     try {
       new QRCode(qrContainer, {
@@ -398,7 +416,6 @@ function generateQRCode() {
 }
 
 function fallbackQRDisplay(container, url) {
-  // Fallback: Create a visual representation
   container.innerHTML = `
     <div style="background: white; border-radius: 16px; padding: 16px; text-align: center;">
       <div style="width: 180px; height: 180px; background: repeating-linear-gradient(45deg, #000 0px, #000 4px, #fff 4px, #fff 12px); border-radius: 8px; margin: 0 auto;"></div>
@@ -411,7 +428,9 @@ function fallbackQRDisplay(container, url) {
 function showError(msg) {
   const err = document.getElementById('roomError');
   err.innerText = msg;
-  setTimeout(() => err.innerText = '', 3000);
+  setTimeout(() => {
+    if (err.innerText === msg) err.innerText = '';
+  }, 5000);
 }
 
 async function init() {
@@ -425,7 +444,6 @@ async function loadStats() {
   if (!SESSION_ID) return;
   
   try {
-    // Get all players for this session
     const { data: players, error } = await sb
       .from('players')
       .select('*')
@@ -441,7 +459,6 @@ async function loadStats() {
       return;
     }
     
-    // Calculate stats
     const totalPlayers = players.length;
     const activePlayers = players.filter(p => !p.completed && !p.is_eliminated).length;
     const completedPlayers = players.filter(p => p.completed === true).length;
@@ -450,13 +467,7 @@ async function loadStats() {
     document.getElementById('statActive').innerText = activePlayers;
     document.getElementById('statCompleted').innerText = completedPlayers;
     
-    // Sort by score for leaderboard
     const sorted = [...players].sort((a, b) => (b.score || 0) - (a.score || 0));
-    
-    if (sorted.length === 0) {
-      document.getElementById('leaderboardList').innerHTML = '<div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.5);">No players yet</div>';
-      return;
-    }
     
     document.getElementById('leaderboardList').innerHTML = sorted.slice(0, 10).map((p, i) => {
       let statusText = 'Playing';
@@ -466,7 +477,6 @@ async function loadStats() {
         statusClass = 'status-complete';
       } else if (p.is_eliminated) {
         statusText = '❌ Eliminated';
-        statusClass = 'status-active';
       }
       
       const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}`;
@@ -492,6 +502,8 @@ function setupRealtime() {
     try { sb.removeChannel(realtimeChannel); } catch(e) {}
   }
   
+  if (!SESSION_ID) return;
+  
   realtimeChannel = sb.channel(`foh-${SESSION_ID}`);
   realtimeChannel
     .on('postgres_changes', { 
@@ -508,18 +520,31 @@ function escapeHtml(str) {
   return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
 }
 
-// Auto-start if URL params provided
-if (!SESSION_ID && !roomFromUrl && !sessionFromUrl) {
-  // Show entry screen - wait for input
-  console.log('Waiting for room code input');
+// Check URL parameters for direct access
+const urlParams = new URLSearchParams(window.location.search);
+const sessionFromUrl = urlParams.get('session');
+const roomFromUrl = urlParams.get('room');
+
+if (sessionFromUrl && roomFromUrl) {
+  SESSION_ID = sessionFromUrl;
+  ROOM_CODE = roomFromUrl;
+  document.getElementById('roomEntry').classList.add('hidden');
+  document.getElementById('mainContent').classList.remove('hidden');
+  document.getElementById('roomCodeDisplay').innerText = ROOM_CODE;
+  displayTimezoneInfo();
+  generateQRCode();
+  init();
 }
 
-// Refresh QR code every 30 seconds to ensure it's visible
+// Auto-refresh QR code every 30 seconds
 setInterval(() => {
-  if (ROOM_CODE) {
+  if (ROOM_CODE && document.getElementById('mainContent').classList.contains('hidden') === false) {
     generateQRCode();
   }
 }, 30000);
+
+// Display timezone info on page load even before connection
+displayTimezoneInfo();
 </script>
 </body>
 </html>
