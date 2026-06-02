@@ -18,7 +18,6 @@
     
     .container { max-width: 600px; margin: 0 auto; }
     
-    /* Header */
     .header {
       display: flex;
       justify-content: space-between;
@@ -47,7 +46,6 @@
       font-size: 14px;
     }
     
-    /* Progress Section */
     .progress-section {
       background: rgba(13,17,32,0.8);
       border-radius: 16px;
@@ -75,7 +73,6 @@
       color: rgba(255,255,255,0.5);
     }
     
-    /* Question Card */
     .question-card {
       background: rgba(13,17,32,0.9);
       border: 1px solid rgba(59,130,246,0.2);
@@ -106,7 +103,6 @@
       margin-bottom: 24px;
     }
     
-    /* Options */
     .options-list {
       display: flex;
       flex-direction: column;
@@ -144,7 +140,6 @@
     }
     .option-text { flex: 1; line-height: 1.3; }
     
-    /* Feedback */
     .feedback {
       margin-top: 20px;
       padding: 16px;
@@ -176,7 +171,6 @@
       width: 100%;
     }
     
-    /* Start Screen */
     .start-card {
       text-align: center;
       padding: 32px 24px;
@@ -223,7 +217,6 @@
     }
     .start-btn:active { transform: scale(0.98); }
     
-    /* Completion Screen */
     .completion-card {
       text-align: center;
       padding: 48px 24px;
@@ -253,7 +246,6 @@
       color: rgba(255,255,255,0.5);
     }
     
-    /* Join Screen */
     .join-card {
       background: rgba(13,17,32,0.9);
       border: 1px solid rgba(59,130,246,0.3);
@@ -331,7 +323,6 @@
     .hidden { display: none; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     
-    /* Connection Status */
     .conn-status {
       position: fixed;
       bottom: 16px;
@@ -357,7 +348,6 @@
 </head>
 <body>
 <div class="container">
-  <!-- Join Screen -->
   <div id="joinScreen">
     <div class="join-card">
       <div class="join-logo">PLAY<span>A</span>QUIZ</div>
@@ -369,12 +359,11 @@
       <div style="font-size: 12px; color: rgba(255,255,255,0.5); margin: 16px 0 8px; text-align: left;">Choose Avatar</div>
       <div class="avatar-grid" id="avatarGrid"></div>
       
-      <button class="btn" onclick="joinGame()">🚀 Join Game</button>
+      <button class="btn" id="joinBtn" onclick="joinGame()">🚀 Join Game</button>
       <div id="joinError" class="error-msg"></div>
     </div>
   </div>
   
-  <!-- Start Screen (NEW - shows before first question) -->
   <div id="startScreen" class="hidden">
     <div class="join-card start-card">
       <div class="start-icon">🎯</div>
@@ -411,11 +400,10 @@
         <div style="font-size: 11px; color: rgba(255,255,255,0.5);">Total Questions to Answer</div>
       </div>
       
-      <button class="start-btn" onclick="startQuiz()">🎮 START QUIZ →</button>
+      <button class="start-btn" id="startQuizBtn" onclick="startQuiz()">🎮 START QUIZ →</button>
     </div>
   </div>
   
-  <!-- Quiz Screen -->
   <div id="quizScreen" class="hidden">
     <div class="header">
       <div class="player-info">
@@ -445,7 +433,6 @@
     </div>
   </div>
   
-  <!-- Completion Screen -->
   <div id="completionScreen" class="hidden">
     <div class="join-card completion-card">
       <div class="completion-icon">🏆</div>
@@ -471,7 +458,6 @@
     </div>
   </div>
   
-  <!-- Connection Status -->
   <div class="conn-status" id="connStatus">
     <div class="conn-dot" id="connDot"></div>
     <span id="connText">Connecting...</span>
@@ -496,13 +482,14 @@ let answered = false;
 let timerInterval = null;
 let reconnectAttempts = 0;
 let realtimeChannel = null;
-let quizStarted = false; // NEW: track if quiz has started
+let quizStarted = false;
+let ROOM_CODE = null;
 
-// Build avatar grid
 function buildAvatarGrid() {
   const grid = document.getElementById('avatarGrid');
   grid.innerHTML = AVATARS.map(a => `<div class="avatar-opt" onclick="selectAvatar(this, '${a}')">${a}</div>`).join('');
 }
+
 let selectedAvatar = '😎';
 function selectAvatar(el, avatar) {
   document.querySelectorAll('.avatar-opt').forEach(opt => opt.classList.remove('selected'));
@@ -510,7 +497,7 @@ function selectAvatar(el, avatar) {
   selectedAvatar = avatar;
 }
 
-// Add this function to player-sp.html
+// Room status check function
 async function checkRoomStatus(roomCode) {
   try {
     const { data: session, error } = await sb
@@ -520,7 +507,7 @@ async function checkRoomStatus(roomCode) {
       .maybeSingle();
     
     if (error || !session) {
-      return { available: false, reason: 'Room not found' };
+      return { available: false, reason: '❌ Room not found. Please check the code.' };
     }
     
     // Check if room is scheduled for future
@@ -530,27 +517,24 @@ async function checkRoomStatus(roomCode) {
       if (scheduledDate > now) {
         return { 
           available: false, 
-          reason: `This room is scheduled for ${scheduledDate.toLocaleString()}. Please check back then.` 
+          reason: `📅 This room is scheduled for ${scheduledDate.toLocaleString()}. Please check back then.` 
         };
       }
     }
     
     // Check if room is active or waiting
     if (session.status !== 'active' && session.status !== 'waiting') {
-      return { available: false, reason: `This room is ${session.status}. Cannot join.` };
+      return { available: false, reason: `⚠️ This room is ${session.status}. Cannot join.` };
     }
     
-    return { available: true, sessionId: session.id };
+    return { available: true, sessionId: session.id, session: session };
     
   } catch (err) {
-    return { available: false, reason: 'Error checking room status' };
+    console.error('Status check error:', err);
+    return { available: false, reason: '🔌 Connection error. Please try again.' };
   }
 }
 
-
- 
-
-// Update connection status
 function updateConnectionStatus(connected, message) {
   const dot = document.getElementById('connDot');
   const text = document.getElementById('connText');
@@ -563,7 +547,6 @@ function updateConnectionStatus(connected, message) {
   }
 }
 
-// Check connection
 async function checkConnection() {
   try {
     const { error } = await sb.from('game_sessions').select('id').limit(1);
@@ -579,25 +562,34 @@ async function checkConnection() {
   }
 }
 
-// Modify joinGame function to use this check
+// Fixed joinGame function
 async function joinGame() {
   const roomCode = document.getElementById('roomInput').value.trim().toUpperCase();
   const playerName = document.getElementById('nameInput').value.trim();
+  const joinBtn = document.getElementById('joinBtn');
   
   if (!roomCode) { showError('Enter room code'); return; }
   if (!playerName || playerName.length < 2) { showError('Enter your name (min 2 chars)'); return; }
+  
+  joinBtn.disabled = true;
+  joinBtn.innerText = 'Checking...';
   
   // Check room status first
   const statusCheck = await checkRoomStatus(roomCode);
   if (!statusCheck.available) {
     showError(statusCheck.reason);
+    joinBtn.disabled = false;
+    joinBtn.innerText = '🚀 Join Game';
     return;
   }
-    
-    SESSION_ID = session.id;
-    
+  
+  SESSION_ID = statusCheck.sessionId;
+  ROOM_CODE = roomCode;
+  joinBtn.innerText = 'Joining...';
+  
+  try {
     // Check if name exists
-    const { data: existing, error: existingError } = await sb
+    const { data: existing } = await sb
       .from('players')
       .select('id')
       .eq('session_id', SESSION_ID)
@@ -605,7 +597,7 @@ async function joinGame() {
       .maybeSingle();
     
     if (existing) {
-      showError('Name already taken');
+      showError('Name already taken in this room');
       joinBtn.disabled = false;
       joinBtn.innerText = '🚀 Join Game';
       return;
@@ -662,7 +654,7 @@ async function joinGame() {
     document.getElementById('playerAvatar').innerText = selectedAvatar;
     document.getElementById('playerName').innerText = playerName;
     
-    // Show START screen instead of going directly to quiz
+    // Show START screen
     document.getElementById('joinScreen').classList.add('hidden');
     document.getElementById('startScreen').classList.remove('hidden');
     document.getElementById('startTotalQuestions').innerText = questions.length;
@@ -677,17 +669,15 @@ async function joinGame() {
     joinBtn.disabled = false;
     joinBtn.innerText = '🚀 Join Game';
   }
+}
 
-
-// NEW: Start the quiz when player clicks start button
 function startQuiz() {
   quizStarted = true;
   document.getElementById('startScreen').classList.add('hidden');
   document.getElementById('quizScreen').classList.remove('hidden');
   document.getElementById('scoreDisplay').innerHTML = '0 pts';
   
-  // Start from saved progress or beginning
-  const savedIndex = myPlayer.current_q_index || 0;
+  const savedIndex = myPlayer?.current_q_index || 0;
   loadQuestion(savedIndex);
 }
 
@@ -718,7 +708,6 @@ async function loadQuestion(index) {
     </button>
   `).join('');
   
-  // Start timer for speed bonus
   questionStartTime = Date.now();
   const baseTime = 30;
   updateTimerDisplay(baseTime);
@@ -753,7 +742,6 @@ async function submitAnswer(selectedIdx) {
   const elapsed = (Date.now() - questionStartTime) / 1000;
   const basePoints = q.points || 100;
   
-  // Speed bonus: faster = more points
   let pointsEarned = 0;
   if (isCorrect) {
     const speedBonus = Math.max(0.3, Math.min(1.0, 1 - (elapsed / 35)));
@@ -762,7 +750,6 @@ async function submitAnswer(selectedIdx) {
     correctCount++;
   }
   
-  // Update player progress in DB
   try {
     await sb.from('players').update({
       score: score,
@@ -770,10 +757,9 @@ async function submitAnswer(selectedIdx) {
       current_q_index: currentIndex + 1
     }).eq('id', myPlayer.id);
   } catch(e) {
-    console.log('Score update error (may not affect gameplay):', e);
+    console.log('Score update error:', e);
   }
   
-  // Save answer
   try {
     await sb.from('answers').insert({
       session_id: SESSION_ID,
@@ -788,7 +774,6 @@ async function submitAnswer(selectedIdx) {
     console.log('Answer save error:', e);
   }
   
-  // Show feedback
   const letters = ['A', 'B', 'C', 'D'];
   const feedbackDiv = document.getElementById('feedback');
   feedbackDiv.classList.remove('hidden');
@@ -797,7 +782,6 @@ async function submitAnswer(selectedIdx) {
     const bonusText = elapsed < 10 ? ' ⚡ Speed bonus!' : '';
     feedbackDiv.innerHTML = `✅ Correct! +${pointsEarned} points${bonusText}`;
     
-    // Play correct sound effect
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
       const o = ctx.createOscillator();
@@ -817,10 +801,7 @@ async function submitAnswer(selectedIdx) {
     feedbackDiv.innerHTML = `❌ Wrong! Correct answer: ${correctLetter}. ${escapeHtml(correctText)}`;
   }
   
-  // Disable options
   document.querySelectorAll('.option-btn').forEach(btn => btn.disabled = true);
-  
-  // Show next button
   document.getElementById('nextBtn').classList.remove('hidden');
   document.getElementById('scoreDisplay').innerHTML = `${score} pts`;
 }
@@ -837,14 +818,13 @@ async function loadNextQuestion() {
 async function completeQuiz() {
   if (timerInterval) clearInterval(timerInterval);
   
-  // Mark as completed
   try {
     await sb.from('players').update({
       completed: true,
       completed_at: new Date()
     }).eq('id', myPlayer.id);
   } catch(e) {
-    console.log('Completed status not saved (column may not exist)');
+    console.log('Completed status not saved');
   }
   
   const accuracy = questions.length > 0 ? Math.round((correctCount / questions.length) * 100) : 0;
@@ -904,7 +884,6 @@ function escapeHtml(str) {
   return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
 }
 
-// Auto-rejoin on page load
 async function autoRejoin() {
   const saved = localStorage.getItem('sp_player');
   if (!saved) return;
@@ -934,7 +913,6 @@ async function autoRejoin() {
     selectedAvatar = player.avatar_color || '😎';
     const savedIndex = player.current_q_index || 0;
     
-    // Get session to find room code
     const { data: session } = await sb
       .from('game_sessions')
       .select('room_code')
@@ -942,23 +920,18 @@ async function autoRejoin() {
       .single();
     
     if (session) {
-      window.ROOM_CODE = session.room_code;
+      ROOM_CODE = session.room_code;
     }
     
-    // Load questions
     const { data: qs } = await sb.from('questions').select('*').order('created_at');
     questions = qs || [];
     
-    if (questions.length === 0) {
-      return;
-    }
+    if (questions.length === 0) return;
     
     document.getElementById('playerAvatar').innerText = selectedAvatar;
     document.getElementById('playerName').innerText = player.name;
     
-    // Check if player has already completed
     if (player.completed === true || savedIndex >= questions.length) {
-      // Show completion screen
       const accuracy = questions.length > 0 ? Math.round((player.correct_count / questions.length) * 100) : 0;
       document.getElementById('finalScore').innerText = player.score || 0;
       document.getElementById('finalCorrect').innerText = `${player.correct_count || 0}/${questions.length}`;
@@ -966,19 +939,13 @@ async function autoRejoin() {
       document.getElementById('joinScreen').classList.add('hidden');
       document.getElementById('completionScreen').classList.remove('hidden');
     } else if (savedIndex > 0) {
-      // Resume from where they left off - show start screen with resume option
       document.getElementById('joinScreen').classList.add('hidden');
       document.getElementById('startScreen').classList.remove('hidden');
       document.getElementById('startTotalQuestions').innerHTML = `${questions.length}<span style="font-size: 14px;"> (Resume from Q${savedIndex + 1})</span>`;
-      
-      // Store resume index
       window.resumeIndex = savedIndex;
-      
-      // Modify start button to resume
       const startBtn = document.querySelector('#startScreen .start-btn');
       startBtn.innerHTML = '▶️ RESUME QUIZ →';
     } else {
-      // Fresh start
       document.getElementById('joinScreen').classList.add('hidden');
       document.getElementById('startScreen').classList.remove('hidden');
       document.getElementById('startTotalQuestions').innerText = questions.length;
@@ -993,38 +960,21 @@ async function autoRejoin() {
   }
 }
 
-// Modified startQuiz to handle resume
-window.startQuiz = function() {
-  quizStarted = true;
-  document.getElementById('startScreen').classList.add('hidden');
-  document.getElementById('quizScreen').classList.remove('hidden');
-  document.getElementById('scoreDisplay').innerHTML = `${score} pts`;
-  
-  // Use resume index if available
-  const startIndex = window.resumeIndex || myPlayer?.current_q_index || 0;
-  loadQuestion(startIndex);
-  delete window.resumeIndex;
-};
-
 // Initialize
 buildAvatarGrid();
 selectAvatar(document.querySelector('.avatar-opt'), '😎');
 
-// Check for room code in URL
 const urlParams = new URLSearchParams(window.location.search);
 const roomFromUrl = urlParams.get('room');
 if (roomFromUrl) {
   document.getElementById('roomInput').value = roomFromUrl.toUpperCase();
 }
 
-// Auto-rejoin or show join screen
 autoRejoin();
 
-// Connection checker
 setInterval(checkConnection, 5000);
 checkConnection();
 
-// Expose functions
 window.joinGame = joinGame;
 window.selectAvatar = selectAvatar;
 window.submitAnswer = submitAnswer;
