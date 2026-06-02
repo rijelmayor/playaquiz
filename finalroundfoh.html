@@ -593,6 +593,9 @@
           <div class="warmup-banner">The Grand Final Arena</div>
           <div class="warmup-pulse-circle"><div class="inner-text">READY</div></div>
           <div class="warmup-message">Waiting for the host to start the round...</div>
+          <!-- Add inside waiting screen -->
+<div id="finalQrContainer" style="margin: 24px auto 0; text-align: center;"></div>
+<button id="showFinalQrBtn" class="btn btn-sm" style="margin-top: 12px; background: rgba(245,200,66,0.2); color: #f5c842;" onclick="showFullFinalQR()">🔍 Show Full QR Code</button>
         </div>
       </div>
 
@@ -742,6 +745,47 @@ function playBeep(freq, type, duration) {
     osc.start(); osc.stop(ctx.currentTime + duration);
   } catch(e) {}
 }
+
+
+// Add to finalroundfoh.html script
+function displayPhase2QR() {
+  const roomCode = document.getElementById('roomDisplay')?.innerText || 
+                   document.getElementById('roomCode')?.innerText;
+  if (!roomCode) {
+    setTimeout(() => displayPhase2QR(), 1000);
+    return;
+  }
+  
+  if (window.QRDisplay) {
+    window.QRDisplay.renderToContainer('finalQrContainer', roomCode, 2, 180);
+  } else {
+    const container = document.getElementById('finalQrContainer');
+    if (container) {
+      container.innerHTML = `
+        <div style="background: #0d1120; border: 2px solid #f5c842; border-radius: 16px; padding: 20px; text-align: center;">
+          <div style="font-size: 36px; margin-bottom: 8px;">🏆</div>
+          <div style="font-family: monospace; font-size: 28px; font-weight: bold; color: #f5c842; letter-spacing: 4px;">${roomCode}</div>
+          <div style="font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 8px;">Top 5 Players — Enter this code</div>
+        </div>
+      `;
+    }
+  }
+}
+
+function showFullFinalQR() {
+  const roomCode = document.getElementById('roomDisplay')?.innerText;
+  if (roomCode && window.QRDisplay) {
+    window.QRDisplay.showQRModal(roomCode, 2);
+  }
+}
+
+// Call when room is connected
+const originalBootFOH = window.bootFOH;
+window.bootFOH = async function(session) {
+  if (originalBootFOH) await originalBootFOH(session);
+  setTimeout(displayPhase2QR, 500);
+};
+
 
 // ─── Screen management ────────────────────────────────────────────────────────
 function showScreen(id) {

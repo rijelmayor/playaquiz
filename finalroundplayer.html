@@ -856,6 +856,32 @@ document.getElementById('avatarGrid').innerHTML = AVATARS.map((a,i) =>
   `<div class="avatar-opt ${i===0?'selected':''}" onclick="pickAvatar(this,'${a}')">${a}</div>`
 ).join('');
 
+// Add to finalroundplayer.html
+function autoDetectFinalRoomFromURL() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const roomParam = urlParams.get('room');
+  
+  if (roomParam) {
+    const roomInput = document.getElementById('roomInput');
+    if (roomInput) {
+      roomInput.value = roomParam.toUpperCase();
+      setTimeout(() => {
+        // Auto-verify and join after room is filled
+        if (typeof verifyRoom === 'function') {
+          verifyRoom(roomParam.toUpperCase());
+          setTimeout(() => {
+            if (roomVerified && typeof joinGame === 'function') {
+              joinGame();
+            }
+          }, 1000);
+        }
+      }, 500);
+    }
+  }
+}
+
+autoDetectFinalRoomFromURL();
+
 
 // Add to finalroundplayer.html
 function autoJoinFromUrl() {

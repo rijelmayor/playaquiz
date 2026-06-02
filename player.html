@@ -480,6 +480,10 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
 const AC = window.AudioContext || window.webkitAudioContext;
 let ac;
+
+
+
+
 function getAC() { if (!ac) ac = new AC(); if (ac.state==='suspended') ac.resume(); return ac; }
 function tone(freq, dur, vol, type='sine', delay=0) { try { const ctx = getAC(), o = ctx.createOscillator(), g = ctx.createGain(); o.connect(g); g.connect(ctx.destination); o.type = type; o.frequency.value = freq; const t = ctx.currentTime + delay; g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur); o.start(t); o.stop(t + dur + 0.05); } catch(e) {} }
 function correctSound() { [[523,0],[659,.1],[784,.2],[1047,.3]].forEach(([f,d]) => tone(f,.18,.4,'sine',d)); }
@@ -517,6 +521,32 @@ let heartbeatIv = null;
 const HEARTBEAT_MS = 10000; // 10 s
 let lastEventAt   = Date.now();
 
+
+// Add to player.html - at the end of script or in init
+function autoDetectRoomFromURL() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const roomParam = urlParams.get('room');
+  const sessionParam = urlParams.get('session');
+  
+  if (roomParam) {
+    const roomInput = document.getElementById('roomCodeInput');
+    if (roomInput) {
+      roomInput.value = roomParam.toUpperCase();
+      // Auto-focus name
+      setTimeout(() => {
+        const nameInput = document.getElementById('playerNameInput');
+        if (nameInput) nameInput.focus();
+      }, 300);
+    }
+  }
+  
+  if (sessionParam) {
+    localStorage.setItem('paq_sid', sessionParam);
+  }
+}
+
+// Call this
+autoDetectRoomFromURL();
 
 // Add to player.html init section
 function getUrlParams() {

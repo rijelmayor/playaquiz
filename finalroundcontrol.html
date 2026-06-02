@@ -84,6 +84,8 @@
     <div class="info-row"><span>Connection</span><span><span class="connection-dot" id="connDot"></span><span id="connText">Offline</span></span></div>
     <div class="info-row"><span>Players</span><span class="info-val" id="playerCount">0</span></div>
     <div class="sidebar-section"><div class="section-title">🏆 Standings</div><div class="lb-list" id="sidebarLeaderboard"><div style="color:var(--muted);padding:16px;text-align:center;">No players</div></div></div>
+    <!-- Add to the sidebar or control panel -->
+<button class="btn btn-accent" style="width: 100%; margin-bottom: 10px;" onclick="showPhase2QR()">📱 Show Join QR Code</button>
   </div>
 
   <div class="main">
@@ -183,6 +185,26 @@ let roomCode = '', frPlayers = new Map(), buzzedPlayerId = null, lockedPlayers =
     pointsPerBuzz = 100, allQuestions = [], categories = [], selectedQuestionForGame = null,
     currentFilterCat = 'all', currentQuestionNumber = 0, buzzerGlobalEnabled = true,
     usedQuestionIds = new Set();
+
+
+// Add to finalroundcontrol.html
+function showPhase2QR() {
+  if (roomCode && window.QRDisplay) {
+    window.QRDisplay.showQRModal(roomCode, 2);
+  } else if (roomCode) {
+    alert(`Room Code: ${roomCode}\nJoin URL: ${window.location.origin}/finalroundplayer.html?room=${roomCode}`);
+  } else {
+    alert('No active room. Generate a room code first.');
+  }
+}
+
+// Also add to existing shareRoomCodeToFOH function to also display QR
+const originalShareRoomCode = window.shareRoomCodeToFOH;
+window.shareRoomCodeToFOH = function() {
+  if (originalShareRoomCode) originalShareRoomCode();
+  showPhase2QR();
+};
+
 
 // ─── Database Registration Function ───────────────────────────────────────────
 async function registerRoomInDatabase(newRoomCode) {

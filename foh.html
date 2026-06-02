@@ -917,6 +917,9 @@
             <div class="waiting-title">READY TO PLAY!</div>
             <div class="waiting-sub">Players are joining the arena</div>
             <div class="big-room-code" id="waitingRoomCode">——</div>
+            <!-- Add inside waiting screen div -->
+<div id="qrContainer" style="margin: 24px auto 0; text-align: center;"></div>
+<button id="showQrBtn" class="btn btn-sm" style="margin-top: 12px; background: rgba(59,130,246,0.2);" onclick="showFullQR()">🔍 View Full QR Code</button>
           </div>
         </div>
 
@@ -1192,6 +1195,51 @@ let currentPlayers = new Map();
 const animatedCounterSpan = document.getElementById('animatedCounter');
 const floatingBubblesContainer = document.getElementById('floatingBubbles');
 const liveLeaderboardList = document.getElementById('liveLeaderboardList');
+
+// Add to foh.html script section
+function displayPhase1QR() {
+  const roomCode = document.getElementById('sidebarRoomCode')?.innerText || 
+                   document.getElementById('waitingRoomCode')?.innerText;
+  if (!roomCode) {
+    console.log('No room code yet, waiting...');
+    setTimeout(() => displayPhase1QR(), 1000);
+    return;
+  }
+  
+  if (window.QRDisplay) {
+    window.QRDisplay.renderToContainer('qrContainer', roomCode, 1, 180);
+  } else {
+    // Fallback: show room code only
+    const container = document.getElementById('qrContainer');
+    if (container) {
+      container.innerHTML = `
+        <div style="background: #0d1120; border: 2px solid #3b82f6; border-radius: 16px; padding: 20px; text-align: center;">
+          <div style="font-size: 36px; margin-bottom: 8px;">📱</div>
+          <div style="font-family: monospace; font-size: 28px; font-weight: bold; color: #3b82f6; letter-spacing: 4px;">${roomCode}</div>
+          <div style="font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 8px;">Enter this code on your device</div>
+        </div>
+      `;
+    }
+  }
+}
+
+function showFullQR() {
+  const roomCode = document.getElementById('sidebarRoomCode')?.innerText;
+  if (roomCode && window.QRDisplay) {
+    window.QRDisplay.showQRModal(roomCode, 1);
+  }
+}
+
+// Call displayPhase1QR when room code is loaded
+// Add to your loadSession or init function
+const originalLoadSession = window.loadSession;
+window.loadSession = async function() {
+  if (originalLoadSession) await originalLoadSession();
+  setTimeout(displayPhase1QR, 500);
+};
+
+
+
 
 function animateCounterNumber(newCount) {
   if (!animatedCounterSpan) return;
