@@ -1,4 +1,4 @@
-<!-- index.html - Master Entry Point -->
+<!-- index.html - Master Entry Point (Fixed Colors) -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -26,7 +26,7 @@
       font-size: 56px;
       font-weight: 800;
       letter-spacing: -1px;
-      background: linear-gradient(135deg, #fff, #3b82f6, #a855f7);
+      background: linear-gradient(135deg, #ffffff, #3b82f6, #a855f7);
       -webkit-background-clip: text;
       background-clip: text;
       color: transparent;
@@ -59,8 +59,19 @@
       box-shadow: 0 20px 40px rgba(0,0,0,0.4);
     }
     .card-icon { font-size: 56px; margin-bottom: 16px; }
-    .card-title { font-size: 22px; font-weight: 700; margin-bottom: 8px; }
-    .card-desc { font-size: 13px; color: rgba(255,255,255,0.5); margin-bottom: 20px; }
+    .card-title { 
+      font-size: 22px; 
+      font-weight: 700; 
+      margin-bottom: 8px;
+      color: #ffffff;
+      letter-spacing: -0.3px;
+    }
+    .card-desc { 
+      font-size: 13px; 
+      color: rgba(255,255,255,0.55); 
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
     .badge {
       display: inline-block;
       background: rgba(59,130,246,0.2);
@@ -83,6 +94,7 @@
     @media (max-width: 768px) {
       h1 { font-size: 36px; }
       .grid { grid-template-columns: 1fr; }
+      .card-title { font-size: 18px; }
     }
   </style>
 </head>
