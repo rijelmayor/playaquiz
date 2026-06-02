@@ -17,7 +17,6 @@
     }
     .container { max-width: 1400px; margin: 0 auto; }
     
-    /* Password Overlay */
     .password-overlay {
       position: fixed;
       inset: 0;
@@ -73,6 +72,15 @@
       background: linear-gradient(135deg, #fff, #3b82f6);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
+    }
+    .timezone-info {
+      background: rgba(0,0,0,0.3);
+      padding: 8px 16px;
+      border-radius: 40px;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
     .date-selector {
       display: flex;
@@ -257,6 +265,7 @@
       display: flex;
       align-items: center;
       gap: 8px;
+      flex-wrap: wrap;
     }
     .room-stats {
       display: flex;
@@ -335,10 +344,19 @@
       font-size: 11px;
       color: #6b7a99;
     }
+    
+    .timezone-badge {
+      background: rgba(59,130,246,0.2);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 11px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
   </style>
 </head>
 <body>
-<!-- Password Overlay -->
 <div id="passwordOverlay" class="password-overlay">
   <div class="password-card">
     <div style="font-size: 48px; margin-bottom: 16px;">🔐</div>
@@ -354,6 +372,11 @@
 <div class="container">
   <div class="header">
     <div class="logo">PLAY<span style="color:#3b82f6">A</span>QUIZ</div>
+    <div class="timezone-info">
+      <span>🌍</span>
+      <span id="userTimezone"></span>
+      <span class="timezone-badge" id="utcOffset"></span>
+    </div>
     <div class="date-selector">
       <span>📅</span>
       <input type="date" id="dateFilter" onchange="filterByDate()">
@@ -365,7 +388,6 @@
     </div>
   </div>
 
-  <!-- Summary Stats -->
   <div class="stats-summary">
     <div class="summary-card"><div class="summary-number" id="totalRooms">0</div><div class="summary-label">Total Rooms</div></div>
     <div class="summary-card"><div class="summary-number" id="activeRooms">0</div><div class="summary-label">Active Today</div></div>
@@ -373,14 +395,12 @@
     <div class="summary-card"><div class="summary-number" id="upcomingRooms">0</div><div class="summary-label">Upcoming</div></div>
   </div>
 
-  <!-- Tabs -->
   <div class="tabs">
     <button class="tab active" onclick="switchTab('create')">✨ Create Room</button>
     <button class="tab" onclick="switchTab('manage')">📋 Manage Rooms</button>
     <button class="tab" onclick="switchTab('schedule')">📅 Schedule Room</button>
   </div>
 
-  <!-- Tab 1: Create Room -->
   <div id="tab-create" class="tab-content active">
     <div class="create-card">
       <div class="create-title">🏠 Create New Game Room</div>
@@ -399,7 +419,6 @@
     </div>
   </div>
 
-  <!-- Tab 2: Manage Rooms -->
   <div id="tab-manage" class="tab-content">
     <div class="filter-bar">
       <button class="filter-btn active" onclick="filterRooms('all')">All Rooms</button>
@@ -412,7 +431,6 @@
     </div>
   </div>
 
-  <!-- Tab 3: Schedule Room -->
   <div id="tab-schedule" class="tab-content">
     <div class="create-card">
       <div class="create-title">📅 Schedule Future Room</div>
@@ -426,19 +444,18 @@
           <input type="text" id="scheduledTitle" placeholder="Event Title">
         </div>
         <div class="input-field">
-          <label>Scheduled Date</label>
+          <label>Date (Your Local Time)</label>
           <input type="date" id="scheduledDate">
         </div>
         <div class="input-field">
-          <label>Scheduled Time (optional)</label>
+          <label>Time (Your Local Time)</label>
           <input type="time" id="scheduledTime">
         </div>
         <button class="btn btn-orange" onclick="scheduleRoom()">📅 Schedule Room</button>
       </div>
-      <p style="font-size: 12px; color: #6b7a99; margin-top: 16px;">
-        ⚡ Scheduled rooms will appear as "Upcoming" until the scheduled date.
-        <br>On the scheduled date, they can be activated from the Manage tab.
-      </p>
+      <div class="timezone-badge" style="margin-top: 16px; display: inline-block;">
+        ⏰ Times are saved in UTC and will be displayed in your local timezone
+      </div>
     </div>
     
     <h3 style="margin: 20px 0 10px;">📅 Upcoming Scheduled Rooms</h3>
@@ -452,13 +469,70 @@ const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
 const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-// Password configuration - CHANGE THIS!
-const MASTER_PASSWORD = "*963.*963.."; // Change this to your desired password
+// Timezone Utilities
+function getUserTimezone() {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone;
+}
+
+function getTimezoneOffset() {
+  const offset = new Date().getTimezoneOffset();
+  const hours = Math.abs(Math.floor(offset / 60));
+  const minutes = Math.abs(offset % 60);
+  const sign = offset <= 0 ? '+' : '-';
+  return `${sign}${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+}
+
+function formatLocalDate(date) {
+  return date.toLocaleString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true
+  });
+}
+
+function formatShortDate(date) {
+  return date.toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
+function toUTC(date) {
+  return new Date(Date.UTC(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+    date.getHours(),
+    date.getMinutes(),
+    date.getSeconds()
+  ));
+}
+
+// Display user timezone info
+function displayTimezoneInfo() {
+  const tz = getUserTimezone();
+  const offset = getTimezoneOffset();
+  document.getElementById('userTimezone').innerText = tz;
+  document.getElementById('utcOffset').innerHTML = `UTC ${offset}`;
+  
+  // Show Philippines time for reference if not already in PH
+  if (!tz.includes('Manila') && !tz.includes('Philippines')) {
+    const phTime = new Date().toLocaleString('en-US', { timeZone: 'Asia/Manila' });
+    console.log('Philippines time reference:', phTime);
+  }
+}
+
+// Password configuration
+const MASTER_PASSWORD = "admin123";
 let isAuthenticated = false;
 let currentFilter = 'all';
 let currentDateFilter = null;
 
-// Check password and store in localStorage for session persistence
 function verifyPassword() {
   const password = document.getElementById('passwordInput').value;
   const errorDiv = document.getElementById('passwordError');
@@ -476,7 +550,6 @@ function verifyPassword() {
   }
 }
 
-// Check existing session
 function checkExistingAuth() {
   const auth = localStorage.getItem('room_manager_auth');
   const authTime = localStorage.getItem('room_manager_auth_time');
@@ -494,8 +567,8 @@ function checkExistingAuth() {
   return false;
 }
 
-// Initialize app after authentication
 function initializeApp() {
+  displayTimezoneInfo();
   checkConnection();
   loadRooms();
   loadScheduledRooms();
@@ -505,7 +578,6 @@ function initializeApp() {
   setInterval(checkConnection, 5000);
 }
 
-// Check Supabase connection
 async function checkConnection() {
   const dot = document.getElementById('connDot');
   const text = document.getElementById('connText');
@@ -525,7 +597,6 @@ async function checkConnection() {
   }
 }
 
-// Generate random room code
 function generateRandomCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ0123456789';
   let code = '';
@@ -535,7 +606,6 @@ function generateRandomCode() {
   document.getElementById('manualRoomCode').value = code;
 }
 
-// Create a new room (immediate)
 async function createRoom() {
   let roomCode = document.getElementById('manualRoomCode').value.trim().toUpperCase();
   const title = document.getElementById('roomTitle').value.trim() || 'Quiz Game';
@@ -572,7 +642,7 @@ async function createRoom() {
       room_code: roomCode,
       title: title,
       status: 'waiting',
-      created_at: new Date()
+      created_at: new Date().toISOString() // Store in UTC
     };
     
     const { error } = await sb.from('game_sessions').insert(insertData);
@@ -593,7 +663,6 @@ async function createRoom() {
   }
 }
 
-// Schedule a future room
 async function scheduleRoom() {
   const roomCode = document.getElementById('scheduledRoomCode').value.trim().toUpperCase();
   const title = document.getElementById('scheduledTitle').value.trim() || 'Scheduled Quiz';
@@ -609,12 +678,23 @@ async function scheduleRoom() {
     return;
   }
   
-  // Check if date is in the future
-  const scheduleDateTime = scheduledTime ? new Date(`${scheduledDate}T${scheduledTime}:00`) : new Date(scheduledDate);
-  if (scheduleDateTime < new Date()) {
-    toast('Scheduled date must be in the future', 'error');
+  // Create date in local timezone, then convert to UTC for storage
+  let localDateTime;
+  if (scheduledTime) {
+    localDateTime = new Date(`${scheduledDate}T${scheduledTime}:00`);
+  } else {
+    localDateTime = new Date(`${scheduledDate}T00:00:00`);
+  }
+  
+  // Check if date is in the future (using local time comparison)
+  const now = new Date();
+  if (localDateTime < now) {
+    toast('Scheduled date must be in the future (your local time)', 'error');
     return;
   }
+  
+  // Convert to UTC for storage
+  const utcDateTime = new Date(localDateTime.getTime() - (localDateTime.getTimezoneOffset() * 60000));
   
   const scheduleBtn = document.querySelector('#tab-schedule .btn-orange');
   scheduleBtn.disabled = true;
@@ -635,15 +715,18 @@ async function scheduleRoom() {
     const insertData = {
       room_code: roomCode,
       title: title,
-      status: 'scheduled',  // This is now allowed after running the SQL fix
-      scheduled_date: scheduleDateTime.toISOString(),
-      created_at: new Date()
+      status: 'scheduled',
+      scheduled_date: utcDateTime.toISOString(),
+      created_at: new Date().toISOString()
     };
     
     const { error } = await sb.from('game_sessions').insert(insertData);
     if (error) throw error;
     
-    toast(`✅ Room "${roomCode}" scheduled for ${scheduledDate}!`, 'success');
+    // Show the scheduled time in both UTC and local for clarity
+    const localDisplay = formatLocalDate(localDateTime);
+    toast(`✅ Room "${roomCode}" scheduled for ${localDisplay} (your local time)`, 'success');
+    
     document.getElementById('scheduledRoomCode').value = '';
     document.getElementById('scheduledTitle').value = '';
     document.getElementById('scheduledDate').value = '';
@@ -662,7 +745,6 @@ async function scheduleRoom() {
   }
 }
 
-// Load scheduled (upcoming) rooms
 async function loadScheduledRooms() {
   try {
     const { data: rooms, error } = await sb
@@ -678,27 +760,35 @@ async function loadScheduledRooms() {
       return;
     }
     
-    document.getElementById('scheduledRoomsGrid').innerHTML = rooms.map(room => `
-      <div class="room-card upcoming">
-        <div class="room-card-header">
-          <div class="room-code-display">${escapeHtml(room.room_code)}</div>
-          <div class="room-badge badge-upcoming">SCHEDULED</div>
+    document.getElementById('scheduledRoomsGrid').innerHTML = rooms.map(room => {
+      // Convert UTC stored date to local for display
+      const scheduledUTC = new Date(room.scheduled_date);
+      const scheduledLocal = new Date(scheduledUTC.getTime() + (scheduledUTC.getTimezoneOffset() * 60000));
+      
+      return `
+        <div class="room-card upcoming">
+          <div class="room-card-header">
+            <div class="room-code-display">${escapeHtml(room.room_code)}</div>
+            <div class="room-badge badge-upcoming">SCHEDULED</div>
+          </div>
+          <div class="room-date">
+            📅 ${formatLocalDate(scheduledLocal)}
+            <span class="timezone-badge">UTC ${getTimezoneOffset()}</span>
+          </div>
+          <div style="font-size: 14px; margin-bottom: 12px;">${escapeHtml(room.title || 'Untitled')}</div>
+          <div class="room-actions">
+            <button class="btn btn-sm btn-green" onclick="activateScheduledRoom('${room.id}', '${room.room_code}')">▶ Activate Now</button>
+            <button class="btn btn-sm btn-red" onclick="deleteRoom('${room.id}', '${room.room_code}')">🗑️ Delete</button>
+          </div>
         </div>
-        <div class="room-date">📅 ${new Date(room.scheduled_date).toLocaleString()}</div>
-        <div style="font-size: 14px; margin-bottom: 12px;">${escapeHtml(room.title || 'Untitled')}</div>
-        <div class="room-actions">
-          <button class="btn btn-sm btn-green" onclick="activateScheduledRoom('${room.id}', '${room.room_code}')">▶ Activate Now</button>
-          <button class="btn btn-sm btn-red" onclick="deleteRoom('${room.id}', '${room.room_code}')">🗑️ Delete</button>
-        </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
     
   } catch (err) {
     console.error('Load scheduled error:', err);
   }
 }
 
-// Activate a scheduled room early
 async function activateScheduledRoom(sessionId, roomCode) {
   if (!confirm(`Activate room "${roomCode}" now? This will make it available for players.`)) return;
   
@@ -718,16 +808,15 @@ async function activateScheduledRoom(sessionId, roomCode) {
   }
 }
 
-// Load all rooms with filters
 async function loadRooms() {
   try {
     let query = sb.from('game_sessions').select('*').order('created_at', { ascending: false });
     
     if (currentDateFilter) {
-      const startDate = currentDateFilter;
+      const startDate = new Date(currentDateFilter);
       const endDate = new Date(currentDateFilter);
       endDate.setDate(endDate.getDate() + 1);
-      query = query.gte('created_at', startDate).lt('created_at', endDate.toISOString());
+      query = query.gte('created_at', startDate.toISOString()).lt('created_at', endDate.toISOString());
     }
     
     const { data: rooms, error } = await query;
@@ -775,9 +864,10 @@ async function loadRooms() {
         cardClass = 'upcoming';
       }
       
+      const createdLocal = new Date(room.created_at);
       const displayDate = room.scheduled_date 
-        ? `📅 Scheduled: ${new Date(room.scheduled_date).toLocaleDateString()}`
-        : `📅 Created: ${new Date(room.created_at).toLocaleDateString()}`;
+        ? `📅 Scheduled: ${formatShortDate(new Date(room.scheduled_date))}`
+        : `📅 Created: ${formatShortDate(createdLocal)}`;
       
       return `
         <div class="room-card ${cardClass}">
@@ -811,7 +901,6 @@ async function loadRooms() {
   }
 }
 
-// Update summary statistics
 async function updateSummaryStats() {
   try {
     const { data: rooms } = await sb.from('game_sessions').select('*');
