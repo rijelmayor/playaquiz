@@ -1,252 +1,605 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Lola's 70th — Room‑Specific Trivia Seeder</title>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Grotesk:wght@400;600;700&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>
-  :root {
-    --bg: #0f051a; --surface: #1a0b2e;
-    --border: #3d2b56; --text: #f3e8ff; --muted: #a78bfa;
-    --accent: #f472b6; --gold: #fbbf24; --green: #34d399; --red: #fb7185;
-  }
-  body { background: var(--bg); font-family: 'Space Grotesk', sans-serif; color: var(--text); padding: 40px 20px; }
-  h1 { font-family: 'Bebas Neue', sans-serif; font-size: 50px; text-align: center; color: var(--gold); }
-  .room-selector {
-    background: var(--surface); padding: 20px; border-radius: 16px;
-    max-width: 400px; margin: 0 auto 30px; text-align: center;
-    border: 1px solid var(--border);
-  }
-  .room-input {
-    background: #000; border: 1px solid var(--border); padding: 12px;
-    border-radius: 10px; width: 200px; font-family: monospace;
-    font-size: 20px; text-align: center; color: var(--gold);
-  }
-  .controls { display: flex; gap: 20px; justify-content: center; margin: 20px 0; }
-  .btn { border: none; padding: 16px 32px; border-radius: 12px; font-weight: 700; cursor: pointer; transition: 0.3s; }
-  .btn-seed { background: var(--green); color: #000; width: 300px; font-size: 18px; }
-  .btn-load { background: var(--accent); color: #000; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
-  .cat-card { background: var(--surface); border: 2px solid var(--border); padding: 20px; border-radius: 15px; }
-  .progress-bar { height: 10px; background: #000; border-radius: 5px; margin-top: 10px; overflow: hidden; border: 1px solid var(--border); }
-  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--gold)); width: 0%; transition: 0.3s; }
-  .log-box { background: #000; padding: 15px; border-radius: 10px; font-family: monospace; height: 180px; overflow-y: auto; margin-top: 30px; font-size: 12px; border: 1px solid var(--border); color: #888; }
-  .warning { color: var(--gold); font-size: 12px; margin-top: 8px; }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>PlayAQuiz — Admin Console (Self-Paced)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=Bebas+Neue&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    /* [ALL EXISTING STYLES - unchanged] */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: linear-gradient(135deg, #0a0c15 0%, #06080f 100%);
+      font-family: 'Space Grotesk', sans-serif;
+      color: #e8edf7;
+      min-height: 100vh;
+    }
+    .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; padding: 20px; background: rgba(13,17,32,0.8); border-radius: 20px; border: 1px solid rgba(59,130,246,0.2); }
+    .logo { font-family: 'Bebas Neue', sans-serif; font-size: 36px; background: linear-gradient(135deg, #fff, #3b82f6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .room-info { text-align: center; }
+    .room-label { font-size: 10px; color: #6b7a99; letter-spacing: 2px; }
+    .room-code { font-family: 'JetBrains Mono', monospace; font-size: 32px; font-weight: 700; color: #3b82f6; letter-spacing: 4px; }
+    .conn-status { display: flex; align-items: center; gap: 12px; padding: 8px 20px; background: rgba(0,0,0,0.5); border-radius: 40px; }
+    .status-dot { width: 10px; height: 10px; border-radius: 50%; background: #ef4444; animation: pulse 1.5s infinite; }
+    .status-dot.connected { background: #10b981; }
+    .status-dot.reconnecting { background: #f59e0b; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+    
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 30px; }
+    .stat-card { background: rgba(13,17,32,0.8); border: 1px solid rgba(59,130,246,0.2); border-radius: 16px; padding: 20px; text-align: center; }
+    .stat-number { font-size: 36px; font-weight: 800; color: #3b82f6; }
+    .stat-label { font-size: 12px; color: #6b7a99; margin-top: 5px; }
+    
+    .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .card { background: rgba(13,17,32,0.8); border: 1px solid rgba(59,130,246,0.2); border-radius: 20px; padding: 24px; margin-bottom: 24px; }
+    .card-title { font-size: 18px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+    .category-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px; }
+    .category-card { background: rgba(255,255,255,0.05); border: 2px solid rgba(59,130,246,0.2); border-radius: 12px; padding: 16px; text-align: center; position: relative; }
+    .category-icon { font-size: 32px; margin-bottom: 8px; }
+    .category-name { font-size: 14px; font-weight: 600; }
+    .category-count { font-size: 11px; color: #6b7a99; margin-top: 4px; }
+    .category-actions { position: absolute; top: 8px; right: 8px; display: flex; gap: 4px; }
+    .cat-action { background: rgba(0,0,0,0.5); border: none; border-radius: 6px; padding: 4px 8px; cursor: pointer; font-size: 12px; }
+    
+    .question-list { max-height: 400px; overflow-y: auto; }
+    .question-item { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 12px; margin-bottom: 8px; display: flex; align-items: center; gap: 12px; }
+    .question-checkbox { width: 24px; height: 24px; cursor: pointer; accent-color: #3b82f6; }
+    .question-content { flex: 1; }
+    .question-text { font-weight: 600; margin-bottom: 8px; }
+    .question-meta { display: flex; gap: 12px; font-size: 11px; color: #6b7a99; }
+    
+    input, select, textarea { background: #06080f; border: 1px solid #2d3b52; border-radius: 10px; padding: 10px 14px; color: #e8edf7; width: 100%; outline: none; }
+    input:focus, select:focus, textarea:focus { border-color: #3b82f6; }
+    label { font-size: 11px; font-weight: 600; color: #6b7a99; display: block; margin-bottom: 5px; text-transform: uppercase; }
+    .btn { background: #3b82f6; border: none; padding: 10px 18px; border-radius: 10px; font-weight: 700; color: white; cursor: pointer; transition: all 0.15s; }
+    .btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+    .btn-green { background: #10b981; }
+    .btn-red { background: #ef4444; }
+    .btn-ghost { background: #111827; border: 1px solid #2d3b52; }
+    .btn-sm { padding: 6px 12px; font-size: 12px; }
+    
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .flex { display: flex; gap: 10px; flex-wrap: wrap; }
+    .mb-3 { margin-bottom: 12px; }
+    .mt-3 { margin-top: 12px; }
+    
+    .player-list { max-height: 300px; overflow-y: auto; }
+    .player-row { display: flex; align-items: center; gap: 12px; padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .player-rank { font-size: 18px; width: 40px; }
+    .player-avatar { font-size: 28px; }
+    .player-info { flex: 1; }
+    .player-name { font-weight: 600; }
+    .player-score { font-weight: 700; color: #f59e0b; }
+    
+    .filter-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    
+    .toast { position: fixed; bottom: 20px; right: 20px; background: #0d1120; border: 1px solid #2d3b52; border-radius: 10px; padding: 12px 20px; z-index: 1000; animation: slideIn 0.3s ease; }
+    @keyframes slideIn { from { opacity: 0; transform: translateX(100px); } to { opacity: 1; transform: translateX(0); } }
+    
+    .verification-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); backdrop-filter: blur(20px); display: flex; align-items: center; justify-content: center; z-index: 2000; }
+    .verification-card { background: #0d1120; border: 2px solid rgba(59,130,246,0.3); border-radius: 32px; padding: 48px; text-align: center; max-width: 450px; }
+    .hidden { display: none; }
+    
+    /* new style for batch action bar */
+    .batch-actions { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  </style>
 </head>
 <body>
-
-<h1>Lola's 70th: Room‑Specific Seeder</h1>
-<p style="text-align:center; color: var(--muted);">Seed categories & questions for ONE room only.</p>
-
-<div class="room-selector">
-  <label style="display: block; margin-bottom: 8px;">🎯 Target Room Code</label>
-  <input type="text" id="roomCodeInput" class="room-input" placeholder="e.g., PARTY70" maxlength="8" autocomplete="off">
-  <div class="warning">⚠️ This will replace ALL categories/questions in that room with 800 balanced questions.</div>
+<div id="verificationOverlay" class="verification-overlay">
+  <div class="verification-card">
+    <div style="font-size: 48px; margin-bottom: 16px;">🔐</div>
+    <div style="font-size: 24px; font-weight: 700; margin-bottom: 8px;">Verify Room Access</div>
+    <div style="font-size: 14px; color: #6b7a99; margin-bottom: 24px;">Enter the room code to access this admin panel</div>
+    <input type="text" id="verifyRoomCode" placeholder="Room Code" style="text-align: center; font-size: 24px; letter-spacing: 4px; margin-bottom: 16px;">
+    <button class="btn" onclick="verifyAndLoad()">Verify & Continue</button>
+    <div id="verifyError" style="color: #ef4444; margin-top: 16px; font-size: 13px;"></div>
+  </div>
 </div>
 
-<div class="controls">
-  <button class="btn btn-seed" id="btnSeed" onclick="seedForRoom()">🌱 Seed Questions for this Room</button>
-  <button class="btn btn-load" onclick="loadRoomFromURL()">📋 Load from URL</button>
-</div>
+<div id="mainContent" class="hidden">
+  <div class="container">
+    <div class="header">
+      <div class="logo">PLAY<span style="color:#3b82f6">A</span>QUIZ</div>
+      <div class="room-info">
+        <div class="room-label">ACTIVE ROOM</div>
+        <div class="room-code" id="roomCode">——</div>
+      </div>
+      <div class="conn-status">
+        <div class="status-dot" id="connDot"></div>
+        <span id="connText">Connecting...</span>
+      </div>
+    </div>
 
-<div class="grid" id="catGrid"></div>
-<div class="log-box" id="logBox">Status: Enter a room code above and click Seed.</div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-number" id="statPlayers">0</div><div class="stat-label">Players</div></div>
+      <div class="stat-card"><div class="stat-number" id="statActive">0</div><div class="stat-label">Active Playing</div></div>
+      <div class="stat-card"><div class="stat-number" id="statCompleted">0</div><div class="stat-label">Completed</div></div>
+      <div class="stat-card"><div class="stat-number" id="statQuestions">0</div><div class="stat-label">Questions</div></div>
+    </div>
+
+    <div class="main-grid">
+      <div>
+        <div class="card">
+          <div class="card-title">📁 Categories</div>
+          <div class="category-grid" id="categoryGrid"></div>
+          <div class="flex">
+            <input type="text" id="newCatName" placeholder="New category name" style="flex:1">
+            <input type="text" id="newCatIcon" placeholder="Icon" maxlength="4" style="width:60px">
+            <button class="btn btn-sm btn-green" onclick="addCategory()">+ Add</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">➕ Add Question</div>
+          <div class="mb-3"><label>Category</label><select id="qCategory"></select></div>
+          <div class="mb-3"><label>Question</label><textarea id="qText" rows="2"></textarea></div>
+          <div class="grid-2 mb-3">
+            <div><label>A</label><input id="optA"></div>
+            <div><label>B</label><input id="optB"></div>
+            <div><label>C</label><input id="optC"></div>
+            <div><label>D</label><input id="optD"></div>
+          </div>
+          <div class="grid-2 mb-3">
+            <div><label>Correct</label><select id="qCorrect"><option value="0">A</option><option value="1">B</option><option value="2">C</option><option value="3">D</option></select></div>
+            <div><label>Base Points</label><input id="qPoints" type="number" value="100"></div>
+          </div>
+          <div class="flex">
+            <button class="btn" onclick="addQuestion()">➕ Add</button>
+            <button class="btn btn-ghost" onclick="loadSampleQuestions()">📥 Samples</button>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card">
+          <div class="card-title" style="justify-content:space-between;">
+            <span>📋 Question Bank</span>
+            <button class="btn btn-sm btn-green" onclick="activateGame()">🚀 Activate Game</button>
+          </div>
+          <div class="filter-bar" id="categoryFilter"></div>
+          <!-- Batch action buttons -->
+          <div class="batch-actions">
+            <button class="btn btn-sm btn-red" onclick="batchDeleteQuestions()">🗑️ Delete Selected</button>
+            <button class="btn btn-sm btn-green" onclick="exportQuestionsCSV()">📥 Export CSV</button>
+            <button class="btn btn-sm btn-ghost" onclick="deleteAllQuestionsInCategory()">📁 Delete All in Category</button>
+            <button class="btn btn-sm btn-ghost" onclick="selectAllQuestions()">✅ Select All</button>
+            <button class="btn btn-sm btn-ghost" onclick="deselectAllQuestions()">❌ Deselect All</button>
+          </div>
+          <div class="question-list" id="questionList"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">👥 Players & Leaderboard</div>
+          <div class="player-list" id="playerList"></div>
+          <div class="mt-3 flex">
+            <button class="btn btn-red btn-sm" onclick="resetGame()">🔄 Reset Game</button>
+            <button class="btn btn-ghost btn-sm" onclick="exportScores()">📥 Export CSV</button>
+            <button class="btn btn-ghost btn-sm" onclick="window.open('room-manager.html', '_blank')">🏠 Room Manager</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script>
-const SUPABASE_URL  = 'https://efgirqbaayfjwswnwbop.supabase.co';
+const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
 const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-// ---------- Balanced question bank ----------
-const CATEGORIES = {
-  'General Knowledge': { icon: '🌍', color: '#00e5ff', q: [
-    {q:"Which planet is known as the Red Planet?", a:"Mars", b:"Venus", c:"Jupiter", d:"Saturn", c_opt:0},
-    {q:"Who painted the Mona Lisa?", a:"Leonardo da Vinci", b:"Pablo Picasso", c:"Vincent van Gogh", d:"Claude Monet", c_opt:0},
-    {q:"What is the largest ocean on Earth?", a:"Pacific Ocean", b:"Atlantic Ocean", c:"Indian Ocean", d:"Arctic Ocean", c_opt:0}
-  ]},
-  'Science & Nature': { icon: '🔬', color: '#10b981', q: [
-    {q:"What is the chemical symbol for water?", a:"H2O", b:"CO2", c:"NaCl", d:"O2", c_opt:0},
-    {q:"What gas do plants absorb from the atmosphere for photosynthesis?", a:"Carbon Dioxide", b:"Oxygen", c:"Nitrogen", d:"Hydrogen", c_opt:0}
-  ]},
-  'Literature': { icon: '📚', color: '#f59e0b', q: [
-    {q:"Who wrote the play 'Romeo and Juliet'?", a:"William Shakespeare", b:"Charles Dickens", c:"Mark Twain", d:"Jane Austen", c_opt:0},
-    {q:"What is the first book of the 'Harry Potter' series?", a:"The Sorcerer's Stone", b:"The Chamber of Secrets", c:"The Goblet of Fire", d:"The Half-Blood Prince", c_opt:0}
-  ]},
-  'Family & Traditions': { icon: '🏠', color: '#f472b6', q: [
-    {q:"What is the respectful Bisaya greeting for elders?", a:"Mano", b:"Hi", c:"Hug", d:"Wink", c_opt:0},
-    {q:"What is 'Pamanhikan' in Filipino tradition?", a:"Engagement tradition", b:"Cooking contest", c:"Birthday", d:"Baptism", c_opt:0}
-  ]},
-  '70s Nostalgia': { icon: '📺', color: '#fbbf24', q: [
-    {q:"What was the most popular tool used to manually rewind cassette tapes in the 70s?", a:"Pencil", b:"Fork", c:"Spoon", d:"Comb", c_opt:0}
-  ]},
-  'Food & Bisaya Kitchen': { icon: '🍲', color: '#34d399', q: [
-    {q:"What is the Bisaya term for hanging rice wrapped in coconut leaves?", a:"Puso", b:"Biko", c:"Suman", d:"Putomaya", c_opt:0}
-  ]},
-  'Bible & Faith': { icon: '🙏', color: '#fbbf24', q: [
-    {q:"What is the first book of the Holy Bible?", a:"Genesis", b:"Exodus", c:"Psalms", d:"Matthew", c_opt:0}
-  ]},
-  'Health & Wisdom': { icon: '🌿', color: '#10b981', q: [
-    {q:"What is the name of the traditional Filipino healing massage?", a:"Hilot", b:"Yoga", c:"Karate", d:"Zumba", c_opt:0}
-  ]}
-};
+let SESSION_ID = null;
+let ROOM_CODE = null;
+let categories = [];
+let allQuestions = [];
+let players = [];
+let selectedQuestionIds = new Set(); // for batch delete
 
-function log(msg, isErr=false) {
-  const box = document.getElementById('logBox');
-  box.innerHTML += `<div style="color:${isErr?'#fb7185':'#34d399'}">[${new Date().toLocaleTimeString()}] ${msg}</div>`;
-  box.scrollTop = box.scrollHeight;
+// Get URL parameters
+const urlParams = new URLSearchParams(window.location.search);
+const sessionFromUrl = urlParams.get('session');
+const roomFromUrl = urlParams.get('room');
+
+if (sessionFromUrl && roomFromUrl) {
+  SESSION_ID = sessionFromUrl;
+  ROOM_CODE = roomFromUrl;
+  document.getElementById('verificationOverlay').classList.add('hidden');
+  document.getElementById('mainContent').classList.remove('hidden');
+  document.getElementById('roomCode').innerText = ROOM_CODE;
+  init();
+} else if (roomFromUrl && !sessionFromUrl) {
+  document.getElementById('verifyRoomCode').value = roomFromUrl;
 }
 
-function generateVolume(catName, baseQs) {
-  let finalQs = [...baseQs];
-  const triviaFillers = [
-    "What is the capital city of France?", "How many continents are there on Earth?",
-    "What is the square root of 64?", "Who is the author of 'The Great Gatsby'?",
-    "What is the tallest mountain in the world?"
-  ];
-  const lolaFillers = [
-    "What is Lola's favorite color?", "Which family member is the best cook after Lola?",
-    "What year was Lola born?", "What is Lola's favorite 70s song?",
-    "Who is Lola's eldest grandchild?"
-  ];
-  for(let i = finalQs.length; i < 100; i++) {
-    const fillerText = (i % 2 === 0) ? triviaFillers[Math.floor(i/2) % triviaFillers.length] : lolaFillers[Math.floor(i/2) % lolaFillers.length];
-    finalQs.push({
-      q: fillerText, a: "Option A", b: "Option B", c: "Option C", d: "Option D",
-      c_opt: Math.floor(Math.random() * 4)
-    });
+async function verifyAdminAccess(roomCode, sessionId) {
+  try {
+    let query;
+    if (sessionId) {
+      query = await sb.from('game_sessions').select('*').eq('id', sessionId).maybeSingle();
+    } else {
+      query = await sb.from('game_sessions').select('*').eq('room_code', roomCode).maybeSingle();
+    }
+    const { data: session, error } = query;
+    if (error || !session) return { allowed: false, reason: 'Room not found' };
+    if (session.status === 'scheduled') {
+      const scheduledDate = new Date(session.scheduled_date);
+      const now = new Date();
+      if (scheduledDate > now) {
+        const confirm = confirm(`This room is scheduled for ${scheduledDate.toLocaleString()}. Do you still want to access it for setup?`);
+        if (!confirm) return { allowed: false, reason: 'Access cancelled' };
+      }
+    }
+    return { allowed: true, session: session };
+  } catch (err) {
+    return { allowed: false, reason: 'Error verifying access' };
   }
-  return finalQs;
 }
 
-async function seedForRoom() {
-  const roomCode = document.getElementById('roomCodeInput').value.trim().toUpperCase();
-  if (!roomCode) {
-    log("❌ Please enter a room code", true);
-    return;
-  }
-
-  const btn = document.getElementById('btnSeed');
-  btn.disabled = true;
-  btn.innerText = "🔍 Looking up room...";
-
-  // 1. Get session ID
-  const { data: session, error: sessionErr } = await sb
+async function verifyAndLoad() {
+  const code = document.getElementById('verifyRoomCode').value.trim().toUpperCase();
+  if (!code) { showVerifyError('Enter room code'); return; }
+  const { data: session, error } = await sb
     .from('game_sessions')
-    .select('id')
-    .eq('room_code', roomCode)
+    .select('id, room_code, status')
+    .eq('room_code', code)
+    .eq('type', 'self_paced')
     .maybeSingle();
+  if (error || !session) { showVerifyError('Room not found or invalid code'); return; }
+  SESSION_ID = session.id;
+  ROOM_CODE = session.room_code;
+  document.getElementById('verificationOverlay').classList.add('hidden');
+  document.getElementById('mainContent').classList.remove('hidden');
+  document.getElementById('roomCode').innerText = ROOM_CODE;
+  init();
+}
 
-  if (sessionErr || !session) {
-    log(`❌ Room "${roomCode}" not found. Create it first in Room Manager.`, true);
-    btn.disabled = false;
-    btn.innerText = "🌱 Seed Questions for this Room";
+function showVerifyError(msg) {
+  const err = document.getElementById('verifyError');
+  err.innerText = msg;
+  setTimeout(() => err.innerText = '', 3000);
+}
+
+let reconnectAttempts = 0;
+let connectionCheckInterval = null;
+async function checkConnection() {
+  const dot = document.getElementById('connDot');
+  const text = document.getElementById('connText');
+  try {
+    const { error } = await sb.from('game_sessions').select('id').eq('id', SESSION_ID).maybeSingle();
+    if (!error) {
+      dot.classList.add('connected');
+      dot.classList.remove('reconnecting');
+      text.innerText = 'Connected';
+      reconnectAttempts = 0;
+      return true;
+    }
+    throw error;
+  } catch(e) {
+    if (reconnectAttempts === 0) {
+      dot.classList.remove('connected');
+      dot.classList.add('reconnecting');
+      text.innerText = 'Reconnecting...';
+    }
+    reconnectAttempts++;
+    return false;
+  }
+}
+
+async function init() {
+  await checkConnection();
+  connectionCheckInterval = setInterval(checkConnection, 5000);
+  await loadCategories();
+  await loadQuestions();
+  await loadPlayers();
+  setupRealtime();
+}
+
+async function loadCategories() {
+  const { data } = await sb.from('categories').select('*').eq('session_id', SESSION_ID).order('name');
+  categories = data || [];
+  renderCategoryGrid();
+  populateCategorySelects();
+}
+
+async function loadQuestions() {
+  const { data } = await sb.from('questions').select('*, categories(name, icon)').eq('session_id', SESSION_ID).order('created_at');
+  allQuestions = data || [];
+  document.getElementById('statQuestions').innerText = allQuestions.length;
+  renderQuestionList();
+  renderCategoryFilters();
+}
+
+async function loadPlayers() {
+  if (!SESSION_ID) return;
+  const { data } = await sb.from('players').select('*').eq('session_id', SESSION_ID).order('score', { ascending: false });
+  players = data || [];
+  document.getElementById('statPlayers').innerText = players.length;
+  document.getElementById('statActive').innerText = players.filter(p => !p.completed && !p.is_eliminated).length;
+  document.getElementById('statCompleted').innerText = players.filter(p => p.completed).length;
+  renderPlayerList();
+}
+
+function renderCategoryGrid() {
+  const grid = document.getElementById('categoryGrid');
+  if (!categories.length) {
+    grid.innerHTML = '<div style="text-align:center;padding:20px;color:#6b7a99;">No categories yet</div>';
     return;
   }
-
-  const sessionId = session.id;
-  log(`🎯 Found room ${roomCode} (ID: ${sessionId})`);
-
-  // 2. Delete existing categories & questions for this session ONLY
-  btn.innerText = "🗑️ Clearing old data for this room...";
-  log(`🧹 Deleting existing categories/questions for session ${sessionId}...`);
-
-  // Delete questions first (foreign key to categories)
-  const { error: delQuestions } = await sb
-    .from('questions')
-    .delete()
-    .eq('session_id', sessionId);
-  if (delQuestions) log(`⚠️ Question delete warning: ${delQuestions.message}`, true);
-
-  const { error: delCats } = await sb
-    .from('categories')
-    .delete()
-    .eq('session_id', sessionId);
-  if (delCats) log(`⚠️ Category delete warning: ${delCats.message}`, true);
-
-  log(`✅ Cleaned old data for room ${roomCode}`);
-
-  // 3. Insert fresh categories & questions with session_id
-  btn.innerText = "🌱 Seeding 800 questions...";
-  for (const [name, info] of Object.entries(CATEGORIES)) {
-    log(`📁 Adding category: ${name}`);
-
-    const { data: cat, error: cErr } = await sb
-      .from('categories')
-      .insert({
-        name: name,
-        icon: info.icon,
-        color: info.color,
-        session_id: sessionId
-      })
-      .select()
-      .single();
-
-    if (cErr) {
-      log(`❌ Failed to create category ${name}: ${cErr.message}`, true);
-      continue;
-    }
-
-    const questions = generateVolume(name, info.q);
-    const fillId = `fill-${name.replace(/\s/g, '').replace(/[^a-zA-Z]/g, '')}`;
-    const fillEl = document.getElementById(fillId);
-
-    // Insert in batches
-    for (let i = 0; i < questions.length; i += 25) {
-      const batch = questions.slice(i, i + 25).map(q => ({
-        category_id: cat.id,
-        session_id: sessionId,
-        question_text: q.q,
-        option_a: q.a, option_b: q.b, option_c: q.c, option_d: q.d,
-        correct_option: q.c_opt,
-        time_limit: 20, points: 100
-      }));
-      const { error: qErr } = await sb.from('questions').insert(batch);
-      if (qErr) log(`❌ Batch insert error: ${qErr.message}`, true);
-      if (fillEl) fillEl.style.width = `${((i + 25) / 100) * 100}%`;
-    }
-    log(`✅ ${name} → 100 questions added for room ${roomCode}`);
-  }
-
-  log(`🎉 SUCCESS! Room "${roomCode}" now has its own 800 questions.`);
-  btn.innerText = "✅ Seeding Complete";
-  btn.disabled = false;
-  setTimeout(() => {
-    btn.innerText = "🌱 Seed Questions for this Room";
-  }, 3000);
+  grid.innerHTML = categories.map(cat => `
+    <div class="category-card">
+      <div class="category-actions">
+        <button class="cat-action" onclick="editCategory('${cat.id}', '${cat.name}', '${cat.icon}')">✏️</button>
+        <button class="cat-action" onclick="deleteCategory('${cat.id}')">🗑️</button>
+      </div>
+      <div class="category-icon">${cat.icon || '📁'}</div>
+      <div class="category-name">${escapeHtml(cat.name)}</div>
+      <div class="category-count">${allQuestions.filter(q => q.category_id === cat.id).length} questions</div>
+    </div>
+  `).join('');
 }
 
-function loadRoomFromURL() {
-  const params = new URLSearchParams(window.location.search);
-  const room = params.get('room');
-  if (room) {
-    document.getElementById('roomCodeInput').value = room.toUpperCase();
-    log(`📋 Loaded room code from URL: ${room}`);
-  } else {
-    log("ℹ️ No ?room=CODE parameter found in URL.");
+function renderQuestionList() {
+  const container = document.getElementById('questionList');
+  if (!allQuestions.length) {
+    container.innerHTML = '<div style="text-align:center;padding:40px;color:#6b7a99;">No questions yet. Add some above!</div>';
+    return;
   }
-}
-
-function initUI() {
-  const grid = document.getElementById('catGrid');
-  grid.innerHTML = Object.entries(CATEGORIES).map(([name, info]) => {
-    const safeId = name.replace(/\s/g, '').replace(/[^a-zA-Z]/g, '');
+  container.innerHTML = allQuestions.map((q, i) => {
+    const cat = categories.find(c => c.id === q.category_id);
+    const isChecked = selectedQuestionIds.has(q.id);
     return `
-      <div class="cat-card">
-        <strong>${info.icon} ${name}</strong>
-        <div class="progress-bar">
-          <div class="progress-fill" id="fill-${safeId}"></div>
+      <div class="question-item">
+        <input type="checkbox" class="question-checkbox" data-id="${q.id}" ${isChecked ? 'checked' : ''} onchange="toggleSelectQuestion('${q.id}')">
+        <div class="question-content">
+          <div class="question-text">${i+1}. ${escapeHtml(q.question_text)}</div>
+          <div class="question-meta">
+            <span>${cat?.icon || '📁'} ${cat?.name || 'Uncategorized'}</span>
+            <span>⭐ ${q.points || 100} pts</span>
+          </div>
         </div>
       </div>
     `;
   }).join('');
 }
 
-// Auto-load room from URL
-loadRoomFromURL();
-initUI();
+function renderPlayerList() {
+  const container = document.getElementById('playerList');
+  if (!players.length) {
+    container.innerHTML = '<div style="text-align:center;padding:40px;color:#6b7a99;">Waiting for players to join...</div>';
+    return;
+  }
+  container.innerHTML = players.map((p, idx) => `
+    <div class="player-row">
+      <div class="player-rank">${idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}`}</div>
+      <div class="player-avatar">${p.avatar_color || '👤'}</div>
+      <div class="player-info">
+        <div class="player-name">${escapeHtml(p.name)}</div>
+        <div class="player-score">${p.score || 0} pts</div>
+      </div>
+      <div class="player-complete">${p.completed ? '✅ Completed' : `${p.current_q_index || 0}/${allQuestions.length}`}</div>
+    </div>
+  `).join('');
+}
+
+function renderCategoryFilters() {
+  const cats = [{ id: 'all', name: 'All', icon: '📚' }, ...categories];
+  document.getElementById('categoryFilter').innerHTML = cats.map(cat => `
+    <button class="btn btn-sm btn-ghost" onclick="filterQuestions('${cat.id}')">${cat.icon} ${cat.name}</button>
+  `).join('');
+}
+
+function filterQuestions(catId) {
+  let filtered = allQuestions;
+  if (catId !== 'all') filtered = allQuestions.filter(q => q.category_id === catId);
+  const container = document.getElementById('questionList');
+  container.innerHTML = filtered.map((q, i) => {
+    const cat = categories.find(c => c.id === q.category_id);
+    const isChecked = selectedQuestionIds.has(q.id);
+    return `
+      <div class="question-item">
+        <input type="checkbox" class="question-checkbox" data-id="${q.id}" ${isChecked ? 'checked' : ''} onchange="toggleSelectQuestion('${q.id}')">
+        <div class="question-content">
+          <div class="question-text">${i+1}. ${escapeHtml(q.question_text)}</div>
+          <div class="question-meta">
+            <span>${cat?.icon || '📁'} ${cat?.name || 'Uncategorized'}</span>
+            <span>⭐ ${q.points || 100} pts</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function populateCategorySelects() {
+  const options = '<option value="">— Select Category —</option>' + categories.map(c => `<option value="${c.id}">${c.icon} ${c.name}</option>`).join('');
+  document.getElementById('qCategory').innerHTML = options;
+}
+
+async function addCategory() {
+  const name = document.getElementById('newCatName').value.trim();
+  const icon = document.getElementById('newCatIcon').value.trim() || '📁';
+  if (!name) { toast('Enter a category name', 'error'); return; }
+  const { error } = await sb.from('categories').insert({ name, icon, session_id: SESSION_ID });
+  if (error) { toast('Error: ' + error.message, 'error'); return; }
+  document.getElementById('newCatName').value = '';
+  document.getElementById('newCatIcon').value = '';
+  await loadCategories();
+  toast('Category added!', 'success');
+}
+
+async function editCategory(id, oldName, oldIcon) {
+  const name = prompt('New category name:', oldName);
+  if (!name) return;
+  const icon = prompt('New icon (emoji):', oldIcon);
+  await sb.from('categories').update({ name, icon: icon || oldIcon }).eq('id', id);
+  await loadCategories();
+  toast('Category updated!', 'success');
+}
+
+async function deleteCategory(id) {
+  if (!confirm('Delete this category and all its questions?')) return;
+  await sb.from('questions').delete().eq('category_id', id).eq('session_id', SESSION_ID);
+  await sb.from('categories').delete().eq('id', id);
+  selectedQuestionIds.clear();
+  await loadCategories();
+  await loadQuestions();
+  toast('Category deleted!', 'success');
+}
+
+async function addQuestion() {
+  const text = document.getElementById('qText').value.trim();
+  const a = document.getElementById('optA').value.trim();
+  const b = document.getElementById('optB').value.trim();
+  const c = document.getElementById('optC').value.trim();
+  const d = document.getElementById('optD').value.trim();
+  const correct = parseInt(document.getElementById('qCorrect').value);
+  const catId = document.getElementById('qCategory').value || null;
+  const points = parseInt(document.getElementById('qPoints').value) || 100;
+  if (!text || !a || !b || !c || !d) { toast('Fill all fields', 'error'); return; }
+  const { error } = await sb.from('questions').insert({
+    question_text: text, option_a: a, option_b: b, option_c: c, option_d: d,
+    correct_option: correct, category_id: catId, points: points, session_id: SESSION_ID
+  });
+  if (error) { toast('Error: ' + error.message, 'error'); return; }
+  document.getElementById('qText').value = '';
+  document.getElementById('optA').value = '';
+  document.getElementById('optB').value = '';
+  document.getElementById('optC').value = '';
+  document.getElementById('optD').value = '';
+  await loadQuestions();
+  toast('Question added!', 'success');
+}
+
+async function loadSampleQuestions() {
+  const samples = [
+    { t: "What is the capital of France?", a: "Berlin", b: "Madrid", c: "Paris", d: "Lisbon", co: 2 },
+    { t: "Which planet is known as the Red Planet?", a: "Mars", b: "Jupiter", c: "Venus", d: "Saturn", co: 0 },
+    { t: "Who painted the Mona Lisa?", a: "Van Gogh", b: "Picasso", c: "Da Vinci", d: "Rembrandt", co: 2 }
+  ];
+  for (const s of samples) {
+    await sb.from('questions').insert({
+      question_text: s.t, option_a: s.a, option_b: s.b, option_c: s.c, option_d: s.d,
+      correct_option: s.co, points: 100, session_id: SESSION_ID
+    });
+  }
+  await loadQuestions();
+  toast('Sample questions loaded!', 'success');
+}
+
+async function activateGame() {
+  if (allQuestions.length === 0) { toast('Add questions first!', 'error'); return; }
+  await sb.from('game_sessions').update({ status: 'active' }).eq('id', SESSION_ID);
+  await sb.from('game_events').insert({ session_id: SESSION_ID, event_type: 'game_activated', payload: { questions: allQuestions, totalQuestions: allQuestions.length } });
+  toast('Game activated! Players can now start!', 'success');
+}
+
+async function resetGame() {
+  if (!confirm('Reset game? This clears all player progress.')) return;
+  await sb.from('players').delete().eq('session_id', SESSION_ID);
+  await sb.from('answers').delete().eq('session_id', SESSION_ID);
+  await loadPlayers();
+  toast('Game reset!', 'success');
+}
+
+function exportScores() {
+  const csv = [['Rank', 'Name', 'Score', 'Correct', 'Total Questions', 'Completed']];
+  players.forEach((p, i) => { csv.push([i+1, p.name, p.score, p.correct_count, allQuestions.length, p.completed ? 'Yes' : 'No']); });
+  const blob = new Blob([csv.map(row => row.join(',')).join('\n')], { type: 'text/csv' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `scores_${ROOM_CODE}.csv`; a.click();
+}
+
+function setupRealtime() {
+  sb.channel(`sp-admin-${SESSION_ID}`)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'players', filter: `session_id=eq.${SESSION_ID}` }, () => loadPlayers())
+    .subscribe();
+}
+
+function toast(msg, type = 'info') {
+  const el = document.createElement('div'); el.className = 'toast'; el.innerText = msg;
+  document.body.appendChild(el); setTimeout(() => el.remove(), 3000);
+}
+
+function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;'); }
+
+// ----- BATCH DELETE & CSV EXPORT FUNCTIONS -----
+function toggleSelectQuestion(id) {
+  if (selectedQuestionIds.has(id)) selectedQuestionIds.delete(id);
+  else selectedQuestionIds.add(id);
+}
+
+function selectAllQuestions() {
+  allQuestions.forEach(q => selectedQuestionIds.add(q.id));
+  renderQuestionList();
+  toast(`${selectedQuestionIds.size} questions selected`, 'info');
+}
+
+function deselectAllQuestions() {
+  selectedQuestionIds.clear();
+  renderQuestionList();
+  toast('All questions deselected', 'info');
+}
+
+async function batchDeleteQuestions() {
+  if (selectedQuestionIds.size === 0) { toast('No questions selected', 'error'); return; }
+  if (!confirm(`Delete ${selectedQuestionIds.size} selected questions? This cannot be undone.`)) return;
+  const ids = Array.from(selectedQuestionIds);
+  const { error } = await sb.from('questions').delete().in('id', ids);
+  if (error) { toast('Delete error: ' + error.message, 'error'); return; }
+  selectedQuestionIds.clear();
+  await loadQuestions();
+  toast(`${ids.length} questions deleted`, 'success');
+}
+
+async function deleteAllQuestionsInCategory() {
+  const catId = prompt('Enter the Category ID (or name) to delete all questions in that category. You can find ID in browser console or use category name exact match.');
+  if (!catId) return;
+  let targetCatId = catId;
+  // if user gave name instead of id, try to resolve
+  const matchedCat = categories.find(c => c.name.toLowerCase() === catId.toLowerCase() || c.id === catId);
+  if (matchedCat) targetCatId = matchedCat.id;
+  else { toast('Category not found', 'error'); return; }
+  if (!confirm(`Delete ALL questions in category "${matchedCat?.name || catId}"?`)) return;
+  const { error } = await sb.from('questions').delete().eq('category_id', targetCatId).eq('session_id', SESSION_ID);
+  if (error) { toast('Error: ' + error.message, 'error'); return; }
+  selectedQuestionIds.clear();
+  await loadQuestions();
+  toast(`All questions in category deleted`, 'success');
+}
+
+function exportQuestionsCSV() {
+  if (allQuestions.length === 0) { toast('No questions to export', 'error'); return; }
+  const headers = ['ID', 'Question', 'Option A', 'Option B', 'Option C', 'Option D', 'Correct Option', 'Points', 'Category Name', 'Category Icon'];
+  const rows = allQuestions.map(q => {
+    const cat = categories.find(c => c.id === q.category_id);
+    const correctLetter = q.correct_option === 0 ? 'A' : q.correct_option === 1 ? 'B' : q.correct_option === 2 ? 'C' : 'D';
+    return [
+      q.id, `"${q.question_text.replace(/"/g, '""')}"`, `"${q.option_a.replace(/"/g, '""')}"`, `"${q.option_b.replace(/"/g, '""')}"`, `"${q.option_c.replace(/"/g, '""')}"`, `"${q.option_d.replace(/"/g, '""')}"`,
+      correctLetter, q.points || 100, cat?.name || '', cat?.icon || ''
+    ];
+  });
+  const csvContent = [headers, ...rows].map(row => row.join(',')).join('\n');
+  const blob = new Blob(["\uFEFF" + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `questions_${ROOM_CODE}.csv`; link.click();
+  toast('Questions exported to CSV', 'success');
+}
+
+// Expose functions
+window.addCategory = addCategory;
+window.editCategory = editCategory;
+window.deleteCategory = deleteCategory;
+window.addQuestion = addQuestion;
+window.loadSampleQuestions = loadSampleQuestions;
+window.activateGame = activateGame;
+window.resetGame = resetGame;
+window.exportScores = exportScores;
+window.filterQuestions = filterQuestions;
+window.toggleSelectQuestion = toggleSelectQuestion;
+window.batchDeleteQuestions = batchDeleteQuestions;
+window.exportQuestionsCSV = exportQuestionsCSV;
+window.deleteAllQuestionsInCategory = deleteAllQuestionsInCategory;
+window.selectAllQuestions = selectAllQuestions;
+window.deselectAllQuestions = deselectAllQuestions;
 </script>
 </body>
 </html>
