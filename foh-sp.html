@@ -275,6 +275,7 @@ if (sessionFromUrl && roomFromUrl) {
   init();
 }
 
+
 async function connectToRoom() {
   const code = document.getElementById('roomInput').value.trim().toUpperCase();
   if (!code) { showError('Enter room code'); return; }
@@ -312,6 +313,59 @@ async function connectToRoom() {
     btn.disabled = false;
     btn.innerText = 'Connect →';
   }
+}
+
+// Add to foh-sp.html
+async function checkAndConnectToRoom(code) {
+  const { data: session, error } = await sb
+    .from('game_sessions')
+    .select('id, room_code, status, scheduled_date')
+    .eq('room_code', code)
+    .maybeSingle();
+  
+  if (error || !session) {
+    showError('Room not found');
+    return false;
+  }
+  
+  // Check if room is scheduled for future
+  if (session.status === 'scheduled') {
+    const scheduledDate = new Date(session.scheduled_date);
+    const now = new Date();
+    if (scheduledDate > now) {
+      showError(`This room is scheduled for ${scheduledDate.toLocaleString()}. FOH display will activate at that time.`);
+      return false;
+    }
+  }
+  
+  // Check if room is active/waiting/ended - allow FOH for all except scheduled future
+  if (session.status === 'ended') {
+    // FOH can still show ended rooms for leaderboard viewing
+    console.log('Room has ended, displaying in read-only mode');
+  }
+  
+  SESSION_ID = session.id;
+  ROOM_CODE = session.room_code;
+  return true;
+}
+
+// Update connectToRoom function
+async function connectToRoom() {
+  const code = document.getElementById('roomInput').value.trim().toUpperCase();
+  if (!code) { showError('Enter room code'); return; }
+  
+  const btn = document.querySelector('#roomEntry .btn');
+  btn.disabled = true;
+  btn.innerText = 'Connecting...';
+  
+  const connected = await checkAndConnectToRoom(code);
+  if (!connected) {
+    btn.disabled = false;
+    btn.innerText = 'Connect →';
+    return;
+  }
+  
+  // Continue with connection...
 }
 
 function generateQRCode() {

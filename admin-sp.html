@@ -369,6 +369,42 @@ if (sessionFromUrl && roomFromUrl) {
   document.getElementById('verifyRoomCode').value = roomFromUrl;
 }
 
+// Add to admin-sp.html
+async function verifyAdminAccess(roomCode, sessionId) {
+  try {
+    let query;
+    if (sessionId) {
+      query = await sb.from('game_sessions').select('*').eq('id', sessionId).maybeSingle();
+    } else {
+      query = await sb.from('game_sessions').select('*').eq('room_code', roomCode).maybeSingle();
+    }
+    
+    const { data: session, error } = query;
+    
+    if (error || !session) {
+      return { allowed: false, reason: 'Room not found' };
+    }
+    
+    // Admin can access any room regardless of status (they need to manage)
+    // But show warning for scheduled rooms
+    if (session.status === 'scheduled') {
+      const scheduledDate = new Date(session.scheduled_date);
+      const now = new Date();
+      if (scheduledDate > now) {
+        const confirm = confirm(`This room is scheduled for ${scheduledDate.toLocaleString()}. Do you still want to access it for setup?`);
+        if (!confirm) return { allowed: false, reason: 'Access cancelled' };
+      }
+    }
+    
+    return { allowed: true, session: session };
+    
+  } catch (err) {
+    return { allowed: false, reason: 'Error verifying access' };
+  }
+}
+
+
+
 async function verifyAndLoad() {
   const code = document.getElementById('verifyRoomCode').value.trim().toUpperCase();
   if (!code) { showVerifyError('Enter room code'); return; }

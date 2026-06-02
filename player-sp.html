@@ -510,6 +510,46 @@ function selectAvatar(el, avatar) {
   selectedAvatar = avatar;
 }
 
+// Add this function to player-sp.html
+async function checkRoomStatus(roomCode) {
+  try {
+    const { data: session, error } = await sb
+      .from('game_sessions')
+      .select('id, status, scheduled_date')
+      .eq('room_code', roomCode)
+      .maybeSingle();
+    
+    if (error || !session) {
+      return { available: false, reason: 'Room not found' };
+    }
+    
+    // Check if room is scheduled for future
+    if (session.status === 'scheduled') {
+      const scheduledDate = new Date(session.scheduled_date);
+      const now = new Date();
+      if (scheduledDate > now) {
+        return { 
+          available: false, 
+          reason: `This room is scheduled for ${scheduledDate.toLocaleString()}. Please check back then.` 
+        };
+      }
+    }
+    
+    // Check if room is active or waiting
+    if (session.status !== 'active' && session.status !== 'waiting') {
+      return { available: false, reason: `This room is ${session.status}. Cannot join.` };
+    }
+    
+    return { available: true, sessionId: session.id };
+    
+  } catch (err) {
+    return { available: false, reason: 'Error checking room status' };
+  }
+}
+
+
+ 
+
 // Update connection status
 function updateConnectionStatus(connected, message) {
   const dot = document.getElementById('connDot');
@@ -539,7 +579,7 @@ async function checkConnection() {
   }
 }
 
-// Join game
+// Modify joinGame function to use this check
 async function joinGame() {
   const roomCode = document.getElementById('roomInput').value.trim().toUpperCase();
   const playerName = document.getElementById('nameInput').value.trim();
@@ -547,24 +587,12 @@ async function joinGame() {
   if (!roomCode) { showError('Enter room code'); return; }
   if (!playerName || playerName.length < 2) { showError('Enter your name (min 2 chars)'); return; }
   
-  const joinBtn = document.querySelector('#joinScreen .btn');
-  joinBtn.disabled = true;
-  joinBtn.innerText = 'Joining...';
-  
-  try {
-    // Find session
-    const { data: session, error: sessionError } = await sb
-      .from('game_sessions')
-      .select('id, status')
-      .eq('room_code', roomCode)
-      .maybeSingle();
-    
-    if (sessionError || !session) {
-      showError('Room not found');
-      joinBtn.disabled = false;
-      joinBtn.innerText = '🚀 Join Game';
-      return;
-    }
+  // Check room status first
+  const statusCheck = await checkRoomStatus(roomCode);
+  if (!statusCheck.available) {
+    showError(statusCheck.reason);
+    return;
+  }
     
     SESSION_ID = session.id;
     
@@ -649,7 +677,7 @@ async function joinGame() {
     joinBtn.disabled = false;
     joinBtn.innerText = '🚀 Join Game';
   }
-}
+
 
 // NEW: Start the quiz when player clicks start button
 function startQuiz() {
