@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PlayAQuiz — Wedding Quiz Game</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Syne:wght@700;800&family=Space+Grotesk:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #03050b;
+      --surface: #0d1120;
+      --surface2: #111827;
+      --border: #1f2a3c;
+      --text: #e8edf7;
+      --muted: #6b7a99;
+      --accent: #3b82f6;
+      --green: #10b981;
+      --gold: #fbbf24;
+      --purple: #8b5cf6;
+      --pink: #ec4899;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+    }
+
+    body {
+      background: linear-gradient(135deg, var(--bg) 0%, rgba(139, 92, 246, 0.05) 100%);
+      font-family: 'Space Grotesk', sans-serif;
+      color: var(--text);
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        radial-gradient(ellipse 100% 80% at 15% 0%, rgba(99, 102, 241, 0.12) 0%, transparent 55%),
+        radial-gradient(ellipse 70% 60% at 85% 100%, rgba(167, 139, 250, 0.08) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ─── HEADER ────────────────────────────────────────────────────────────── */
+    header {
+      text-align: center;
+      padding: 40px 0 60px;
+    }
+
+    .logo {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(32px, 8vw, 64px);
+      letter-spacing: 8px;
+      font-weight: 900;
+      background: linear-gradient(135deg, #ffffff 0%, var(--gold) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 12px;
+      text-shadow: 0 10px 40px rgba(251, 191, 36, 0.1);
+    }
+
+    .tagline {
+      font-size: clamp(14px, 3vw, 18px);
+      color: var(--muted);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-bottom: 32px;
+      font-weight: 600;
+    }
+
+    .subtitle {
+      font-size: 16px;
+      color: var(--muted);
+      max-width: 500px;
+      margin: 0 auto 48px;
+      line-height: 1.8;
+    }
+
+    /* ─── ROLE SELECTION GRID ──────────────────────────────────────────────── */
+    .roles-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+      margin-bottom: 60px;
+    }
+
+    .role-card {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 24px;
+      padding: 32px 24px;
+      text-align: center;
+      transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .role-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, transparent 0%, rgba(251, 191, 36, 0.1) 100%);
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+    }
+
+    .role-card:hover {
+      border-color: var(--gold);
+      background: linear-gradient(135deg, rgba(251, 191, 36, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%);
+      transform: translateY(-8px);
+      box-shadow: 0 20px 40px rgba(251, 191, 36, 0.15);
+    }
+
+    .role-card:hover::before {
+      opacity: 1;
+    }
+
+    .role-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+      display: block;
+    }
+
+    .role-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 20px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: var(--text);
+    }
+
+    .role-description {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 20px;
+      line-height: 1.6;
+      min-height: 60px;
+    }
+
+    .role-link {
+      display: inline-block;
+      padding: 10px 24px;
+      background: var(--gold);
+      color: #000;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 13px;
+      transition: all 0.2s;
+      border: 2px solid var(--gold);
+    }
+
+    .role-link:hover {
+      background: transparent;
+      color: var(--gold);
+      transform: scale(1.05);
+    }
+
+    /* ─── FEATURES SECTION ──────────────────────────────────────────────────── */
+    .features-section {
+      margin: 60px 0;
+      padding: 40px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 20px;
+      backdrop-filter: blur(10px);
+    }
+
+    .section-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 28px;
+      font-weight: 800;
+      margin-bottom: 32px;
+      text-align: center;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 24px;
+    }
+
+    .feature {
+      padding: 24px;
+      text-align: center;
+    }
+
+    .feature-icon {
+      font-size: 40px;
+      margin-bottom: 12px;
+    }
+
+    .feature-title {
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .feature-text {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    /* ─── INFO BOXES ────────────────────────────────────────────────────────── */
+    .info-boxes {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+      margin: 40px 0;
+    }
+
+    .info-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .info-box::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--gold), transparent);
+    }
+
+    .info-box-title {
+      font-weight: 700;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+
+    .info-box-text {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .code-block {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      overflow-x: auto;
+      color: var(--gold);
+    }
+
+    /* ─── QUICK START ────────────────────────────────────────────────────────── */
+    .quick-start {
+      background: linear-gradient(135deg, rgba(34, 211, 160, 0.08) 0%, rgba(59, 130, 246, 0.08) 100%);
+      border: 1px solid rgba(34, 211, 160, 0.3);
+      border-radius: 16px;
+      padding: 32px;
+      margin: 40px 0;
+      text-align: center;
+    }
+
+    .quick-start-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 24px;
+      font-weight: 800;
+      margin-bottom: 16px;
+      color: var(--green);
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-top: 24px;
+      text-align: left;
+    }
+
+    .step {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 16px;
+      border-radius: 12px;
+      border-left: 3px solid var(--green);
+    }
+
+    .step-number {
+      display: inline-block;
+      width: 28px;
+      height: 28px;
+      background: var(--green);
+      color: #000;
+      border-radius: 50%;
+      text-align: center;
+      line-height: 28px;
+      font-weight: 700;
+      margin-right: 8px;
+      margin-bottom: 8px;
+    }
+
+    .step-text {
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    /* ─── FOOTER ────────────────────────────────────────────────────────────── */
+    footer {
+      margin-top: auto;
+      padding: 40px 0 20px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      text-align: center;
+    }
+
+    .footer-text {
+      font-size: 12px;
+      color: var(--muted);
+      margin: 8px 0;
+      letter-spacing: 1px;
+    }
+
+    .footer-links {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+
+    .footer-link {
+      color: var(--gold);
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 600;
+      transition: color 0.2s;
+    }
+
+    .footer-link:hover {
+      color: var(--text);
+    }
+
+    /* ─── RESPONSIVE ────────────────────────────────────────────────────────── */
+    @media (max-width: 768px) {
+      .container {
+        padding: 16px;
+      }
+
+      header {
+        padding: 24px 0 40px;
+      }
+
+      .logo {
+        font-size: 40px;
+        letter-spacing: 4px;
+      }
+
+      .roles-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .features-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .steps {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* ─── ANIMATIONS ────────────────────────────────────────────────────────── */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    header {
+      animation: fadeInUp 0.6s ease;
+    }
+
+    .role-card {
+      animation: fadeInUp 0.6s ease;
+      animation-fill-mode: both;
+    }
+
+    .role-card:nth-child(1) { animation-delay: 0.1s; }
+    .role-card:nth-child(2) { animation-delay: 0.2s; }
+    .role-card:nth-child(3) { animation-delay: 0.3s; }
+    .role-card:nth-child(4) { animation-delay: 0.4s; }
+
+    .features-section {
+      animation: fadeInUp 0.8s ease 0.5s both;
+    }
+
+    .quick-start {
+      animation: fadeInUp 0.8s ease 0.7s both;
+    }
+
+    /* ─── UTILITY CLASSES ────────────────────────────────────────────────────── */
+    .hidden {
+      display: none !important;
+    }
+
+    .text-center {
+      text-align: center;
+    }
+
+    .mt-4 {
+      margin-top: 24px;
+    }
+
+    .mb-4 {
+      margin-bottom: 24px;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <!-- ═════════════════════════════════════════════════════════════════════════ -->
+  <!-- HEADER                                                                   -->
+  <!-- ═════════════════════════════════════════════════════════════════════════ -->
+  <header>
+    <div class="logo">PLAYAQUIZ</div>
+    <div class="tagline">🎉 Wedding Edition 🎉</div>
+    <p class="subtitle">
+      An interactive quiz platform for weddings and events. Choose your role below to get started.
+    </p>
+  </header>
+
+  <!-- ═════════════════════════════════════════════════════════════════════════ -->
+  <!-- ROLE SELECTION                                                           -->
+  <!-- ═════════════════════════════════════════════════════════════════════════ -->
+  <section class="roles-grid">
+    <!-- Admin -->
+    <div class="role-card">
+      <span class="role-icon">⚙️</span>
+      <div class="role-title">Admin Dashboard</div>
+      <p class="role-description">
+        Master control center for managing questions, creating rooms, and launching games.
+      </p>
+      <a href="admin.html" class="role-link">→ Launch Admin</a>
+    </div>
+
+    <!-- Host Control -->
+    <div class="role-card">
+      <span class="role-icon">🎮</span>
+      <div class="role-title">Host Control</div>
+      <p class="role-description">
+        Real-time host interface for managing the final round buzzer game with live scoring.
+      </p>
+      <a href="host-unified.html" class="role-link">→ Launch Host</a>
+    </div>
+
+    <!-- FOH Display -->
+    <div class="role-card">
+      <span class="role-icon">📺</span>
+      <div class="role-title">FOH Display</div>
+      <p class="role-description">
+        Main venue display showing questions, scores, and live buzzer results.
+      </p>
+      <a href="foh.html" class="role-link">→ Launch Display</a>
+    </div>
+
+    <!-- Player -->
+    <div class="role-card">
+      <span class="role-icon">📱</span>
+      <div class="role-title">Player Interface</div>
+      <p class="role-description">
+        Join with a room code and play from your phone. Answer questions and compete in final round.
+      </p>
+      <a href="player-unified.html" class="role-link">→ Play Now</a>
+    </div>
+  </section>
+
+  <!-- ═════════════════════════════════════════════════════════════════════════ -->
+  <!-- QUICK START                                                              -->
+  <!-- ═════════════════════════════════════════════════════════════════════════ -->
+  <section class="quick-start">
+    <div class="quick-start-title">⚡ Quick Start Guide</div>
+    <p style="color: var(--muted); margin-bottom: 24px;">Get your game running in 5 minutes</p>
+    
+    <div class="steps">
+      <div class="step">
+        <div class="step-number">1</div>
+        <div class="step-text">
+          <strong>Admin:</strong> Create questions and set up the room
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-number">2</div>
+        <div class="step-text">
+          <strong>Host:</strong> Share room code (or QR code) with players
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-number">3</div>
+        <div class="step-text">
+          <strong>Players:</strong> Join via code and enter names
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-number">4</div>
+        <div class="step-text">
+          <strong>Host:</strong> Click "Start Game" and begin quiz
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-number">5</div>
+        <div class="step-text">
+          <strong>FOH:</strong> Display questions and celebrate winners
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═════════════════════════════════════════════════════════════════════════ -->
+  <!-- FEATURES                                                                  -->
+  <!-- ═════════════════════════════════════════════════════════════════════════ -->
+  <section class="features-section">
+    <h2 class="section-title">✨ Features</h2>
+    <div class="features-grid">
+      <div class="feature">
+        <div class="feature-icon">🎯</div>
+        <div class="feature-title">Self-Paced Quiz</div>
+        <div class="feature-text">Phase 1: Players answer multiple choice questions at their own pace</div>
+      </div>
+
+      <div class="feature">
+        <div class="feature-icon">⚡</div>
+        <div class="feature-title">Live Buzzer</div>
+        <div class="feature-text">Phase 2: Top 5 players compete in real-time buzzer challenge</div>
+      </div>
+
+      <div class="feature">
+        <div class="feature-icon">📊</div>
+        <div class="feature-title">Live Scoring</div>
+        <div class="feature-text">Real-time leaderboard updates across all displays and devices</div>
+      </div>
+
+      <div class="feature">
+        <div class="feature-icon">📱</div>
+        <div class="feature-title">Responsive Design</div>
+        <div class="feature-text">Works on desktop, tablet, and mobile devices seamlessly</div>
+      </div>
+
+      <div class="feature">
+        <div class="feature-icon">🎨</div>
+        <div class="feature-title">Smooth Animations</div>
+        <div class="feature-text">Beautiful transitions and visual feedback for all interactions</div>
+      </div>
+
+      <div class="feature">
+        <div class="feature-icon">🔗</div>
+        <div class="feature-title">Real-time Sync</div>
+        <div class="feature-text">WebSocket-powered instant synchronization across all screens</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═════════════════════════════════════════════════════════════════════════ -->
+  <!-- INFO BOXES                                                                -->
+  <!-- ═════════════════════════════════════════════════════════════════════════ -->
+  <section class="info-boxes">
+    <div class="info-box">
+      <div class="info-box-title">🚀 Getting Started</div>
+      <div class="info-box-text">
+        First time? Start with the Admin Dashboard to create your first game and add questions.
+      </div>
+    </div>
+
+    <div class="info-box">
+      <div class="info-box-title">📖 File Structure</div>
+      <div class="info-box-text">
+        <strong>New Unified Files:</strong>
+        <div class="code-block">host-unified.html<br>player-unified.html<br>shared-utilities.js</div>
+      </div>
+    </div>
+
+    <div class="info-box">
+      <div class="info-box-title">🔧 Setup Tips</div>
+      <div class="info-box-text">
+        Make sure Supabase credentials are set in shared-utilities.js before deploying.
+      </div>
+    </div>
+  </section>
+
+  <!-- ═════════════════════════════════════════════════════════════════════════ -->
+  <!-- FOOTER                                                                    -->
+  <!-- ═════════════════════════════════════════════════════════════════════════ -->
+  <footer>
+    <p class="footer-text">PlayAQuiz © 2024 • Version 2.0 (Option A Merged)</p>
+    <p class="footer-text">Built with Supabase Realtime for instant multiplayer sync</p>
+    
+    <div class="footer-links">
+      <a href="#" class="footer-link">Documentation</a>
+      <span style="color: var(--muted);">•</span>
+      <a href="#" class="footer-link">Support</a>
+      <span style="color: var(--muted);">•</span>
+      <a href="#" class="footer-link">GitHub</a>
+      <span style="color: var(--muted);">•</span>
+      <a href="#" class="footer-link">Status</a>
+    </div>
+
+    <p class="footer-text" style="margin-top: 24px; font-size: 11px;">
+      📁 Files: admin.html • foh.html • host-unified.html • player-unified.html • shared-utilities.js
+    </p>
+  </footer>
+</div>
+
+<script>
+  // Simple analytics tracking
+  document.addEventListener('click', (e) => {
+    if (e.target.classList.contains('role-link')) {
+      const role = e.target.textContent.toLowerCase();
+      console.log(`📊 User navigating to: ${role}`);
+      // Could send to analytics service here
+    }
+  });
+
+  // Check if all required files exist (for debugging)
+  window.addEventListener('load', () => {
+    console.log('%c🎮 PlayAQuiz Loaded', 'font-size: 16px; font-weight: bold; color: #fbbf24;');
+    console.log('Available interfaces:');
+    console.log('  ⚙️  Admin: admin.html');
+    console.log('  📺 FOH Display: foh.html');
+    console.log('  🎮 Host Control: host-unified.html');
+    console.log('  📱 Player: player-unified.html');
+    console.log('  🔧 Utilities: shared-utilities.js');
+  });
+</script>
+</body>
+</html>
