@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>PlayAQuiz — Room Manager</title>
+  <title>PlayAQuiz — Room Manager Pro</title>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
@@ -17,6 +17,44 @@
     }
     .container { max-width: 1400px; margin: 0 auto; }
     
+    /* Password Overlay */
+    .password-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(3,5,11,0.98);
+      backdrop-filter: blur(20px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+    }
+    .password-card {
+      background: rgba(13,17,32,0.95);
+      border: 2px solid rgba(59,130,246,0.3);
+      border-radius: 32px;
+      padding: 48px;
+      text-align: center;
+      max-width: 400px;
+      width: 90%;
+    }
+    .password-input {
+      background: #06080f;
+      border: 2px solid #2d3b52;
+      border-radius: 16px;
+      padding: 16px 20px;
+      font-size: 20px;
+      color: #fff;
+      width: 100%;
+      margin: 24px 0;
+      text-align: center;
+      letter-spacing: 4px;
+    }
+    .password-error {
+      color: #ef4444;
+      font-size: 13px;
+      margin-top: 12px;
+    }
+    
     .header {
       display: flex;
       justify-content: space-between;
@@ -26,6 +64,8 @@
       background: rgba(13,17,32,0.8);
       border-radius: 20px;
       border: 1px solid rgba(59,130,246,0.2);
+      flex-wrap: wrap;
+      gap: 16px;
     }
     .logo {
       font-family: 'Bebas Neue', sans-serif;
@@ -33,6 +73,21 @@
       background: linear-gradient(135deg, #fff, #3b82f6);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
+    }
+    .date-selector {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(0,0,0,0.3);
+      padding: 8px 16px;
+      border-radius: 40px;
+    }
+    .date-selector input {
+      background: #06080f;
+      border: 1px solid #2d3b52;
+      border-radius: 8px;
+      padding: 8px 12px;
+      color: #fff;
     }
     .conn-status {
       display: flex;
@@ -51,6 +106,39 @@
     }
     .status-dot.connected { background: #10b981; }
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+    
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 24px;
+      background: rgba(13,17,32,0.5);
+      border-radius: 16px;
+      padding: 4px;
+    }
+    .tab {
+      flex: 1;
+      padding: 12px 24px;
+      background: transparent;
+      border: none;
+      color: #6b7a99;
+      font-weight: 700;
+      cursor: pointer;
+      border-radius: 12px;
+      transition: all 0.2s;
+    }
+    .tab.active {
+      background: #3b82f6;
+      color: white;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     
     .create-card {
       background: linear-gradient(135deg, rgba(59,130,246,0.1), rgba(139,92,246,0.05));
@@ -86,11 +174,11 @@
       border: 2px solid #2d3b52;
       border-radius: 12px;
       padding: 14px 20px;
-      font-size: 24px;
+      font-size: 20px;
       font-family: 'JetBrains Mono', monospace;
       color: #3b82f6;
-      letter-spacing: 4px;
-      width: 200px;
+      letter-spacing: 3px;
+      width: 180px;
       text-align: center;
     }
     input, select {
@@ -117,12 +205,13 @@
     .btn-green { background: #10b981; }
     .btn-red { background: #ef4444; }
     .btn-purple { background: #8b5cf6; }
+    .btn-orange { background: #f59e0b; color: #111; }
     .btn-ghost { background: #111827; border: 1px solid #2d3b52; }
     .btn-sm { padding: 8px 16px; font-size: 12px; }
     
     .rooms-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
       gap: 20px;
       margin-top: 20px;
     }
@@ -134,15 +223,19 @@
       transition: all 0.2s;
     }
     .room-card.active { border-color: #10b981; background: rgba(16,185,129,0.05); }
+    .room-card.upcoming { border-color: #f59e0b; background: rgba(245,158,11,0.05); }
+    .room-card.expired { opacity: 0.5; border-color: #ef4444; }
     .room-card-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      gap: 8px;
     }
     .room-code-display {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 28px;
+      font-size: 24px;
       font-weight: 700;
       color: #3b82f6;
       letter-spacing: 3px;
@@ -156,7 +249,16 @@
     .badge-active { background: rgba(16,185,129,0.2); color: #10b981; }
     .badge-ended { background: rgba(239,68,68,0.2); color: #ef4444; }
     .badge-waiting { background: rgba(245,158,11,0.2); color: #f59e0b; }
+    .badge-upcoming { background: rgba(139,92,246,0.2); color: #8b5cf6; }
     
+    .room-date {
+      font-size: 12px;
+      color: #6b7a99;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
     .room-stats {
       display: flex;
       gap: 20px;
@@ -175,7 +277,27 @@
       flex-wrap: wrap;
       margin-top: 16px;
     }
-    .btn-sm { padding: 8px 12px; font-size: 11px; }
+    
+    .filter-bar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .filter-btn {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid #2d3b52;
+      padding: 8px 20px;
+      border-radius: 40px;
+      cursor: pointer;
+      color: #6b7a99;
+      font-weight: 600;
+    }
+    .filter-btn.active {
+      background: #3b82f6;
+      color: white;
+      border-color: #3b82f6;
+    }
     
     .toast {
       position: fixed;
@@ -192,43 +314,138 @@
       from { opacity: 0; transform: translateX(100px); }
       to { opacity: 1; transform: translateX(0); }
     }
+    
+    .stats-summary {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .summary-card {
+      background: rgba(13,17,32,0.8);
+      border-radius: 16px;
+      padding: 16px;
+      text-align: center;
+    }
+    .summary-number {
+      font-size: 28px;
+      font-weight: 800;
+      color: #3b82f6;
+    }
+    .summary-label {
+      font-size: 11px;
+      color: #6b7a99;
+    }
   </style>
 </head>
 <body>
+<!-- Password Overlay -->
+<div id="passwordOverlay" class="password-overlay">
+  <div class="password-card">
+    <div style="font-size: 48px; margin-bottom: 16px;">🔐</div>
+    <div style="font-size: 24px; font-weight: 700;">Admin Access Required</div>
+    <div style="font-size: 14px; color: #6b7a99; margin: 8px 0 16px;">Enter master password to continue</div>
+    <input type="password" id="passwordInput" class="password-input" placeholder="Enter Password" autocomplete="off">
+    <button class="btn btn-green" onclick="verifyPassword()" style="width: 100%;">Unlock Manager</button>
+    <div id="passwordError" class="password-error"></div>
+  </div>
+</div>
+
+<div id="mainContent" style="display: none;">
 <div class="container">
   <div class="header">
     <div class="logo">PLAY<span style="color:#3b82f6">A</span>QUIZ</div>
+    <div class="date-selector">
+      <span>📅</span>
+      <input type="date" id="dateFilter" onchange="filterByDate()">
+      <button class="btn btn-sm btn-ghost" onclick="clearDateFilter()">Clear</button>
+    </div>
     <div class="conn-status">
       <div class="status-dot" id="connDot"></div>
       <span id="connText">Connecting...</span>
     </div>
   </div>
 
-  <!-- Create New Room -->
-  <div class="create-card">
-    <div class="create-title">🏠 Create New Game Room</div>
-    <div class="room-input-group">
-      <div class="input-field">
-        <label>Room Code (4-8 characters)</label>
-        <input type="text" id="manualRoomCode" class="room-code-input" placeholder="QUIZ" maxlength="8" autocomplete="off">
+  <!-- Summary Stats -->
+  <div class="stats-summary">
+    <div class="summary-card"><div class="summary-number" id="totalRooms">0</div><div class="summary-label">Total Rooms</div></div>
+    <div class="summary-card"><div class="summary-number" id="activeRooms">0</div><div class="summary-label">Active Today</div></div>
+    <div class="summary-card"><div class="summary-number" id="totalPlayers">0</div><div class="summary-label">Total Players</div></div>
+    <div class="summary-card"><div class="summary-number" id="upcomingRooms">0</div><div class="summary-label">Upcoming</div></div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('create')">✨ Create Room</button>
+    <button class="tab" onclick="switchTab('manage')">📋 Manage Rooms</button>
+    <button class="tab" onclick="switchTab('schedule')">📅 Schedule Room</button>
+  </div>
+
+  <!-- Tab 1: Create Room -->
+  <div id="tab-create" class="tab-content active">
+    <div class="create-card">
+      <div class="create-title">🏠 Create New Game Room</div>
+      <div class="room-input-group">
+        <div class="input-field">
+          <label>Room Code (4-8 characters)</label>
+          <input type="text" id="manualRoomCode" class="room-code-input" placeholder="QUIZ" maxlength="8" autocomplete="off">
+        </div>
+        <div class="input-field">
+          <label>Game Title</label>
+          <input type="text" id="roomTitle" placeholder="My Quiz Game" value="Self-Paced Quiz">
+        </div>
+        <div class="input-field">
+          <label>Use Date (optional)</label>
+          <input type="date" id="roomDate">
+        </div>
+        <button class="btn btn-green" onclick="createRoom()">✨ Create Room</button>
+        <button class="btn btn-purple" onclick="generateRandomCode()">🎲 Random Code</button>
       </div>
-      <div class="input-field">
-        <label>Game Title</label>
-        <input type="text" id="roomTitle" placeholder="My Quiz Game" value="Self-Paced Quiz">
-      </div>
-      <button class="btn btn-green" onclick="createRoom()">✨ Create Room</button>
-      <button class="btn btn-purple" onclick="generateRandomCode()">🎲 Random Code</button>
     </div>
   </div>
 
-  <!-- Active Rooms List -->
-  <div style="display: flex; justify-content: space-between; align-items: center; margin: 20px 0 10px;">
-    <h2>📋 Game Rooms</h2>
-    <button class="btn btn-ghost btn-sm" onclick="loadRooms()">⟳ Refresh</button>
+  <!-- Tab 2: Manage Rooms -->
+  <div id="tab-manage" class="tab-content">
+    <div class="filter-bar">
+      <button class="filter-btn active" onclick="filterRooms('all')">All Rooms</button>
+      <button class="filter-btn" onclick="filterRooms('active')">🟢 Active</button>
+      <button class="filter-btn" onclick="filterRooms('upcoming')">🟡 Upcoming</button>
+      <button class="filter-btn" onclick="filterRooms('ended')">🔴 Ended</button>
+    </div>
+    <div class="rooms-grid" id="roomsGrid">
+      <div style="text-align: center; padding: 40px; color: #6b7a99;">Loading rooms...</div>
+    </div>
   </div>
-  <div class="rooms-grid" id="roomsGrid">
-    <div style="text-align: center; padding: 40px; color: #6b7a99;">Loading rooms...</div>
+
+  <!-- Tab 3: Schedule Room -->
+  <div id="tab-schedule" class="tab-content">
+    <div class="create-card">
+      <div class="create-title">📅 Schedule Future Room</div>
+      <div class="room-input-group">
+        <div class="input-field">
+          <label>Room Code</label>
+          <input type="text" id="scheduledRoomCode" placeholder="FUTURE2025" maxlength="8">
+        </div>
+        <div class="input-field">
+          <label>Game Title</label>
+          <input type="text" id="scheduledTitle" placeholder="Event Title">
+        </div>
+        <div class="input-field">
+          <label>Scheduled Date</label>
+          <input type="date" id="scheduledDate">
+        </div>
+        <div class="input-field">
+          <label>Scheduled Time</label>
+          <input type="time" id="scheduledTime">
+        </div>
+        <button class="btn btn-orange" onclick="scheduleRoom()">📅 Schedule Room</button>
+      </div>
+    </div>
+    
+    <h3 style="margin: 20px 0 10px;">📅 Upcoming Scheduled Rooms</h3>
+    <div class="rooms-grid" id="scheduledRoomsGrid"></div>
   </div>
+</div>
 </div>
 
 <script>
@@ -236,7 +453,64 @@ const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
 const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-let connectionCheckInterval = null;
+// Password configuration
+const MASTER_PASSWORD = "admin123"; // Change this to your desired password
+let isAuthenticated = false;
+let currentFilter = 'all';
+let currentDateFilter = null;
+
+// Check password and store in localStorage for session persistence
+function verifyPassword() {
+  const password = document.getElementById('passwordInput').value;
+  const errorDiv = document.getElementById('passwordError');
+  
+  if (password === MASTER_PASSWORD) {
+    isAuthenticated = true;
+    localStorage.setItem('room_manager_auth', 'true');
+    localStorage.setItem('room_manager_auth_time', Date.now().toString());
+    document.getElementById('passwordOverlay').style.display = 'none';
+    document.getElementById('mainContent').style.display = 'block';
+    initializeApp();
+  } else {
+    errorDiv.innerText = 'Incorrect password!';
+    setTimeout(() => errorDiv.innerText = '', 3000);
+  }
+}
+
+// Check existing session
+function checkExistingAuth() {
+  const auth = localStorage.getItem('room_manager_auth');
+  const authTime = localStorage.getItem('room_manager_auth_time');
+  
+  if (auth === 'true' && authTime) {
+    // Session expires after 24 hours
+    const hoursSince = (Date.now() - parseInt(authTime)) / (1000 * 60 * 60);
+    if (hoursSince < 24) {
+      isAuthenticated = true;
+      document.getElementById('passwordOverlay').style.display = 'none';
+      document.getElementById('mainContent').style.display = 'block';
+      initializeApp();
+      return true;
+    }
+  }
+  return false;
+}
+
+// Initialize app after authentication
+function initializeApp() {
+  checkConnection();
+  loadRooms();
+  loadScheduledRooms();
+  updateSummaryStats();
+  
+  // Auto-refresh
+  setInterval(() => { loadRooms(); updateSummaryStats(); }, 10000);
+  setInterval(checkConnection, 5000);
+  
+  // Set default date to today
+  const today = new Date().toISOString().split('T')[0];
+  document.getElementById('roomDate').value = today;
+}
 
 // Check Supabase connection
 async function checkConnection() {
@@ -244,17 +518,16 @@ async function checkConnection() {
   const text = document.getElementById('connText');
   
   try {
-    const { data, error } = await sb.from('game_sessions').select('count', { count: 'exact', head: true });
+    const { error } = await sb.from('game_sessions').select('count', { count: 'exact', head: true });
     if (!error) {
       dot.classList.add('connected');
-      text.innerText = 'Connected to Supabase';
+      text.innerText = 'Connected';
       return true;
-    } else {
-      throw error;
     }
+    throw error;
   } catch(e) {
     dot.classList.remove('connected');
-    text.innerText = 'Connection Error - Check network';
+    text.innerText = 'Reconnecting...';
     return false;
   }
 }
@@ -273,6 +546,7 @@ function generateRandomCode() {
 async function createRoom() {
   let roomCode = document.getElementById('manualRoomCode').value.trim().toUpperCase();
   const title = document.getElementById('roomTitle').value.trim() || 'Quiz Game';
+  const useDate = document.getElementById('roomDate').value;
   
   if (!roomCode) {
     generateRandomCode();
@@ -284,65 +558,46 @@ async function createRoom() {
     return;
   }
   
-  const createBtn = document.querySelector('.btn-green');
+  const createBtn = document.querySelector('#tab-create .btn-green');
   createBtn.disabled = true;
   createBtn.innerText = 'Creating...';
   
   try {
     // Check if room code already exists
-    const { data: existing, error: checkError } = await sb
+    const { data: existing } = await sb
       .from('game_sessions')
       .select('id')
       .eq('room_code', roomCode)
       .maybeSingle();
     
     if (existing) {
-      toast(`Room code "${roomCode}" already exists! Try another.`, 'error');
+      toast(`Room code "${roomCode}" already exists!`, 'error');
       createBtn.disabled = false;
       createBtn.innerText = '✨ Create Room';
       return;
     }
     
-    // Create new session - only include columns that definitely exist
     const insertData = {
       room_code: roomCode,
       title: title,
       status: 'waiting',
-      created_at: new Date()
+      created_at: new Date(),
+      scheduled_date: useDate || null
     };
     
-    // Try to add type column if it exists (ignore error if it doesn't)
-    try {
-      insertData.type = 'self_paced';
-    } catch(e) {}
-    
-    const { data: session, error: insertError } = await sb
+    const { error: insertError } = await sb
       .from('game_sessions')
       .insert(insertData)
       .select()
       .single();
     
-    if (insertError) {
-      // If error is about 'type' column, try without it
-      if (insertError.message.includes('type')) {
-        delete insertData.type;
-        const { data: session2, error: insertError2 } = await sb
-          .from('game_sessions')
-          .insert(insertData)
-          .select()
-          .single();
-        
-        if (insertError2) throw insertError2;
-        toast(`✅ Room "${roomCode}" created successfully!`, 'success');
-      } else {
-        throw insertError;
-      }
-    } else {
-      toast(`✅ Room "${roomCode}" created successfully!`, 'success');
-    }
+    if (insertError) throw insertError;
     
+    toast(`✅ Room "${roomCode}" created successfully!`, 'success');
     document.getElementById('manualRoomCode').value = '';
     await loadRooms();
+    await loadScheduledRooms();
+    updateSummaryStats();
     
   } catch (err) {
     console.error('Create room error:', err);
@@ -353,79 +608,281 @@ async function createRoom() {
   }
 }
 
-// Load all rooms
-async function loadRooms() {
+// Schedule a future room
+async function scheduleRoom() {
+  const roomCode = document.getElementById('scheduledRoomCode').value.trim().toUpperCase();
+  const title = document.getElementById('scheduledTitle').value.trim() || 'Scheduled Quiz';
+  const scheduledDate = document.getElementById('scheduledDate').value;
+  const scheduledTime = document.getElementById('scheduledTime').value;
+  
+  if (!roomCode) {
+    toast('Enter a room code', 'error');
+    return;
+  }
+  if (!scheduledDate) {
+    toast('Select a scheduled date', 'error');
+    return;
+  }
+  
+  const scheduledDateTime = scheduledTime ? `${scheduledDate}T${scheduledTime}:00` : scheduledDate;
+  
+  const scheduleBtn = document.querySelector('#tab-schedule .btn-orange');
+  scheduleBtn.disabled = true;
+  scheduleBtn.innerText = 'Scheduling...';
+  
   try {
+    const { data: existing } = await sb
+      .from('game_sessions')
+      .select('id')
+      .eq('room_code', roomCode)
+      .maybeSingle();
+    
+    if (existing) {
+      toast(`Room code "${roomCode}" already exists!`, 'error');
+      return;
+    }
+    
+    const insertData = {
+      room_code: roomCode,
+      title: title,
+      status: 'scheduled',
+      scheduled_date: scheduledDateTime,
+      created_at: new Date()
+    };
+    
+    const { error } = await sb.from('game_sessions').insert(insertData);
+    if (error) throw error;
+    
+    toast(`✅ Room "${roomCode}" scheduled for ${scheduledDate}!`, 'success');
+    document.getElementById('scheduledRoomCode').value = '';
+    document.getElementById('scheduledTitle').value = '';
+    document.getElementById('scheduledDate').value = '';
+    document.getElementById('scheduledTime').value = '';
+    
+    await loadRooms();
+    await loadScheduledRooms();
+    updateSummaryStats();
+    
+  } catch (err) {
+    toast('Error scheduling room: ' + err.message, 'error');
+  } finally {
+    scheduleBtn.disabled = false;
+    scheduleBtn.innerText = '📅 Schedule Room';
+  }
+}
+
+// Load scheduled rooms
+async function loadScheduledRooms() {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    
     const { data: rooms, error } = await sb
       .from('game_sessions')
       .select('*')
-      .order('created_at', { ascending: false });
+      .gte('scheduled_date', today)
+      .eq('status', 'scheduled')
+      .order('scheduled_date', { ascending: true });
     
     if (error) throw error;
     
     if (!rooms || rooms.length === 0) {
-      document.getElementById('roomsGrid').innerHTML = '<div style="text-align: center; padding: 40px; color: #6b7a99;">No rooms yet. Create your first room above!</div>';
+      document.getElementById('scheduledRoomsGrid').innerHTML = '<div style="text-align: center; padding: 40px; color: #6b7a99;">No scheduled rooms</div>';
       return;
     }
     
-    // Get player counts for each room
-    const roomsWithCounts = await Promise.all(rooms.map(async (room) => {
-      try {
-        const { count: playerCount } = await sb
-          .from('players')
-          .select('*', { count: 'exact', head: true })
-          .eq('session_id', room.id);
-        
-        const { count: completedCount } = await sb
-          .from('players')
-          .select('*', { count: 'exact', head: true })
-          .eq('session_id', room.id)
-          .eq('completed', true);
-        
-        return { 
-          ...room, 
-          playerCount: playerCount || 0, 
-          completedCount: completedCount || 0 
-        };
-      } catch(e) {
-        return { ...room, playerCount: 0, completedCount: 0 };
-      }
-    }));
-    
-    document.getElementById('roomsGrid').innerHTML = roomsWithCounts.map(room => `
-      <div class="room-card ${room.status === 'active' ? 'active' : ''}">
+    document.getElementById('scheduledRoomsGrid').innerHTML = rooms.map(room => `
+      <div class="room-card upcoming">
         <div class="room-card-header">
           <div class="room-code-display">${escapeHtml(room.room_code)}</div>
-          <div class="room-badge badge-${room.status}">${(room.status || 'waiting').toUpperCase()}</div>
+          <div class="room-badge badge-upcoming">SCHEDULED</div>
         </div>
-        <div style="font-size: 14px; color: #6b7a99; margin-bottom: 8px;">${escapeHtml(room.title || 'Untitled')}</div>
-        <div style="font-size: 11px; color: #6b7a99; margin-bottom: 12px;">
-          Created: ${new Date(room.created_at).toLocaleString()}
-        </div>
-        
-        <div class="room-stats">
-          <div class="stat">
-            <div class="stat-value">${room.playerCount}</div>
-            <div class="stat-label">Players</div>
-          </div>
-          <div class="stat">
-            <div class="stat-value">${room.completedCount}</div>
-            <div class="stat-label">Completed</div>
-          </div>
-        </div>
-        
+        <div class="room-date">📅 ${new Date(room.scheduled_date).toLocaleString()}</div>
+        <div style="font-size: 14px; margin-bottom: 12px;">${escapeHtml(room.title || 'Untitled')}</div>
         <div class="room-actions">
-          <button class="btn btn-sm btn-green" onclick="openAdmin('${room.id}', '${room.room_code}')">🎮 Open Admin</button>
-          <button class="btn btn-sm btn-purple" onclick="openFOH('${room.id}', '${room.room_code}')">📺 Open FOH</button>
-          <button class="btn btn-sm btn-ghost" onclick="copyRoomLink('${room.room_code}')">🔗 Copy Link</button>
+          <button class="btn btn-sm btn-green" onclick="activateScheduledRoom('${room.id}', '${room.room_code}')">▶ Activate Now</button>
           <button class="btn btn-sm btn-red" onclick="deleteRoom('${room.id}', '${room.room_code}')">🗑️ Delete</button>
         </div>
       </div>
     `).join('');
     
   } catch (err) {
+    console.error('Load scheduled error:', err);
+  }
+}
+
+// Activate a scheduled room
+async function activateScheduledRoom(sessionId, roomCode) {
+  if (!confirm(`Activate room "${roomCode}" now?`)) return;
+  
+  try {
+    await sb.from('game_sessions').update({ 
+      status: 'waiting', 
+      scheduled_date: null 
+    }).eq('id', sessionId);
+    
+    toast(`✅ Room "${roomCode}" activated!`, 'success');
+    await loadRooms();
+    await loadScheduledRooms();
+    updateSummaryStats();
+    
+  } catch (err) {
+    toast('Error activating room: ' + err.message, 'error');
+  }
+}
+
+// Load all rooms with filters
+async function loadRooms() {
+  try {
+    let query = sb.from('game_sessions').select('*').order('created_at', { ascending: false });
+    
+    // Apply date filter
+    if (currentDateFilter) {
+      const nextDay = new Date(currentDateFilter);
+      nextDay.setDate(nextDay.getDate() + 1);
+      query = query.gte('created_at', currentDateFilter).lt('created_at', nextDay.toISOString().split('T')[0]);
+    }
+    
+    const { data: rooms, error } = await query;
+    if (error) throw error;
+    
+    if (!rooms || rooms.length === 0) {
+      document.getElementById('roomsGrid').innerHTML = '<div style="text-align: center; padding: 40px; color: #6b7a99;">No rooms found</div>';
+      return;
+    }
+    
+    // Apply status filter
+    let filteredRooms = rooms;
+    if (currentFilter === 'active') {
+      filteredRooms = rooms.filter(r => r.status === 'active' || r.status === 'waiting');
+    } else if (currentFilter === 'upcoming') {
+      filteredRooms = rooms.filter(r => r.status === 'scheduled');
+    } else if (currentFilter === 'ended') {
+      filteredRooms = rooms.filter(r => r.status === 'ended');
+    }
+    
+    // Get player counts
+    const roomsWithCounts = await Promise.all(filteredRooms.map(async (room) => {
+      try {
+        const { count: playerCount } = await sb
+          .from('players')
+          .select('*', { count: 'exact', head: true })
+          .eq('session_id', room.id);
+        
+        return { ...room, playerCount: playerCount || 0 };
+      } catch(e) {
+        return { ...room, playerCount: 0 };
+      }
+    }));
+    
+    document.getElementById('roomsGrid').innerHTML = roomsWithCounts.map(room => {
+      let statusClass = 'badge-waiting';
+      let statusText = room.status?.toUpperCase() || 'WAITING';
+      let cardClass = '';
+      
+      if (room.status === 'active') {
+        statusClass = 'badge-active';
+        cardClass = 'active';
+      } else if (room.status === 'ended') {
+        statusClass = 'badge-ended';
+        cardClass = 'expired';
+      } else if (room.status === 'scheduled') {
+        statusClass = 'badge-upcoming';
+        cardClass = 'upcoming';
+      }
+      
+      const isScheduled = room.status === 'scheduled';
+      const dateDisplay = room.scheduled_date ? `📅 ${new Date(room.scheduled_date).toLocaleDateString()}` : `📅 ${new Date(room.created_at).toLocaleDateString()}`;
+      
+      return `
+        <div class="room-card ${cardClass}">
+          <div class="room-card-header">
+            <div class="room-code-display">${escapeHtml(room.room_code)}</div>
+            <div class="room-badge ${statusClass}">${statusText}</div>
+          </div>
+          <div class="room-date">${dateDisplay}</div>
+          <div style="font-size: 14px; color: #6b7a99; margin-bottom: 12px;">${escapeHtml(room.title || 'Untitled')}</div>
+          
+          <div class="room-stats">
+            <div class="stat">
+              <div class="stat-value">${room.playerCount}</div>
+              <div class="stat-label">Players</div>
+            </div>
+          </div>
+          
+          <div class="room-actions">
+            <button class="btn btn-sm btn-green" onclick="openAdmin('${room.id}', '${room.room_code}')">🎮 Open Admin</button>
+            <button class="btn btn-sm btn-purple" onclick="openFOH('${room.id}', '${room.room_code}')">📺 Open FOH</button>
+            <button class="btn btn-sm btn-ghost" onclick="copyRoomLink('${room.room_code}')">🔗 Copy Link</button>
+            <button class="btn btn-sm btn-red" onclick="deleteRoom('${room.id}', '${room.room_code}')">🗑️ Delete</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+    
+  } catch (err) {
     console.error('Load rooms error:', err);
-    document.getElementById('roomsGrid').innerHTML = '<div style="text-align: center; padding: 40px; color: #ef4444;">Error loading rooms: ' + err.message + '</div>';
+    document.getElementById('roomsGrid').innerHTML = '<div style="text-align: center; padding: 40px; color: #ef4444;">Error loading rooms</div>';
+  }
+}
+
+// Update summary statistics
+async function updateSummaryStats() {
+  try {
+    const { data: rooms } = await sb.from('game_sessions').select('*');
+    const { data: players } = await sb.from('players').select('session_id');
+    
+    const today = new Date().toISOString().split('T')[0];
+    const activeToday = rooms?.filter(r => {
+      const roomDate = r.scheduled_date ? r.scheduled_date.split('T')[0] : r.created_at?.split('T')[0];
+      return roomDate === today && (r.status === 'active' || r.status === 'waiting');
+    }).length || 0;
+    
+    const upcoming = rooms?.filter(r => r.status === 'scheduled').length || 0;
+    
+    document.getElementById('totalRooms').innerText = rooms?.length || 0;
+    document.getElementById('activeRooms').innerText = activeToday;
+    document.getElementById('totalPlayers').innerText = players?.length || 0;
+    document.getElementById('upcomingRooms').innerText = upcoming;
+    
+  } catch(e) {
+    console.error('Stats error:', e);
+  }
+}
+
+// Filter functions
+function filterRooms(filter) {
+  currentFilter = filter;
+  document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+  event.target.classList.add('active');
+  loadRooms();
+}
+
+function filterByDate() {
+  currentDateFilter = document.getElementById('dateFilter').value;
+  loadRooms();
+}
+
+function clearDateFilter() {
+  document.getElementById('dateFilter').value = '';
+  currentDateFilter = null;
+  loadRooms();
+}
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  
+  if (tab === 'create') {
+    document.querySelector('.tab').classList.add('active');
+    document.getElementById('tab-create').classList.add('active');
+  } else if (tab === 'manage') {
+    document.querySelectorAll('.tab')[1].classList.add('active');
+    document.getElementById('tab-manage').classList.add('active');
+    loadRooms();
+  } else if (tab === 'schedule') {
+    document.querySelectorAll('.tab')[2].classList.add('active');
+    document.getElementById('tab-schedule').classList.add('active');
+    loadScheduledRooms();
   }
 }
 
@@ -439,23 +896,18 @@ function openFOH(sessionId, roomCode) {
   window.open(`foh-sp.html?session=${sessionId}&room=${roomCode}`, '_blank');
 }
 
-// Copy join link to clipboard
+// Copy join link
 function copyRoomLink(roomCode) {
   const joinUrl = `${window.location.origin}/player-sp.html?room=${roomCode}`;
   navigator.clipboard.writeText(joinUrl);
-  toast(`📋 Join link copied! Share with players: ${joinUrl}`, 'success');
+  toast(`📋 Join link copied!`, 'success');
 }
 
 // Delete room
 async function deleteRoom(sessionId, roomCode) {
   if (!confirm(`Delete room "${roomCode}" and all its data? This cannot be undone!`)) return;
   
-  const deleteBtn = event.target;
-  deleteBtn.disabled = true;
-  deleteBtn.innerText = 'Deleting...';
-  
   try {
-    // Delete related data first (order matters for foreign keys)
     await sb.from('answers').delete().eq('session_id', sessionId);
     await sb.from('players').delete().eq('session_id', sessionId);
     await sb.from('game_events').delete().eq('session_id', sessionId);
@@ -464,12 +916,10 @@ async function deleteRoom(sessionId, roomCode) {
     
     toast(`🗑️ Room "${roomCode}" deleted`, 'success');
     await loadRooms();
+    await loadScheduledRooms();
+    updateSummaryStats();
   } catch (err) {
-    console.error('Delete error:', err);
     toast('Error deleting room: ' + err.message, 'error');
-  } finally {
-    deleteBtn.disabled = false;
-    deleteBtn.innerText = '🗑️ Delete';
   }
 }
 
@@ -486,25 +936,24 @@ function escapeHtml(str) {
   return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
 }
 
-// Auto-refresh rooms every 10 seconds
-setInterval(loadRooms, 10000);
-setInterval(checkConnection, 5000);
-
 // Initialize
-checkConnection();
-loadRooms();
-
-// Generate a default random code on page load
 generateRandomCode();
+checkExistingAuth();
 
 // Expose functions
+window.verifyPassword = verifyPassword;
 window.createRoom = createRoom;
 window.generateRandomCode = generateRandomCode;
+window.scheduleRoom = scheduleRoom;
+window.activateScheduledRoom = activateScheduledRoom;
 window.openAdmin = openAdmin;
 window.openFOH = openFOH;
 window.copyRoomLink = copyRoomLink;
 window.deleteRoom = deleteRoom;
-window.loadRooms = loadRooms;
+window.filterRooms = filterRooms;
+window.filterByDate = filterByDate;
+window.clearDateFilter = clearDateFilter;
+window.switchTab = switchTab;
 </script>
 </body>
 </html>
