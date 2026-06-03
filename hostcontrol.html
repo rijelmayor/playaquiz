@@ -49,27 +49,6 @@
       display: flex;
     }
 
-    /* Loading Screen */
-    .loading-wrap {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      gap: 14px;
-    }
-    .spinner {
-      width: 34px;
-      height: 34px;
-      border: 3px solid var(--b2);
-      border-top-color: var(--gold);
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-    }
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
     /* Join Screen */
     #joinScreen {
       align-items: center;
@@ -133,13 +112,6 @@
       color: #4a5568;
       text-align: center;
       margin-bottom: 20px;
-    }
-    .error-msg {
-      color: var(--red);
-      font-size: 11px;
-      text-align: center;
-      margin-top: 10px;
-      display: none;
     }
 
     /* Top Bar */
@@ -594,9 +566,9 @@
 </head>
 <body>
 
-<div id="loadingScreen" class="loading-wrap">
-  <div class="spinner"></div>
-  <div style="color: #6b7a99;">Starting...</div>
+<div id="loadingScreen" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; gap:14px;">
+  <div style="width:34px;height:34px;border:3px solid #2d3b52;border-top-color:#fbbf24;border-radius:50%;animation:spin 0.7s linear infinite;"></div>
+  <div style="color:#6b7a99;">Loading...</div>
 </div>
 
 <div id="joinScreen" class="screen">
@@ -608,7 +580,6 @@
       <input class="big-input" id="joinInput" type="text" placeholder="FR####" maxlength="8" autocomplete="off" autocapitalize="characters">
       <div class="join-hint">Enter the room code from Final Round setup</div>
       <button class="btn btn-gold btn-lg btn-full" onclick="joinRoom()">🎮 Connect</button>
-      <div id="joinError" class="error-msg"></div>
     </div>
   </div>
 </div>
@@ -634,7 +605,7 @@
     <!-- Setup Panel -->
     <div class="tab-panel active" id="panel-setup">
       <div class="card">
-        <div class="card-hd"><div class="card-hd-title">🏠 Room</div><span id="connLabel" style="font-size:9px;">Connecting...</span></div>
+        <div class="card-hd"><div class="card-hd-title">🏠 Room</div><span id="connLabel" style="font-size:9px;">Offline</span></div>
         <div class="card-bd">
           <div class="big-room-display"><div class="big-room-code" id="bigRoomCode">——</div></div>
           <div class="btn-grid-2">
@@ -754,35 +725,29 @@ let filterCat = 'all';
 let usedQIds = new Set();
 let qCounter = 0;
 
-// DOM Elements
+// UI Elements
 const loadingScreen = document.getElementById('loadingScreen');
 const joinScreen = document.getElementById('joinScreen');
 const appScreen = document.getElementById('appScreen');
 
 // Initialize
 window.addEventListener('load', () => {
-  // Hide loading after a short delay
-  setTimeout(() => {
-    loadingScreen.style.display = 'none';
-    const urlRoom = new URLSearchParams(location.search).get('room');
-    if (urlRoom && urlRoom.length >= 4) {
-      document.getElementById('joinInput').value = urlRoom.toUpperCase();
-      setTimeout(() => connectRoom(urlRoom.toUpperCase()), 100);
-    } else {
-      joinScreen.classList.add('active');
-    }
-  }, 500);
+  loadingScreen.style.display = 'none';
+  const urlRoom = new URLSearchParams(location.search).get('room');
+  if (urlRoom) {
+    document.getElementById('joinInput').value = urlRoom.toUpperCase();
+    connectRoom(urlRoom.toUpperCase());
+  } else {
+    joinScreen.classList.add('active');
+  }
 });
 
 async function joinRoom() {
   const code = document.getElementById('joinInput').value.trim().toUpperCase();
-  const errorDiv = document.getElementById('joinError');
   if (!code || code.length < 4) {
-    errorDiv.textContent = 'Please enter a valid room code';
-    errorDiv.style.display = 'block';
+    toast('Enter a valid room code (e.g., FRXXXX)');
     return;
   }
-  errorDiv.style.display = 'none';
   await connectRoom(code);
 }
 
@@ -795,35 +760,21 @@ async function connectRoom(code) {
   appScreen.classList.remove('active');
   
   try {
-    // Try to register room, but don't fail if DB is slow
-    try {
-      await sb.from('game_rooms').upsert({
-        room_code: code,
-        is_active: true,
-        control_id: 'hc_' + Date.now(),
-        created_at: new Date(),
-        player_count: 0
-      }, { onConflict: 'room_code' });
-    } catch (dbErr) {
-      console.warn('DB upsert issue:', dbErr);
-      // Continue anyway - realtime might still work
-    }
-    
-    // Load questions with timeout
-    await Promise.race([
-      loadQuestions(),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
-    ]).catch(err => {
-      console.warn('Question load timeout, using empty:', err);
-      allQuestions = [];
-      categories = [];
+    // Register room in database
+    await sb.from('game_rooms').delete().neq('room_code', code);
+    await sb.from('game_rooms').upsert({
+      room_code: code,
+      is_active: true,
+      control_id: 'hc_' + Date.now(),
+      created_at: new Date(),
+      player_count: 0
     });
     
+    await loadQuestions();
     setupRealtime();
     
     document.getElementById('chipCode').innerText = roomCode;
     document.getElementById('bigRoomCode').innerText = roomCode;
-    document.getElementById('connLabel').innerText = 'Connecting...';
     
     loadingScreen.style.display = 'none';
     appScreen.classList.add('active');
@@ -832,8 +783,7 @@ async function connectRoom(code) {
     console.error('Connection error:', err);
     loadingScreen.style.display = 'none';
     joinScreen.classList.add('active');
-    document.getElementById('joinError').textContent = 'Failed to connect. Please try again.';
-    document.getElementById('joinError').style.display = 'block';
+    toast('Failed to connect. Check room code.');
   }
 }
 
@@ -841,15 +791,12 @@ async function loadQuestions() {
   try {
     const { data: cats } = await sb.from('categories').select('*').order('name');
     categories = cats || [];
-    const { data: qs } = await sb.from('questions').select('*').order('created_at');
+    const { data: qs } = await sb.from('questions').select('*, categories(name, icon)').order('created_at');
     allQuestions = qs || [];
     renderCategoryFilters();
     renderQList();
-    console.log(`Loaded ${allQuestions.length} questions, ${categories.length} categories`);
   } catch (err) {
     console.error('Load questions error:', err);
-    allQuestions = [];
-    categories = [];
   }
 }
 
@@ -873,7 +820,7 @@ function renderQList() {
   const filtered = filterCat === 'all' ? allQuestions : allQuestions.filter(q => q.category_id === filterCat);
   const html = filtered.map(q => `
     <div class="mq-item ${usedQIds.has(q.id) ? 'used' : ''}" onclick="selectQuestion('${q.id}')">
-      <div class="mq-q">${escapeHtml((q.question_text || '').substring(0, 70))}</div>
+      <div class="mq-q">${escapeHtml(q.question_text.substring(0, 70))}</div>
       <button class="btn btn-red" style="padding:4px 12px; font-size:10px;" onclick="event.stopPropagation(); fireQuestion('${q.id}')">🔥</button>
     </div>
   `).join('');
@@ -883,7 +830,7 @@ function renderQList() {
 function selectQuestion(id) {
   selectedQ = allQuestions.find(q => q.id === id);
   if (selectedQ) {
-    document.getElementById('qPickLabel').innerText = (selectedQ.question_text || '').substring(0, 50) + '…';
+    document.getElementById('qPickLabel').innerText = selectedQ.question_text.substring(0, 50) + '…';
     document.getElementById('qPickBtn').classList.add('selected');
     renderSelectedQDisplay();
     document.getElementById('openBuzzBtn').disabled = false;
@@ -895,16 +842,15 @@ function selectQuestion(id) {
 
 function renderSelectedQDisplay() {
   if (!selectedQ) return;
-  const opts = [selectedQ.option_a || '', selectedQ.option_b || '', selectedQ.option_c || '', selectedQ.option_d || ''];
+  const opts = [selectedQ.option_a, selectedQ.option_b, selectedQ.option_c, selectedQ.option_d];
   const letters = ['A', 'B', 'C', 'D'];
-  const correctOpt = selectedQ.correct_option !== undefined ? selectedQ.correct_option : 0;
   const html = `
     <div class="q-box">
-      <div class="q-text">${escapeHtml(selectedQ.question_text || '')}</div>
+      <div class="q-text">${escapeHtml(selectedQ.question_text)}</div>
       <div class="q-opts">
-        ${opts.map((o, i) => `<div class="q-opt ${i === correctOpt ? 'correct' : ''}"><span class="q-opt-letter">${letters[i]}</span> ${escapeHtml(o)}</div>`).join('')}
+        ${opts.map((o, i) => `<div class="q-opt ${i === selectedQ.correct_option ? 'correct' : ''}"><span class="q-opt-letter">${letters[i]}</span> ${escapeHtml(o)}</div>`).join('')}
       </div>
-      <div style="font-size:10px; color:var(--green); margin-top:8px;">✅ Answer: ${letters[correctOpt]} — ${escapeHtml(opts[correctOpt])}</div>
+      <div style="font-size:10px; color:var(--green); margin-top:8px;">✅ Answer: ${letters[selectedQ.correct_option]} — ${escapeHtml(opts[selectedQ.correct_option])}</div>
     </div>
   `;
   document.getElementById('qDisplay').innerHTML = html;
@@ -917,9 +863,7 @@ function fireQuestion(id) {
 }
 
 function setupRealtime() {
-  if (channel) {
-    try { sb.removeChannel(channel); } catch(e) {}
-  }
+  if (channel) sb.removeChannel(channel);
   
   channel = sb.channel(`fr-${roomCode}`);
   channel
@@ -939,11 +883,11 @@ function setupRealtime() {
         if (lbl) lbl.innerText = 'Live';
       } else {
         dot.classList.remove('on');
-        if (lbl) lbl.innerText = 'Connecting...';
+        if (lbl) lbl.innerText = 'Offline';
       }
     });
     
-  // Health check
+  // Health check interval
   if (window._hcInterval) clearInterval(window._hcInterval);
   window._hcInterval = setInterval(() => {
     let changed = false;
@@ -966,13 +910,13 @@ function handlePlayerJoin(payload) {
     players.set(payload.id, {
       id: payload.id,
       name: payload.name,
-      avatar: payload.avatar || '👤',
+      avatar: payload.avatar,
       score: 0,
       status: 'waiting',
       connected: true,
       lastSeen: Date.now()
     });
-    toast(`✨ ${payload.avatar || '👤'} ${payload.name} joined`);
+    toast(`✨ ${payload.avatar} ${payload.name} joined`);
   }
   broadcast('player_list_update', { players: Array.from(players.values()) });
   renderAll();
@@ -1004,10 +948,9 @@ function handleBuzz(payload) {
   document.getElementById('buzzBanner').classList.add('visible');
   document.getElementById('buzzBannerName').innerHTML = `${player.avatar} ${escapeHtml(player.name)}`;
   if (selectedQ) {
-    const opts = [selectedQ.option_a || '', selectedQ.option_b || '', selectedQ.option_c || '', selectedQ.option_d || ''];
+    const opts = [selectedQ.option_a, selectedQ.option_b, selectedQ.option_c, selectedQ.option_d];
     const letters = ['A', 'B', 'C', 'D'];
-    const correctOpt = selectedQ.correct_option !== undefined ? selectedQ.correct_option : 0;
-    document.getElementById('buzzAnswerHint').innerHTML = `✅ ${letters[correctOpt]}: ${escapeHtml(opts[correctOpt])}`;
+    document.getElementById('buzzAnswerHint').innerHTML = `✅ ${letters[selectedQ.correct_option]}: ${escapeHtml(opts[selectedQ.correct_option])}`;
   }
   document.getElementById('correctBtn').disabled = false;
   document.getElementById('wrongBtn').disabled = false;
@@ -1061,7 +1004,7 @@ function handleFullReset(payload) {
 }
 
 function syncPlayers(playerList) {
-  if (!playerList || !Array.isArray(playerList)) return;
+  if (!playerList) return;
   playerList.forEach(p => {
     if (players.has(p.id)) {
       const existing = players.get(p.id);
@@ -1076,9 +1019,7 @@ function syncPlayers(playerList) {
 
 function broadcast(event, payload) {
   if (channel) {
-    try {
-      channel.send({ type: 'broadcast', event, payload });
-    } catch(e) { console.warn('Broadcast failed:', e); }
+    channel.send({ type: 'broadcast', event, payload });
   }
 }
 
@@ -1109,7 +1050,7 @@ function openQuestion() {
   document.getElementById('qNumBadge').innerHTML = `Q#${qCounter}`;
   usedQIds.add(selectedQ.id);
   
-  const opts = [selectedQ.option_a || '', selectedQ.option_b || '', selectedQ.option_c || '', selectedQ.option_d || ''];
+  const opts = [selectedQ.option_a, selectedQ.option_b, selectedQ.option_c, selectedQ.option_d];
   broadcast('question_open', {
     question: selectedQ.question_text,
     questionNumber: qCounter,
@@ -1176,6 +1117,7 @@ function markWrong() {
   renderAll();
   toast(`❌ Wrong answer - player locked`);
   
+  // Check if any players are still available to buzz
   const remaining = Array.from(players.keys()).filter(id => !locked.has(id) && !eliminated.has(id));
   if (remaining.length > 0) {
     setTimeout(() => {
@@ -1250,10 +1192,9 @@ function forceBuzz(playerId) {
   document.getElementById('buzzBanner').classList.add('visible');
   document.getElementById('buzzBannerName').innerHTML = `${player.avatar} ${escapeHtml(player.name)}`;
   if (selectedQ) {
-    const opts = [selectedQ.option_a || '', selectedQ.option_b || '', selectedQ.option_c || '', selectedQ.option_d || ''];
+    const opts = [selectedQ.option_a, selectedQ.option_b, selectedQ.option_c, selectedQ.option_d];
     const letters = ['A', 'B', 'C', 'D'];
-    const correctOpt = selectedQ.correct_option !== undefined ? selectedQ.correct_option : 0;
-    document.getElementById('buzzAnswerHint').innerHTML = `✅ ${letters[correctOpt]}: ${escapeHtml(opts[correctOpt])}`;
+    document.getElementById('buzzAnswerHint').innerHTML = `✅ ${letters[selectedQ.correct_option]}: ${escapeHtml(opts[selectedQ.correct_option])}`;
   }
   document.getElementById('correctBtn').disabled = false;
   document.getElementById('wrongBtn').disabled = false;
@@ -1330,9 +1271,8 @@ async function newRoomCode() {
   if (!confirm('Generate new room code? All players must re-join.')) return;
   const code = 'FR' + Math.random().toString(36).substring(2, 6).toUpperCase();
   broadcast('full_game_reset', { newRoomCode: code });
-  try {
-    await sb.from('game_rooms').upsert({ room_code: code, is_active: true, control_id: 'hc_' + Date.now(), created_at: new Date() });
-  } catch(e) {}
+  await sb.from('game_rooms').delete().neq('room_code', code);
+  await sb.from('game_rooms').upsert({ room_code: code, is_active: true, control_id: 'hc_' + Date.now(), created_at: new Date() });
   setTimeout(() => connectRoom(code), 600);
 }
 
@@ -1340,9 +1280,8 @@ async function fullReset() {
   if (!confirm('⚠️ FULL RESET: This will clear all players and create a new room.')) return;
   const code = 'FR' + Math.random().toString(36).substring(2, 6).toUpperCase();
   broadcast('full_game_reset', { newRoomCode: code });
-  try {
-    await sb.from('game_rooms').upsert({ room_code: code, is_active: true, control_id: 'hc_' + Date.now(), created_at: new Date() });
-  } catch(e) {}
+  await sb.from('game_rooms').delete().neq('room_code', code);
+  await sb.from('game_rooms').upsert({ room_code: code, is_active: true, control_id: 'hc_' + Date.now(), created_at: new Date() });
   setTimeout(() => connectRoom(code), 600);
 }
 
@@ -1448,10 +1387,8 @@ function resetLocalState() {
 function switchTab(tab) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-  const tabBtn = document.getElementById(`tab-${tab}`);
-  const tabPanel = document.getElementById(`panel-${tab}`);
-  if (tabBtn) tabBtn.classList.add('active');
-  if (tabPanel) tabPanel.classList.add('active');
+  document.getElementById(`tab-${tab}`)?.classList.add('active');
+  document.getElementById(`panel-${tab}`)?.classList.add('active');
 }
 
 function openQModal() {
@@ -1476,7 +1413,7 @@ function toast(msg) {
   setTimeout(() => t.remove(), 2500);
 }
 
-// Make functions global
+// Make functions global for onclick handlers
 window.joinRoom = joinRoom;
 window.switchTab = switchTab;
 window.startRound = startRound;
