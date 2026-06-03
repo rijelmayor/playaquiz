@@ -94,6 +94,12 @@
       margin-top: 16px;
     }
     
+    .login-loading {
+      color: #f59e0b;
+      font-size: 13px;
+      margin-top: 16px;
+    }
+    
     /* Main App */
     .app-container { display: none; padding: 20px; max-width: 1600px; margin: 0 auto; }
     
@@ -248,6 +254,7 @@
     .btn-purple { background: #8b5cf6; }
     .btn-orange { background: #f59e0b; color: #111; }
     .btn-ghost { background: #1f2937; border: 1px solid #374151; }
+    .btn-sm { padding: 8px 16px; font-size: 12px; }
     
     /* Rooms Grid */
     .rooms-grid {
@@ -414,10 +421,11 @@
   <div class="login-card">
     <div class="login-icon">🔐</div>
     <div class="login-title">Admin Access</div>
-    <div class="login-sub">Enter master password to continue</div>
+    <div class="login-sub" id="loginSubText">Enter master password to continue</div>
     <input type="password" id="adminPassword" class="password-input" placeholder="Enter Password" onkeypress="if(event.key==='Enter') verifyAdminLogin()">
     <button class="login-btn" onclick="verifyAdminLogin()">Unlock Dashboard →</button>
     <div id="loginError" class="login-error"></div>
+    <div id="loginLoading" class="login-loading hidden"></div>
   </div>
 </div>
 
@@ -528,6 +536,9 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 let currentFilter = 'all';
 let refreshInterval = null;
 
+// Default password hash for 'admin123'
+const DEFAULT_PASSWORD_HASH = '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9';
+
 // ============ PASSWORD HASHING ============
 async function hashPassword(password) {
   const encoder = new TextEncoder();
@@ -536,9 +547,75 @@ async function hashPassword(password) {
   return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
+// ============ AUTO-INITIALIZE DATABASE ============
+async function initializeAdminSettings() {
+  try {
+    // First, try to create the table if it doesn't exist
+    const { error: createError } = await sb.rpc('create_admin_settings_if_not_exists', {});
+    
+    // If RPC doesn't exist, try direct insert with raw SQL approach
+    const { data: existing, error: checkError } = await sb
+      .from('admin_settings')
+      .select('id')
+      .limit(1)
+      .maybeSingle();
+    
+    if (checkError && checkError.code === '42P01') {
+      // Table doesn't exist - we need to create it
+      console.log('admin_settings table not found, attempting to create...');
+      
+      // Try to create table via REST API (requires proper permissions)
+      const { error: tableError } = await sb
+        .from('admin_settings')
+        .insert({ id: 1, admin_password_hash: DEFAULT_PASSWORD_HASH, updated_at: new Date().toISOString() });
+      
+      if (tableError && tableError.code === '42P01') {
+        // Table still doesn't exist, show instructions
+        document.getElementById('loginSubText').innerHTML = '⚠️ First time setup required';
+        document.getElementById('loginError').innerHTML = `
+          <div style="background: rgba(59,130,246,0.1); border-radius: 12px; padding: 12px; margin-top: 8px;">
+            <strong>🔧 Database Setup Required</strong><br>
+            Please run this SQL in your Supabase SQL Editor:<br>
+            <code style="display: block; background: #000; padding: 8px; margin: 8px 0; border-radius: 8px; font-size: 11px; text-align: left;">
+CREATE TABLE IF NOT EXISTS admin_settings (
+    id INTEGER PRIMARY KEY DEFAULT 1,
+    admin_password_hash TEXT NOT NULL,
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+INSERT INTO admin_settings (id, admin_password_hash, updated_at)
+VALUES (1, '240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9', NOW())
+ON CONFLICT (id) DO NOTHING;
+            </code>
+            After running the SQL, refresh this page.
+          </div>
+        `;
+        return false;
+      }
+    } else if (!existing && !checkError) {
+      // Table exists but no data - insert default
+      const { error: insertError } = await sb
+        .from('admin_settings')
+        .insert({ id: 1, admin_password_hash: DEFAULT_PASSWORD_HASH, updated_at: new Date().toISOString() });
+      
+      if (insertError) {
+        console.error('Error inserting default password:', insertError);
+      } else {
+        console.log('Default admin password inserted');
+      }
+    }
+    
+    return true;
+  } catch (err) {
+    console.error('Init error:', err);
+    return false;
+  }
+}
+
 async function verifyAdminLogin() {
   const password = document.getElementById('adminPassword').value;
   const errorDiv = document.getElementById('loginError');
+  const loadingDiv = document.getElementById('loginLoading');
   const btn = document.querySelector('.login-btn');
   
   if (!password) {
@@ -548,18 +625,25 @@ async function verifyAdminLogin() {
   
   btn.disabled = true;
   btn.innerText = 'Verifying...';
+  loadingDiv.classList.remove('hidden');
+  loadingDiv.innerText = 'Checking credentials...';
   errorDiv.innerText = '';
   
   try {
+    // Try to initialize if needed
+    await initializeAdminSettings();
+    
     const { data, error } = await sb
       .from('admin_settings')
       .select('admin_password_hash')
-      .single();
+      .limit(1)
+      .maybeSingle();
     
     if (error || !data) {
-      errorDiv.innerText = 'System not initialized. Please contact support.';
+      errorDiv.innerText = 'System not initialized. Please run the database setup SQL (see instructions above).';
       btn.disabled = false;
       btn.innerText = 'Unlock Dashboard →';
+      loadingDiv.classList.add('hidden');
       return;
     }
     
@@ -572,13 +656,15 @@ async function verifyAdminLogin() {
       document.getElementById('appContainer').style.display = 'block';
       initApp();
     } else {
-      errorDiv.innerText = 'Incorrect password!';
+      errorDiv.innerText = 'Incorrect password! Try: admin123';
     }
   } catch (err) {
-    errorDiv.innerText = 'Connection error. Please try again.';
+    console.error('Login error:', err);
+    errorDiv.innerText = 'Connection error. Please check your Supabase connection.';
   } finally {
     btn.disabled = false;
     btn.innerText = 'Unlock Dashboard →';
+    loadingDiv.classList.add('hidden');
   }
 }
 
@@ -989,7 +1075,10 @@ async function initApp() {
 }
 
 // Check auth on load
-checkAuth();
+if (!checkAuth()) {
+  // Try to initialize on page load
+  initializeAdminSettings();
+}
 
 // Expose globals
 window.verifyAdminLogin = verifyAdminLogin;
