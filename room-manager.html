@@ -388,10 +388,53 @@ async function verifyAdminLogin() {
   errorDiv.innerText = '';
   
   try {
-    const { data, error } = await sb.from('admin_settings').select('admin_password_hash').single();
+    // Use maybeSingle() instead of single() - it returns null if no rows
+    const { data, error } = await sb
+      .from('admin_settings')
+      .select('admin_password_hash')
+      .maybeSingle();
     
     if (error) {
       errorDiv.innerText = 'Database error: ' + error.message;
+      btn.disabled = false;
+      btn.innerText = 'Unlock Dashboard →';
+      return;
+    }
+    
+    if (!data) {
+      // No admin record exists - create one
+      const defaultHash = await hashPassword('admin123');
+      const { error: insertError } = await sb
+        .from('admin_settings')
+        .insert({ id: 1, admin_password_hash: defaultHash, updated_at: new Date().toISOString() });
+      
+      if (insertError) {
+        errorDiv.innerText = 'Failed to initialize admin: ' + insertError.message;
+        btn.disabled = false;
+        btn.innerText = 'Unlock Dashboard →';
+        return;
+      }
+      
+      // Retry verification
+      const { data: newData } = await sb
+        .from('admin_settings')
+        .select('admin_password_hash')
+        .maybeSingle();
+      
+      if (newData) {
+        const hashedInput = await hashPassword(password);
+        if (hashedInput === newData.admin_password_hash) {
+          localStorage.setItem('admin_auth', 'true');
+          localStorage.setItem('admin_auth_time', Date.now().toString());
+          document.getElementById('loginOverlay').style.display = 'none';
+          document.getElementById('appContainer').style.display = 'block';
+          initApp();
+        } else {
+          errorDiv.innerText = 'Incorrect password! Try: admin123';
+        }
+      } else {
+        errorDiv.innerText = 'Failed to create admin record. Please run SQL manually.';
+      }
       btn.disabled = false;
       btn.innerText = 'Unlock Dashboard →';
       return;
