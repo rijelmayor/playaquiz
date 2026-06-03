@@ -53,6 +53,11 @@
       font-size: 13px;
       margin-top: 12px;
     }
+    .password-loading {
+      color: #f59e0b;
+      font-size: 13px;
+      margin-top: 12px;
+    }
     
     .header {
       display: flex;
@@ -207,6 +212,16 @@
       width: 180px;
       text-align: center;
     }
+    .game-type-select {
+      background: #06080f;
+      border: 2px solid #2d3b52;
+      border-radius: 12px;
+      padding: 14px 20px;
+      font-size: 16px;
+      color: #e8edf7;
+      cursor: pointer;
+      min-width: 160px;
+    }
     input, select {
       background: #06080f;
       border: 1px solid #2d3b52;
@@ -237,7 +252,7 @@
     
     .rooms-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
       gap: 20px;
       margin-top: 20px;
     }
@@ -276,6 +291,8 @@
     .badge-ended { background: rgba(239,68,68,0.2); color: #ef4444; }
     .badge-waiting { background: rgba(245,158,11,0.2); color: #f59e0b; }
     .badge-upcoming { background: rgba(139,92,246,0.2); color: #8b5cf6; }
+    .badge-final { background: rgba(245,200,66,0.2); color: #f5c842; }
+    .badge-sp { background: rgba(59,130,246,0.2); color: #3b82f6; }
     
     .room-date {
       font-size: 12px;
@@ -406,9 +423,10 @@
     <div style="font-size: 48px; margin-bottom: 16px;">🔐</div>
     <div style="font-size: 24px; font-weight: 700;">Admin Access Required</div>
     <div style="font-size: 14px; color: #6b7a99; margin: 8px 0 16px;">Enter master password to continue</div>
-    <input type="password" id="passwordInput" class="password-input" placeholder="Enter Password" autocomplete="off">
+    <input type="password" id="passwordInput" class="password-input" placeholder="Enter Password" autocomplete="off" onkeypress="if(event.key==='Enter') verifyPassword()">
     <button class="btn btn-green" onclick="verifyPassword()" style="width: 100%;">Unlock Manager</button>
     <div id="passwordError" class="password-error"></div>
+    <div id="passwordLoading" class="password-loading hidden"></div>
   </div>
 </div>
 
@@ -458,7 +476,14 @@
         </div>
         <div class="input-field">
           <label>Game Title</label>
-          <input type="text" id="roomTitle" placeholder="My Quiz Game" value="Self-Paced Quiz">
+          <input type="text" id="roomTitle" placeholder="My Quiz Game" value="Quiz Game">
+        </div>
+        <div class="input-field">
+          <label>Game Mode</label>
+          <select id="gameType" class="game-type-select">
+            <option value="self_paced">⚡ Self-Paced (Individual)</option>
+            <option value="final_round">🎯 Final Round (Buzzer Battle)</option>
+          </select>
         </div>
         <button class="btn btn-green" onclick="createRoom()">✨ Create Room</button>
         <button class="btn btn-purple" onclick="generateRandomCode()">🎲 Random Code</button>
@@ -489,6 +514,13 @@
         <div class="input-field">
           <label>Game Title</label>
           <input type="text" id="scheduledTitle" placeholder="Event Title">
+        </div>
+        <div class="input-field">
+          <label>Game Mode</label>
+          <select id="scheduledGameType" class="game-type-select">
+            <option value="self_paced">⚡ Self-Paced (Individual)</option>
+            <option value="final_round">🎯 Final Round (Buzzer Battle)</option>
+          </select>
         </div>
         <div class="input-field">
           <label>Date (Your Local Time)</label>
@@ -528,7 +560,7 @@ const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
 const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-// Timezone Utilities - FIXED!
+// Timezone Utilities
 function getUserTimezone() {
   return Intl.DateTimeFormat().resolvedOptions().timeZone;
 }
@@ -541,15 +573,7 @@ function getTimezoneOffset() {
   return `${sign}${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
 }
 
-// Convert local date to UTC for storage
-function localToUTC(date) {
-  // date is a local Date object
-  return new Date(date.getTime() - (date.getTimezoneOffset() * 60000));
-}
-
-// Convert UTC to local for display
 function UTCToLocal(utcDate) {
-  // utcDate is a UTC timestamp string or Date object
   const date = new Date(utcDate);
   return new Date(date.getTime() + (date.getTimezoneOffset() * 60000));
 }
@@ -575,23 +599,104 @@ function formatShortDate(date) {
   });
 }
 
-// Display user timezone info
 function displayTimezoneInfo() {
   const tz = getUserTimezone();
   const offset = getTimezoneOffset();
   document.getElementById('userTimezone').innerText = tz;
   document.getElementById('utcOffset').innerHTML = `UTC ${offset}`;
-  
-  // Show current time in user's timezone for reference
-  const now = new Date();
-  console.log(`Current time in ${tz}: ${formatLocalDate(now)}`);
 }
 
-// Password configuration
-const MASTER_PASSWORD = "admin123";
 let isAuthenticated = false;
 let currentFilter = 'all';
 let currentDateFilter = null;
+
+// Password verification
+async function verifyPasswordWithSupabase(inputPassword) {
+    try {
+        const { data, error } = await sb
+            .from('app_settings')
+            .select('value')
+            .eq('key', 'master_password')
+            .single();
+        
+        if (error) {
+            console.error('Error fetching password:', error);
+            if (error.code === '42P01') {
+                return { 
+                    success: false, 
+                    error: 'System not initialized. Please run the database setup script first.' 
+                };
+            }
+            return { success: false, error: 'Configuration error. Please contact administrator.' };
+        }
+        
+        if (data.value === inputPassword) {
+            return { success: true };
+        } else {
+            return { success: false, error: 'Incorrect password!' };
+        }
+        
+    } catch (err) {
+        console.error('Verification error:', err);
+        return { success: false, error: 'Connection error. Please try again.' };
+    }
+}
+
+async function verifyPassword() {
+    const password = document.getElementById('passwordInput').value;
+    const errorDiv = document.getElementById('passwordError');
+    const loadingDiv = document.getElementById('passwordLoading');
+    const verifyBtn = document.querySelector('#passwordOverlay .btn-green');
+    
+    if (!password) {
+        errorDiv.innerText = 'Please enter the password';
+        return;
+    }
+    
+    verifyBtn.disabled = true;
+    verifyBtn.innerText = 'Verifying...';
+    loadingDiv.classList.remove('hidden');
+    loadingDiv.innerText = 'Checking credentials...';
+    errorDiv.innerText = '';
+    
+    const result = await verifyPasswordWithSupabase(password);
+    
+    if (result.success) {
+        isAuthenticated = true;
+        localStorage.setItem('room_manager_auth', 'true');
+        localStorage.setItem('room_manager_auth_time', Date.now().toString());
+        document.getElementById('passwordOverlay').style.display = 'none';
+        document.getElementById('mainContent').style.display = 'block';
+        initializeApp();
+    } else {
+        errorDiv.innerText = result.error || 'Incorrect password!';
+        setTimeout(() => errorDiv.innerText = '', 3000);
+    }
+    
+    verifyBtn.disabled = false;
+    verifyBtn.innerText = 'Unlock Manager';
+    loadingDiv.classList.add('hidden');
+}
+
+async function checkExistingAuth() {
+    const auth = localStorage.getItem('room_manager_auth');
+    const authTime = localStorage.getItem('room_manager_auth_time');
+    
+    if (auth === 'true' && authTime) {
+        const hoursSince = (Date.now() - parseInt(authTime)) / (1000 * 60 * 60);
+        if (hoursSince < 24) {
+            isAuthenticated = true;
+            document.getElementById('passwordOverlay').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'block';
+            initializeApp();
+            return true;
+        } else {
+            localStorage.removeItem('room_manager_auth');
+            localStorage.removeItem('room_manager_auth_time');
+        }
+    }
+    return false;
+}
 
 function showLogoutConfirm() {
   document.getElementById('logoutConfirm').classList.remove('hidden');
@@ -614,43 +719,6 @@ function logout() {
   document.getElementById('passwordError').innerText = '';
   toast('🔐 You have been logged out', 'info');
   setTimeout(() => location.reload(), 500);
-}
-
-function verifyPassword() {
-  const password = document.getElementById('passwordInput').value;
-  const errorDiv = document.getElementById('passwordError');
-  
-  if (password === MASTER_PASSWORD) {
-    isAuthenticated = true;
-    localStorage.setItem('room_manager_auth', 'true');
-    localStorage.setItem('room_manager_auth_time', Date.now().toString());
-    document.getElementById('passwordOverlay').style.display = 'none';
-    document.getElementById('mainContent').style.display = 'block';
-    initializeApp();
-  } else {
-    errorDiv.innerText = 'Incorrect password!';
-    setTimeout(() => errorDiv.innerText = '', 3000);
-  }
-}
-
-function checkExistingAuth() {
-  const auth = localStorage.getItem('room_manager_auth');
-  const authTime = localStorage.getItem('room_manager_auth_time');
-  
-  if (auth === 'true' && authTime) {
-    const hoursSince = (Date.now() - parseInt(authTime)) / (1000 * 60 * 60);
-    if (hoursSince < 24) {
-      isAuthenticated = true;
-      document.getElementById('passwordOverlay').style.display = 'none';
-      document.getElementById('mainContent').style.display = 'block';
-      initializeApp();
-      return true;
-    } else {
-      localStorage.removeItem('room_manager_auth');
-      localStorage.removeItem('room_manager_auth_time');
-    }
-  }
-  return false;
 }
 
 function initializeApp() {
@@ -695,6 +763,7 @@ function generateRandomCode() {
 async function createRoom() {
   let roomCode = document.getElementById('manualRoomCode').value.trim().toUpperCase();
   const title = document.getElementById('roomTitle').value.trim() || 'Quiz Game';
+  const gameType = document.getElementById('gameType').value;
   
   if (!roomCode) {
     generateRandomCode();
@@ -728,17 +797,23 @@ async function createRoom() {
       room_code: roomCode,
       title: title,
       status: 'waiting',
+      game_type: gameType,
       created_at: new Date().toISOString()
     };
     
     const { error } = await sb.from('game_sessions').insert(insertData);
     if (error) throw error;
     
-    toast(`✅ Room "${roomCode}" created successfully!`, 'success');
+    toast(`✅ Room "${roomCode}" created successfully! (${gameType === 'final_round' ? 'Final Round Mode' : 'Self-Paced Mode'})`, 'success');
     document.getElementById('manualRoomCode').value = '';
     await loadRooms();
     await loadScheduledRooms();
     updateSummaryStats();
+    
+    // Ask if user wants to open the admin panel
+    if (confirm('Room created! Open the admin panel now?')) {
+      openAdmin(null, roomCode, gameType);
+    }
     
   } catch (err) {
     console.error('Create room error:', err);
@@ -752,6 +827,7 @@ async function createRoom() {
 async function scheduleRoom() {
   const roomCode = document.getElementById('scheduledRoomCode').value.trim().toUpperCase();
   const title = document.getElementById('scheduledTitle').value.trim() || 'Scheduled Quiz';
+  const gameType = document.getElementById('scheduledGameType').value;
   const scheduledDate = document.getElementById('scheduledDate').value;
   const scheduledTime = document.getElementById('scheduledTime').value;
   
@@ -764,10 +840,8 @@ async function scheduleRoom() {
     return;
   }
   
-  // Create a date object in LOCAL TIME
   let localDateTime;
   if (scheduledTime) {
-    // Parse as local time (YYYY-MM-DDTHH:MM:SS)
     const [year, month, day] = scheduledDate.split('-');
     const [hour, minute] = scheduledTime.split(':');
     localDateTime = new Date(year, month - 1, day, hour, minute, 0);
@@ -776,15 +850,12 @@ async function scheduleRoom() {
     localDateTime = new Date(year, month - 1, day, 0, 0, 0);
   }
   
-  // Check if date is in the future (using local time)
   const now = new Date();
   if (localDateTime < now) {
     toast('Scheduled date/time must be in the future', 'error');
     return;
   }
   
-  // Convert LOCAL time to UTC for storage
-  // For Philippines (UTC+8): 2:30 PM local = 6:30 AM UTC
   const utcDateTime = new Date(localDateTime.getTime() - (localDateTime.getTimezoneOffset() * 60000));
   
   const scheduleBtn = document.querySelector('#tab-schedule .btn-orange');
@@ -807,6 +878,7 @@ async function scheduleRoom() {
       room_code: roomCode,
       title: title,
       status: 'scheduled',
+      game_type: gameType,
       scheduled_date: utcDateTime.toISOString(),
       created_at: new Date().toISOString()
     };
@@ -814,10 +886,8 @@ async function scheduleRoom() {
     const { error } = await sb.from('game_sessions').insert(insertData);
     if (error) throw error;
     
-    // Show confirmation with both local and UTC times
     const localDisplay = formatLocalDate(localDateTime);
-    const utcDisplay = utcDateTime.toUTCString();
-    toast(`✅ Room "${roomCode}" scheduled for ${localDisplay} (Your time) / ${utcDisplay} (UTC)`, 'success');
+    toast(`✅ Room "${roomCode}" scheduled for ${localDisplay} (Your local time)`, 'success');
     
     document.getElementById('scheduledRoomCode').value = '';
     document.getElementById('scheduledTitle').value = '';
@@ -853,15 +923,17 @@ async function loadScheduledRooms() {
     }
     
     document.getElementById('scheduledRoomsGrid').innerHTML = rooms.map(room => {
-      // Convert UTC stored date to LOCAL for display
       const utcDate = new Date(room.scheduled_date);
-      const localDate = new Date(utcDate.getTime() + (utcDate.getTimezoneOffset() * 60000));
+      const localDate = UTCToLocal(utcDate);
+      const isFinalRound = room.game_type === 'final_round';
       
       return `
         <div class="room-card upcoming">
           <div class="room-card-header">
             <div class="room-code-display">${escapeHtml(room.room_code)}</div>
-            <div class="room-badge badge-upcoming">SCHEDULED</div>
+            <div class="room-badge ${isFinalRound ? 'badge-final' : 'badge-upcoming'}">
+              ${isFinalRound ? '🎯 FINAL ROUND' : '📅 SCHEDULED'}
+            </div>
           </div>
           <div class="room-date">
             📅 ${formatLocalDate(localDate)}
@@ -869,7 +941,7 @@ async function loadScheduledRooms() {
           </div>
           <div style="font-size: 14px; margin-bottom: 12px;">${escapeHtml(room.title || 'Untitled')}</div>
           <div class="room-actions">
-            <button class="btn btn-sm btn-green" onclick="activateScheduledRoom('${room.id}', '${room.room_code}')">▶ Activate Now</button>
+            <button class="btn btn-sm btn-green" onclick="activateScheduledRoom('${room.id}', '${room.room_code}', '${room.game_type}')">▶ Activate Now</button>
             <button class="btn btn-sm btn-red" onclick="deleteRoom('${room.id}', '${room.room_code}')">🗑️ Delete</button>
           </div>
         </div>
@@ -881,7 +953,7 @@ async function loadScheduledRooms() {
   }
 }
 
-async function activateScheduledRoom(sessionId, roomCode) {
+async function activateScheduledRoom(sessionId, roomCode, gameType) {
   if (!confirm(`Activate room "${roomCode}" now? This will make it available for players.`)) return;
   
   try {
@@ -894,6 +966,11 @@ async function activateScheduledRoom(sessionId, roomCode) {
     await loadRooms();
     await loadScheduledRooms();
     updateSummaryStats();
+    
+    // Ask if user wants to open the admin panel
+    if (confirm('Room activated! Open the admin panel now?')) {
+      openAdmin(sessionId, roomCode, gameType);
+    }
     
   } catch (err) {
     toast('Error activating room: ' + err.message, 'error');
@@ -944,6 +1021,7 @@ async function loadRooms() {
       let statusClass = 'badge-waiting';
       let statusText = room.status?.toUpperCase() || 'WAITING';
       let cardClass = '';
+      const isFinalRound = room.game_type === 'final_round';
       
       if (room.status === 'active') {
         statusClass = 'badge-active';
@@ -966,6 +1044,9 @@ async function loadRooms() {
           <div class="room-card-header">
             <div class="room-code-display">${escapeHtml(room.room_code)}</div>
             <div class="room-badge ${statusClass}">${statusText}</div>
+            <div class="room-badge ${isFinalRound ? 'badge-final' : 'badge-sp'}">
+              ${isFinalRound ? '🎯 BUZZER BATTLE' : '⚡ SELF-PACED'}
+            </div>
           </div>
           <div class="room-date">${displayDate}</div>
           <div style="font-size: 14px; color: #6b7a99; margin-bottom: 12px;">${escapeHtml(room.title || 'Untitled')}</div>
@@ -978,9 +1059,13 @@ async function loadRooms() {
           </div>
           
           <div class="room-actions">
-            <button class="btn btn-sm btn-green" onclick="openAdmin('${room.id}', '${room.room_code}')">🎮 Open Admin</button>
-            <button class="btn btn-sm btn-purple" onclick="openFOH('${room.id}', '${room.room_code}')">📺 Open FOH</button>
-            <button class="btn btn-sm btn-ghost" onclick="copyRoomLink('${room.room_code}')">🔗 Copy Link</button>
+            <button class="btn btn-sm btn-green" onclick="openAdmin('${room.id}', '${room.room_code}', '${room.game_type}')">
+              ${isFinalRound ? '🎮 Open Host Control' : '🎮 Open Admin'}
+            </button>
+            <button class="btn btn-sm btn-purple" onclick="openFOH('${room.id}', '${room.room_code}', '${room.game_type}')">
+              📺 Open FOH Display
+            </button>
+            <button class="btn btn-sm btn-ghost" onclick="copyRoomLink('${room.room_code}', '${room.game_type}')">🔗 Copy Link</button>
             <button class="btn btn-sm btn-red" onclick="deleteRoom('${room.id}', '${room.room_code}')">🗑️ Delete</button>
           </div>
         </div>
@@ -1052,37 +1137,39 @@ function switchTab(tab) {
   }
 }
 
-function openAdmin(sessionId, roomCode) {
-  window.open(`admin-sp.html?session=${sessionId}&room=${roomCode}`, '_blank');
+function openAdmin(sessionId, roomCode, gameType) {
+  if (gameType === 'final_round') {
+    window.open(`finalroundhost.html?room=${roomCode}`, '_blank');
+  } else {
+    window.open(`admin-sp.html?session=${sessionId}&room=${roomCode}`, '_blank');
+  }
 }
 
-function openFOH(sessionId, roomCode) {
-  window.open(`foh-sp.html?session=${sessionId}&room=${roomCode}`, '_blank');
+function openFOH(sessionId, roomCode, gameType) {
+  if (gameType === 'final_round') {
+    window.open(`finalroundfoh.html?room=${roomCode}`, '_blank');
+  } else {
+    window.open(`foh-sp.html?session=${sessionId}&room=${roomCode}`, '_blank');
+  }
 }
 
-function copyRoomLink(roomCode) {
-  const joinUrl = `${window.location.origin}/player-sp.html?room=${roomCode}`;
+function copyRoomLink(roomCode, gameType) {
+  const playerPage = gameType === 'final_round' ? 'finalroundplayer.html' : 'player-sp.html';
+  const joinUrl = `${window.location.origin}/${playerPage}?room=${roomCode}`;
   navigator.clipboard.writeText(joinUrl);
   toast(`📋 Join link copied!`, 'success');
 }
 
-// ========== FIXED deleteRoom FUNCTION ==========
 async function deleteRoom(sessionId, roomCode) {
   if (!confirm(`Delete room "${roomCode}" and all its data? This cannot be undone!`)) return;
   
   try {
-    // Delete in correct order to respect foreign keys
     await sb.from('answers').delete().eq('session_id', sessionId);
     await sb.from('players').delete().eq('session_id', sessionId);
     await sb.from('game_events').delete().eq('session_id', sessionId);
-    
-    // Delete questions (they reference categories, but categories are independent)
     await sb.from('questions').delete().eq('session_id', sessionId);
-    
-    // Delete categories (they reference game_sessions via session_id)
     await sb.from('categories').delete().eq('session_id', sessionId);
     
-    // Finally delete the game session
     const { error } = await sb.from('game_sessions').delete().eq('id', sessionId);
     if (error) throw error;
     
@@ -1107,12 +1194,6 @@ function toast(msg, type = 'info') {
 function escapeHtml(str) {
   if (!str) return '';
   return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
-}
-
-// Helper function for UTC to Local conversion
-function UTCToLocal(utcDate) {
-  const date = new Date(utcDate);
-  return new Date(date.getTime() + (date.getTimezoneOffset() * 60000));
 }
 
 // Initialize
