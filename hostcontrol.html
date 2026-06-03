@@ -46,11 +46,26 @@
       padding: 48px;
       background: var(--surface);
       border-radius: 32px;
-      max-width: 450px;
+      max-width: 500px;
       border: 1px solid var(--border);
     }
     
-    .hidden { display: none; }
+    .denied-icon { font-size: 64px; margin-bottom: 16px; }
+    .denied-title { font-size: 28px; font-weight: 800; margin-bottom: 12px; color: var(--red); }
+    .denied-message { color: var(--muted); margin-bottom: 24px; line-height: 1.5; }
+    .btn-primary {
+      background: var(--accent);
+      border: none;
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-weight: 700;
+      color: white;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+    }
+    
+    .hidden { display: none !important; }
 
     /* Host Layout */
     .host-layout {
@@ -417,17 +432,32 @@
     }
 
     .connection-dot.connected { background: var(--green); }
+
+    .loading-spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--border);
+      border-top-color: var(--gold);
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      margin-right: 8px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
   </style>
 </head>
 <body>
 
 <!-- Access Denied Screen -->
-<div id="deniedScreen" class="denied-screen hidden">
+<div id="deniedScreen" class="denied-screen">
   <div class="denied-card">
-    <div style="font-size: 64px; margin-bottom: 16px;">🔒</div>
-    <h2 style="margin-bottom: 12px;">Access Denied</h2>
-    <p id="deniedMessage" style="color: var(--muted); margin-bottom: 24px;">Invalid or expired host link</p>
-    <button class="btn btn-accent" onclick="window.location.href='room-manager.html'">Return to Admin</button>
+    <div class="denied-icon">🔒</div>
+    <div class="denied-title">Access Denied</div>
+    <div class="denied-message" id="deniedMessage">Verifying access...</div>
+    <button class="btn-primary" onclick="window.location.href='room-manager.html'">Return to Admin</button>
   </div>
 </div>
 
@@ -442,7 +472,7 @@
     <div class="room-box">
       <div class="room-code" id="roomCodeDisplay">——</div>
       <div style="margin-top: 8px;">
-        <button class="btn btn-sm btn-ghost" onclick="copyRoomLink()">🔗 Copy Link</button>
+        <button class="btn btn-sm btn-ghost" onclick="copyRoomLink()">🔗 Copy Player Link</button>
       </div>
     </div>
 
@@ -535,6 +565,13 @@ const urlParams = new URLSearchParams(window.location.search);
 const roomCode = urlParams.get('room');
 const hostToken = urlParams.get('token');
 
+// Debug logging
+console.log('=== HOST CONTROL DEBUG ===');
+console.log('Full URL:', window.location.href);
+console.log('Room Code from URL:', roomCode);
+console.log('Token from URL:', hostToken);
+console.log('===========================');
+
 let sessionId = null;
 let frPlayers = new Map();
 let buzzedPlayerId = null;
@@ -553,52 +590,96 @@ let usedQuestionIds = new Set();
 
 // ============ TOKEN VERIFICATION ============
 async function verifyHostAccess() {
+  const deniedMessage = document.getElementById('deniedMessage');
+  deniedMessage.innerHTML = '<span class="loading-spinner"></span> Verifying access...';
+  
   if (!roomCode || !hostToken) {
-    showAccessDenied('No access token provided');
+    showAccessDenied(
+      'No access token provided.<br><br>' +
+      'Please use the host link from the Room Manager. ' +
+      'The link should look like:<br>' +
+      '<code style="display:block; background:#000; padding:8px; margin-top:8px; border-radius:6px; font-size:11px;">hostcontrol.html?room=CODE&token=ht_xxxxx</code>'
+    );
     return false;
   }
   
   try {
+    // Query the game session
     const { data: session, error } = await sb
       .from('game_sessions')
-      .select('id, host_token, host_token_expires, status, game_type')
+      .select('id, host_token, host_token_expires, status, game_type, room_code, title')
       .eq('room_code', roomCode)
-      .single();
+      .maybeSingle();
     
-    if (error || !session) {
-      showAccessDenied('Room not found');
+    console.log('Session query result:', { session, error });
+    
+    if (error) {
+      console.error('Database error:', error);
+      showAccessDenied(`Database error: ${error.message}`);
       return false;
     }
+    
+    if (!session) {
+      showAccessDenied(
+        `Room "${roomCode}" not found.<br><br>` +
+        'Make sure:<br>' +
+        '• The room code is correct<br>' +
+        '• The room exists in the database<br>' +
+        '• You have created a Final Round room in the Room Manager'
+      );
+      return false;
+    }
+    
+    console.log('Session found:', session);
+    console.log('Stored token:', session.host_token);
+    console.log('Provided token:', hostToken);
+    console.log('Tokens match:', session.host_token === hostToken);
     
     if (session.host_token !== hostToken) {
-      showAccessDenied('Invalid access token');
+      showAccessDenied(
+        'Invalid access token.<br><br>' +
+        `Token provided: ${hostToken.substring(0, 20)}...<br>` +
+        `Expected token starts with: ${session.host_token?.substring(0, 20)}...<br><br>` +
+        'Please get a fresh host link from the Room Manager by deleting and recreating the room.'
+      );
       return false;
     }
     
-    if (new Date(session.host_token_expires) < new Date()) {
-      showAccessDenied('Host link has expired. Please contact admin for a new link.');
+    if (session.host_token_expires && new Date(session.host_token_expires) < new Date()) {
+      showAccessDenied(
+        'Host link has expired.<br><br>' +
+        'Please ask the admin to generate a new host link from the Room Manager.'
+      );
       return false;
     }
     
     if (session.game_type !== 'final_round') {
-      showAccessDenied('This room is not configured for Final Round mode');
+      showAccessDenied(
+        `This room is in "${session.game_type || 'unknown'}" mode.<br><br>` +
+        'Final Round host control can only be used with rooms created as "Final Round (Buzzer Battle)" mode.'
+      );
       return false;
     }
     
     sessionId = session.id;
+    console.log('✅ Access granted for room:', roomCode);
     return true;
     
   } catch (err) {
     console.error('Verification error:', err);
-    showAccessDenied('Access verification failed');
+    showAccessDenied(`Connection error: ${err.message}`);
     return false;
   }
 }
 
 function showAccessDenied(message) {
-  document.getElementById('deniedMessage').innerText = message;
-  document.getElementById('deniedScreen').classList.remove('hidden');
-  document.getElementById('hostControl').classList.add('hidden');
+  const deniedScreen = document.getElementById('deniedScreen');
+  const deniedMessage = document.getElementById('deniedMessage');
+  const hostControl = document.getElementById('hostControl');
+  
+  deniedMessage.innerHTML = message;
+  deniedScreen.classList.remove('hidden');
+  if (hostControl) hostControl.classList.add('hidden');
 }
 
 // ============ DATABASE FUNCTIONS ============
@@ -625,7 +706,7 @@ async function loadQuestionsFromDB() {
     renderCategoryFilters();
     renderQuestionBank();
     
-    document.getElementById('previewStatus').innerText = `Ready • ${allQuestions.length} Qs`;
+    document.getElementById('previewStatus').innerHTML = `✅ Ready • ${allQuestions.length} Qs`;
     
   } catch (err) {
     console.error('Load questions error:', err);
@@ -1052,7 +1133,7 @@ function updatePreviewLeaderboard() {
 function copyRoomLink() {
   const joinUrl = `${window.location.origin}/finalroundplayer.html?room=${roomCode}`;
   navigator.clipboard.writeText(joinUrl);
-  toast('📋 Join link copied!');
+  toast('📋 Player join link copied!');
 }
 
 function toast(msg) {
@@ -1076,11 +1157,15 @@ async function init() {
   document.getElementById('deniedScreen').classList.add('hidden');
   document.getElementById('hostControl').classList.remove('hidden');
   document.getElementById('roomCodeDisplay').innerText = roomCode;
+  document.getElementById('previewStatus').innerHTML = '🟢 Connected';
   
   setupRealtimeChannel();
   await loadQuestionsFromDB();
+  
+  console.log('✅ Host control initialized for room:', roomCode);
 }
 
+// Start the app
 init();
 
 // Expose globals
