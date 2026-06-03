@@ -173,6 +173,7 @@
           <div class="batch-actions">
             <button class="btn btn-sm btn-red" onclick="batchDeleteQuestions()">🗑️ Delete Selected</button>
             <button class="btn btn-sm btn-green" onclick="exportQuestionsCSV()">📥 Export CSV</button>
+            <button class="btn btn-sm" style="background:#8b5cf6;" onclick="openCSVImport()">📤 Import CSV</button>
             <button class="btn btn-sm btn-ghost" onclick="deleteAllQuestionsInCategory()">📁 Delete All in Category</button>
             <button class="btn btn-sm btn-ghost" onclick="selectAllQuestions()">✅ Select All</button>
             <button class="btn btn-sm btn-ghost" onclick="deselectAllQuestions()">❌ Deselect All</button>
@@ -189,6 +190,49 @@
             
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CSV IMPORT OVERLAY -->
+<div id="csvImportOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.88); backdrop-filter:blur(10px); z-index:5000; align-items:center; justify-content:center; padding:16px;">
+  <div style="background:#0d1120; border:2px solid rgba(139,92,246,0.4); border-radius:24px; padding:32px; max-width:640px; width:100%; max-height:90vh; overflow-y:auto;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+      <div style="font-size:20px; font-weight:700;">📤 Bulk Import Questions via CSV</div>
+      <button onclick="closeCSVImport()" style="background:rgba(255,255,255,0.1); border:none; border-radius:8px; padding:8px 14px; color:#fff; cursor:pointer; font-size:14px;">✕ Close</button>
+    </div>
+    <div style="background:rgba(139,92,246,0.08); border:1px solid rgba(139,92,246,0.3); border-radius:14px; padding:16px; margin-bottom:20px; font-size:13px; color:rgba(255,255,255,0.75); line-height:1.8;">
+      <strong style="color:#a78bfa;">Required CSV columns (header row must match exactly):</strong><br>
+      <code style="font-family:monospace; color:#fbbf24;">Question, Option A, Option B, Option C, Option D, Correct Option, Points, Category Name, Category Icon</code><br><br>
+      • <strong>Correct Option</strong> = A / B / C / D<br>
+      • <strong>Points</strong> = number (e.g. 100) — optional, defaults to 100<br>
+      • <strong>Category Name / Icon</strong> — optional; leave blank to use no category<br><br>
+      <a href="#" onclick="downloadImportTemplate(); return false;" style="color:#60a5fa;">⬇ Download template CSV</a>
+    </div>
+    <div style="margin-bottom:16px;">
+      <label style="margin-bottom:8px; display:block;">Select CSV File</label>
+      <input type="file" id="csvFileInput" accept=".csv,text/csv" style="padding:10px; cursor:pointer; width:100%; background:#06080f; border:1px solid #2d3b52; border-radius:10px; color:#e8edf7;">
+    </div>
+    <div style="margin-bottom:16px;">
+      <label>Assign to Category (optional override)</label>
+      <select id="csvCategoryOverride">
+        <option value="">— Use category from CSV —</option>
+      </select>
+    </div>
+    <div id="csvPreviewSection" style="display:none; margin-bottom:16px;">
+      <div style="font-size:13px; font-weight:600; margin-bottom:8px;" id="csvPreviewTitle"></div>
+      <div id="csvPreviewTable" style="max-height:220px; overflow-y:auto; font-size:12px; background:rgba(0,0,0,0.4); border-radius:10px; padding:10px;"></div>
+      <div id="csvParseErrors" style="color:#ef4444; font-size:12px; margin-top:8px;"></div>
+    </div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button class="btn" onclick="previewCSV()" style="flex:1;">🔍 Preview</button>
+      <button class="btn btn-green" id="importConfirmBtn" onclick="confirmCSVImport()" style="flex:1; display:none;">✅ Import All</button>
+    </div>
+    <div id="csvImportProgress" style="display:none; margin-top:16px; text-align:center;">
+      <div style="color:#10b981; font-size:14px;" id="csvProgressText">Importing...</div>
+      <div style="height:6px; background:rgba(255,255,255,0.1); border-radius:10px; margin-top:8px; overflow:hidden;">
+        <div id="csvProgressBar" style="height:100%; background:#10b981; border-radius:10px; transition:width 0.3s; width:0%;"></div>
       </div>
     </div>
   </div>
@@ -618,6 +662,187 @@ window.exportQuestionsCSV = exportQuestionsCSV;
 window.deleteAllQuestionsInCategory = deleteAllQuestionsInCategory;
 window.selectAllQuestions = selectAllQuestions;
 window.deselectAllQuestions = deselectAllQuestions;
+
+// ===================== CSV BULK IMPORT =====================
+let csvParsedRows = [];
+
+function openCSVImport() {
+  // Populate category override select
+  const sel = document.getElementById('csvCategoryOverride');
+  sel.innerHTML = '<option value="">— Use category from CSV —</option>' +
+    categories.map(c => `<option value="${c.id}">${c.icon || ''} ${c.name}</option>`).join('');
+  document.getElementById('csvFileInput').value = '';
+  document.getElementById('csvPreviewSection').style.display = 'none';
+  document.getElementById('importConfirmBtn').style.display = 'none';
+  document.getElementById('csvImportProgress').style.display = 'none';
+  document.getElementById('csvParseErrors').innerText = '';
+  csvParsedRows = [];
+  document.getElementById('csvImportOverlay').style.display = 'flex';
+}
+
+function closeCSVImport() {
+  document.getElementById('csvImportOverlay').style.display = 'none';
+}
+
+function downloadImportTemplate() {
+  const header = 'Question,Option A,Option B,Option C,Option D,Correct Option,Points,Category Name,Category Icon';
+  const sample1 = '"What is the capital of France?",Berlin,Madrid,Paris,Lisbon,C,100,Geography,🌍';
+  const sample2 = '"Which planet is the Red Planet?",Mars,Jupiter,Venus,Saturn,A,150,Science,🔬';
+  const csv = [header, sample1, sample2].join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'import_template.csv';
+  a.click();
+  toast('Template downloaded!', 'success');
+}
+
+function parseCSVLine(line) {
+  const result = [];
+  let cur = '', inQuote = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQuote && line[i+1] === '"') { cur += '"'; i++; }
+      else inQuote = !inQuote;
+    } else if (ch === ',' && !inQuote) {
+      result.push(cur.trim()); cur = '';
+    } else {
+      cur += ch;
+    }
+  }
+  result.push(cur.trim());
+  return result;
+}
+
+function previewCSV() {
+  const file = document.getElementById('csvFileInput').files[0];
+  if (!file) { toast('Select a CSV file first', 'error'); return; }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const text = e.target.result;
+    const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim());
+    if (lines.length < 2) { toast('CSV must have a header row and at least one data row', 'error'); return; }
+
+    const EXPECTED = ['question','option a','option b','option c','option d','correct option'];
+    const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase().trim());
+    const missing = EXPECTED.filter(e => !headers.includes(e));
+    if (missing.length) {
+      document.getElementById('csvParseErrors').innerText = '❌ Missing required columns: ' + missing.join(', ');
+      document.getElementById('csvPreviewSection').style.display = 'block';
+      document.getElementById('importConfirmBtn').style.display = 'none';
+      return;
+    }
+
+    const colIdx = {};
+    headers.forEach((h, i) => colIdx[h] = i);
+
+    csvParsedRows = [];
+    const errors = [];
+
+    for (let i = 1; i < lines.length; i++) {
+      if (!lines[i].trim()) continue;
+      const cols = parseCSVLine(lines[i]);
+      const get = (name) => (cols[colIdx[name]] || '').trim();
+      const question = get('question');
+      const a = get('option a');
+      const b = get('option b');
+      const c = get('option c');
+      const d = get('option d');
+      const correctLetter = get('correct option').toUpperCase();
+      const points = parseInt(get('points')) || 100;
+      const catName = get('category name');
+      const catIcon = get('category icon') || '📁';
+
+      if (!question || !a || !b || !c || !d) { errors.push(`Row ${i+1}: Missing required fields`); continue; }
+      if (!['A','B','C','D'].includes(correctLetter)) { errors.push(`Row ${i+1}: Correct Option must be A/B/C/D, got "${correctLetter}"`); continue; }
+      const correctIdx = ['A','B','C','D'].indexOf(correctLetter);
+      csvParsedRows.push({ question, a, b, c, d, correctIdx, points, catName, catIcon });
+    }
+
+    const previewHtml = csvParsedRows.slice(0, 10).map((r, i) => `
+      <div style="padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.07);">
+        <strong>${i+1}. ${escapeHtml(r.question)}</strong><br>
+        <span style="color:#6b7a99;">A: ${escapeHtml(r.a)} | B: ${escapeHtml(r.b)} | C: ${escapeHtml(r.c)} | D: ${escapeHtml(r.d)}</span><br>
+        <span style="color:#10b981;">✅ Correct: ${['A','B','C','D'][r.correctIdx]} | ⭐ ${r.points}pts${r.catName ? ' | 📁 ' + escapeHtml(r.catName) : ''}</span>
+      </div>
+    `).join('');
+
+    document.getElementById('csvPreviewTitle').innerText =
+      `Found ${csvParsedRows.length} valid question(s)${csvParsedRows.length < lines.length - 1 ? ` (${lines.length - 1 - csvParsedRows.length} skipped)` : ''}${lines.length > 11 ? ' — showing first 10' : ''}`;
+    document.getElementById('csvPreviewTable').innerHTML = previewHtml || '<em style="color:#6b7a99;">No valid rows found</em>';
+    document.getElementById('csvParseErrors').innerText = errors.length ? errors.join('\n') : '';
+    document.getElementById('csvPreviewSection').style.display = 'block';
+    document.getElementById('importConfirmBtn').style.display = csvParsedRows.length > 0 ? 'block' : 'none';
+  };
+  reader.readAsText(file);
+}
+
+async function confirmCSVImport() {
+  if (!csvParsedRows.length) { toast('Nothing to import', 'error'); return; }
+  const overrideCatId = document.getElementById('csvCategoryOverride').value || null;
+
+  document.getElementById('importConfirmBtn').style.display = 'none';
+  document.getElementById('csvImportProgress').style.display = 'block';
+
+  // Build a map of category name → id, creating new categories as needed
+  const catMap = {};
+  categories.forEach(c => { catMap[c.name.toLowerCase()] = c.id; });
+
+  let imported = 0;
+  const total = csvParsedRows.length;
+
+  for (let i = 0; i < csvParsedRows.length; i++) {
+    const row = csvParsedRows[i];
+    document.getElementById('csvProgressText').innerText = `Importing ${i+1} / ${total}...`;
+    document.getElementById('csvProgressBar').style.width = `${Math.round(((i+1)/total)*100)}%`;
+
+    let categoryId = overrideCatId;
+    if (!categoryId && row.catName) {
+      const key = row.catName.toLowerCase();
+      if (catMap[key]) {
+        categoryId = catMap[key];
+      } else {
+        // Create new category
+        const { data: newCat, error: catErr } = await sb.from('categories').insert({
+          name: row.catName, icon: row.catIcon, session_id: SESSION_ID
+        }).select().single();
+        if (!catErr && newCat) {
+          catMap[key] = newCat.id;
+          categoryId = newCat.id;
+        }
+      }
+    }
+
+    const { error } = await sb.from('questions').insert({
+      question_text: row.question,
+      option_a: row.a, option_b: row.b, option_c: row.c, option_d: row.d,
+      correct_option: row.correctIdx,
+      points: row.points,
+      category_id: categoryId || null,
+      session_id: SESSION_ID
+    });
+    if (!error) imported++;
+  }
+
+  document.getElementById('csvProgressText').innerText = `✅ Done! ${imported} / ${total} questions imported.`;
+  document.getElementById('csvProgressBar').style.width = '100%';
+
+  await loadCategories();
+  await loadQuestions();
+  toast(`✅ Imported ${imported} questions!`, 'success');
+
+  setTimeout(() => {
+    closeCSVImport();
+    csvParsedRows = [];
+  }, 2000);
+}
+
+window.openCSVImport = openCSVImport;
+window.closeCSVImport = closeCSVImport;
+window.downloadImportTemplate = downloadImportTemplate;
+window.previewCSV = previewCSV;
+window.confirmCSVImport = confirmCSVImport;
 </script>
 </body>
 </html>

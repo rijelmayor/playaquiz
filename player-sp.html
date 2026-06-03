@@ -154,13 +154,13 @@
     }
     .start-btn:active { transform: scale(0.98); }
     
-    /* Completion Screen - Simplified Celebration */
+    /* Completion Screen — Mobile-Friendly */
     .completion-card {
       text-align: center;
-      padding: 48px 24px;
+      padding: 28px 16px;
       background: rgba(13,17,32,0.9);
       border: 2px solid rgba(16,185,129,0.4);
-      border-radius: 48px;
+      border-radius: 32px;
       animation: glowPulse 2s ease infinite;
     }
     @keyframes glowPulse {
@@ -168,49 +168,135 @@
       50% { box-shadow: 0 0 50px rgba(16,185,129,0.6); border-color: rgba(16,185,129,0.8); }
     }
     .completion-icon {
-      font-size: 100px;
-      margin-bottom: 20px;
+      font-size: clamp(56px, 15vw, 100px);
+      margin-bottom: 12px;
       animation: bounce 1s ease infinite;
     }
     .completion-title {
       font-family: 'Bebas Neue', sans-serif;
-      font-size: 48px;
+      font-size: clamp(28px, 8vw, 48px);
       background: linear-gradient(135deg, #10b981, #fbbf24);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      margin-bottom: 16px;
+      margin-bottom: 10px;
+      line-height: 1.1;
     }
     .completion-message {
-      font-size: 20px;
+      font-size: clamp(14px, 4vw, 20px);
       color: #fbbf24;
-      margin-bottom: 24px;
+      margin-bottom: 16px;
       font-weight: 500;
     }
     .final-stats {
       display: flex;
       justify-content: center;
-      gap: 30px;
-      margin: 24px 0;
+      gap: clamp(12px, 4vw, 30px);
+      margin: 16px 0;
       background: rgba(0,0,0,0.4);
-      border-radius: 32px;
-      padding: 20px;
+      border-radius: 24px;
+      padding: 14px 10px;
+      flex-wrap: wrap;
     }
-    .final-stat { text-align: center; }
+    .final-stat { text-align: center; min-width: 64px; }
     .final-stat-value {
-      font-size: 36px;
+      font-size: clamp(22px, 7vw, 36px);
       font-weight: 800;
       color: #f59e0b;
     }
     .final-stat-label {
-      font-size: 12px;
+      font-size: clamp(10px, 2.5vw, 12px);
       color: rgba(255,255,255,0.6);
     }
+    /* Prize Claim Button */
+    .prize-claim-btn {
+      background: linear-gradient(135deg, #f59e0b, #ef4444);
+      border: none;
+      border-radius: 50px;
+      padding: 14px 28px;
+      font-size: clamp(14px, 4vw, 18px);
+      font-weight: 800;
+      color: white;
+      cursor: pointer;
+      margin-top: 16px;
+      width: 100%;
+      animation: prizePulse 1.5s ease infinite;
+      box-shadow: 0 4px 24px rgba(245,158,11,0.4);
+      letter-spacing: 0.5px;
+    }
+    @keyframes prizePulse {
+      0%,100% { transform: scale(1); box-shadow: 0 4px 24px rgba(245,158,11,0.4); }
+      50% { transform: scale(1.03); box-shadow: 0 6px 32px rgba(245,158,11,0.7); }
+    }
+    /* Prize Popup Overlay */
+    .prize-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      backdrop-filter: blur(12px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 9000;
+      padding: 16px;
+    }
+    .prize-popup {
+      background: linear-gradient(135deg, #0d1120, #1a0a2e);
+      border: 2px solid rgba(245,158,11,0.5);
+      border-radius: 28px;
+      padding: 32px 24px;
+      max-width: 420px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 0 60px rgba(245,158,11,0.3);
+      animation: popIn 0.4s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(0.7); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    .prize-popup-icon { font-size: 64px; margin-bottom: 12px; }
+    .prize-popup-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(24px, 7vw, 36px);
+      background: linear-gradient(135deg, #f59e0b, #ef4444);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 10px;
+    }
+    .prize-popup-body {
+      font-size: clamp(13px, 3.5vw, 16px);
+      color: rgba(255,255,255,0.75);
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+    .prize-popup-score {
+      background: rgba(245,158,11,0.1);
+      border: 1px solid rgba(245,158,11,0.3);
+      border-radius: 16px;
+      padding: 12px;
+      margin-bottom: 20px;
+      font-size: clamp(13px, 3.5vw, 15px);
+      color: #f59e0b;
+      font-weight: 600;
+    }
+    .prize-popup-close {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 50px;
+      padding: 12px 28px;
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      cursor: pointer;
+      width: 100%;
+      transition: background 0.2s;
+    }
+    .prize-popup-close:hover { background: rgba(255,255,255,0.2); }
     .confetti {
       position: fixed;
       width: 10px;
       height: 10px;
       background: #fbbf24;
-      position: absolute;
       animation: fall 3s linear forwards;
       pointer-events: none;
       z-index: 1000;
@@ -384,7 +470,7 @@
     </div>
   </div>
   
-  <!-- SIMPLIFIED COMPLETION SCREEN: Thank you + Congratulations + Stats -->
+  <!-- COMPLETION SCREEN: Mobile-friendly + Prize Claim -->
   <div id="completionScreen" class="hidden">
     <div class="completion-card">
       <div class="completion-icon">🎉</div>
@@ -397,16 +483,31 @@
         </div>
         <div class="final-stat">
           <div class="final-stat-value" id="finalCorrect">0</div>
-          <div class="final-stat-label">Correct Answers</div>
+          <div class="final-stat-label">Correct</div>
         </div>
         <div class="final-stat">
           <div class="final-stat-value" id="finalAccuracy">0%</div>
           <div class="final-stat-label">Accuracy</div>
         </div>
       </div>
-      <div style="margin-top: 20px; font-size: 14px; color: rgba(255,255,255,0.5);">
+      <div style="margin-top: 12px; font-size: clamp(12px,3.5vw,14px); color: rgba(255,255,255,0.5);">
         ✨ You've completed the quiz ✨
       </div>
+      <button class="prize-claim-btn" onclick="showPrizeClaim()">🎁 CLAIM YOUR PRIZE</button>
+    </div>
+  </div>
+
+  <!-- PRIZE CLAIM POPUP -->
+  <div id="prizeOverlay" class="prize-overlay hidden">
+    <div class="prize-popup">
+      <div class="prize-popup-icon">🏆</div>
+      <div class="prize-popup-title">PRIZE CLAIM</div>
+      <div class="prize-popup-score" id="prizeScoreInfo">Score: 0 pts</div>
+      <div class="prize-popup-body">
+        🎊 Amazing job finishing the quiz!<br><br>
+        Please show this screen to the event staff to claim your prize. Your score and name have been recorded on the leaderboard.
+      </div>
+      <button class="prize-popup-close" onclick="closePrizeClaim()">✅ Got it — Close</button>
     </div>
   </div>
   
@@ -447,6 +548,12 @@ function getTimezoneOffset() {
   const sign = offset <= 0 ? '+' : '-';
   return `UTC ${sign}${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
 }
+function formatLocalDate(date) {
+  return date.toLocaleString(undefined, {
+    year: 'numeric', month: 'short', day: 'numeric',
+    hour: '2-digit', minute: '2-digit', hour12: true
+  });
+}
 function displayTimezoneInfo() {
   const tz = getUserTimezone();
   const offset = getTimezoneOffset();
@@ -484,11 +591,12 @@ async function checkRoomStatus(roomCode) {
       .maybeSingle();
     if (error || !session) return { available: false, reason: '❌ Room not found. Please check the code.' };
     if (session.status === 'scheduled') {
-      const scheduledDate = new Date(session.scheduled_date);
+      const scheduledDate = new Date(session.scheduled_date); // JS Date auto-converts UTC → local
       const now = new Date();
       if (scheduledDate > now) {
-        const formattedDate = scheduledDate.toLocaleString();
-        return { available: false, reason: `📅 This room is scheduled for ${formattedDate}. Please check back then.` };
+        const formattedDate = formatLocalDate(scheduledDate);
+        const tz = getUserTimezone();
+        return { available: false, reason: `📅 This room is scheduled for ${formattedDate} (${tz}). Please check back then.` };
       }
     }
     if (session.status !== 'active' && session.status !== 'waiting') {
@@ -788,7 +896,18 @@ function createConfetti() {
   setTimeout(() => confetti.remove(), 3000);
 }
 
-function showError(msg) {
+function showPrizeClaim() {
+  const playerName = myPlayer?.name || 'Player';
+  document.getElementById('prizeScoreInfo').innerHTML =
+    `👤 <strong>${escapeHtml(playerName)}</strong> &nbsp;|&nbsp; 🏅 Score: <strong>${score} pts</strong> &nbsp;|&nbsp; ✅ ${correctCount}/${questions.length} correct`;
+  document.getElementById('prizeOverlay').classList.remove('hidden');
+}
+
+function closePrizeClaim() {
+  document.getElementById('prizeOverlay').classList.add('hidden');
+}
+
+
   const errDiv = document.getElementById('joinError');
   errDiv.innerText = msg;
   setTimeout(() => errDiv.innerText = '', 5000);
@@ -869,6 +988,8 @@ window.selectAvatar = selectAvatar;
 window.submitAnswer = submitAnswer;
 window.loadNextQuestion = loadNextQuestion;
 window.startQuiz = startQuiz;
+window.showPrizeClaim = showPrizeClaim;
+window.closePrizeClaim = closePrizeClaim;
 </script>
 </body>
 </html>

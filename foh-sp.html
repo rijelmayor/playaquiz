@@ -271,7 +271,7 @@ let ROOM_CODE = null;
 let refreshInterval = null;
 let realtimeChannel = null;
 
-// Timezone utilities
+// Timezone utilities — mirrors room-manager.html
 function getUserTimezone() {
   return Intl.DateTimeFormat().resolvedOptions().timeZone;
 }
@@ -282,6 +282,14 @@ function getTimezoneOffset() {
   const minutes = Math.abs(offset % 60);
   const sign = offset <= 0 ? '+' : '-';
   return `UTC ${sign}${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+}
+
+// Format a Date object in the browser's local timezone
+function formatLocalDate(date) {
+  return date.toLocaleString(undefined, {
+    year: 'numeric', month: 'short', day: 'numeric',
+    hour: '2-digit', minute: '2-digit', hour12: true
+  });
 }
 
 function displayTimezoneInfo() {
@@ -308,13 +316,14 @@ async function checkAndConnectToRoom(code) {
     
     // Check if room is scheduled for future
     if (session.status === 'scheduled') {
-      const scheduledDate = new Date(session.scheduled_date);
+      const scheduledDate = new Date(session.scheduled_date); // JS Date auto-converts UTC → local
       const now = new Date();
       if (scheduledDate > now) {
-        const formattedDate = scheduledDate.toLocaleString();
+        const formattedDate = formatLocalDate(scheduledDate);
+        const tz = getUserTimezone();
         return { 
           available: false, 
-          reason: `📅 This room is scheduled for ${formattedDate}. FOH display will activate at that time.` 
+          reason: `📅 This room is scheduled for ${formattedDate} (${tz}). FOH display will activate at that time.` 
         };
       }
     }
