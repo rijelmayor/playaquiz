@@ -2,1208 +2,1506 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>PlayAQuiz — Host Control</title>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-    :root{
-      --bg:#03050b;--s1:#0d1120;--s2:#111827;--s3:#162030;
-      --b1:#1f2a3c;--b2:#2d3b52;
-      --text:#e8edf7;--muted:#6b7a99;--muted2:#4a5568;
-      --accent:#3b82f6;--green:#10b981;--gold:#fbbf24;
-      --red:#ef4444;--purple:#8b5cf6;--orange:#f97316;--teal:#14b8a6;
-      --radius:14px;--radius-sm:10px;
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
     }
-    html,body{background:var(--bg);font-family:'DM Sans',sans-serif;color:var(--text);height:100%;overflow:hidden;}
 
-    /* ══════════ SCREENS ══════════ */
-    .screen{display:none;flex-direction:column;height:100vh;}
-    .screen.active{display:flex;}
+    :root {
+      --bg: #03050b;
+      --s1: #0d1120;
+      --s2: #111827;
+      --b1: #1f2a3c;
+      --b2: #2d3b52;
+      --text: #e8edf7;
+      --muted: #6b7a99;
+      --accent: #3b82f6;
+      --green: #10b981;
+      --gold: #fbbf24;
+      --red: #ef4444;
+      --purple: #8b5cf6;
+      --orange: #f97316;
+      --radius: 14px;
+      --radius-sm: 10px;
+    }
 
-    /* ══════════ JOIN SCREEN ══════════ */
-    #joinScreen{align-items:center;justify-content:center;padding:24px;gap:0;}
-    .join-logo{font-family:'Bebas Neue',sans-serif;font-size:42px;letter-spacing:5px;
-      background:linear-gradient(135deg,#fff 30%,var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px;}
-    .join-sub{font-size:11px;color:var(--muted);letter-spacing:3px;text-transform:uppercase;margin-bottom:36px;}
-    .join-card{background:var(--s1);border:1px solid var(--b1);border-radius:24px;padding:28px 22px;width:100%;max-width:340px;}
-    .field-label{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;display:block;}
-    .big-input{width:100%;background:var(--bg);border:2px solid var(--b2);border-radius:var(--radius);
-      padding:14px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:700;
-      text-align:center;letter-spacing:5px;text-transform:uppercase;outline:none;margin-bottom:8px;}
-    .big-input:focus{border-color:var(--accent);}
-    .join-hint{font-size:11px;color:var(--muted2);text-align:center;margin-bottom:20px;line-height:1.6;}
+    html, body {
+      background: var(--bg);
+      font-family: 'DM Sans', sans-serif;
+      color: var(--text);
+      height: 100%;
+      overflow: hidden;
+    }
 
-    /* ══════════ APP SHELL ══════════ */
-    #appScreen{background:var(--bg);}
+    .screen {
+      display: none;
+      flex-direction: column;
+      height: 100vh;
+    }
+    .screen.active {
+      display: flex;
+    }
 
-    /* Top bar */
-    .topbar{background:var(--s1);border-bottom:1px solid var(--b1);padding:10px 14px;
-      display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
-    .topbar-left{display:flex;flex-direction:column;}
-    .topbar-logo{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:3px;
-      background:linear-gradient(135deg,#fff,var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1;}
-    .topbar-title{font-size:9px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:1px;}
-    .topbar-right{display:flex;align-items:center;gap:8px;}
-    .room-chip{background:var(--s2);border:1px solid var(--b1);border-radius:20px;
-      padding:5px 12px;display:flex;align-items:center;gap:7px;}
-    .room-chip-code{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;color:var(--gold);letter-spacing:2px;}
-    .live-dot{width:7px;height:7px;border-radius:50%;background:var(--red);flex-shrink:0;transition:background 0.3s;}
-    .live-dot.on{background:var(--green);box-shadow:0 0 6px var(--green);animation:ldPulse 2s infinite;}
-    @keyframes ldPulse{0%,100%{box-shadow:0 0 4px var(--green);}50%{box-shadow:0 0 12px var(--green);}}
+    /* Loading Screen */
+    .loading-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      gap: 14px;
+    }
+    .spinner {
+      width: 34px;
+      height: 34px;
+      border: 3px solid var(--b2);
+      border-top-color: var(--gold);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
 
-    /* Tab bar */
-    .tabbar{background:var(--s1);border-bottom:1px solid var(--b1);display:flex;flex-shrink:0;}
-    .tab-btn{flex:1;padding:11px 4px;font-size:10px;font-weight:700;color:var(--muted);
-      letter-spacing:1px;text-transform:uppercase;border:none;background:none;cursor:pointer;
-      border-bottom:2px solid transparent;transition:color 0.15s,border-color 0.15s;display:flex;flex-direction:column;align-items:center;gap:2px;}
-    .tab-btn .tab-icon{font-size:16px;}
-    .tab-btn.active{color:var(--text);border-bottom-color:var(--gold);}
+    /* Join Screen */
+    #joinScreen {
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .join-logo {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 44px;
+      letter-spacing: 5px;
+      background: linear-gradient(135deg, #fff 30%, var(--gold));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 5px;
+    }
+    .join-sub {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      margin-bottom: 32px;
+    }
+    .join-card {
+      background: var(--s1);
+      border: 1px solid var(--b1);
+      border-radius: 28px;
+      padding: 28px 20px;
+      width: 100%;
+      max-width: 340px;
+    }
+    .field-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--muted);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      display: block;
+    }
+    .big-input {
+      width: 100%;
+      background: var(--bg);
+      border: 2px solid var(--b2);
+      border-radius: var(--radius);
+      padding: 14px;
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 26px;
+      font-weight: 700;
+      text-align: center;
+      letter-spacing: 5px;
+      text-transform: uppercase;
+      outline: none;
+      margin-bottom: 8px;
+    }
+    .big-input:focus {
+      border-color: var(--accent);
+    }
+    .join-hint {
+      font-size: 11px;
+      color: #4a5568;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .error-msg {
+      color: var(--red);
+      font-size: 11px;
+      text-align: center;
+      margin-top: 10px;
+      display: none;
+    }
 
-    /* Tab panels */
-    .tabs-content{flex:1;overflow:hidden;position:relative;}
-    .tab-panel{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 12px 80px;display:none;flex-direction:column;gap:10px;}
-    .tab-panel.active{display:flex;}
+    /* Top Bar */
+    .topbar {
+      background: var(--s1);
+      border-bottom: 1px solid var(--b1);
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .topbar-logo {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 22px;
+      letter-spacing: 3px;
+      background: linear-gradient(135deg, #fff, var(--gold));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .topbar-title {
+      font-size: 9px;
+      color: var(--muted);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+    .room-chip {
+      background: var(--s2);
+      border: 1px solid var(--b1);
+      border-radius: 30px;
+      padding: 6px 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--red);
+      transition: background 0.2s;
+    }
+    .live-dot.on {
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green);
+    }
+    .room-chip-code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--gold);
+      letter-spacing: 1.5px;
+    }
 
-    /* ══════════ CARDS ══════════ */
-    .card{background:var(--s1);border:1px solid var(--b1);border-radius:var(--radius);overflow:hidden;}
-    .card-hd{padding:11px 14px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;}
-    .card-hd-title{font-size:10px;font-weight:700;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;}
-    .card-bd{padding:13px 14px;}
+    /* Tab Bar */
+    .tabbar {
+      background: var(--s1);
+      border-bottom: 1px solid var(--b1);
+      display: flex;
+      flex-shrink: 0;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 12px 4px;
+      font-size: 10px;
+      font-weight: 800;
+      color: var(--muted);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      transition: all 0.1s;
+    }
+    .tab-btn .tab-icon {
+      font-size: 18px;
+    }
+    .tab-btn.active {
+      color: var(--text);
+      border-bottom-color: var(--gold);
+    }
 
-    /* ══════════ BUTTONS ══════════ */
-    .btn{border:none;border-radius:var(--radius-sm);font-family:'DM Sans',sans-serif;font-weight:700;
-      cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;
-      transition:transform 0.1s,opacity 0.15s;user-select:none;-webkit-user-select:none;}
-    .btn:active{transform:scale(0.95);}
-    .btn:disabled{opacity:0.35;cursor:not-allowed;transform:none;}
-    .btn-full{width:100%;}
-    .btn-sm{padding:8px 12px;font-size:11px;}
-    .btn-md{padding:11px 16px;font-size:13px;}
-    .btn-lg{padding:16px;font-size:16px;border-radius:var(--radius);}
-    .btn-xl{padding:20px;font-size:18px;font-weight:800;border-radius:var(--radius);letter-spacing:0.5px;}
-    /* colors */
-    .btn-accent{background:var(--accent);color:#fff;}
-    .btn-green{background:var(--green);color:#fff;}
-    .btn-red{background:var(--red);color:#fff;}
-    .btn-gold{background:var(--gold);color:#000;}
-    .btn-purple{background:var(--purple);color:#fff;}
-    .btn-orange{background:var(--orange);color:#fff;}
-    .btn-teal{background:var(--teal);color:#fff;}
-    .btn-ghost{background:var(--s2);color:var(--text);border:1px solid var(--b2);}
-    .btn-danger-ghost{background:rgba(239,68,68,0.1);color:var(--red);border:1px solid rgba(239,68,68,0.3);}
-    .btn-gold-ghost{background:rgba(251,191,36,0.1);color:var(--gold);border:1px solid rgba(251,191,36,0.3);}
-    .btn-green-ghost{background:rgba(16,185,129,0.1);color:var(--green);border:1px solid rgba(16,185,129,0.3);}
-    /* grid helpers */
-    .btn-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-    .btn-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+    /* Panels */
+    .tabs-content {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+    }
+    .tab-panel {
+      position: absolute;
+      inset: 0;
+      overflow-y: auto;
+      padding: 14px 12px 90px;
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .tab-panel.active {
+      display: flex;
+    }
 
-    /* ══════════ SETUP TAB ══════════ */
-    .big-room-display{text-align:center;padding:18px 0 10px;}
-    .big-room-label{font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;}
-    .big-room-code{font-family:'JetBrains Mono',monospace;font-size:38px;font-weight:700;color:var(--gold);letter-spacing:6px;}
-    .big-room-sub{font-size:11px;color:var(--muted2);margin-top:4px;}
-    .player-count-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
-    .player-count-badge{background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.2);
-      border-radius:20px;padding:4px 12px;font-size:12px;font-weight:700;color:var(--gold);}
-    .player-list{display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto;}
-    .player-row{background:var(--s2);border:1px solid var(--b1);border-radius:var(--radius-sm);
-      padding:9px 12px;display:flex;align-items:center;gap:10px;}
-    .player-row.buzzed{border-color:var(--gold);background:rgba(251,191,36,0.06);}
-    .player-row.eliminated{opacity:0.3;filter:grayscale(1);}
-    .player-row-avatar{font-size:26px;flex-shrink:0;}
-    .player-row-info{flex:1;min-width:0;}
-    .player-row-name{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-    .player-row-score{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--gold);font-weight:700;}
-    .conn-pip{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
-    .conn-pip.live{background:var(--green);}
-    .conn-pip.dc{background:var(--red);}
+    /* Cards */
+    .card {
+      background: var(--s1);
+      border: 1px solid var(--b1);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .card-hd {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--b1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .card-hd-title {
+      font-size: 10px;
+      font-weight: 800;
+      color: var(--muted);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+    .card-bd {
+      padding: 14px;
+    }
 
-    /* ══════════ GAME TAB ══════════ */
-    /* Q selector */
-    .q-pick-btn{width:100%;background:var(--s2);border:2px dashed var(--b2);border-radius:var(--radius);
-      padding:13px 14px;color:var(--muted);font-size:13px;cursor:pointer;text-align:left;
-      display:flex;align-items:center;gap:8px;transition:border-color 0.15s,background 0.15s;}
-    .q-pick-btn.selected{border-color:var(--accent);background:rgba(59,130,246,0.05);color:var(--text);}
-    /* Q display box */
-    .q-box{background:linear-gradient(135deg,rgba(59,130,246,0.07),rgba(139,92,246,0.04));
-      border-radius:var(--radius);padding:14px;}
-    .q-text{font-size:14px;font-weight:700;line-height:1.45;margin-bottom:10px;}
-    .q-opts{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
-    .q-opt{background:rgba(255,255,255,0.04);border:1px solid var(--b1);border-radius:8px;
-      padding:8px;font-size:11px;line-height:1.35;}
-    .q-opt.correct{border-color:var(--green);background:rgba(16,185,129,0.08);}
-    .q-opt-letter{color:var(--accent);font-weight:800;margin-right:3px;}
-    .q-correct-line{font-size:11px;color:var(--green);font-weight:700;margin-top:8px;}
-    /* Buzzed banner */
-    .buzz-banner{display:none;background:rgba(251,191,36,0.07);border:2px solid var(--gold);
-      border-radius:var(--radius);padding:14px;text-align:center;animation:buzzPop 0.25s ease;}
-    .buzz-banner.visible{display:block;}
-    @keyframes buzzPop{from{transform:scale(0.88);opacity:0;}to{transform:scale(1);opacity:1;}}
-    .buzz-banner-label{font-size:9px;color:var(--gold);font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;}
-    .buzz-banner-name{font-size:22px;font-weight:800;line-height:1.2;}
-    .buzz-banner-answer{margin-top:8px;padding:7px;background:rgba(16,185,129,0.1);border-radius:8px;font-size:11px;color:var(--green);font-weight:700;}
+    /* Buttons */
+    .btn {
+      border: none;
+      border-radius: var(--radius-sm);
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: transform 0.08s linear, opacity 0.15s;
+    }
+    .btn:active {
+      transform: scale(0.96);
+    }
+    .btn:disabled {
+      opacity: 0.4;
+      transform: none;
+      cursor: not-allowed;
+    }
+    .btn-full {
+      width: 100%;
+    }
+    .btn-md {
+      padding: 10px 14px;
+      font-size: 13px;
+    }
+    .btn-lg {
+      padding: 14px;
+      font-size: 15px;
+      border-radius: var(--radius);
+    }
+    .btn-xl {
+      padding: 18px;
+      font-size: 17px;
+      font-weight: 800;
+      border-radius: var(--radius);
+    }
+    .btn-accent { background: var(--accent); color: #fff; }
+    .btn-green { background: var(--green); color: #fff; }
+    .btn-red { background: var(--red); color: #fff; }
+    .btn-gold { background: var(--gold); color: #000; }
+    .btn-orange { background: var(--orange); color: #fff; }
+    .btn-purple { background: var(--purple); color: #fff; }
+    .btn-ghost { background: var(--s2); color: var(--text); border: 1px solid var(--b2); }
+    .btn-danger-ghost { background: rgba(239,68,68,0.1); color: var(--red); border: 1px solid rgba(239,68,68,0.3); }
+    .btn-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 
-    /* ══════════ PLAYERS TAB ══════════ */
-    .players-big-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-    .pbg-card{background:var(--s2);border:2px solid var(--b1);border-radius:var(--radius);
-      padding:11px 8px;text-align:center;cursor:pointer;transition:transform 0.1s,border-color 0.15s;}
-    .pbg-card:active{transform:scale(0.94);}
-    .pbg-card.buzzed{border-color:var(--gold);background:rgba(251,191,36,0.07);}
-    .pbg-card.eliminated{opacity:0.3;filter:grayscale(1);pointer-events:none;}
-    .pbg-card.locked{opacity:0.55;}
-    .pbg-avatar{font-size:28px;margin-bottom:2px;}
-    .pbg-name{font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-    .pbg-score{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:var(--gold);margin:2px 0;}
-    .pbg-status{font-size:9px;color:var(--muted);}
-    /* override list */
-    .ov-row{background:var(--s2);border:1px solid var(--b1);border-radius:var(--radius-sm);
-      padding:10px 12px;display:flex;align-items:center;gap:10px;margin-bottom:6px;}
-    .ov-info{flex:1;min-width:0;}
-    .ov-name{font-size:13px;font-weight:700;}
-    .ov-sub{font-size:10px;color:var(--muted);}
-    .ov-score{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--gold);font-weight:700;margin-right:8px;flex-shrink:0;}
-    .ov-actions{display:flex;gap:5px;flex-shrink:0;}
-    .ov-btn{border:none;border-radius:7px;padding:5px 9px;font-size:9px;font-weight:700;cursor:pointer;transition:transform 0.1s;}
-    .ov-btn:active{transform:scale(0.92);}
+    /* Room display */
+    .big-room-display {
+      text-align: center;
+      padding: 12px 0 8px;
+    }
+    .big-room-code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 40px;
+      font-weight: 800;
+      color: var(--gold);
+      letter-spacing: 5px;
+    }
 
-    /* ══════════ FOH TAB ══════════ */
-    .foh-btn{width:100%;border-radius:var(--radius);padding:18px 16px;font-size:14px;font-weight:700;
-      cursor:pointer;display:flex;align-items:center;gap:12px;text-align:left;border:none;
-      transition:transform 0.1s,opacity 0.15s;}
-    .foh-btn:active{transform:scale(0.97);}
-    .foh-btn .foh-icon{font-size:26px;flex-shrink:0;}
-    .foh-btn .foh-label{flex:1;}
-    .foh-btn .foh-title{font-size:14px;font-weight:800;display:block;}
-    .foh-btn .foh-desc{font-size:10px;font-weight:600;opacity:0.75;display:block;margin-top:2px;}
+    /* Player list */
+    .player-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 260px;
+      overflow-y: auto;
+    }
+    .player-row {
+      background: var(--s2);
+      border: 1px solid var(--b1);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .player-row.buzzed {
+      border-color: var(--gold);
+      background: rgba(251,191,36,0.06);
+    }
+    .player-row.eliminated {
+      opacity: 0.35;
+      filter: grayscale(1);
+    }
+    .player-row-avatar { font-size: 28px; }
+    .player-row-info { flex: 1; }
+    .player-row-name { font-size: 13px; font-weight: 700; }
+    .player-row-score {
+      font-family: monospace;
+      font-size: 13px;
+      color: var(--gold);
+      font-weight: 700;
+    }
+    .conn-pip {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+    }
+    .conn-pip.live { background: var(--green); }
+    .conn-pip.dc { background: var(--red); }
 
-    /* ══════════ QUESTION MODAL ══════════ */
-    .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:300;padding:12px;}
-    .modal-bg.open{display:flex;flex-direction:column;}
-    .modal-box{background:var(--s1);border:1px solid var(--b1);border-radius:20px;
-      overflow:hidden;width:100%;max-width:480px;margin:auto;display:flex;flex-direction:column;max-height:88vh;}
-    .modal-hd{padding:14px 16px;border-bottom:1px solid var(--b1);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
-    .modal-cats{display:flex;gap:6px;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--b1);flex-shrink:0;}
-    .cat-pill{padding:5px 11px;border-radius:15px;font-size:10px;font-weight:700;
-      border:1px solid var(--b2);background:var(--s2);cursor:pointer;color:var(--text);transition:background 0.12s;}
-    .cat-pill.active{background:var(--accent);color:#fff;border-color:var(--accent);}
-    .modal-qlist{overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1;}
-    .mq-item{padding:11px 14px;border-bottom:1px solid var(--b1);display:flex;align-items:center;gap:10px;cursor:pointer;}
-    .mq-item:active{background:rgba(255,255,255,0.025);}
-    .mq-item.used{opacity:0.4;}
-    .mq-body{flex:1;min-width:0;}
-    .mq-q{font-size:12px;font-weight:600;line-height:1.35;}
-    .mq-cat{font-size:10px;color:var(--muted);margin-top:2px;}
-    .mq-fire{background:var(--red);color:#fff;border:none;padding:6px 12px;border-radius:7px;font-size:10px;font-weight:700;cursor:pointer;flex-shrink:0;}
+    /* Question selector */
+    .q-pick-btn {
+      width: 100%;
+      background: var(--s2);
+      border: 2px dashed var(--b2);
+      border-radius: var(--radius);
+      padding: 14px;
+      color: var(--muted);
+      font-size: 13px;
+      text-align: left;
+      display: flex;
+      gap: 8px;
+      cursor: pointer;
+    }
+    .q-pick-btn.selected {
+      border-color: var(--accent);
+      background: rgba(59,130,246,0.05);
+      color: var(--text);
+    }
+    .q-box {
+      background: linear-gradient(135deg, rgba(59,130,246,0.07), rgba(139,92,246,0.04));
+      border-radius: var(--radius);
+      padding: 14px;
+      margin-top: 12px;
+    }
+    .q-text {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+    .q-opts {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    .q-opt {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--b1);
+      border-radius: 8px;
+      padding: 8px;
+      font-size: 11px;
+    }
+    .q-opt.correct {
+      border-color: var(--green);
+      background: rgba(16,185,129,0.08);
+    }
+    .q-opt-letter {
+      color: var(--accent);
+      font-weight: 800;
+      margin-right: 4px;
+    }
 
-    /* ══════════ TOAST ══════════ */
-    #toastWrap{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:500;
-      display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none;}
-    .toast{background:rgba(13,17,32,0.96);border:1px solid var(--b2);border-radius:20px;
-      padding:8px 18px;font-size:12px;font-weight:600;white-space:nowrap;max-width:90vw;
-      overflow:hidden;text-overflow:ellipsis;animation:toastIn 0.25s ease;backdrop-filter:blur(10px);}
-    @keyframes toastIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+    /* Buzzer banner */
+    .buzz-banner {
+      display: none;
+      background: rgba(251,191,36,0.08);
+      border: 2px solid var(--gold);
+      border-radius: var(--radius);
+      padding: 14px;
+      text-align: center;
+    }
+    .buzz-banner.visible {
+      display: block;
+      animation: fadePop 0.2s ease;
+    }
+    @keyframes fadePop {
+      from { transform: scale(0.95); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+    .buzz-banner-name {
+      font-size: 22px;
+      font-weight: 800;
+    }
+    .buzz-banner-answer {
+      font-size: 11px;
+      color: var(--green);
+      margin-top: 6px;
+    }
 
-    /* ══════════ UTIL ══════════ */
-    .hidden{display:none!important;}
-    .divider{height:1px;background:var(--b1);margin:4px 0;}
-    .empty-msg{color:var(--muted);font-size:12px;text-align:center;padding:20px;}
-    .loading-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;gap:14px;}
-    .spinner{width:34px;height:34px;border:3px solid var(--b2);border-top-color:var(--gold);border-radius:50%;animation:spin 0.7s linear infinite;}
-    @keyframes spin{to{transform:rotate(360deg);}}
-    .loading-txt{font-size:13px;color:var(--muted);}
-    input[type=number]{-moz-appearance:textfield;}
-    input[type=number]::-webkit-outer-spin-button,
-    input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+    /* Players grid */
+    .players-big-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .pbg-card {
+      background: var(--s2);
+      border: 2px solid var(--b1);
+      border-radius: var(--radius);
+      padding: 10px 5px;
+      text-align: center;
+      cursor: pointer;
+    }
+    .pbg-card.buzzed {
+      border-color: var(--gold);
+      background: rgba(251,191,36,0.1);
+    }
+    .pbg-card.eliminated {
+      opacity: 0.3;
+      pointer-events: none;
+    }
+    .pbg-avatar { font-size: 30px; }
+    .pbg-name { font-size: 11px; font-weight: 700; }
+    .pbg-score { font-family: monospace; font-size: 14px; color: var(--gold); margin-top: 4px; }
+
+    /* Override rows */
+    .ov-row {
+      background: var(--s2);
+      border: 1px solid var(--b1);
+      border-radius: var(--radius-sm);
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+    .ov-info { flex: 1; }
+    .ov-name { font-weight: 700; font-size: 13px; }
+    .ov-score { font-family: monospace; font-size: 13px; color: var(--gold); }
+    .ov-actions { display: flex; gap: 5px; }
+
+    /* Modal */
+    .modal-bg {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.92);
+      z-index: 300;
+      padding: 12px;
+    }
+    .modal-bg.open {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-box {
+      background: var(--s1);
+      border: 1px solid var(--b1);
+      border-radius: 24px;
+      width: 100%;
+      max-width: 480px;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .modal-hd {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--b1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .modal-cats {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      padding: 12px;
+      border-bottom: 1px solid var(--b1);
+    }
+    .cat-pill {
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 10px;
+      font-weight: 700;
+      border: 1px solid var(--b2);
+      background: var(--s2);
+      cursor: pointer;
+      color: var(--text);
+    }
+    .cat-pill.active {
+      background: var(--accent);
+      color: white;
+      border-color: var(--accent);
+    }
+    .modal-qlist {
+      overflow-y: auto;
+      flex: 1;
+    }
+    .mq-item {
+      padding: 12px;
+      border-bottom: 1px solid var(--b1);
+      display: flex;
+      gap: 8px;
+      cursor: pointer;
+      align-items: center;
+    }
+    .mq-item.used { opacity: 0.4; }
+    .mq-q { font-size: 12px; font-weight: 600; flex: 1; }
+    .empty-msg { color: var(--muted); text-align: center; padding: 24px; }
+    .hidden { display: none !important; }
+
+    /* Toast */
+    #toastWrap {
+      position: fixed;
+      bottom: 20px;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: center;
+      pointer-events: none;
+      z-index: 500;
+    }
+    .toast {
+      background: rgba(13,17,32,0.96);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--b2);
+      border-radius: 40px;
+      padding: 8px 20px;
+      font-size: 12px;
+      font-weight: 600;
+      animation: fadeUp 0.2s ease;
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
   </style>
 </head>
 <body>
 
-<!-- LOADING -->
 <div id="loadingScreen" class="loading-wrap">
   <div class="spinner"></div>
-  <div class="loading-txt" id="loadingTxt">Starting…</div>
+  <div style="color: #6b7a99;">Starting...</div>
 </div>
 
-<!-- JOIN SCREEN -->
-<div id="joinScreen" class="screen" style="display:none;">
-  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:24px;">
+<div id="joinScreen" class="screen">
+  <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; padding:20px;">
     <div class="join-logo">PLAYAQUIZ</div>
     <div class="join-sub">Host Control</div>
     <div class="join-card">
       <label class="field-label">Room Code</label>
-      <input class="big-input" id="joinInput" type="text" placeholder="FR####" maxlength="8"
-             autocomplete="off" autocapitalize="characters" spellcheck="false"
-             onkeydown="if(event.key==='Enter')joinRoom()">
-      <div class="join-hint">Enter the room code from the<br>Final Round setup screen.</div>
+      <input class="big-input" id="joinInput" type="text" placeholder="FR####" maxlength="8" autocomplete="off" autocapitalize="characters">
+      <div class="join-hint">Enter the room code from Final Round setup</div>
       <button class="btn btn-gold btn-lg btn-full" onclick="joinRoom()">🎮 Connect</button>
+      <div id="joinError" class="error-msg"></div>
     </div>
   </div>
 </div>
 
-<!-- MAIN APP -->
-<div id="appScreen" class="screen" style="display:none;">
-
-  <!-- Top bar -->
+<div id="appScreen" class="screen">
   <div class="topbar">
-    <div class="topbar-left">
+    <div>
       <div class="topbar-logo">PLAYAQUIZ</div>
       <div class="topbar-title">Host Control</div>
     </div>
-    <div class="topbar-right">
-      <div class="room-chip">
-        <div class="live-dot" id="liveDot"></div>
-        <div class="room-chip-code" id="chipCode">——</div>
-      </div>
+    <div class="room-chip">
+      <div class="live-dot" id="liveDot"></div>
+      <div class="room-chip-code" id="chipCode">——</div>
     </div>
   </div>
-
-  <!-- Tab bar -->
   <div class="tabbar">
-    <button class="tab-btn active" id="tab-setup" onclick="switchTab('setup')">
-      <span class="tab-icon">⚙️</span>Setup
-    </button>
-    <button class="tab-btn" id="tab-game" onclick="switchTab('game')">
-      <span class="tab-icon">⚡</span>Game
-    </button>
-    <button class="tab-btn" id="tab-players" onclick="switchTab('players')">
-      <span class="tab-icon">👥</span>Players
-    </button>
-    <button class="tab-btn" id="tab-foh" onclick="switchTab('foh')">
-      <span class="tab-icon">📺</span>FOH
-    </button>
+    <button class="tab-btn active" onclick="switchTab('setup')"><span class="tab-icon">⚙️</span>Setup</button>
+    <button class="tab-btn" onclick="switchTab('game')"><span class="tab-icon">⚡</span>Game</button>
+    <button class="tab-btn" onclick="switchTab('players')"><span class="tab-icon">👥</span>Players</button>
+    <button class="tab-btn" onclick="switchTab('foh')"><span class="tab-icon">📺</span>FOH</button>
   </div>
-
-  <!-- Tab content -->
   <div class="tabs-content">
-
-    <!-- ── SETUP TAB ── -->
+    <!-- Setup Panel -->
     <div class="tab-panel active" id="panel-setup">
-
-      <!-- Room Code -->
       <div class="card">
-        <div class="card-hd">
-          <div class="card-hd-title">🏠 Room</div>
-          <div id="connLabel" style="font-size:10px;color:var(--muted);">Offline</div>
-        </div>
+        <div class="card-hd"><div class="card-hd-title">🏠 Room</div><span id="connLabel" style="font-size:9px;">Connecting...</span></div>
         <div class="card-bd">
-          <div class="big-room-display">
-            <div class="big-room-label">Room Code</div>
-            <div class="big-room-code" id="bigRoomCode">——</div>
-            <div class="big-room-sub">Share this with your players</div>
-          </div>
-          <div class="btn-grid-2" style="margin-top:10px;">
+          <div class="big-room-display"><div class="big-room-code" id="bigRoomCode">——</div></div>
+          <div class="btn-grid-2">
             <button class="btn btn-ghost btn-md" onclick="copyJoinLink()">🔗 Copy Link</button>
             <button class="btn btn-ghost btn-md" onclick="newRoomCode()">🔄 New Code</button>
           </div>
         </div>
       </div>
-
-      <!-- Players -->
       <div class="card">
-        <div class="card-hd">
-          <div class="card-hd-title">👥 Players</div>
-          <div class="player-count-badge">👤 <span id="playerCountSetup">0</span> joined</div>
-        </div>
-        <div class="card-bd">
-          <div class="player-list" id="setupPlayerList">
-            <div class="empty-msg">Waiting for players to join…</div>
-          </div>
-        </div>
+        <div class="card-hd"><div class="card-hd-title">👥 Players</div><span id="playerCountBadge" style="color:var(--gold);">0</span></div>
+        <div class="card-bd"><div class="player-list" id="setupPlayerList"><div class="empty-msg">Waiting for players...</div></div></div>
       </div>
-
-      <!-- Settings -->
       <div class="card">
         <div class="card-hd"><div class="card-hd-title">⚙️ Settings</div></div>
-        <div class="card-bd" style="display:flex;flex-direction:column;gap:10px;">
-          <div>
-            <label class="field-label">Points Per Correct Answer</label>
-            <input id="pointsInput" type="number" value="100" step="10" min="10"
-              style="background:var(--bg);border:1.5px solid var(--b2);border-radius:var(--radius-sm);
-              padding:10px 14px;color:var(--text);font-size:16px;font-weight:700;width:100%;outline:none;">
-          </div>
-          <div>
-            <label class="field-label">Min Players to Start</label>
-            <input id="minPlayersInput" type="number" value="2" min="1" max="20"
-              style="background:var(--bg);border:1.5px solid var(--b2);border-radius:var(--radius-sm);
-              padding:10px 14px;color:var(--text);font-size:16px;font-weight:700;width:100%;outline:none;">
-          </div>
+        <div class="card-bd" style="display:flex; flex-direction:column; gap:12px;">
+          <input type="number" id="pointsInput" value="100" step="10" style="background:var(--bg);border:1px solid var(--b2);border-radius:10px;padding:12px;color:white;font-weight:700;">
+          <input type="number" id="minPlayersInput" value="2" min="1" style="background:var(--bg);border:1px solid var(--b2);border-radius:10px;padding:12px;color:white;">
+          <button class="btn btn-gold btn-xl btn-full" onclick="startRound()">🚀 START ROUND</button>
+          <button class="btn btn-danger-ghost btn-md btn-full" onclick="fullReset()">🔄 Full Reset</button>
         </div>
       </div>
+    </div>
 
-      <!-- Start -->
-      <button class="btn btn-gold btn-xl btn-full" onclick="startRound()">🚀 START ROUND</button>
-      <button class="btn btn-danger-ghost btn-md btn-full" onclick="fullReset()">🔄 Full Reset / New Game</button>
-
-    </div><!-- /setup -->
-
-    <!-- ── GAME TAB ── -->
+    <!-- Game Panel -->
     <div class="tab-panel" id="panel-game">
-
-      <!-- Question Selector -->
       <div class="card">
-        <div class="card-hd">
-          <div class="card-hd-title">📚 Question</div>
-          <span id="qNumBadge" style="font-size:10px;color:var(--muted);">Q #<span id="qNum">0</span></span>
-        </div>
-        <div class="card-bd" style="display:flex;flex-direction:column;gap:10px;">
-          <button class="q-pick-btn" id="qPickBtn" onclick="openQModal()">
-            <span>📋</span>
-            <span id="qPickLabel">Tap to select a question…</span>
-          </button>
-          <!-- Q display -->
-          <div id="qDisplay" class="hidden">
-            <div class="q-box">
-              <div class="q-text" id="qText"></div>
-              <div class="q-opts" id="qOpts"></div>
-              <div class="q-correct-line" id="qCorrectLine"></div>
-            </div>
-          </div>
+        <div class="card-hd"><div class="card-hd-title">📚 Question</div><span id="qNumBadge">Q#0</span></div>
+        <div class="card-bd">
+          <button class="q-pick-btn" id="qPickBtn" onclick="openQModal()"><span>📋</span><span id="qPickLabel">Tap to select question</span></button>
+          <div id="qDisplay" class="hidden"></div>
         </div>
       </div>
-
-      <!-- Buzzer Control -->
       <div class="card">
         <div class="card-hd"><div class="card-hd-title">🔔 Buzzer Control</div></div>
-        <div class="card-bd" style="display:flex;flex-direction:column;gap:8px;">
-          <button class="btn btn-accent btn-xl btn-full" id="openBuzzBtn" onclick="openQuestion()" disabled>
-            🔔 OPEN BUZZERS
-          </button>
+        <div class="card-bd" style="display:flex; flex-direction:column; gap:8px;">
+          <button class="btn btn-accent btn-xl btn-full" id="openBuzzBtn" onclick="openQuestion()" disabled>🔔 OPEN BUZZERS</button>
           <div class="btn-grid-2">
-            <button class="btn btn-ghost btn-md" id="resetBuzzBtn" onclick="resetBuzzers()" disabled>↺ Reset Buzzers</button>
-            <button class="btn btn-orange btn-md" id="buzzerToggleBtn" onclick="toggleBuzzer()">🔔 Buzzers ON</button>
+            <button class="btn btn-ghost" id="resetBuzzBtn" onclick="resetBuzzers()" disabled>↺ Reset</button>
+            <button class="btn btn-orange" id="buzzerToggleBtn" onclick="toggleBuzzer()">🔔 ON</button>
           </div>
         </div>
       </div>
-
-      <!-- Buzzed Banner -->
       <div class="buzz-banner" id="buzzBanner">
-        <div class="buzz-banner-label">🔔 Buzzed In!</div>
         <div class="buzz-banner-name" id="buzzBannerName">—</div>
-        <div class="buzz-banner-answer" id="buzzBannerAnswer"></div>
+        <div class="buzz-banner-answer" id="buzzAnswerHint"></div>
       </div>
-
-      <!-- Judge Buttons -->
       <div class="btn-grid-2">
         <button class="btn btn-green btn-lg" id="correctBtn" onclick="markCorrect()" disabled>✅ CORRECT</button>
-        <button class="btn btn-red btn-lg"   id="wrongBtn"   onclick="markWrong()"   disabled>❌ WRONG</button>
+        <button class="btn btn-red btn-lg" id="wrongBtn" onclick="markWrong()" disabled>❌ WRONG</button>
       </div>
-
-      <!-- Timer + Next -->
       <div class="card">
-        <div class="card-hd"><div class="card-hd-title">⏱️ Timer</div></div>
         <div class="card-bd">
-          <div style="display:flex;gap:8px;align-items:center;">
-            <input type="number" id="timerInput" value="10" min="3" max="60"
-              style="background:var(--bg);border:1.5px solid var(--b2);border-radius:var(--radius-sm);
-              padding:10px;color:var(--text);font-size:20px;font-weight:700;width:72px;text-align:center;outline:none;
-              font-family:'JetBrains Mono',monospace;">
-            <button class="btn btn-accent btn-md" style="flex:1;" onclick="startTimer()">▶ Start Timer</button>
+          <div style="display:flex; gap:8px;">
+            <input type="number" id="timerInput" value="10" style="width:80px;background:var(--bg);border:1px solid var(--b2);border-radius:8px;text-align:center;padding:10px;">
+            <button class="btn btn-accent" style="flex:1;" onclick="startTimer()">⏱️ Start Timer</button>
           </div>
         </div>
       </div>
-
       <button class="btn btn-ghost btn-md btn-full" onclick="nextQuestion()">⏭ Next Question</button>
+    </div>
 
-    </div><!-- /game -->
-
-    <!-- ── PLAYERS TAB ── -->
+    <!-- Players Panel -->
     <div class="tab-panel" id="panel-players">
-
-      <!-- Manual Buzz -->
       <div class="card">
-        <div class="card-hd">
-          <div class="card-hd-title">🎯 Manual Buzz</div>
-          <span style="font-size:10px;color:var(--muted);">Tap to force buzz</span>
-        </div>
-        <div class="card-bd">
-          <div class="players-big-grid" id="manualBuzzGrid">
-            <div class="empty-msg" style="grid-column:1/-1;">No players yet</div>
-          </div>
-        </div>
+        <div class="card-hd"><div class="card-hd-title">🎯 Manual Buzz</div></div>
+        <div class="card-bd"><div class="players-big-grid" id="manualBuzzGrid"></div></div>
       </div>
-
-      <!-- Override Controls -->
       <div class="card">
         <div class="card-hd"><div class="card-hd-title">⚡ Player Override</div></div>
-        <div class="card-bd" id="overrideList">
-          <div class="empty-msg">No players yet</div>
-        </div>
+        <div class="card-bd" id="overrideList"></div>
       </div>
+    </div>
 
-    </div><!-- /players -->
-
-    <!-- ── FOH TAB ── -->
+    <!-- FOH Panel -->
     <div class="tab-panel" id="panel-foh">
-
       <div class="card">
-        <div class="card-hd"><div class="card-hd-title">📺 FOH Display Controls</div></div>
-        <div class="card-bd" style="display:flex;flex-direction:column;gap:8px;">
-
-          <button class="foh-btn" style="background:rgba(59,130,246,0.1);border:1px solid rgba(59,130,246,0.3);color:var(--text);" onclick="fohShowRoomCode()">
-            <span class="foh-icon">📡</span>
-            <span class="foh-label">
-              <span class="foh-title">Show Room Code</span>
-              <span class="foh-desc">Display room code on the big screen</span>
-            </span>
-          </button>
-
-          <button class="foh-btn" style="background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.3);color:var(--text);" onclick="fohShowCategories()">
-            <span class="foh-icon">🎨</span>
-            <span class="foh-label">
-              <span class="foh-title">Show Categories</span>
-              <span class="foh-desc">Display category picker on FOH &amp; player screens</span>
-            </span>
-          </button>
-
-          <button class="foh-btn" style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.3);color:var(--text);" onclick="fohShowLeaderboard()">
-            <span class="foh-icon">🏆</span>
-            <span class="foh-label">
-              <span class="foh-title">Show Leaderboard</span>
-              <span class="foh-desc">Push current scores to FOH</span>
-            </span>
-          </button>
-
-          <button class="foh-btn" style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);color:var(--text);" onclick="fohEndRound()">
-            <span class="foh-icon">🏁</span>
-            <span class="foh-label">
-              <span class="foh-title">End Round &amp; Show Winner</span>
-              <span class="foh-desc">Broadcast winner to all screens</span>
-            </span>
-          </button>
-
+        <div class="card-bd" style="display:flex; flex-direction:column; gap:8px;">
+          <button class="btn btn-accent btn-lg" onclick="fohShowRoomCode()">📡 Show Room Code</button>
+          <button class="btn btn-purple btn-lg" onclick="fohShowCategories()">🎨 Show Categories</button>
+          <button class="btn btn-gold btn-lg" onclick="fohShowLeaderboard()">🏆 Show Leaderboard</button>
+          <button class="btn btn-green btn-lg" onclick="fohEndRound()">🏁 End Round & Winner</button>
         </div>
       </div>
+    </div>
+  </div>
+</div>
 
-      <!-- Danger zone -->
-      <div class="card" style="border-color:rgba(239,68,68,0.3);">
-        <div class="card-hd" style="border-color:rgba(239,68,68,0.2);">
-          <div class="card-hd-title" style="color:var(--red);">⚠️ Danger Zone</div>
-        </div>
-        <div class="card-bd" style="display:flex;flex-direction:column;gap:8px;">
-          <button class="btn btn-danger-ghost btn-md btn-full" onclick="fullReset()">🔄 Full Reset / New Game</button>
-        </div>
-      </div>
-
-    </div><!-- /foh -->
-
-  </div><!-- /tabs-content -->
-</div><!-- /appScreen -->
-
-<!-- QUESTION MODAL -->
+<!-- Question Modal -->
 <div class="modal-bg" id="qModal">
   <div class="modal-box">
-    <div class="modal-hd">
-      <span style="font-size:13px;font-weight:700;">📚 Select Question</span>
-      <button class="btn btn-ghost btn-sm" onclick="closeQModal()">✕ Close</button>
-    </div>
+    <div class="modal-hd"><span>📖 Select Question</span><button class="btn btn-ghost" style="padding:5px 12px;" onclick="closeQModal()">✕</button></div>
     <div class="modal-cats" id="modalCats"></div>
     <div class="modal-qlist" id="modalQList"></div>
   </div>
 </div>
 
-<!-- TOAST -->
 <div id="toastWrap"></div>
 
 <script>
-/* ═══════════════════════════════════════
-   SUPABASE CONFIG
-═══════════════════════════════════════ */
-const SUPABASE_URL  = 'https://efgirqbaayfjwswnwbop.supabase.co';
+const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
 const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-/* ═══════════════════════════════════════
-   STATE
-═══════════════════════════════════════ */
-let roomCode            = '';
-let ch                  = null;   // realtime channel
-let frPlayers           = new Map();
-let eliminated          = new Set();
-let locked              = new Set();
-let buzzedId            = null;
-let isOpen              = false;
-let buzzerOn            = true;
-let selectedQ           = null;
-let allQs               = [];
-let cats                = [];
-let filterCat           = 'all';
-let usedQIds            = new Set();
-let qNum                = 0;
-let pts                 = 100;
-let activeTab           = 'setup';
+// State
+let roomCode = '';
+let channel = null;
+let players = new Map();
+let eliminated = new Set();
+let locked = new Set();
+let buzzedId = null;
+let isOpen = false;
+let buzzerEnabled = true;
+let selectedQ = null;
+let allQuestions = [];
+let categories = [];
+let filterCat = 'all';
+let usedQIds = new Set();
+let qCounter = 0;
 
-/* ═══════════════════════════════════════
-   INIT
-═══════════════════════════════════════ */
+// DOM Elements
+const loadingScreen = document.getElementById('loadingScreen');
+const joinScreen = document.getElementById('joinScreen');
+const appScreen = document.getElementById('appScreen');
+
+// Initialize
 window.addEventListener('load', () => {
-  document.getElementById('loadingScreen').style.display = 'none';
-  const params = new URLSearchParams(window.location.search);
-  const urlRoom = params.get('room');
-  if (urlRoom) {
-    connectRoom(urlRoom.toUpperCase());
-  } else {
-    // Check localStorage for last room
-    const saved = localStorage.getItem('hc_room');
-    if (saved) document.getElementById('joinInput').value = saved;
-    showScreen('joinScreen');
-  }
+  // Hide loading after a short delay
+  setTimeout(() => {
+    loadingScreen.style.display = 'none';
+    const urlRoom = new URLSearchParams(location.search).get('room');
+    if (urlRoom && urlRoom.length >= 4) {
+      document.getElementById('joinInput').value = urlRoom.toUpperCase();
+      setTimeout(() => connectRoom(urlRoom.toUpperCase()), 100);
+    } else {
+      joinScreen.classList.add('active');
+    }
+  }, 500);
 });
 
-function showScreen(id) {
-  ['loadingScreen','joinScreen','appScreen'].forEach(s => {
-    const el = document.getElementById(s);
-    if (el) el.style.display = (s === id) ? (s === 'appScreen' ? 'flex' : 'flex') : 'none';
-  });
-}
-
-/* ═══════════════════════════════════════
-   JOIN / CONNECT
-═══════════════════════════════════════ */
-function joinRoom() {
-  const code = (document.getElementById('joinInput').value || '').trim().toUpperCase();
-  if (code.length < 3) { toast('Enter a valid room code'); return; }
-  connectRoom(code);
+async function joinRoom() {
+  const code = document.getElementById('joinInput').value.trim().toUpperCase();
+  const errorDiv = document.getElementById('joinError');
+  if (!code || code.length < 4) {
+    errorDiv.textContent = 'Please enter a valid room code';
+    errorDiv.style.display = 'block';
+    return;
+  }
+  errorDiv.style.display = 'none';
+  await connectRoom(code);
 }
 
 async function connectRoom(code) {
-  showLoading(`Connecting to ${code}…`);
   roomCode = code;
   localStorage.setItem('hc_room', code);
-
-  // Register room in DB so players can find it
-  await registerRoom(code);
-
-  await loadDB();
-  setupChannel();
-
-  // Update URL
-  const url = new URL(window.location.href);
-  url.searchParams.set('room', roomCode);
-  window.history.replaceState({}, '', url.toString());
-
-  document.getElementById('chipCode').textContent = roomCode;
-  document.getElementById('bigRoomCode').textContent = roomCode;
-  showScreen('appScreen');
-  toast(`🎮 Room ${roomCode} ready`);
-}
-
-function showLoading(msg) {
-  document.getElementById('loadingTxt').textContent = msg || 'Loading…';
-  document.getElementById('loadingScreen').style.display = 'flex';
-  document.getElementById('joinScreen').style.display   = 'none';
-  document.getElementById('appScreen').style.display    = 'none';
-}
-
-/* ═══════════════════════════════════════
-   DATABASE
-═══════════════════════════════════════ */
-async function registerRoom(code) {
+  
+  loadingScreen.style.display = 'flex';
+  joinScreen.classList.remove('active');
+  appScreen.classList.remove('active');
+  
   try {
-    await sb.from('game_rooms').delete().neq('room_code', code);
-    await sb.from('game_rooms').upsert({
-      room_code: code, is_active: true,
-      control_id: 'hc_' + Date.now(), created_at: new Date(), player_count: 0
+    // Try to register room, but don't fail if DB is slow
+    try {
+      await sb.from('game_rooms').upsert({
+        room_code: code,
+        is_active: true,
+        control_id: 'hc_' + Date.now(),
+        created_at: new Date(),
+        player_count: 0
+      }, { onConflict: 'room_code' });
+    } catch (dbErr) {
+      console.warn('DB upsert issue:', dbErr);
+      // Continue anyway - realtime might still work
+    }
+    
+    // Load questions with timeout
+    await Promise.race([
+      loadQuestions(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
+    ]).catch(err => {
+      console.warn('Question load timeout, using empty:', err);
+      allQuestions = [];
+      categories = [];
     });
-  } catch(e) { console.warn('registerRoom:', e); }
+    
+    setupRealtime();
+    
+    document.getElementById('chipCode').innerText = roomCode;
+    document.getElementById('bigRoomCode').innerText = roomCode;
+    document.getElementById('connLabel').innerText = 'Connecting...';
+    
+    loadingScreen.style.display = 'none';
+    appScreen.classList.add('active');
+    toast(`Connected to room ${roomCode}`);
+  } catch (err) {
+    console.error('Connection error:', err);
+    loadingScreen.style.display = 'none';
+    joinScreen.classList.add('active');
+    document.getElementById('joinError').textContent = 'Failed to connect. Please try again.';
+    document.getElementById('joinError').style.display = 'block';
+  }
 }
 
-async function loadDB() {
+async function loadQuestions() {
   try {
-    const { data: c } = await sb.from('categories').select('*').order('name');
-    cats = c || [];
-    const { data: q } = await sb.from('questions').select('*, categories(name,icon)').order('created_at');
-    allQs = q || [];
-    buildModalCats();
-    buildModalQList();
-  } catch(e) { console.error('loadDB:', e); }
+    const { data: cats } = await sb.from('categories').select('*').order('name');
+    categories = cats || [];
+    const { data: qs } = await sb.from('questions').select('*').order('created_at');
+    allQuestions = qs || [];
+    renderCategoryFilters();
+    renderQList();
+    console.log(`Loaded ${allQuestions.length} questions, ${categories.length} categories`);
+  } catch (err) {
+    console.error('Load questions error:', err);
+    allQuestions = [];
+    categories = [];
+  }
 }
 
-/* ═══════════════════════════════════════
-   REALTIME CHANNEL
-═══════════════════════════════════════ */
-function setupChannel() {
-  if (ch) sb.removeChannel(ch);
+function renderCategoryFilters() {
+  const html = `<button class="cat-pill active" onclick="setFilter('all',this)">📚 All (${allQuestions.length})</button>` +
+    categories.map(c => {
+      const count = allQuestions.filter(q => q.category_id === c.id).length;
+      return `<button class="cat-pill" onclick="setFilter('${c.id}',this)">${c.icon || '📁'} ${c.name} (${count})</button>`;
+    }).join('');
+  document.getElementById('modalCats').innerHTML = html;
+}
 
-  ch = sb.channel(`fr-${roomCode}`);
-  ch
-    /* Incoming from players */
-    .on('broadcast', {event:'player_join'},       ({payload}) => onPlayerJoin(payload))
-    .on('broadcast', {event:'player_heartbeat'},  ({payload}) => onHeartbeat(payload))
-    .on('broadcast', {event:'buzz'},              ({payload}) => onBuzz(payload))
-    /* Incoming from finalroundcontrol (backup laptop) — keep state in sync */
-    .on('broadcast', {event:'player_list_update'},({payload}) => onPlayerListUpdate(payload))
-    .on('broadcast', {event:'correct'},           ({payload}) => onCorrectExternal(payload))
-    .on('broadcast', {event:'wrong'},             ({payload}) => onWrongExternal(payload))
-    .on('broadcast', {event:'eliminated'},        ({payload}) => onEliminatedExternal(payload))
-    .on('broadcast', {event:'full_game_reset'},   ({payload}) => onFullResetExternal(payload))
-    .subscribe(status => {
-      const dot  = document.getElementById('liveDot');
-      const lbl  = document.getElementById('connLabel');
+function setFilter(id, btn) {
+  filterCat = id;
+  document.querySelectorAll('#modalCats .cat-pill').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderQList();
+}
+
+function renderQList() {
+  const filtered = filterCat === 'all' ? allQuestions : allQuestions.filter(q => q.category_id === filterCat);
+  const html = filtered.map(q => `
+    <div class="mq-item ${usedQIds.has(q.id) ? 'used' : ''}" onclick="selectQuestion('${q.id}')">
+      <div class="mq-q">${escapeHtml((q.question_text || '').substring(0, 70))}</div>
+      <button class="btn btn-red" style="padding:4px 12px; font-size:10px;" onclick="event.stopPropagation(); fireQuestion('${q.id}')">🔥</button>
+    </div>
+  `).join('');
+  document.getElementById('modalQList').innerHTML = html || '<div class="empty-msg">No questions available</div>';
+}
+
+function selectQuestion(id) {
+  selectedQ = allQuestions.find(q => q.id === id);
+  if (selectedQ) {
+    document.getElementById('qPickLabel').innerText = (selectedQ.question_text || '').substring(0, 50) + '…';
+    document.getElementById('qPickBtn').classList.add('selected');
+    renderSelectedQDisplay();
+    document.getElementById('openBuzzBtn').disabled = false;
+    document.getElementById('resetBuzzBtn').disabled = false;
+    closeQModal();
+    toast('Question selected');
+  }
+}
+
+function renderSelectedQDisplay() {
+  if (!selectedQ) return;
+  const opts = [selectedQ.option_a || '', selectedQ.option_b || '', selectedQ.option_c || '', selectedQ.option_d || ''];
+  const letters = ['A', 'B', 'C', 'D'];
+  const correctOpt = selectedQ.correct_option !== undefined ? selectedQ.correct_option : 0;
+  const html = `
+    <div class="q-box">
+      <div class="q-text">${escapeHtml(selectedQ.question_text || '')}</div>
+      <div class="q-opts">
+        ${opts.map((o, i) => `<div class="q-opt ${i === correctOpt ? 'correct' : ''}"><span class="q-opt-letter">${letters[i]}</span> ${escapeHtml(o)}</div>`).join('')}
+      </div>
+      <div style="font-size:10px; color:var(--green); margin-top:8px;">✅ Answer: ${letters[correctOpt]} — ${escapeHtml(opts[correctOpt])}</div>
+    </div>
+  `;
+  document.getElementById('qDisplay').innerHTML = html;
+  document.getElementById('qDisplay').classList.remove('hidden');
+}
+
+function fireQuestion(id) {
+  selectQuestion(id);
+  setTimeout(() => openQuestion(), 100);
+}
+
+function setupRealtime() {
+  if (channel) {
+    try { sb.removeChannel(channel); } catch(e) {}
+  }
+  
+  channel = sb.channel(`fr-${roomCode}`);
+  channel
+    .on('broadcast', { event: 'player_join' }, ({ payload }) => handlePlayerJoin(payload))
+    .on('broadcast', { event: 'player_heartbeat' }, ({ payload }) => handleHeartbeat(payload))
+    .on('broadcast', { event: 'buzz' }, ({ payload }) => handleBuzz(payload))
+    .on('broadcast', { event: 'correct' }, ({ payload }) => handleExternalCorrect(payload))
+    .on('broadcast', { event: 'wrong' }, ({ payload }) => handleExternalWrong(payload))
+    .on('broadcast', { event: 'eliminated' }, ({ payload }) => handleExternalEliminated(payload))
+    .on('broadcast', { event: 'full_game_reset' }, ({ payload }) => handleFullReset(payload))
+    .on('broadcast', { event: 'player_list_update' }, ({ payload }) => syncPlayers(payload.players))
+    .subscribe((status) => {
+      const dot = document.getElementById('liveDot');
+      const lbl = document.getElementById('connLabel');
       if (status === 'SUBSCRIBED') {
-        dot.classList.add('on'); lbl.textContent = '🟢 Live';
+        dot.classList.add('on');
+        if (lbl) lbl.innerText = 'Live';
       } else {
-        dot.classList.remove('on'); lbl.textContent = status;
+        dot.classList.remove('on');
+        if (lbl) lbl.innerText = 'Connecting...';
       }
     });
-
-  // Connection health check
+    
+  // Health check
   if (window._hcInterval) clearInterval(window._hcInterval);
   window._hcInterval = setInterval(() => {
-    const now = Date.now();
     let changed = false;
-    frPlayers.forEach(p => {
+    const now = Date.now();
+    players.forEach(p => {
       const was = p.connected;
-      p.connected = !p.lastSeen || (now - p.lastSeen < 18000);
+      p.connected = p.lastSeen ? (now - p.lastSeen < 18000) : true;
       if (was !== p.connected) changed = true;
     });
-    if (changed) renderAllPlayers();
+    if (changed) renderAll();
   }, 5000);
 }
 
-function bcast(event, payload) {
-  if (ch) ch.send({ type:'broadcast', event, payload });
-}
-
-/* ═══════════════════════════════════════
-   INCOMING HANDLERS
-═══════════════════════════════════════ */
-function onPlayerJoin(p) {
-  const existing = Array.from(frPlayers.values()).find(x => x.name === p.name);
-  if (existing && existing.id !== p.id) {
-    // reconnect with new id
-    frPlayers.delete(existing.id);
-    existing.id = p.id; existing.connected = true; existing.lastSeen = Date.now();
-    frPlayers.set(p.id, existing);
-  } else if (frPlayers.has(p.id)) {
-    const ex = frPlayers.get(p.id);
-    ex.connected = true; ex.lastSeen = Date.now();
+function handlePlayerJoin(payload) {
+  if (players.has(payload.id)) {
+    const existing = players.get(payload.id);
+    existing.connected = true;
+    existing.lastSeen = Date.now();
   } else {
-    frPlayers.set(p.id, {id:p.id,name:p.name,avatar:p.avatar,score:0,status:'waiting',connected:true,lastSeen:Date.now()});
-    toast(`✨ ${p.avatar} ${p.name} joined`);
+    players.set(payload.id, {
+      id: payload.id,
+      name: payload.name,
+      avatar: payload.avatar || '👤',
+      score: 0,
+      status: 'waiting',
+      connected: true,
+      lastSeen: Date.now()
+    });
+    toast(`✨ ${payload.avatar || '👤'} ${payload.name} joined`);
   }
-  bcast('player_list_update', {players: [...frPlayers.values()]});
-  renderAllPlayers();
+  broadcast('player_list_update', { players: Array.from(players.values()) });
+  renderAll();
 }
 
-function onHeartbeat(p) {
-  const pl = frPlayers.get(p.id);
-  if (pl) { pl.lastSeen = Date.now(); pl.connected = true; }
+function handleHeartbeat(payload) {
+  const p = players.get(payload.id);
+  if (p) {
+    p.lastSeen = Date.now();
+    p.connected = true;
+  }
 }
 
-function onBuzz(p) {
-  if (!isOpen || buzzedId || !buzzerOn) return;
-  if (locked.has(p.id) || eliminated.has(p.id)) return;
-  const player = frPlayers.get(p.id);
+function handleBuzz(payload) {
+  if (!isOpen || buzzedId || !buzzerEnabled) return;
+  if (locked.has(payload.id) || eliminated.has(payload.id)) return;
+  
+  const player = players.get(payload.id);
   if (!player) return;
-  playBuzz();
-  buzzedId = p.id; isOpen = false;
+  
+  buzzedId = payload.id;
+  isOpen = false;
   player.status = 'buzzed';
-  frPlayers.forEach((pl, id) => { if (id !== p.id && !eliminated.has(id)) pl.status = 'locked'; });
-  showBuzzBanner(player.name, player.avatar);
-  setJudgeEnabled(true);
-  bcast('buzz_confirmed', {playerId:p.id, playerName:player.name, playerAvatar:player.avatar});
-  renderAllPlayers();
+  
+  players.forEach((p, id) => {
+    if (id !== payload.id && !eliminated.has(id)) p.status = 'locked';
+  });
+  
+  document.getElementById('buzzBanner').classList.add('visible');
+  document.getElementById('buzzBannerName').innerHTML = `${player.avatar} ${escapeHtml(player.name)}`;
+  if (selectedQ) {
+    const opts = [selectedQ.option_a || '', selectedQ.option_b || '', selectedQ.option_c || '', selectedQ.option_d || ''];
+    const letters = ['A', 'B', 'C', 'D'];
+    const correctOpt = selectedQ.correct_option !== undefined ? selectedQ.correct_option : 0;
+    document.getElementById('buzzAnswerHint').innerHTML = `✅ ${letters[correctOpt]}: ${escapeHtml(opts[correctOpt])}`;
+  }
+  document.getElementById('correctBtn').disabled = false;
+  document.getElementById('wrongBtn').disabled = false;
+  renderAll();
   toast(`🔔 ${player.name} buzzed!`);
 }
 
-function onPlayerListUpdate(payload) {
-  if (!payload.players) return;
-  payload.players.forEach(p => {
-    if (frPlayers.has(p.id)) {
-      const ex = frPlayers.get(p.id);
-      ex.score  = p.score  ?? ex.score;
-      ex.status = p.status ?? ex.status;
-    } else {
-      frPlayers.set(p.id, {...p, lastSeen: Date.now()});
-    }
-  });
-  renderAllPlayers();
-}
-
-function onCorrectExternal(p) {
-  const pl = frPlayers.get(p.playerId);
-  if (pl) { pl.score = p.newScore ?? (pl.score + pts); pl.status = 'correct'; }
-  hideBuzzBanner(); setJudgeEnabled(false);
-  buzzedId = null; isOpen = false;
-  renderAllPlayers();
-}
-
-function onWrongExternal(p) {
-  const pl = frPlayers.get(p.playerId);
-  if (pl) { pl.status = 'wrong'; locked.add(p.playerId); }
-  hideBuzzBanner(); setJudgeEnabled(false);
+function handleExternalCorrect(payload) {
+  const player = players.get(payload.playerId);
+  if (player) {
+    player.score = payload.newScore || (player.score + (parseInt(document.getElementById('pointsInput').value) || 100));
+    player.status = 'correct';
+  }
+  hideBuzzBanner();
   buzzedId = null;
-  renderAllPlayers();
+  isOpen = false;
+  renderAll();
 }
 
-function onEliminatedExternal(p) {
-  eliminated.add(p.playerId);
-  const pl = frPlayers.get(p.playerId);
-  if (pl) pl.status = 'eliminated';
-  renderAllPlayers();
+function handleExternalWrong(payload) {
+  const player = players.get(payload.playerId);
+  if (player) {
+    player.status = 'wrong';
+    locked.add(payload.playerId);
+  }
+  hideBuzzBanner();
+  buzzedId = null;
+  renderAll();
 }
 
-function onFullResetExternal(p) {
-  if (p?.newRoomCode && p.newRoomCode !== roomCode) {
-    toast(`🔄 Reset by laptop. New room: ${p.newRoomCode}`);
-    setTimeout(() => connectRoom(p.newRoomCode), 1200);
+function handleExternalEliminated(payload) {
+  eliminated.add(payload.playerId);
+  const player = players.get(payload.playerId);
+  if (player) player.status = 'eliminated';
+  if (buzzedId === payload.playerId) {
+    buzzedId = null;
+    hideBuzzBanner();
+  }
+  renderAll();
+}
+
+function handleFullReset(payload) {
+  if (payload && payload.newRoomCode && payload.newRoomCode !== roomCode) {
+    toast(`🔄 Game reset. New room: ${payload.newRoomCode}`);
+    setTimeout(() => connectRoom(payload.newRoomCode), 1500);
   } else {
     resetLocalState();
-    renderAllPlayers();
+    renderAll();
     toast('🔄 Game was reset');
   }
 }
 
-/* ═══════════════════════════════════════
-   GAME ACTIONS
-═══════════════════════════════════════ */
-function startRound() {
-  const minP = parseInt(document.getElementById('minPlayersInput').value) || 2;
-  if (frPlayers.size < minP) { toast(`Need at least ${minP} player(s)`); return; }
-  pts = parseInt(document.getElementById('pointsInput').value) || 100;
-  bcast('round_started', {roomCode, pointsPerBuzz: pts});
-  bcast('show_room_code', {roomCode});
-  bcast('show_categories', {categories: cats});
-  switchTab('game');
-  toast('🚀 Round started!');
+function syncPlayers(playerList) {
+  if (!playerList || !Array.isArray(playerList)) return;
+  playerList.forEach(p => {
+    if (players.has(p.id)) {
+      const existing = players.get(p.id);
+      existing.score = p.score ?? existing.score;
+      existing.status = p.status ?? existing.status;
+    } else {
+      players.set(p.id, { ...p, lastSeen: Date.now() });
+    }
+  });
+  renderAll();
+}
+
+function broadcast(event, payload) {
+  if (channel) {
+    try {
+      channel.send({ type: 'broadcast', event, payload });
+    } catch(e) { console.warn('Broadcast failed:', e); }
+  }
 }
 
 function openQuestion() {
-  if (!selectedQ) { toast('Select a question first!'); return; }
-  isOpen = true; buzzedId = null; locked.clear(); buzzerOn = true;
-  updateBuzzerBtn();
-  hideBuzzBanner(); setJudgeEnabled(false);
+  if (!selectedQ) {
+    toast('Select a question first!');
+    return;
+  }
+  
+  isOpen = true;
+  buzzedId = null;
+  locked.clear();
+  buzzerEnabled = true;
+  
+  document.getElementById('buzzerToggleBtn').innerHTML = '🔔 ON';
+  document.getElementById('buzzerToggleBtn').className = 'btn btn-orange';
   document.getElementById('openBuzzBtn').disabled = true;
   document.getElementById('resetBuzzBtn').disabled = false;
-  frPlayers.forEach((p, id) => { if (!eliminated.has(id)) p.status = 'waiting'; });
-  qNum++;
-  document.getElementById('qNum').textContent = qNum;
+  hideBuzzBanner();
+  document.getElementById('correctBtn').disabled = true;
+  document.getElementById('wrongBtn').disabled = true;
+  
+  players.forEach((p, id) => {
+    if (!eliminated.has(id)) p.status = 'waiting';
+  });
+  
+  qCounter++;
+  document.getElementById('qNumBadge').innerHTML = `Q#${qCounter}`;
   usedQIds.add(selectedQ.id);
-  const opts = [selectedQ.option_a, selectedQ.option_b, selectedQ.option_c, selectedQ.option_d];
-  bcast('question_open', {question: selectedQ.question_text, questionNumber: qNum, options: opts});
-  renderAllPlayers();
-  buildModalQList();
+  
+  const opts = [selectedQ.option_a || '', selectedQ.option_b || '', selectedQ.option_c || '', selectedQ.option_d || ''];
+  broadcast('question_open', {
+    question: selectedQ.question_text,
+    questionNumber: qCounter,
+    options: opts
+  });
+  
+  renderAll();
+  renderQList();
   toast('🔔 Buzzers OPEN!');
 }
 
 function resetBuzzers() {
   if (!selectedQ) return;
-  buzzedId = null; locked.clear(); isOpen = true; buzzerOn = true;
-  updateBuzzerBtn();
-  hideBuzzBanner(); setJudgeEnabled(false);
-  frPlayers.forEach((p, id) => { if (!eliminated.has(id)) p.status = 'waiting'; });
-  bcast('reset_buzzers', {});
-  renderAllPlayers();
+  buzzedId = null;
+  locked.clear();
+  isOpen = true;
+  buzzerEnabled = true;
+  players.forEach((p, id) => {
+    if (!eliminated.has(id)) p.status = 'waiting';
+  });
+  hideBuzzBanner();
+  document.getElementById('correctBtn').disabled = true;
+  document.getElementById('wrongBtn').disabled = true;
+  broadcast('reset_buzzers', {});
+  renderAll();
   toast('↺ Buzzers reset');
 }
 
 function markCorrect() {
   if (!buzzedId) return;
-  const pl = frPlayers.get(buzzedId);
-  if (pl) { pl.score += pts; pl.status = 'correct'; }
-  hideBuzzBanner(); setJudgeEnabled(false);
-  document.getElementById('openBuzzBtn').disabled = true;
-  playCorrect();
-  bcast('correct', {playerId:buzzedId, newScore:pl?.score, playerName:pl?.name, playerAvatar:pl?.avatar, points:pts});
-  renderAllPlayers();
-  toast(`✅ Correct! +${pts} pts`);
-  buzzedId = null; isOpen = false;
-  setTimeout(() => bcast('reset_for_next_question', {}), 900);
+  const player = players.get(buzzedId);
+  const points = parseInt(document.getElementById('pointsInput').value) || 100;
+  if (player) {
+    player.score += points;
+    player.status = 'correct';
+  }
+  hideBuzzBanner();
+  document.getElementById('correctBtn').disabled = true;
+  document.getElementById('wrongBtn').disabled = true;
+  broadcast('correct', {
+    playerId: buzzedId,
+    newScore: player?.score,
+    points: points
+  });
+  buzzedId = null;
+  isOpen = false;
+  renderAll();
+  toast(`✅ +${points} points!`);
+  setTimeout(() => broadcast('reset_for_next_question', {}), 500);
 }
 
 function markWrong() {
   if (!buzzedId) return;
-  const pl = frPlayers.get(buzzedId);
-  if (pl) { pl.status = 'wrong'; locked.add(buzzedId); }
-  playWrong();
-  bcast('wrong', {playerId:buzzedId, playerName:pl?.name});
-  hideBuzzBanner(); setJudgeEnabled(false);
-  renderAllPlayers();
-  toast(`❌ Wrong — ${pl?.name} locked out`);
-  const rem = [...frPlayers.keys()].filter(id => !locked.has(id) && !eliminated.has(id));
-  if (rem.length > 0) {
-    setTimeout(() => {
-      isOpen = true; buzzerOn = true; updateBuzzerBtn();
-      bcast('buzzers_reopen', {});
-    }, 4000);
+  const player = players.get(buzzedId);
+  if (player) {
+    player.status = 'wrong';
+    locked.add(buzzedId);
   }
+  hideBuzzBanner();
+  document.getElementById('correctBtn').disabled = true;
+  document.getElementById('wrongBtn').disabled = true;
+  broadcast('wrong', { playerId: buzzedId });
   buzzedId = null;
+  renderAll();
+  toast(`❌ Wrong answer - player locked`);
+  
+  const remaining = Array.from(players.keys()).filter(id => !locked.has(id) && !eliminated.has(id));
+  if (remaining.length > 0) {
+    setTimeout(() => {
+      isOpen = true;
+      buzzerEnabled = true;
+      broadcast('buzzers_reopen', {});
+      toast('🔔 Buzzers re-opened');
+    }, 3000);
+  }
 }
 
 function nextQuestion() {
-  buzzedId = null; isOpen = false; selectedQ = null;
-  hideBuzzBanner(); setJudgeEnabled(false);
+  buzzedId = null;
+  isOpen = false;
+  selectedQ = null;
+  document.getElementById('qPickBtn').classList.remove('selected');
+  document.getElementById('qPickLabel').innerText = 'Tap to select question';
+  document.getElementById('qDisplay').classList.add('hidden');
   document.getElementById('openBuzzBtn').disabled = true;
   document.getElementById('resetBuzzBtn').disabled = true;
-  document.getElementById('qPickBtn').classList.remove('selected');
-  document.getElementById('qPickLabel').textContent = 'Tap to select a question…';
-  document.getElementById('qDisplay').classList.add('hidden');
-  frPlayers.forEach((p, id) => { if (!eliminated.has(id)) p.status = 'waiting'; });
+  hideBuzzBanner();
+  document.getElementById('correctBtn').disabled = true;
+  document.getElementById('wrongBtn').disabled = true;
+  players.forEach(p => {
+    if (!eliminated.has(p.id)) p.status = 'waiting';
+  });
   locked.clear();
-  bcast('next_question', {});
-  renderAllPlayers();
+  broadcast('next_question', {});
+  renderAll();
+  toast('⏭ Ready for next question');
 }
 
 function startTimer() {
-  const s = parseInt(document.getElementById('timerInput').value) || 10;
-  bcast('timer_start', {seconds: s});
-  toast(`⏱️ Timer: ${s}s`);
+  const seconds = parseInt(document.getElementById('timerInput').value) || 10;
+  broadcast('timer_start', { seconds });
+  toast(`⏱️ Timer: ${seconds}s`);
 }
 
 function toggleBuzzer() {
-  buzzerOn = !buzzerOn;
-  updateBuzzerBtn();
-  bcast('buzzer_toggle', {enabled: buzzerOn});
-  toast(`Buzzers ${buzzerOn ? 'ON' : 'OFF'}`);
-}
-
-function updateBuzzerBtn() {
+  buzzerEnabled = !buzzerEnabled;
   const btn = document.getElementById('buzzerToggleBtn');
-  if (buzzerOn) {
-    btn.textContent = '🔔 Buzzers ON'; btn.className = 'btn btn-orange btn-md';
+  if (buzzerEnabled) {
+    btn.innerHTML = '🔔 ON';
+    btn.className = 'btn btn-orange';
   } else {
-    btn.textContent = '🔕 Buzzers OFF'; btn.className = 'btn btn-red btn-md';
+    btn.innerHTML = '🔕 OFF';
+    btn.className = 'btn btn-red';
   }
+  broadcast('buzzer_toggle', { enabled: buzzerEnabled });
+  toast(`Buzzers ${buzzerEnabled ? 'ON' : 'OFF'}`);
 }
 
 function forceBuzz(playerId) {
-  const pl = frPlayers.get(playerId);
-  if (!pl || eliminated.has(playerId)) return;
-  if (buzzedId) { toast('Someone already buzzed'); return; }
-  buzzedId = playerId; isOpen = false;
-  pl.status = 'buzzed';
-  frPlayers.forEach((p, id) => { if (id !== playerId && !eliminated.has(id)) p.status = 'locked'; });
-  showBuzzBanner(pl.name, pl.avatar);
-  setJudgeEnabled(true);
-  bcast('buzz_confirmed', {playerId, playerName:pl.name, playerAvatar:pl.avatar});
-  renderAllPlayers();
-  toast(`🎯 Manually buzzed: ${pl.name}`);
+  const player = players.get(playerId);
+  if (!player || eliminated.has(playerId)) return;
+  if (!isOpen) {
+    toast('Buzzers are not open');
+    return;
+  }
+  if (buzzedId) {
+    toast('Someone already buzzed');
+    return;
+  }
+  
+  buzzedId = playerId;
+  isOpen = false;
+  player.status = 'buzzed';
+  players.forEach((p, id) => {
+    if (id !== playerId && !eliminated.has(id)) p.status = 'locked';
+  });
+  
+  document.getElementById('buzzBanner').classList.add('visible');
+  document.getElementById('buzzBannerName').innerHTML = `${player.avatar} ${escapeHtml(player.name)}`;
+  if (selectedQ) {
+    const opts = [selectedQ.option_a || '', selectedQ.option_b || '', selectedQ.option_c || '', selectedQ.option_d || ''];
+    const letters = ['A', 'B', 'C', 'D'];
+    const correctOpt = selectedQ.correct_option !== undefined ? selectedQ.correct_option : 0;
+    document.getElementById('buzzAnswerHint').innerHTML = `✅ ${letters[correctOpt]}: ${escapeHtml(opts[correctOpt])}`;
+  }
+  document.getElementById('correctBtn').disabled = false;
+  document.getElementById('wrongBtn').disabled = false;
+  broadcast('buzz_confirmed', { playerId, playerName: player.name });
+  renderAll();
+  toast(`🎯 Manually buzzed: ${player.name}`);
 }
 
 function unlockPlayer(playerId) {
   locked.delete(playerId);
-  const pl = frPlayers.get(playerId);
-  if (pl && !eliminated.has(playerId)) pl.status = 'waiting';
-  bcast('reset_buzzers', {});
-  renderAllPlayers();
-  toast(`🔓 ${pl?.name} unlocked`);
+  const player = players.get(playerId);
+  if (player && !eliminated.has(playerId)) player.status = 'waiting';
+  broadcast('reset_buzzers', {});
+  renderAll();
+  toast(`🔓 ${player?.name} unlocked`);
 }
 
 function eliminatePlayer(playerId) {
-  const pl = frPlayers.get(playerId);
-  if (!pl) return;
-  if (!confirm(`Eliminate ${pl.name}?`)) return;
-  eliminated.add(playerId); pl.status = 'eliminated';
-  if (buzzedId === playerId) { buzzedId = null; hideBuzzBanner(); setJudgeEnabled(false); }
-  bcast('eliminated', {playerId, playerName:pl.name});
-  renderAllPlayers();
-  toast(`⚡ ${pl.name} eliminated`);
+  const player = players.get(playerId);
+  if (!player) return;
+  if (!confirm(`Eliminate ${player.name}?`)) return;
+  
+  eliminated.add(playerId);
+  player.status = 'eliminated';
+  if (buzzedId === playerId) {
+    buzzedId = null;
+    hideBuzzBanner();
+    document.getElementById('correctBtn').disabled = true;
+    document.getElementById('wrongBtn').disabled = true;
+  }
+  broadcast('eliminated', { playerId, playerName: player.name });
+  renderAll();
+  toast(`⚡ ${player.name} eliminated`);
 }
 
-/* ═══════════════════════════════════════
-   FOH CONTROLS
-═══════════════════════════════════════ */
+function startRound() {
+  const minPlayers = parseInt(document.getElementById('minPlayersInput').value) || 2;
+  if (players.size < minPlayers) {
+    toast(`Need at least ${minPlayers} players to start`);
+    return;
+  }
+  const points = parseInt(document.getElementById('pointsInput').value) || 100;
+  broadcast('round_started', { roomCode, pointsPerBuzz: points });
+  broadcast('show_room_code', { roomCode });
+  broadcast('show_categories', { categories });
+  switchTab('game');
+  toast('🚀 Round started!');
+}
+
 function fohShowRoomCode() {
-  bcast('show_room_code', {roomCode});
-  toast(`📡 Room code sent to FOH`);
+  broadcast('show_room_code', { roomCode });
+  toast('📡 Room code sent to FOH');
 }
 
 function fohShowCategories() {
-  bcast('show_categories', {categories: cats});
+  broadcast('show_categories', { categories });
   toast('🎨 Categories shown on FOH');
 }
 
 function fohShowLeaderboard() {
-  const sorted = [...frPlayers.values()].filter(p => !eliminated.has(p.id)).sort((a,b) => b.score - a.score);
-  bcast('player_list_update', {players: [...frPlayers.values()]});
-  bcast('show_leaderboard', {players: sorted});
+  broadcast('player_list_update', { players: Array.from(players.values()) });
+  broadcast('show_leaderboard', {});
   toast('🏆 Leaderboard pushed to FOH');
 }
 
 function fohEndRound() {
-  if (!confirm('End round and show winner?')) return;
-  const sorted = [...frPlayers.values()].filter(p => !eliminated.has(p.id)).sort((a,b) => b.score - a.score);
+  const sorted = Array.from(players.values()).filter(p => !eliminated.has(p.id)).sort((a, b) => b.score - a.score);
   const winner = sorted[0];
-  bcast('round_ended', {winner});
-  toast(`🏁 Winner: ${winner?.name || 'N/A'}`);
+  broadcast('round_ended', { winner });
+  toast(`🏁 Round ended! Winner: ${winner?.name || 'N/A'}`);
 }
 
-/* ═══════════════════════════════════════
-   ROOM MANAGEMENT
-═══════════════════════════════════════ */
 async function newRoomCode() {
   if (!confirm('Generate new room code? All players must re-join.')) return;
-  const code = 'FR' + Math.random().toString(36).substring(2,6).toUpperCase();
-  bcast('full_game_reset', {newRoomCode: code, forceLogin: true});
-  await registerRoom(code);
-  setTimeout(async () => {
-    await connectRoom(code);
-  }, 600);
+  const code = 'FR' + Math.random().toString(36).substring(2, 6).toUpperCase();
+  broadcast('full_game_reset', { newRoomCode: code });
+  try {
+    await sb.from('game_rooms').upsert({ room_code: code, is_active: true, control_id: 'hc_' + Date.now(), created_at: new Date() });
+  } catch(e) {}
+  setTimeout(() => connectRoom(code), 600);
 }
 
 async function fullReset() {
-  if (!confirm('⚠️ Reset everything? All players must re-join.')) return;
-  const code = 'FR' + Math.random().toString(36).substring(2,6).toUpperCase();
-  bcast('full_game_reset', {newRoomCode: code, forceLogin: true});
-  await registerRoom(code);
-  setTimeout(async () => {
-    resetLocalState();
-    await connectRoom(code);
-  }, 600);
+  if (!confirm('⚠️ FULL RESET: This will clear all players and create a new room.')) return;
+  const code = 'FR' + Math.random().toString(36).substring(2, 6).toUpperCase();
+  broadcast('full_game_reset', { newRoomCode: code });
+  try {
+    await sb.from('game_rooms').upsert({ room_code: code, is_active: true, control_id: 'hc_' + Date.now(), created_at: new Date() });
+  } catch(e) {}
+  setTimeout(() => connectRoom(code), 600);
 }
 
 function copyJoinLink() {
   const url = `${window.location.origin}/finalroundplayer.html?room=${roomCode}`;
-  navigator.clipboard.writeText(url).catch(() => {});
+  navigator.clipboard.writeText(url);
   toast('🔗 Join link copied!');
 }
 
-/* ═══════════════════════════════════════
-   QUESTION MODAL
-═══════════════════════════════════════ */
-function openQModal() { document.getElementById('qModal').classList.add('open'); }
-function closeQModal() { document.getElementById('qModal').classList.remove('open'); }
-
-function buildModalCats() {
-  const html = `<button class="cat-pill active" onclick="filterCat('all',this)">📚 All (${allQs.length})</button>` +
-    cats.map(c => {
-      const n = allQs.filter(q => q.category_id === c.id).length;
-      return `<button class="cat-pill" onclick="filterCat('${c.id}',this)">${c.icon||'📁'} ${c.name} (${n})</button>`;
-    }).join('');
-  document.getElementById('modalCats').innerHTML = html;
-}
-
-function filterCat(id, btn) {
-  filterCat = id;  // reuse var name; JS closure is fine
-  document.querySelectorAll('#modalCats .cat-pill').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  buildModalQList(id);
-}
-
-// override filterCat param issue — use a closure var
-let _filterCat = 'all';
-function filterCat(id, btn) {
-  _filterCat = id;
-  document.querySelectorAll('#modalCats .cat-pill').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  buildModalQList();
-}
-
-function buildModalQList() {
-  const list = _filterCat === 'all' ? allQs : allQs.filter(q => q.category_id === _filterCat);
-  document.getElementById('modalQList').innerHTML = list.map(q => {
-    const used = usedQIds.has(q.id);
-    return `<div class="mq-item ${used?'used':''}" onclick="selectQ('${q.id}')">
-      <div class="mq-body">
-        <div class="mq-q">${esc(q.question_text.substring(0,80))}</div>
-        <div class="mq-cat">${q.categories?.icon||'📁'} ${q.categories?.name||'General'}${used?' · ✓ Used':''}</div>
-      </div>
-      <button class="mq-fire" onclick="event.stopPropagation();fireQ('${q.id}')">🔥 Fire</button>
-    </div>`;
-  }).join('') || `<div class="empty-msg">No questions</div>`;
-}
-
-function selectQ(id) {
-  const q = allQs.find(x => x.id === id);
-  if (!q) return;
-  selectedQ = q;
-  renderQDisplay(q);
-  document.getElementById('qPickLabel').textContent = q.question_text.substring(0,55) + '…';
-  document.getElementById('qPickBtn').classList.add('selected');
-  document.getElementById('openBuzzBtn').disabled = false;
-  document.getElementById('resetBuzzBtn').disabled = false;
-  closeQModal();
-  toast(`Selected: ${q.question_text.substring(0,40)}`);
-}
-
-function fireQ(id) { selectQ(id); openQuestion(); }
-
-function renderQDisplay(q) {
-  const opts = [q.option_a, q.option_b, q.option_c, q.option_d];
-  const letters = ['A','B','C','D'];
-  document.getElementById('qText').textContent = q.question_text;
-  document.getElementById('qOpts').innerHTML = opts.map((o,i) =>
-    `<div class="q-opt ${i===q.correct_option?'correct':''}">
-      <span class="q-opt-letter">${letters[i]}</span>${esc(o)}
-    </div>`
-  ).join('');
-  document.getElementById('qCorrectLine').textContent = `✅ Answer: ${letters[q.correct_option]} — ${opts[q.correct_option]}`;
-  document.getElementById('qDisplay').classList.remove('hidden');
-}
-
-/* ═══════════════════════════════════════
-   RENDER PLAYERS
-═══════════════════════════════════════ */
-function renderAllPlayers() {
-  const sorted = [...frPlayers.values()].sort((a,b) => b.score - a.score);
-  const count  = frPlayers.size;
-  document.getElementById('playerCountSetup').textContent = count;
-
-  // Setup tab list
+function renderAll() {
+  const sorted = Array.from(players.values()).sort((a, b) => b.score - a.score);
+  const count = players.size;
+  document.getElementById('playerCountBadge').innerHTML = count;
+  
+  // Setup tab player list
   const setupList = document.getElementById('setupPlayerList');
-  setupList.innerHTML = sorted.length === 0
-    ? '<div class="empty-msg">Waiting for players to join…</div>'
-    : sorted.map(p => `
-        <div class="player-row ${eliminated.has(p.id)?'eliminated':''} ${p.status==='buzzed'?'buzzed':''}">
-          <div class="player-row-avatar">${p.avatar}</div>
-          <div class="player-row-info">
-            <div class="player-row-name">${esc(p.name)}</div>
-            <div class="player-row-score">${p.score} pts</div>
-          </div>
-          <div class="conn-pip ${p.connected?'live':'dc'}"></div>
-        </div>`).join('');
-
-  // Manual buzz grid
-  const mbg = document.getElementById('manualBuzzGrid');
-  mbg.innerHTML = sorted.length === 0
-    ? '<div class="empty-msg" style="grid-column:1/-1;">No players yet</div>'
-    : sorted.map(p => {
-        const isElim   = eliminated.has(p.id);
-        const isLocked = locked.has(p.id);
-        const isBuzzed = buzzedId === p.id;
-        let badge = isBuzzed ? '🔔' : p.status==='correct' ? '✅' : p.status==='wrong' ? '❌' : isElim ? '⚡' : isLocked ? '🔒' : '●';
-        return `<div class="pbg-card ${isBuzzed?'buzzed':''} ${isElim?'eliminated':''} ${isLocked&&!isBuzzed?'locked':''}"
-                     onclick="forceBuzz('${p.id}')">
-          <div class="pbg-avatar">${p.avatar}</div>
-          <div class="pbg-name">${esc(p.name)}</div>
-          <div class="pbg-score">${p.score}</div>
-          <div class="pbg-status">${badge}</div>
-        </div>`;
-      }).join('');
-
-  // Override list
-  const ovList = document.getElementById('overrideList');
-  ovList.innerHTML = sorted.length === 0
-    ? '<div class="empty-msg">No players yet</div>'
-    : sorted.map(p => {
-        const isElim   = eliminated.has(p.id);
-        const isLocked = locked.has(p.id);
-        let statusHtml = '';
-        if (p.status==='buzzed')   statusHtml = `<span style="color:var(--gold);">🔔 Buzzed</span>`;
-        else if (p.status==='correct') statusHtml = `<span style="color:var(--green);">✅ Correct</span>`;
-        else if (p.status==='wrong')   statusHtml = `<span style="color:var(--red);">❌ Wrong</span>`;
-        else if (isElim)   statusHtml = `<span style="color:var(--muted2);">⚡ Eliminated</span>`;
-        else if (isLocked) statusHtml = `<span style="color:var(--muted);">🔒 Locked</span>`;
-        else statusHtml = `<span style="color:var(--muted2);">● Ready</span>`;
-
-        const actions = isElim ? '' : `
-          <button class="ov-btn" style="background:rgba(251,191,36,0.12);color:var(--gold);border:1px solid rgba(251,191,36,0.3);"
-            onclick="forceBuzz('${p.id}')">🔔</button>
-          ${isLocked ? `<button class="ov-btn" style="background:rgba(16,185,129,0.12);color:var(--green);border:1px solid rgba(16,185,129,0.3);"
-            onclick="unlockPlayer('${p.id}')">🔓</button>` : ''}
-          <button class="ov-btn" style="background:rgba(239,68,68,0.12);color:var(--red);border:1px solid rgba(239,68,68,0.3);"
-            onclick="eliminatePlayer('${p.id}')">⚡</button>`;
-
-        return `<div class="ov-row">
-          <span style="font-size:24px;">${p.avatar}</span>
-          <div class="ov-info">
-            <div class="ov-name">${esc(p.name)}</div>
-            <div class="ov-sub">${statusHtml}</div>
-          </div>
-          <span class="ov-score">${p.score}</span>
-          <div class="ov-actions">${actions}</div>
-        </div>`;
-      }).join('');
-}
-
-/* ═══════════════════════════════════════
-   UI HELPERS
-═══════════════════════════════════════ */
-function showBuzzBanner(name, avatar) {
-  document.getElementById('buzzBannerName').innerHTML = `${avatar} ${esc(name)}`;
-  if (selectedQ) {
-    const opts = [selectedQ.option_a, selectedQ.option_b, selectedQ.option_c, selectedQ.option_d];
-    const L = ['A','B','C','D'];
-    document.getElementById('buzzBannerAnswer').textContent =
-      `✅ ${L[selectedQ.correct_option]}: ${opts[selectedQ.correct_option]}`;
+  if (sorted.length === 0) {
+    setupList.innerHTML = '<div class="empty-msg">Waiting for players...</div>';
   } else {
-    document.getElementById('buzzBannerAnswer').textContent = '';
+    setupList.innerHTML = sorted.map(p => `
+      <div class="player-row ${eliminated.has(p.id) ? 'eliminated' : ''} ${p.status === 'buzzed' ? 'buzzed' : ''}">
+        <div class="player-row-avatar">${p.avatar}</div>
+        <div class="player-row-info">
+          <div class="player-row-name">${escapeHtml(p.name)}</div>
+          <div class="player-row-score">${p.score} pts</div>
+        </div>
+        <div class="conn-pip ${p.connected ? 'live' : 'dc'}"></div>
+      </div>
+    `).join('');
   }
-  document.getElementById('buzzBanner').classList.add('visible');
+  
+  // Manual buzz grid
+  const manualGrid = document.getElementById('manualBuzzGrid');
+  if (sorted.length === 0) {
+    manualGrid.innerHTML = '<div class="empty-msg">No players yet</div>';
+  } else {
+    manualGrid.innerHTML = sorted.map(p => `
+      <div class="pbg-card ${buzzedId === p.id ? 'buzzed' : ''} ${eliminated.has(p.id) ? 'eliminated' : ''}" onclick="forceBuzz('${p.id}')">
+        <div class="pbg-avatar">${p.avatar}</div>
+        <div class="pbg-name">${escapeHtml(p.name)}</div>
+        <div class="pbg-score">${p.score}</div>
+      </div>
+    `).join('');
+  }
+  
+  // Override list
+  const overrideList = document.getElementById('overrideList');
+  if (sorted.length === 0) {
+    overrideList.innerHTML = '<div class="empty-msg">No players yet</div>';
+  } else {
+    overrideList.innerHTML = sorted.map(p => {
+      let statusText = '';
+      if (p.status === 'buzzed') statusText = '<span style="color:var(--gold);">🔔 Buzzed</span>';
+      else if (p.status === 'correct') statusText = '<span style="color:var(--green);">✅ Correct</span>';
+      else if (p.status === 'wrong') statusText = '<span style="color:var(--red);">❌ Wrong</span>';
+      else if (eliminated.has(p.id)) statusText = '<span style="color:var(--muted);">⚡ Eliminated</span>';
+      else if (locked.has(p.id)) statusText = '<span style="color:var(--muted);">🔒 Locked</span>';
+      else statusText = '<span>● Ready</span>';
+      
+      return `
+        <div class="ov-row">
+          <span style="font-size:26px;">${p.avatar}</span>
+          <div class="ov-info">
+            <div class="ov-name">${escapeHtml(p.name)}</div>
+            <div style="font-size:10px;">${statusText}</div>
+          </div>
+          <div class="ov-score">${p.score}</div>
+          <div class="ov-actions">
+            <button class="btn" style="background:var(--gold);color:#000;padding:5px 8px;" onclick="forceBuzz('${p.id}')">🔔</button>
+            ${locked.has(p.id) ? `<button class="btn" style="background:var(--green);padding:5px 8px;" onclick="unlockPlayer('${p.id}')">🔓</button>` : ''}
+            <button class="btn" style="background:var(--red);padding:5px 8px;" onclick="eliminatePlayer('${p.id}')">⚡</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
 }
 
 function hideBuzzBanner() {
   document.getElementById('buzzBanner').classList.remove('visible');
 }
 
-function setJudgeEnabled(on) {
-  document.getElementById('correctBtn').disabled = !on;
-  document.getElementById('wrongBtn').disabled   = !on;
-}
-
-function switchTab(tab) {
-  activeTab = tab;
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-  document.getElementById('tab-' + tab).classList.add('active');
-  document.getElementById('panel-' + tab).classList.add('active');
-}
-
 function resetLocalState() {
-  frPlayers.clear(); eliminated.clear(); locked.clear();
-  buzzedId = null; isOpen = false; selectedQ = null;
-  qNum = 0; usedQIds.clear();
-  hideBuzzBanner(); setJudgeEnabled(false);
+  players.clear();
+  eliminated.clear();
+  locked.clear();
+  buzzedId = null;
+  isOpen = false;
+  selectedQ = null;
+  qCounter = 0;
+  usedQIds.clear();
+  hideBuzzBanner();
+  document.getElementById('correctBtn').disabled = true;
+  document.getElementById('wrongBtn').disabled = true;
   document.getElementById('openBuzzBtn').disabled = true;
   document.getElementById('resetBuzzBtn').disabled = true;
   document.getElementById('qPickBtn').classList.remove('selected');
-  document.getElementById('qPickLabel').textContent = 'Tap to select a question…';
+  document.getElementById('qPickLabel').innerText = 'Tap to select question';
   document.getElementById('qDisplay').classList.add('hidden');
-  document.getElementById('qNum').textContent = '0';
+  document.getElementById('qNumBadge').innerHTML = 'Q#0';
 }
 
-/* ═══════════════════════════════════════
-   AUDIO
-═══════════════════════════════════════ */
-function _tone(f,t='sine',d=0.3,v=0.15) {
-  try {
-    const c = new (window.AudioContext||window.webkitAudioContext)();
-    if (c.state==='suspended') c.resume();
-    const o = c.createOscillator(), g = c.createGain();
-    o.type=t; o.frequency.value=f;
-    g.gain.setValueAtTime(v, c.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001, c.currentTime+d);
-    o.connect(g); g.connect(c.destination);
-    o.start(); o.stop(c.currentTime+d);
-  } catch(e){}
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  const tabBtn = document.getElementById(`tab-${tab}`);
+  const tabPanel = document.getElementById(`panel-${tab}`);
+  if (tabBtn) tabBtn.classList.add('active');
+  if (tabPanel) tabPanel.classList.add('active');
 }
-function playBuzz()    { _tone(440,'square',0.2); }
-function playCorrect() { _tone(660,'sine',0.35); setTimeout(()=>_tone(880,'sine',0.25),160); }
-function playWrong()   { _tone(200,'sawtooth',0.45); }
 
-/* ═══════════════════════════════════════
-   UTILS
-═══════════════════════════════════════ */
-function esc(s) {
-  if (!s) return '';
-  return s.replace(/[&<>]/g, m => m==='&'?'&amp;':m==='<'?'&lt;':'&gt;');
+function openQModal() {
+  renderQList();
+  document.getElementById('qModal').classList.add('open');
+}
+
+function closeQModal() {
+  document.getElementById('qModal').classList.remove('open');
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[m]);
 }
 
 function toast(msg) {
-  const el = document.createElement('div');
-  el.className = 'toast';
-  el.textContent = msg;
-  document.getElementById('toastWrap').appendChild(el);
-  setTimeout(() => el.remove(), 3000);
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.innerText = msg;
+  document.getElementById('toastWrap').appendChild(t);
+  setTimeout(() => t.remove(), 2500);
 }
 
-/* ═══════════════════════════════════════
-   EXPOSE GLOBALS
-═══════════════════════════════════════ */
-window.joinRoom=joinRoom; window.switchTab=switchTab;
-window.startRound=startRound; window.openQuestion=openQuestion;
-window.resetBuzzers=resetBuzzers; window.markCorrect=markCorrect;
-window.markWrong=markWrong; window.nextQuestion=nextQuestion;
-window.startTimer=startTimer; window.toggleBuzzer=toggleBuzzer;
-window.forceBuzz=forceBuzz; window.unlockPlayer=unlockPlayer;
-window.eliminatePlayer=eliminatePlayer; window.newRoomCode=newRoomCode;
-window.fullReset=fullReset; window.copyJoinLink=copyJoinLink;
-window.openQModal=openQModal; window.closeQModal=closeQModal;
-window.filterCat=filterCat; window.selectQ=selectQ; window.fireQ=fireQ;
-window.fohShowRoomCode=fohShowRoomCode; window.fohShowCategories=fohShowCategories;
-window.fohShowLeaderboard=fohShowLeaderboard; window.fohEndRound=fohEndRound;
+// Make functions global
+window.joinRoom = joinRoom;
+window.switchTab = switchTab;
+window.startRound = startRound;
+window.openQuestion = openQuestion;
+window.resetBuzzers = resetBuzzers;
+window.markCorrect = markCorrect;
+window.markWrong = markWrong;
+window.nextQuestion = nextQuestion;
+window.startTimer = startTimer;
+window.toggleBuzzer = toggleBuzzer;
+window.forceBuzz = forceBuzz;
+window.unlockPlayer = unlockPlayer;
+window.eliminatePlayer = eliminatePlayer;
+window.newRoomCode = newRoomCode;
+window.fullReset = fullReset;
+window.copyJoinLink = copyJoinLink;
+window.openQModal = openQModal;
+window.closeQModal = closeQModal;
+window.fohShowRoomCode = fohShowRoomCode;
+window.fohShowCategories = fohShowCategories;
+window.fohShowLeaderboard = fohShowLeaderboard;
+window.fohEndRound = fohEndRound;
+window.setFilter = setFilter;
+window.selectQuestion = selectQuestion;
+window.fireQuestion = fireQuestion;
 </script>
 </body>
 </html>
