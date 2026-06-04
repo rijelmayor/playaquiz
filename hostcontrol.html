@@ -1227,6 +1227,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
 // State
 let roomCode = '';
+let sessionId = null;   // UUID scoping all questions & categories to this room session
 let channel = null;
 let players = new Map();
 let eliminated = new Set();
@@ -1278,6 +1279,9 @@ async function connectRoom(code) {
   appScreen.classList.remove('active');
   
   try {
+    // Generate a fresh session UUID for this room — scopes all questions & categories
+    sessionId = crypto.randomUUID();
+
     await sb.from('game_rooms').delete().neq('room_code', code);
     await sb.from('game_rooms').upsert({
       room_code: code,
@@ -1374,7 +1378,7 @@ async function handleCsvImport(event) {
       if (catName) {
         let existingCat = categories.find(c => c.name.toLowerCase() === catName.toLowerCase());
         if (!existingCat) {
-          const { data: newCat, error: catError } = await sb.from('categories').insert({ name: catName, icon: catIcon || '📁' }).select().single();
+          const { data: newCat, error: catError } = await sb.from('categories').insert({ name: catName, icon: catIcon || '📁', session_id: sessionId }).select().single();
           if (!catError && newCat) {
             existingCat = newCat;
             categories.push(existingCat);
@@ -1387,7 +1391,7 @@ async function handleCsvImport(event) {
       
       const { error } = await sb.from('questions').insert({
         question_text, option_a: opt_a, option_b: opt_b, option_c: opt_c, option_d: opt_d,
-        correct_option, points, category_id: categoryId
+        correct_option, points, category_id: categoryId, session_id: sessionId
       });
       if (error) errorCount++;
       else importedCount++;
@@ -1403,10 +1407,11 @@ async function handleCsvImport(event) {
 }
 
 async function loadQuestions() {
+  if (!sessionId) return;
   try {
-    const { data: cats } = await sb.from('categories').select('*').order('name');
+    const { data: cats } = await sb.from('categories').select('*').eq('session_id', sessionId).order('name');
     categories = cats || [];
-    const { data: qs } = await sb.from('questions').select('*, categories(name, icon)').order('created_at');
+    const { data: qs } = await sb.from('questions').select('*, categories(name, icon)').eq('session_id', sessionId).order('created_at');
     allQuestions = qs || [];
     renderCategoryFilters();
     renderQList();
@@ -2169,7 +2174,7 @@ async function aqAddCategory() {
   const name = document.getElementById('aqNewCatName').value.trim();
   const icon = document.getElementById('aqNewCatIcon').value.trim() || '📁';
   if (!name) { toast('Enter a category name'); return; }
-  const { error } = await sb.from('categories').insert({ name, icon });
+  const { error } = await sb.from('categories').insert({ name, icon, session_id: sessionId });
   if (error) { toast('Error: ' + error.message); return; }
   document.getElementById('aqNewCatName').value = '';
   document.getElementById('aqNewCatIcon').value = '';
@@ -2180,8 +2185,8 @@ async function aqAddCategory() {
 
 async function aqDeleteCategory(id, name) {
   if (!confirm(`Delete category "${name}"? Questions in it will become uncategorized.`)) return;
-  await sb.from('questions').update({ category_id: null }).eq('category_id', id);
-  await sb.from('categories').delete().eq('id', id);
+  await sb.from('questions').update({ category_id: null }).eq('category_id', id).eq('session_id', sessionId);
+  await sb.from('categories').delete().eq('id', id).eq('session_id', sessionId);
   await loadQuestions();
   renderAqCategoryStrip();
   toast('🗑️ Category deleted');
@@ -2202,7 +2207,8 @@ async function aqAddQuestion() {
     option_a: a, option_b: b, option_c: c, option_d: d,
     correct_option: correct,
     category_id: catId,
-    points: points
+    points: points,
+    session_id: sessionId
   });
   if (error) { toast('Error: ' + error.message); return; }
   document.getElementById('aqText').value = '';
@@ -2218,7 +2224,7 @@ async function aqAddQuestion() {
 
 async function aqDeleteQuestion(id) {
   if (!confirm('Delete this question?')) return;
-  await sb.from('questions').delete().eq('id', id);
+  await sb.from('questions').delete().eq('id', id).eq('session_id', sessionId);
   usedQIds.delete(id);
   if (selectedQ?.id === id) {
     selectedQ = null;
