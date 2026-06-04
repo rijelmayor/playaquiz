@@ -567,6 +567,110 @@
     .empty-msg { color: var(--muted); text-align: center; padding: 24px; }
     .hidden { display: none !important; }
 
+    /* ── Question Modal: tabbed (Select / Add) ── */
+    .modal-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--b1);
+      flex-shrink: 0;
+    }
+    .modal-tab-btn {
+      flex: 1;
+      padding: 11px 8px;
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--muted);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      transition: all 0.1s;
+    }
+    .modal-tab-btn.active {
+      color: var(--text);
+      border-bottom-color: var(--gold);
+    }
+    .modal-pane { display: none; flex-direction: column; flex: 1; overflow: hidden; }
+    .modal-pane.active { display: flex; }
+
+    /* Add-question form inside modal */
+    .aq-form {
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow-y: auto;
+      flex: 1;
+      -webkit-overflow-scrolling: touch;
+    }
+    .aq-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--muted);
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+      display: block;
+    }
+    .aq-input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--b2);
+      border-radius: var(--radius-sm);
+      padding: 9px 12px;
+      color: var(--text);
+      font-size: 13px;
+      outline: none;
+      font-family: inherit;
+    }
+    .aq-input:focus { border-color: var(--accent); }
+    .aq-textarea {
+      resize: vertical;
+      min-height: 60px;
+    }
+    .aq-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .aq-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+
+    /* Category strip inside add pane */
+    .aq-cat-strip {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--b1);
+      background: var(--s2);
+      flex-shrink: 0;
+    }
+    .aq-cat-add {
+      display: flex;
+      gap: 6px;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--b1);
+      flex-shrink: 0;
+    }
+    .aq-cat-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      background: var(--s1);
+      border: 1px solid var(--b2);
+      color: var(--text);
+    }
+    .aq-cat-del {
+      background: none;
+      border: none;
+      color: var(--red);
+      cursor: pointer;
+      font-size: 12px;
+      padding: 0 0 0 2px;
+      line-height: 1;
+    }
+
     /* Toast */
     #toastWrap {
       position: fixed;
@@ -592,6 +696,247 @@
       from { opacity: 0; transform: translateY(8px); }
       to { opacity: 1; transform: translateY(0); }
     }
+
+    /* ═══════════════════════════════════════════════════════════
+       LARGE SCREEN LAYOUT  (≥ 768px)
+       On wide viewports the UI switches from a bottom-tab phone
+       layout to a proper sidebar + multi-column control room.
+    ═══════════════════════════════════════════════════════════ */
+
+    @media (min-width: 768px) {
+
+      /* App shell: CSS grid — sidebar col left, content right */
+      #appScreen {
+        display: grid !important;
+        grid-template-columns: 200px 1fr;
+        grid-template-rows: 1fr;
+        height: 100dvh;
+        overflow: hidden;
+      }
+
+      /* ── Left sidebar: topbar + tabbar stacked in col 1 ── */
+      .topbar {
+        grid-column: 1;
+        grid-row: 1;
+        flex-direction: column;
+        align-items: stretch;
+        justify-content: flex-start;
+        padding: 20px 14px 0;
+        border-bottom: none;
+        border-right: 1px solid var(--b1);
+        height: 100%;
+        overflow-y: auto;
+        overflow-x: hidden;
+        /* extend to cover tabbar area below it */
+        padding-bottom: 0;
+        background: var(--s1);
+        /* Fake the sidebar split: topbar is just the header portion */
+        align-self: stretch;
+        gap: 0;
+      }
+      .topbar-logo { font-size: 22px; letter-spacing: 4px; margin-bottom: 2px; }
+      .topbar-title { font-size: 9px; margin-bottom: 14px; }
+      .room-chip {
+        width: 100%;
+        border-radius: var(--radius-sm);
+        padding: 9px 12px;
+        margin-bottom: 16px;
+      }
+      .room-chip-code { font-size: 14px; flex: 1; letter-spacing: 1px; }
+
+      /* ── Tab bar becomes vertical nav list ── */
+      .tabbar {
+        grid-column: 1;
+        grid-row: 1;
+        flex-direction: column;
+        border-bottom: none;
+        border-right: 1px solid var(--b1);
+        padding: 0 10px 16px;
+        gap: 3px;
+        background: var(--s1);
+        height: 100%;
+        overflow-y: auto;
+        /* Push below the topbar header section */
+        align-self: stretch;
+        justify-content: flex-start;
+      }
+
+      /* Stack topbar above tabbar in the same grid cell */
+      .topbar { align-self: start; height: auto; border-right: none; }
+      .tabbar  { align-self: stretch; padding-top: 0; }
+
+      /* Sidebar wrapper: topbar + tabbar must visually merge.
+         Since they're separate elements in col 1, we use a sub-grid
+         trick: make col 1 itself a flex column container. */
+      #appScreen {
+        grid-template-columns: 200px 1fr;
+        grid-template-rows: auto 1fr;
+      }
+      .topbar {
+        grid-column: 1; grid-row: 1;
+        border-bottom: 1px solid var(--b1);
+      }
+      .tabbar {
+        grid-column: 1; grid-row: 2;
+        height: 100%;
+      }
+      .tabs-content {
+        grid-column: 2; grid-row: 1 / 3;
+        overflow: hidden;
+        height: 100%;
+      }
+
+      /* Tab buttons: horizontal → vertical pill nav */
+      .tab-btn {
+        flex: none;
+        flex-direction: row;
+        justify-content: flex-start;
+        padding: 11px 14px;
+        font-size: 12px;
+        letter-spacing: 0.5px;
+        border-bottom: none;
+        border-left: 3px solid transparent;
+        border-radius: var(--radius-sm);
+        gap: 10px;
+        width: 100%;
+        min-width: 0;
+        overflow: visible;
+      }
+      .tab-btn .tab-icon { font-size: 16px; flex-shrink: 0; }
+      .tab-btn.active {
+        background: rgba(251,191,36,0.08);
+        border-left-color: var(--gold);
+        border-bottom-color: transparent;
+        color: var(--text);
+      }
+      .tab-btn:hover:not(.active) {
+        background: rgba(255,255,255,0.04);
+        color: var(--text);
+      }
+
+      /* ── Tab panels: roomier padding, no bottom-tab offset ── */
+      .tab-panel {
+        padding: 20px 20px 28px;
+        gap: 16px;
+      }
+
+      /* ── Setup panel: 2-col grid ── */
+      #panel-setup { display: none; }
+      #panel-setup.active {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        align-content: start;
+        gap: 16px;
+      }
+      /* Room card: col 1 row 1 */
+      #panel-setup > .card:nth-child(1) { grid-column: 1; grid-row: 1; }
+      /* Players card: col 2 rows 1+2 (taller, shows all players) */
+      #panel-setup > .card:nth-child(2) { grid-column: 2; grid-row: 1 / 3; }
+      /* Settings card: col 1 row 2 */
+      #panel-setup > .card:nth-child(3) { grid-column: 1; grid-row: 2; }
+
+      /* Uncap player list height — let the grid row size it */
+      #panel-setup .player-list {
+        max-height: none;
+        overflow-y: auto;
+        max-height: 55vh;
+      }
+
+      /* ── Game panel: 2-col grid ── */
+      #panel-game { display: none; }
+      #panel-game.active {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        align-content: start;
+        gap: 16px;
+      }
+      /* Question card: col 1 row 1 */
+      #panel-game > .card:nth-child(1) { grid-column: 1; grid-row: 1; }
+      /* Buzzer control: col 2 row 1 */
+      #panel-game > .card:nth-child(2) { grid-column: 2; grid-row: 1; }
+      /* Buzz banner: full width row 2 */
+      #panel-game > .buzz-banner     { grid-column: 1 / -1; grid-row: 2; }
+      /* Correct/Wrong: full width row 3 */
+      #panel-game > .btn-grid-2      { grid-column: 1 / -1; grid-row: 3; }
+      /* Timer card: col 1 row 4 */
+      #panel-game > .card:nth-child(5) { grid-column: 1; grid-row: 4; }
+      /* Next Q button: col 2 row 4 */
+      #panel-game > .btn.btn-ghost.btn-md.btn-full { grid-column: 2; grid-row: 4; align-self: center; }
+
+      /* Bigger correct/wrong on large screen */
+      #correctBtn, #wrongBtn { padding: 18px; font-size: 16px; font-weight: 800; }
+
+      /* ── Players panel: side-by-side ── */
+      #panel-players { display: none; }
+      #panel-players.active {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        align-content: start;
+        gap: 16px;
+      }
+      .players-big-grid {
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+      }
+
+      /* ── FOH panel: 2×2 button grid ── */
+      #panel-foh { display: none; }
+      #panel-foh.active {
+        display: flex;
+        align-items: flex-start;
+      }
+      #panel-foh > .card {
+        max-width: 500px;
+      }
+      #panel-foh .card-bd {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      #panel-foh .btn {
+        height: 68px;
+        font-size: 14px;
+        width: 100%;
+      }
+
+      /* ── Larger type / sizing throughout ── */
+      .big-room-code  { font-size: 42px; }
+      .buzz-banner-name { font-size: 26px; }
+      .card-hd-title  { font-size: 11px; }
+      .card-bd        { padding: 16px; }
+      .q-text         { font-size: 15px; }
+      .q-opt          { font-size: 12px; padding: 9px; }
+      .modal-box      { max-width: 640px; max-height: 80vh; }
+      .mq-q           { font-size: 13px; }
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       EXTRA WIDE  (≥ 1100px)
+    ═══════════════════════════════════════════════════════════ */
+
+    @media (min-width: 1100px) {
+      #appScreen {
+        grid-template-columns: 240px 1fr;
+      }
+      .topbar  { padding: 24px 18px 12px; }
+      .tabbar  { padding: 0 12px 20px; gap: 4px; }
+      .topbar-logo { font-size: 26px; }
+      .room-chip-code { font-size: 15px; }
+      .tab-btn { font-size: 13px; padding: 12px 16px; gap: 12px; }
+      .tab-btn .tab-icon { font-size: 18px; }
+
+      .tab-panel { padding: 24px 28px 32px; gap: 20px; }
+
+      #panel-setup.active  { gap: 20px; }
+      #panel-game.active   { gap: 20px; }
+      #panel-players.active{ gap: 20px; }
+
+      .players-big-grid {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      }
+      .big-room-code { font-size: 48px; }
+      .modal-box { max-width: 720px; }
+    }
+
   </style>
 </head>
 <body>
@@ -723,12 +1068,74 @@
   </div>
 </div>
 
-<!-- Question Modal -->
+<!-- Question Modal (tabbed: Select + Add) -->
 <div class="modal-bg" id="qModal">
-  <div class="modal-box">
-    <div class="modal-hd"><span>📖 Select Question</span><button class="btn btn-ghost" style="padding:5px 12px;" onclick="closeQModal()">✕</button></div>
-    <div class="modal-cats" id="modalCats"></div>
-    <div class="modal-qlist" id="modalQList"></div>
+  <div class="modal-box" style="max-height:92vh;">
+    <div class="modal-hd">
+      <span>📖 Questions</span>
+      <button class="btn btn-ghost" style="padding:5px 12px;" onclick="closeQModal()">✕</button>
+    </div>
+
+    <!-- Tab switcher -->
+    <div class="modal-tabs">
+      <button class="modal-tab-btn active" id="mTabSelect" onclick="switchModalTab('select')">📋 Select</button>
+      <button class="modal-tab-btn" id="mTabAdd" onclick="switchModalTab('add')">➕ Add Question</button>
+    </div>
+
+    <!-- Pane 1: Select question -->
+    <div class="modal-pane active" id="mPaneSelect">
+      <div class="modal-cats" id="modalCats"></div>
+      <div class="modal-qlist" id="modalQList"></div>
+    </div>
+
+    <!-- Pane 2: Add question + category management -->
+    <div class="modal-pane" id="mPaneAdd">
+      <!-- Category strip -->
+      <div class="aq-cat-strip" id="aqCatStrip">
+        <span style="font-size:10px;color:var(--muted);align-self:center;letter-spacing:1px;text-transform:uppercase;">Categories:</span>
+      </div>
+      <div class="aq-cat-add">
+        <input class="aq-input" id="aqNewCatName" placeholder="New category name" style="flex:1;">
+        <input class="aq-input" id="aqNewCatIcon" placeholder="🏷️" maxlength="4" style="width:52px;text-align:center;">
+        <button class="btn btn-accent btn-md" onclick="aqAddCategory()" style="white-space:nowrap;">+ Add</button>
+      </div>
+
+      <!-- Add question form -->
+      <div class="aq-form">
+        <div>
+          <label class="aq-label">Category</label>
+          <select class="aq-input" id="aqCategory">
+            <option value="">— No category —</option>
+          </select>
+        </div>
+        <div>
+          <label class="aq-label">Question Text</label>
+          <textarea class="aq-input aq-textarea" id="aqText" rows="3" placeholder="Enter the question..."></textarea>
+        </div>
+        <div class="aq-grid-2">
+          <div><label class="aq-label">A</label><input class="aq-input" id="aqOptA" placeholder="Option A"></div>
+          <div><label class="aq-label">B</label><input class="aq-input" id="aqOptB" placeholder="Option B"></div>
+          <div><label class="aq-label">C</label><input class="aq-input" id="aqOptC" placeholder="Option C"></div>
+          <div><label class="aq-label">D</label><input class="aq-input" id="aqOptD" placeholder="Option D"></div>
+        </div>
+        <div class="aq-grid-2">
+          <div>
+            <label class="aq-label">Correct Answer</label>
+            <select class="aq-input" id="aqCorrect">
+              <option value="0">A</option>
+              <option value="1">B</option>
+              <option value="2">C</option>
+              <option value="3">D</option>
+            </select>
+          </div>
+          <div>
+            <label class="aq-label">Points</label>
+            <input class="aq-input" id="aqPoints" type="number" value="100" min="10" step="10">
+          </div>
+        </div>
+        <button class="btn btn-gold btn-lg btn-full" onclick="aqAddQuestion()">➕ Save Question</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -848,13 +1255,22 @@ function setFilter(id, btn) {
 
 function renderQList() {
   const filtered = filterCat === 'all' ? allQuestions : allQuestions.filter(q => q.category_id === filterCat);
-  const html = filtered.map(q => `
+  const html = filtered.map(q => {
+    const cat = categories.find(c => c.id === q.category_id);
+    const catTag = cat ? `<span style="font-size:10px;color:var(--muted);">${cat.icon||'📁'} ${escapeHtml(cat.name)}</span>` : '';
+    return `
     <div class="mq-item ${usedQIds.has(q.id) ? 'used' : ''}" onclick="selectQuestion('${q.id}')">
-      <div class="mq-q">${escapeHtml(q.question_text.substring(0, 70))}</div>
-      <button class="btn btn-red" style="padding:4px 12px; font-size:10px;" onclick="event.stopPropagation(); fireQuestion('${q.id}')">🔥</button>
-    </div>
-  `).join('');
-  document.getElementById('modalQList').innerHTML = html || '<div class="empty-msg">No questions available</div>';
+      <div class="mq-q">
+        <div>${escapeHtml(q.question_text.substring(0, 70))}</div>
+        ${catTag}
+      </div>
+      <div style="display:flex;gap:4px;flex-shrink:0;">
+        <button class="btn btn-red" style="padding:4px 10px;font-size:10px;" onclick="event.stopPropagation();fireQuestion('${q.id}')" title="Fire immediately">🔥</button>
+        <button class="btn btn-ghost" style="padding:4px 8px;font-size:10px;color:var(--red);border-color:rgba(239,68,68,0.3);" onclick="event.stopPropagation();aqDeleteQuestion('${q.id}')" title="Delete question">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('modalQList').innerHTML = html || '<div class="empty-msg">No questions yet — use ➕ Add Question to create some.</div>';
 }
 
 function selectQuestion(id) {
@@ -1463,6 +1879,7 @@ function switchTab(tab) {
 
 function openQModal() {
   renderQList();
+  switchModalTab('select');
   document.getElementById('qModal').classList.add('open');
 }
 
@@ -1483,7 +1900,102 @@ function toast(msg) {
   setTimeout(() => t.remove(), 2500);
 }
 
-// Make functions global for onclick handlers
+// ─── Question Manager: Add/Delete (from admin-sp logic, global schema) ─────────
+
+function switchModalTab(tab) {
+  document.getElementById('mTabSelect').classList.toggle('active', tab === 'select');
+  document.getElementById('mTabAdd').classList.toggle('active', tab === 'add');
+  document.getElementById('mPaneSelect').classList.toggle('active', tab === 'select');
+  document.getElementById('mPaneAdd').classList.toggle('active', tab === 'add');
+  if (tab === 'add') renderAqCategoryStrip();
+}
+
+function renderAqCategoryStrip() {
+  const strip = document.getElementById('aqCatStrip');
+  const label = '<span style="font-size:10px;color:var(--muted);align-self:center;letter-spacing:1px;text-transform:uppercase;flex-shrink:0;">Categories:</span>';
+  const chips = categories.map(c => `
+    <span class="aq-cat-chip">
+      ${c.icon || '📁'} ${escapeHtml(c.name)}
+      <button class="aq-cat-del" onclick="aqDeleteCategory('${c.id}','${escapeHtml(c.name)}')" title="Delete category">×</button>
+    </span>`).join('');
+  strip.innerHTML = label + (chips || '<span style="font-size:11px;color:var(--muted);">No categories yet</span>');
+
+  // Populate category select in the form
+  const sel = document.getElementById('aqCategory');
+  sel.innerHTML = '<option value="">— No category —</option>' +
+    categories.map(c => `<option value="${c.id}">${c.icon || '📁'} ${c.name}</option>`).join('');
+}
+
+async function aqAddCategory() {
+  const name = document.getElementById('aqNewCatName').value.trim();
+  const icon = document.getElementById('aqNewCatIcon').value.trim() || '📁';
+  if (!name) { toast('Enter a category name'); return; }
+  const { error } = await sb.from('categories').insert({ name, icon });
+  if (error) { toast('Error: ' + error.message); return; }
+  document.getElementById('aqNewCatName').value = '';
+  document.getElementById('aqNewCatIcon').value = '';
+  await loadQuestions();          // reloads categories + questions
+  renderAqCategoryStrip();
+  toast('✅ Category added');
+}
+
+async function aqDeleteCategory(id, name) {
+  if (!confirm(`Delete category "${name}"? Questions in it will become uncategorized.`)) return;
+  // Unlink questions first (set category_id to null)
+  await sb.from('questions').update({ category_id: null }).eq('category_id', id);
+  await sb.from('categories').delete().eq('id', id);
+  await loadQuestions();
+  renderAqCategoryStrip();
+  toast('🗑️ Category deleted');
+}
+
+async function aqAddQuestion() {
+  const text  = document.getElementById('aqText').value.trim();
+  const a     = document.getElementById('aqOptA').value.trim();
+  const b     = document.getElementById('aqOptB').value.trim();
+  const c     = document.getElementById('aqOptC').value.trim();
+  const d     = document.getElementById('aqOptD').value.trim();
+  const correct = parseInt(document.getElementById('aqCorrect').value);
+  const catId   = document.getElementById('aqCategory').value || null;
+  const points  = parseInt(document.getElementById('aqPoints').value) || 100;
+  if (!text || !a || !b || !c || !d) { toast('Fill in all fields'); return; }
+  const { error } = await sb.from('questions').insert({
+    question_text: text,
+    option_a: a, option_b: b, option_c: c, option_d: d,
+    correct_option: correct,
+    category_id: catId,
+    points: points
+  });
+  if (error) { toast('Error: ' + error.message); return; }
+  // Clear form
+  document.getElementById('aqText').value = '';
+  document.getElementById('aqOptA').value = '';
+  document.getElementById('aqOptB').value = '';
+  document.getElementById('aqOptC').value = '';
+  document.getElementById('aqOptD').value = '';
+  document.getElementById('aqPoints').value = '100';
+  await loadQuestions();
+  renderAqCategoryStrip();
+  toast('✅ Question saved!');
+}
+
+async function aqDeleteQuestion(id) {
+  if (!confirm('Delete this question?')) return;
+  await sb.from('questions').delete().eq('id', id);
+  usedQIds.delete(id);
+  if (selectedQ?.id === id) {
+    selectedQ = null;
+    document.getElementById('qPickBtn').classList.remove('selected');
+    document.getElementById('qPickLabel').innerText = 'Tap to select question';
+    document.getElementById('qDisplay').classList.add('hidden');
+    document.getElementById('openBuzzBtn').disabled = true;
+    document.getElementById('resetBuzzBtn').disabled = true;
+  }
+  await loadQuestions();
+  toast('🗑️ Question deleted');
+}
+
+// ─── Make functions global for onclick handlers ─────────────────────────────
 window.joinRoom = joinRoom;
 window.switchTab = switchTab;
 window.startRound = startRound;
@@ -1509,6 +2021,11 @@ window.fohEndRound = fohEndRound;
 window.setFilter = setFilter;
 window.selectQuestion = selectQuestion;
 window.fireQuestion = fireQuestion;
+window.switchModalTab = switchModalTab;
+window.aqAddCategory = aqAddCategory;
+window.aqDeleteCategory = aqDeleteCategory;
+window.aqAddQuestion = aqAddQuestion;
+window.aqDeleteQuestion = aqDeleteQuestion;
 </script>
 </body>
 </html>
