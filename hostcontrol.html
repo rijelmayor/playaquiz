@@ -971,14 +971,14 @@
     </div>
   </div>
   <div class="tabbar">
-    <button class="tab-btn active" onclick="switchTab('game')"><span class="tab-icon">⚡</span>Game</button>
-    <button class="tab-btn" onclick="switchTab('setup')"><span class="tab-icon">⚙️</span>Setup</button> 
+    <button class="tab-btn active" onclick="switchTab('setup')"><span class="tab-icon">⚙️</span>Setup</button>
+    <button class="tab-btn" onclick="switchTab('game')"><span class="tab-icon">⚡</span>Game</button> 
     <button class="tab-btn" onclick="switchTab('players')"><span class="tab-icon">👥</span>Players</button>
     <button class="tab-btn" onclick="switchTab('foh')"><span class="tab-icon">📺</span>FOH</button>
   </div>
   <div class="tabs-content">
     <!-- Setup Panel -->
-    <div class="tab-panel" id="panel-setup">
+    <div class="tab-panel active" id="panel-setup">
       <div class="card">
         <div class="card-hd"><div class="card-hd-title">🏠 Room</div><span id="connLabel" style="font-size:9px;">Offline</span></div>
         <div class="card-bd">
@@ -1011,7 +1011,7 @@
     </div>
 
     <!-- Game Panel -->
-    <div class="tab-panel active" id="panel-game">
+    <div class="tab-panel" id="panel-game">
       <div class="card">
         <div class="card-hd"><div class="card-hd-title">📚 Question</div><span id="qNumBadge">Q#0</span></div>
         <div class="card-bd">
