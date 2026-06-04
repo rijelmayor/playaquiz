@@ -1054,7 +1054,7 @@
           </div>
         </div>
       </div>
-      <button class="btn btn-ghost btn-md btn-full" onclick="nextQuestion()">⏭ Next Question</button>
+      <button class="btn btn-purple btn-md btn-full" onclick="randomQuestion()">🎲 Random Question</button>
     </div>
 
     <!-- Players Panel -->
@@ -1176,6 +1176,8 @@ let categories = [];
 let filterCat = 'all';
 let usedQIds = new Set();
 let qCounter = 0;
+let availableQuestions = [];
+let gameStarted = false;
 
 // UI Elements
 const loadingScreen = document.getElementById('loadingScreen');
@@ -1212,7 +1214,6 @@ async function connectRoom(code) {
   appScreen.classList.remove('active');
   
   try {
-    // Register room in database
     await sb.from('game_rooms').delete().neq('room_code', code);
     await sb.from('game_rooms').upsert({
       room_code: code,
@@ -1239,10 +1240,6 @@ async function connectRoom(code) {
   }
 }
 
-// --------------------------------------------------------------
-// CSV IMPORT (using admin-sp reference format)
-// Expected CSV headers: Question,Option A,Option B,Option C,Option D,Correct Option,Points,Category Name,Category Icon
-// --------------------------------------------------------------
 async function handleCsvImport(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -1254,7 +1251,6 @@ async function handleCsvImport(event) {
       return;
     }
     const headers = rows[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-    // map headers
     const qIdx = headers.findIndex(h => h.toLowerCase() === 'question');
     const optAIdx = headers.findIndex(h => h.toLowerCase() === 'option a');
     const optBIdx = headers.findIndex(h => h.toLowerCase() === 'option b');
@@ -1275,7 +1271,6 @@ async function handleCsvImport(event) {
     
     for (let i = 1; i < rows.length; i++) {
       const line = rows[i];
-      // basic csv parsing: split by comma but respect quotes (simple)
       let cols = [];
       let inQuote = false;
       let current = '';
@@ -1311,7 +1306,6 @@ async function handleCsvImport(event) {
       
       if (!question_text || !opt_a || !opt_b || !opt_c || !opt_d) continue;
       
-      // find or create category (scoped to this room? we just use global categories)
       let categoryId = null;
       if (catName) {
         let existingCat = categories.find(c => c.name.toLowerCase() === catName.toLowerCase());
@@ -1335,9 +1329,9 @@ async function handleCsvImport(event) {
       else importedCount++;
     }
     
-    await loadQuestions(); // refresh question bank
+    await loadQuestions();
     toast(`✅ Imported ${importedCount} questions. Errors: ${errorCount}`, importedCount > 0 ? 'success' : 'error');
-    event.target.value = ''; // reset file input
+    event.target.value = '';
   } catch (err) {
     console.error(err);
     toast('Failed to parse CSV file', 'error');
@@ -1442,7 +1436,6 @@ function setupRealtime() {
     .on('broadcast', { event: 'full_game_reset' }, ({ payload }) => handleFullReset(payload))
     .on('broadcast', { event: 'player_list_update' }, ({ payload }) => syncPlayers(payload.players))
     .on('broadcast', { event: 'foh_requesting_sync' }, () => {
-      // FOH reconnected — push current player list immediately
       broadcast('player_list_update', { players: Array.from(players.values()) });
     })
     .subscribe((status) => {
@@ -1457,7 +1450,6 @@ function setupRealtime() {
       }
     });
     
-  // Health check interval
   if (window._hcInterval) clearInterval(window._hcInterval);
   window._hcInterval = setInterval(() => {
     let changed = false;
@@ -1472,7 +1464,6 @@ function setupRealtime() {
 }
 
 function handlePlayerJoin(payload) {
-  // Check if same name reconnected with a new ID (tab reload, etc.)
   const existing = Array.from(players.values()).find(p => p.name === payload.name);
   if (existing && existing.id !== payload.id) {
     const oldId = existing.id;
@@ -1484,7 +1475,6 @@ function handlePlayerJoin(payload) {
     existing.connected = true;
     existing.lastSeen = Date.now();
     players.set(payload.id, existing);
-    // Send state back to reconnected player
     broadcast('state_sync', {
       playerId: payload.id,
       score: existing.score,
@@ -1624,9 +1614,87 @@ function broadcast(event, payload) {
   }
 }
 
+function initAvailableQuestions() {
+  usedQIds.clear();
+  availableQuestions = [...allQuestions];
+  shuffleArray(availableQuestions);
+  qCounter = 0;
+  document.getElementById('qNumBadge').innerHTML = `Q#${qCounter}`;
+  
+  selectedQ = null;
+  document.getElementById('qPickBtn').classList.remove('selected');
+  document.getElementById('qPickLabel').innerText = 'Click Random Question';
+  document.getElementById('qDisplay').classList.add('hidden');
+  document.getElementById('openBuzzBtn').disabled = true;
+  document.getElementById('resetBuzzBtn').disabled = true;
+  
+  toast(`📚 ${availableQuestions.length} questions available`);
+}
+
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+}
+
+function randomQuestion() {
+  if (!gameStarted) {
+    toast('Please start the round first using START ROUND button!');
+    return;
+  }
+  
+  if (!allQuestions.length) {
+    toast('No questions in database! Add questions first.');
+    return;
+  }
+  
+  if (availableQuestions.length === 0) {
+    if (usedQIds.size >= allQuestions.length) {
+      toast('🏆 All questions have been used! Reshuffling all questions...');
+      initAvailableQuestions();
+    } else {
+      availableQuestions = allQuestions.filter(q => !usedQIds.has(q.id));
+      shuffleArray(availableQuestions);
+      toast(`🔄 Refreshed: ${availableQuestions.length} new questions remaining`);
+    }
+  }
+  
+  if (availableQuestions.length === 0) {
+    toast('No questions available!');
+    return;
+  }
+  
+  const nextQ = availableQuestions.shift();
+  selectedQ = nextQ;
+  usedQIds.add(selectedQ.id);
+  qCounter++;
+  
+  document.getElementById('qPickLabel').innerText = selectedQ.question_text.substring(0, 50) + '…';
+  document.getElementById('qPickBtn').classList.add('selected');
+  renderSelectedQDisplay();
+  document.getElementById('qNumBadge').innerHTML = `Q#${qCounter}`;
+  
+  document.getElementById('openBuzzBtn').disabled = false;
+  document.getElementById('resetBuzzBtn').disabled = false;
+  
+  toast(`🎲 Random question loaded! (${availableQuestions.length} remaining) Click OPEN BUZZERS to start`);
+  
+  broadcast('random_question_loaded', {
+    questionNumber: qCounter,
+    remaining: availableQuestions.length,
+    total: allQuestions.length
+  });
+}
+
 function openQuestion() {
   if (!selectedQ) {
-    toast('Select a question first!');
+    toast('Click Random Question first!');
+    return;
+  }
+  
+  if (!gameStarted) {
+    toast('Round not started! Click START ROUND first.');
     return;
   }
   
@@ -1647,20 +1715,16 @@ function openQuestion() {
     if (!eliminated.has(id)) p.status = 'waiting';
   });
   
-  qCounter++;
-  document.getElementById('qNumBadge').innerHTML = `Q#${qCounter}`;
-  usedQIds.add(selectedQ.id);
-  
   const opts = [selectedQ.option_a, selectedQ.option_b, selectedQ.option_c, selectedQ.option_d];
   broadcast('question_open', {
     question: selectedQ.question_text,
     questionNumber: qCounter,
-    options: opts
+    options: opts,
+    remainingQuestions: availableQuestions.length
   });
   
   renderAll();
-  renderQList();
-  toast('🔔 Buzzers OPEN!');
+  toast(`🔔 BUZZERS OPEN! Question ${qCounter}`);
 }
 
 function resetBuzzers() {
@@ -1720,7 +1784,6 @@ function markWrong() {
   renderAll();
   toast(`❌ Wrong answer - player locked`);
   
-  // Check if any players are still available to buzz
   const remaining = Array.from(players.keys()).filter(id => !locked.has(id) && !eliminated.has(id));
   if (remaining.length > 0) {
     setTimeout(() => {
@@ -1730,27 +1793,6 @@ function markWrong() {
       toast('🔔 Buzzers re-opened');
     }, 3000);
   }
-}
-
-function nextQuestion() {
-  buzzedId = null;
-  isOpen = false;
-  selectedQ = null;
-  document.getElementById('qPickBtn').classList.remove('selected');
-  document.getElementById('qPickLabel').innerText = 'Tap to select question';
-  document.getElementById('qDisplay').classList.add('hidden');
-  document.getElementById('openBuzzBtn').disabled = true;
-  document.getElementById('resetBuzzBtn').disabled = true;
-  hideBuzzBanner();
-  document.getElementById('correctBtn').disabled = true;
-  document.getElementById('wrongBtn').disabled = true;
-  players.forEach(p => {
-    if (!eliminated.has(p.id)) p.status = 'waiting';
-  });
-  locked.clear();
-  broadcast('next_question', {});
-  renderAll();
-  toast('⏭ Ready for next question');
 }
 
 function startTimer() {
@@ -1836,17 +1878,26 @@ function eliminatePlayer(playerId) {
 function startRound() {
   const minPlayers = parseInt(document.getElementById('minPlayersInput').value) || 2;
   if (players.size < minPlayers) {
-    toast(`Need at least ${minPlayers} players to start`);
+    toast(`Need at least ${minPlayers} players to start. Currently: ${players.size} players`);
     return;
   }
+  
+  if (players.size === 0) {
+    toast('Cannot start round: No players have joined the game!');
+    return;
+  }
+  
+  gameStarted = true;
+  
+  initAvailableQuestions();
+  
   const points = parseInt(document.getElementById('pointsInput').value) || 100;
   broadcast('round_started', { roomCode, pointsPerBuzz: points });
   broadcast('show_room_code', { roomCode });
-  // Both FOH ('show_category_picker') and player ('show_categories') event names
   broadcast('show_category_picker', { categories });
   broadcast('show_categories', { categories });
   switchTab('game');
-  toast('🚀 Round started!');
+  toast(`🚀 Round started! ${players.size} players ready. Click "Random Question" to begin`);
 }
 
 function fohShowRoomCode() {
@@ -1855,7 +1906,6 @@ function fohShowRoomCode() {
 }
 
 function fohShowCategories() {
-  // FOH listens to 'show_category_picker'; player listens to 'show_categories' — broadcast both
   broadcast('show_category_picker', { categories });
   broadcast('show_categories', { categories });
   toast('🎨 Categories shown on FOH & players');
@@ -1871,6 +1921,7 @@ function fohEndRound() {
   const winner = sorted[0];
   broadcast('round_ended', { winner });
   toast(`🏁 Round ended! Winner: ${winner?.name || 'N/A'}`);
+  gameStarted = false;
 }
 
 async function newRoomCode() {
@@ -1902,7 +1953,6 @@ function renderAll() {
   const count = players.size;
   document.getElementById('playerCountBadge').innerHTML = count;
   
-  // Setup tab player list
   const setupList = document.getElementById('setupPlayerList');
   if (sorted.length === 0) {
     setupList.innerHTML = '<div class="empty-msg">Waiting for players...</div>';
@@ -1919,7 +1969,6 @@ function renderAll() {
     `).join('');
   }
   
-  // Manual buzz grid
   const manualGrid = document.getElementById('manualBuzzGrid');
   if (sorted.length === 0) {
     manualGrid.innerHTML = '<div class="empty-msg">No players yet</div>';
@@ -1933,7 +1982,6 @@ function renderAll() {
     `).join('');
   }
   
-  // Override list
   const overrideList = document.getElementById('overrideList');
   if (sorted.length === 0) {
     overrideList.innerHTML = '<div class="empty-msg">No players yet</div>';
@@ -1976,25 +2024,18 @@ function resetLocalState() {
   locked.clear();
   buzzedId = null;
   isOpen = false;
-  selectedQ = null;
-  qCounter = 0;
-  usedQIds.clear();
   hideBuzzBanner();
   document.getElementById('correctBtn').disabled = true;
   document.getElementById('wrongBtn').disabled = true;
   document.getElementById('openBuzzBtn').disabled = true;
   document.getElementById('resetBuzzBtn').disabled = true;
-  document.getElementById('qPickBtn').classList.remove('selected');
-  document.getElementById('qPickLabel').innerText = 'Tap to select question';
-  document.getElementById('qDisplay').classList.add('hidden');
-  document.getElementById('qNumBadge').innerHTML = 'Q#0';
 }
 
 function switchTab(tab) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-  document.getElementById(`tab-${tab}`)?.classList.add('active');
   document.getElementById(`panel-${tab}`)?.classList.add('active');
+  document.querySelector(`.tab-btn[onclick="switchTab('${tab}')"]`)?.classList.add('active');
 }
 
 function openQModal() {
@@ -2020,8 +2061,6 @@ function toast(msg) {
   setTimeout(() => t.remove(), 2500);
 }
 
-// ─── Question Manager: Add/Delete (from admin-sp logic, global schema) ─────────
-
 function switchModalTab(tab) {
   document.getElementById('mTabSelect').classList.toggle('active', tab === 'select');
   document.getElementById('mTabAdd').classList.toggle('active', tab === 'add');
@@ -2040,7 +2079,6 @@ function renderAqCategoryStrip() {
     </span>`).join('');
   strip.innerHTML = label + (chips || '<span style="font-size:11px;color:var(--muted);">No categories yet</span>');
 
-  // Populate category select in the form
   const sel = document.getElementById('aqCategory');
   sel.innerHTML = '<option value="">— No category —</option>' +
     categories.map(c => `<option value="${c.id}">${c.icon || '📁'} ${c.name}</option>`).join('');
@@ -2054,14 +2092,13 @@ async function aqAddCategory() {
   if (error) { toast('Error: ' + error.message); return; }
   document.getElementById('aqNewCatName').value = '';
   document.getElementById('aqNewCatIcon').value = '';
-  await loadQuestions();          // reloads categories + questions
+  await loadQuestions();
   renderAqCategoryStrip();
   toast('✅ Category added');
 }
 
 async function aqDeleteCategory(id, name) {
   if (!confirm(`Delete category "${name}"? Questions in it will become uncategorized.`)) return;
-  // Unlink questions first (set category_id to null)
   await sb.from('questions').update({ category_id: null }).eq('category_id', id);
   await sb.from('categories').delete().eq('id', id);
   await loadQuestions();
@@ -2087,7 +2124,6 @@ async function aqAddQuestion() {
     points: points
   });
   if (error) { toast('Error: ' + error.message); return; }
-  // Clear form
   document.getElementById('aqText').value = '';
   document.getElementById('aqOptA').value = '';
   document.getElementById('aqOptB').value = '';
@@ -2106,7 +2142,7 @@ async function aqDeleteQuestion(id) {
   if (selectedQ?.id === id) {
     selectedQ = null;
     document.getElementById('qPickBtn').classList.remove('selected');
-    document.getElementById('qPickLabel').innerText = 'Tap to select question';
+    document.getElementById('qPickLabel').innerText = 'Click Random Question';
     document.getElementById('qDisplay').classList.add('hidden');
     document.getElementById('openBuzzBtn').disabled = true;
     document.getElementById('resetBuzzBtn').disabled = true;
@@ -2115,7 +2151,7 @@ async function aqDeleteQuestion(id) {
   toast('🗑️ Question deleted');
 }
 
-// ─── Make functions global for onclick handlers ─────────────────────────────
+// Make functions global
 window.joinRoom = joinRoom;
 window.switchTab = switchTab;
 window.startRound = startRound;
@@ -2123,7 +2159,7 @@ window.openQuestion = openQuestion;
 window.resetBuzzers = resetBuzzers;
 window.markCorrect = markCorrect;
 window.markWrong = markWrong;
-window.nextQuestion = nextQuestion;
+window.randomQuestion = randomQuestion;
 window.startTimer = startTimer;
 window.toggleBuzzer = toggleBuzzer;
 window.forceBuzz = forceBuzz;
