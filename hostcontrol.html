@@ -1279,8 +1279,29 @@ async function connectRoom(code) {
   appScreen.classList.remove('active');
   
   try {
-    // Generate a fresh session UUID for this room — scopes all questions & categories
-    sessionId = crypto.randomUUID();
+    // Create a game_session row — its UUID satisfies the questions.session_id FK
+    const { data: sessionRow, error: sessionErr } = await sb
+      .from('game_sessions')
+      .insert({ room_code: code, status: 'active', type: 'final_round' })
+      .select('id')
+      .single();
+
+    if (sessionErr) {
+      // If insert fails (e.g. RLS), try to fetch an existing session for this room
+      console.warn('[connectRoom] game_sessions insert failed, trying fetch:', sessionErr.message);
+      const { data: existing } = await sb
+        .from('game_sessions')
+        .select('id')
+        .eq('room_code', code)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+      sessionId = existing?.id ?? null;
+    } else {
+      sessionId = sessionRow.id;
+    }
+
+    console.log('[connectRoom] sessionId:', sessionId);
 
     await sb.from('game_rooms').delete().neq('room_code', code);
     await sb.from('game_rooms').upsert({
@@ -1411,18 +1432,25 @@ async function handleCsvImport(event) {
       // ── Resolve / create category ────────────────────────────────────
       let categoryId = null;
       if (catName) {
+        // Check local cache first
         let existingCat = categories.find(c => c.name.toLowerCase() === catName.toLowerCase());
         if (!existingCat) {
-          const { data: newCat, error: catError } = await sb
+          // Upsert: insert if new, do nothing if name already exists, then fetch the row
+          await sb
             .from('categories')
-            .insert({ name: catName, icon: catIcon, session_id: sessionId })
-            .select()
+            .upsert({ name: catName, icon: catIcon, session_id: sessionId }, { onConflict: 'name', ignoreDuplicates: true });
+
+          // Always fetch by name to get the id (whether just inserted or already existed)
+          const { data: fetched, error: fetchErr } = await sb
+            .from('categories')
+            .select('*')
+            .eq('name', catName)
             .single();
-          if (catError) {
-            console.warn(`[CSV Import] Category insert failed for "${catName}":`, catError.message, catError);
-            // Proceed without category rather than failing the whole row
-          } else if (newCat) {
-            existingCat = newCat;
+
+          if (fetchErr) {
+            console.warn(`[CSV Import] Could not fetch category "${catName}":`, fetchErr.message);
+          } else if (fetched) {
+            existingCat = fetched;
             categories.push(existingCat);
           }
         }
@@ -2309,7 +2337,7 @@ async function aqAddCategory() {
   const name = document.getElementById('aqNewCatName').value.trim();
   const icon = document.getElementById('aqNewCatIcon').value.trim() || '📁';
   if (!name) { toast('Enter a category name'); return; }
-  const { error } = await sb.from('categories').insert({ name, icon, session_id: sessionId });
+  const { error } = await sb.from('categories').upsert({ name, icon, session_id: sessionId }, { onConflict: 'name', ignoreDuplicates: false });
   if (error) { toast('Error: ' + error.message); return; }
   document.getElementById('aqNewCatName').value = '';
   document.getElementById('aqNewCatIcon').value = '';
@@ -2321,7 +2349,7 @@ async function aqAddCategory() {
 async function aqDeleteCategory(id, name) {
   if (!confirm(`Delete category "${name}"? Questions in it will become uncategorized.`)) return;
   await sb.from('questions').update({ category_id: null }).eq('category_id', id).eq('session_id', sessionId);
-  await sb.from('categories').delete().eq('id', id).eq('session_id', sessionId);
+  await sb.from('categories').delete().eq('id', id);
   await loadQuestions();
   renderAqCategoryStrip();
   toast('🗑️ Category deleted');
