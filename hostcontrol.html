@@ -1311,98 +1311,233 @@ async function connectRoom(code) {
 async function handleCsvImport(event) {
   const file = event.target.files[0];
   if (!file) return;
+
+  // Guard: session must be established before importing
+  if (!sessionId) {
+    toast('❌ No active room session. Connect to a room first.');
+    event.target.value = '';
+    return;
+  }
+
   try {
     const text = await file.text();
     const rows = text.split(/\r?\n/).filter(row => row.trim().length > 0);
     if (rows.length < 2) {
-      toast('CSV must contain header + at least one question', 'error');
+      toast('CSV must have a header row + at least one question.');
+      event.target.value = '';
       return;
     }
-    const headers = rows[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-    const qIdx = headers.findIndex(h => h.toLowerCase() === 'question');
-    const optAIdx = headers.findIndex(h => h.toLowerCase() === 'option a');
-    const optBIdx = headers.findIndex(h => h.toLowerCase() === 'option b');
-    const optCIdx = headers.findIndex(h => h.toLowerCase() === 'option c');
-    const optDIdx = headers.findIndex(h => h.toLowerCase() === 'option d');
-    const correctIdx = headers.findIndex(h => h.toLowerCase() === 'correct option');
-    const pointsIdx = headers.findIndex(h => h.toLowerCase() === 'points');
-    const catNameIdx = headers.findIndex(h => h.toLowerCase() === 'category name');
-    const catIconIdx = headers.findIndex(h => h.toLowerCase() === 'category icon');
-    
+
+    // ── Parse header (trim + strip BOM + strip quotes) ──────────────────
+    const headers = rows[0]
+      .replace(/^\uFEFF/, '')           // strip UTF-8 BOM if present
+      .split(',')
+      .map(h => h.trim().replace(/^"|"$/g, '').toLowerCase());
+
+    const qIdx      = headers.findIndex(h => h === 'question');
+    const optAIdx   = headers.findIndex(h => h === 'option a');
+    const optBIdx   = headers.findIndex(h => h === 'option b');
+    const optCIdx   = headers.findIndex(h => h === 'option c');
+    const optDIdx   = headers.findIndex(h => h === 'option d');
+    const correctIdx= headers.findIndex(h => h === 'correct option');
+    const pointsIdx = headers.findIndex(h => h === 'points');
+    const catNameIdx= headers.findIndex(h => h === 'category name');
+    const catIconIdx= headers.findIndex(h => h === 'category icon');
+
+    console.log('[CSV Import] Detected headers:', headers);
+    console.log('[CSV Import] Column map — question:', qIdx, 'optA:', optAIdx, 'optB:', optBIdx,
+      'optC:', optCIdx, 'optD:', optDIdx, 'correct:', correctIdx, 'points:', pointsIdx,
+      'catName:', catNameIdx, 'catIcon:', catIconIdx);
+
     if (qIdx === -1 || optAIdx === -1 || optBIdx === -1 || optCIdx === -1 || optDIdx === -1 || correctIdx === -1) {
-      toast('CSV missing required columns (Question, Option A-D, Correct Option)', 'error');
+      toast('❌ CSV missing required columns. Need: Question, Option A, Option B, Option C, Option D, Correct Option');
+      console.error('[CSV Import] Missing columns. Headers found:', headers);
+      event.target.value = '';
       return;
     }
-    
-    let importedCount = 0;
-    let errorCount = 0;
-    
-    for (let i = 1; i < rows.length; i++) {
-      const line = rows[i];
-      let cols = [];
-      let inQuote = false;
-      let current = '';
-      for (let ch of line) {
-        if (ch === '"') {
-          inQuote = !inQuote;
-        } else if (ch === ',' && !inQuote) {
-          cols.push(current.trim());
-          current = '';
-        } else {
-          current += ch;
-        }
+
+    // ── Build a list of valid data rows ──────────────────────────────────
+    function parseRow(line) {
+      const cols = [];
+      let inQuote = false, current = '';
+      for (const ch of line) {
+        if (ch === '"') { inQuote = !inQuote; }
+        else if (ch === ',' && !inQuote) { cols.push(current.trim()); current = ''; }
+        else { current += ch; }
       }
       cols.push(current.trim());
-      if (cols.length < 6) continue;
-      const question_text = cols[qIdx]?.replace(/^"|"$/g, '') || '';
-      const opt_a = cols[optAIdx]?.replace(/^"|"$/g, '') || '';
-      const opt_b = cols[optBIdx]?.replace(/^"|"$/g, '') || '';
-      const opt_c = cols[optCIdx]?.replace(/^"|"$/g, '') || '';
-      const opt_d = cols[optDIdx]?.replace(/^"|"$/g, '') || '';
+      return cols;
+    }
+
+    const dataRows = [];
+    for (let i = 1; i < rows.length; i++) {
+      const cols = parseRow(rows[i]);
+      const q  = cols[qIdx]?.replace(/^"|"$/g, '').trim() || '';
+      const a  = cols[optAIdx]?.replace(/^"|"$/g, '').trim() || '';
+      const b  = cols[optBIdx]?.replace(/^"|"$/g, '').trim() || '';
+      const c  = cols[optCIdx]?.replace(/^"|"$/g, '').trim() || '';
+      const d  = cols[optDIdx]?.replace(/^"|"$/g, '').trim() || '';
+      if (!q || !a || !b || !c || !d) continue;   // skip blank/incomplete rows
+      dataRows.push({ cols, q, a, b, c, d });
+    }
+
+    if (dataRows.length === 0) {
+      toast('❌ No valid rows found in CSV.');
+      event.target.value = '';
+      return;
+    }
+
+    // ── Show progress bar ─────────────────────────────────────────────────
+    showImportProgress(0, dataRows.length);
+
+    let importedCount = 0;
+    let errorCount = 0;
+    const errorMessages = [];
+
+    for (let i = 0; i < dataRows.length; i++) {
+      const { cols, q, a, b, c, d } = dataRows[i];
+
+      // Correct option
       let correct_option = parseInt(cols[correctIdx]?.replace(/^"|"$/g, ''));
       if (isNaN(correct_option)) {
         const letter = cols[correctIdx]?.replace(/^"|"$/g, '').trim().toUpperCase();
-        if (letter === 'A') correct_option = 0;
-        else if (letter === 'B') correct_option = 1;
-        else if (letter === 'C') correct_option = 2;
-        else if (letter === 'D') correct_option = 3;
-        else correct_option = 0;
+        correct_option = { A: 0, B: 1, C: 2, D: 3 }[letter] ?? 0;
       }
-      const points = parseInt(cols[pointsIdx]?.replace(/^"|"$/g, '')) || 100;
-      const catName = catNameIdx !== -1 ? cols[catNameIdx]?.replace(/^"|"$/g, '') : '';
-      const catIcon = catIconIdx !== -1 ? cols[catIconIdx]?.replace(/^"|"$/g, '') : '📁';
-      
-      if (!question_text || !opt_a || !opt_b || !opt_c || !opt_d) continue;
-      
+
+      const points   = parseInt(cols[pointsIdx]?.replace(/^"|"$/g, '')) || 100;
+      const catName  = catNameIdx !== -1 ? cols[catNameIdx]?.replace(/^"|"$/g, '').trim() : '';
+      const catIcon  = catIconIdx !== -1 ? cols[catIconIdx]?.replace(/^"|"$/g, '').trim() || '📁' : '📁';
+
+      // ── Resolve / create category ────────────────────────────────────
       let categoryId = null;
       if (catName) {
         let existingCat = categories.find(c => c.name.toLowerCase() === catName.toLowerCase());
         if (!existingCat) {
-          const { data: newCat, error: catError } = await sb.from('categories').insert({ name: catName, icon: catIcon || '📁', session_id: sessionId }).select().single();
-          if (!catError && newCat) {
+          const { data: newCat, error: catError } = await sb
+            .from('categories')
+            .insert({ name: catName, icon: catIcon, session_id: sessionId })
+            .select()
+            .single();
+          if (catError) {
+            console.warn(`[CSV Import] Category insert failed for "${catName}":`, catError.message, catError);
+            // Proceed without category rather than failing the whole row
+          } else if (newCat) {
             existingCat = newCat;
             categories.push(existingCat);
-            renderCategoryFilters();
-            renderAqCategoryStrip();
           }
         }
         if (existingCat) categoryId = existingCat.id;
       }
-      
-      const { error } = await sb.from('questions').insert({
-        question_text, option_a: opt_a, option_b: opt_b, option_c: opt_c, option_d: opt_d,
-        correct_option, points, category_id: categoryId, session_id: sessionId
-      });
-      if (error) errorCount++;
-      else importedCount++;
+
+      // ── Insert question ───────────────────────────────────────────────
+      const payload = {
+        question_text: q,
+        option_a: a, option_b: b, option_c: c, option_d: d,
+        correct_option,
+        points,
+        category_id: categoryId,
+        session_id: sessionId
+      };
+      console.log(`[CSV Import] Row ${i + 1} payload:`, payload);
+
+      const { error } = await sb.from('questions').insert(payload);
+      if (error) {
+        errorCount++;
+        const msg = `Row ${i + 1}: ${error.message}`;
+        errorMessages.push(msg);
+        console.error('[CSV Import] Question insert error:', error.message, error, '\nPayload:', payload);
+      } else {
+        importedCount++;
+      }
+
+      // Update progress
+      updateImportProgress(i + 1, dataRows.length, importedCount, errorCount);
     }
-    
+
+    // ── Finalise ──────────────────────────────────────────────────────────
     await loadQuestions();
-    toast(`✅ Imported ${importedCount} questions. Errors: ${errorCount}`, importedCount > 0 ? 'success' : 'error');
+    renderAqCategoryStrip();
     event.target.value = '';
+
+    setTimeout(() => hideImportProgress(), 1200);
+
+    if (errorMessages.length > 0) {
+      console.error('[CSV Import] Errors summary:\n' + errorMessages.join('\n'));
+    }
+
+    if (importedCount > 0 && errorCount === 0) {
+      toast(`✅ Imported ${importedCount} question${importedCount !== 1 ? 's' : ''} successfully!`);
+    } else if (importedCount > 0) {
+      toast(`⚠️ Imported ${importedCount} questions. ${errorCount} failed — check console for details.`);
+    } else {
+      toast(`❌ Import failed — all ${errorCount} rows errored. Check browser console (F12) for details.`);
+    }
+
   } catch (err) {
-    console.error(err);
-    toast('Failed to parse CSV file', 'error');
+    console.error('[CSV Import] Unexpected error:', err);
+    hideImportProgress();
+    toast('❌ Failed to parse CSV file. Check console for details.');
+    event.target.value = '';
+  }
+}
+
+// ── Progress bar helpers ────────────────────────────────────────────────────
+function showImportProgress(done, total) {
+  let bar = document.getElementById('importProgressWrap');
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'importProgressWrap';
+    bar.style.cssText = `
+      position:fixed; bottom:70px; left:50%; transform:translateX(-50%);
+      width:min(340px,90vw); background:var(--s1); border:1px solid var(--b2);
+      border-radius:var(--radius); padding:14px 16px; z-index:600;
+      box-shadow:0 8px 32px rgba(0,0,0,0.5);
+      animation: fadeUp 0.2s ease;
+    `;
+    bar.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <span style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">📂 Importing Questions</span>
+        <span id="importProgressLabel" style="font-size:11px;font-weight:700;color:var(--gold);">0 / 0</span>
+      </div>
+      <div style="background:var(--bg);border-radius:8px;height:8px;overflow:hidden;">
+        <div id="importProgressBar" style="height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--green));border-radius:8px;transition:width 0.15s ease;"></div>
+      </div>
+      <div id="importProgressSub" style="font-size:10px;color:var(--muted);margin-top:6px;">Starting…</div>
+    `;
+    document.body.appendChild(bar);
+  }
+  updateImportProgress(done, total, 0, 0);
+}
+
+function updateImportProgress(done, total, ok, errs) {
+  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  const bar  = document.getElementById('importProgressBar');
+  const lbl  = document.getElementById('importProgressLabel');
+  const sub  = document.getElementById('importProgressSub');
+  if (bar) bar.style.width = pct + '%';
+  if (lbl) lbl.textContent = `${done} / ${total}`;
+  if (sub) {
+    if (done < total) {
+      sub.textContent = errs > 0
+        ? `✅ ${ok} imported · ❌ ${errs} failed · processing…`
+        : `Processing row ${done}…`;
+    } else {
+      sub.textContent = errs > 0
+        ? `Done — ✅ ${ok} imported · ❌ ${errs} failed`
+        : `✅ All ${ok} questions imported!`;
+      if (bar) bar.style.background = errs > 0
+        ? 'linear-gradient(90deg,var(--accent),var(--gold))'
+        : 'linear-gradient(90deg,var(--green),#34d399)';
+    }
+  }
+}
+
+function hideImportProgress() {
+  const bar = document.getElementById('importProgressWrap');
+  if (bar) {
+    bar.style.transition = 'opacity 0.4s';
+    bar.style.opacity = '0';
+    setTimeout(() => bar.remove(), 420);
   }
 }
 
