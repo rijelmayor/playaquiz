@@ -251,10 +251,12 @@
     }
     .catpick-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(140px, 200px));
+      justify-content: center;
       gap: 16px;
       width: 100%;
-      max-width: 900px;
+      max-width: min(900px, 90vw);
+      align-self: center;
     }
     .cat-tile {
       background: rgba(255,255,255,0.04);
@@ -870,6 +872,29 @@ function renderPlayersList() {
 // ─── Event handler ────────────────────────────────────────────────────────────
 function handleBroadcast(event, payload) {
   switch(event) {
+    case 'foh_hide':
+      // Hide specific overlays / return to waiting screen
+      switch(payload.target) {
+        case 'room_code':
+          hideRoomCodeOverlay();
+          break;
+        case 'categories':
+          if(document.getElementById('categoriesScreen').classList.contains('active')) {
+            showScreen('waitingScreen');
+          }
+          break;
+        case 'leaderboard':
+          // Leaderboard is shown on the side panel — clear it or return to waiting
+          showScreen('waitingScreen');
+          break;
+        case 'end_round':
+          if(document.getElementById('endedScreen').classList.contains('active')) {
+            showScreen('waitingScreen');
+          }
+          break;
+      }
+      break;
+
     case 'player_list_update':
       cachedPlayers = payload.players || [];
       renderPlayersList();
@@ -1016,7 +1041,7 @@ function connectToRoom(code) {
   const events = [
     'round_started', 'player_list_update', 'question_open', 'buzz_confirmed', 'correct', 'wrong',
     'next_question', 'reset_for_next_question', 'reset_buzzers', 'buzzers_reopen', 'eliminated',
-    'show_category_picker', 'round_ended', 'timer_start', 'full_game_reset', 'show_room_code'
+    'show_category_picker', 'round_ended', 'timer_start', 'full_game_reset', 'show_room_code', 'foh_hide'
   ];
   events.forEach(ev => {
     realtimeChannel.on('broadcast', { event: ev }, ({ payload }) => handleBroadcast(ev, payload));

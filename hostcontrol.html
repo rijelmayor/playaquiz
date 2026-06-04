@@ -671,6 +671,39 @@
       line-height: 1;
     }
 
+    /* FOH Show/Hide Control Rows */
+    .foh-control-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--s2);
+      border: 1px solid var(--b1);
+      border-radius: var(--radius-sm);
+      padding: 10px 12px;
+      gap: 8px;
+    }
+    .foh-control-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text);
+      flex: 1;
+    }
+    .foh-control-btns {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+    .foh-show-btn {
+      padding: 7px 14px;
+      font-size: 12px;
+      border-radius: 8px;
+    }
+    .foh-hide-btn {
+      padding: 7px 14px;
+      font-size: 12px;
+      border-radius: 8px;
+    }
+
     /* Toast */
     #toastWrap {
       position: fixed;
@@ -878,24 +911,26 @@
         grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
       }
 
-      /* ── FOH panel: 2×2 button grid ── */
+      /* ── FOH panel: single column card ── */
       #panel-foh { display: none; }
       #panel-foh.active {
         display: flex;
         align-items: flex-start;
       }
       #panel-foh > .card {
-        max-width: 500px;
-      }
-      #panel-foh .card-bd {
-        display: grid !important;
-        grid-template-columns: 1fr 1fr;
-        gap: 12px;
-      }
-      #panel-foh .btn {
-        height: 68px;
-        font-size: 14px;
+        max-width: 560px;
         width: 100%;
+      }
+      #panel-foh .foh-control-row {
+        padding: 14px 16px;
+      }
+      #panel-foh .foh-control-label {
+        font-size: 14px;
+      }
+      #panel-foh .foh-show-btn,
+      #panel-foh .foh-hide-btn {
+        padding: 10px 20px;
+        font-size: 13px;
       }
 
       /* ── Larger type / sizing throughout ── */
@@ -983,10 +1018,6 @@
         <div class="card-hd"><div class="card-hd-title">🏠 Room</div><span id="connLabel" style="font-size:9px;">Offline</span></div>
         <div class="card-bd">
           <div class="big-room-display"><div class="big-room-code" id="bigRoomCode">——</div></div>
-          <div class="btn-grid-2">
-            <button class="btn btn-ghost btn-md" onclick="copyJoinLink()">🔗 Copy Link</button>
-            <button class="btn btn-ghost btn-md" onclick="newRoomCode()">🔄 New Code</button>
-          </div>
         </div>
       </div>
       <div class="card">
@@ -1005,7 +1036,6 @@
             <input type="number" id="minPlayersInput" value="2" min="1" style="background:var(--bg);border:1px solid var(--b2);border-radius:10px;padding:12px;color:var(--text);width:100%;">
           </div>
           <button class="btn btn-gold btn-xl btn-full" onclick="startRound()">🚀 START ROUND</button>
-          <button class="btn btn-danger-ghost btn-md btn-full" onclick="fullReset()">🔄 Full Reset</button>
         </div>
       </div>
     </div>
@@ -1013,9 +1043,9 @@
     <!-- Game Panel -->
     <div class="tab-panel" id="panel-game">
       <div class="card">
-        <div class="card-hd"><div class="card-hd-title">📚 Question</div><span id="qNumBadge">Q#0</span></div>
+        <div class="card-hd"><div class="card-hd-title">📚 Question Bank</div><span id="qNumBadge">Q#0</span></div>
         <div class="card-bd">
-          <button class="q-pick-btn" id="qPickBtn" onclick="openQModal()"><span>📋</span><span id="qPickLabel">Tap to select question</span></button>
+          <button class="q-pick-btn" id="qPickBtn" onclick="openQModal()"><span>🔍</span><span id="qPickLabel">Search question bank…</span></button>
           <div id="qDisplay" class="hidden"></div>
           <!-- IMPORT BUTTON + hidden file input -->
           <div style="margin-top: 12px; display: flex; gap: 10px;">
@@ -1029,7 +1059,7 @@
         <div class="card-bd" style="display:flex; flex-direction:column; gap:8px;">
           <button class="btn btn-accent btn-xl btn-full" id="openBuzzBtn" onclick="openQuestion()" disabled>🔔 OPEN BUZZERS</button>
           <div class="btn-grid-2">
-            <button class="btn btn-ghost" id="resetBuzzBtn" onclick="resetBuzzers()" disabled>↺ Reset</button>
+            <button class="btn btn-ghost" id="resetBuzzBtn" onclick="resetBuzzers()" disabled title="Re-opens buzzers for all non-locked players on the current question">↺ Reset Buzzers</button>
             <button class="btn btn-orange" id="buzzerToggleBtn" onclick="toggleBuzzer()">🔔 ON</button>
           </div>
         </div>
@@ -1072,11 +1102,45 @@
     <!-- FOH Panel -->
     <div class="tab-panel" id="panel-foh">
       <div class="card">
-        <div class="card-bd" style="display:flex; flex-direction:column; gap:8px;">
-          <button class="btn btn-accent btn-lg" onclick="fohShowRoomCode()">📡 Show Room Code</button>
-          <button class="btn btn-purple btn-lg" onclick="fohShowCategories()">🎨 Show Categories</button>
-          <button class="btn btn-gold btn-lg" onclick="fohShowLeaderboard()">🏆 Show Leaderboard</button>
-          <button class="btn btn-green btn-lg" onclick="fohEndRound()">🏁 End Round & Winner</button>
+        <div class="card-hd"><div class="card-hd-title">📺 FOH Display Controls</div></div>
+        <div class="card-bd" style="display:flex; flex-direction:column; gap:10px;">
+
+          <!-- Room Code -->
+          <div class="foh-control-row">
+            <div class="foh-control-label">📡 Room Code</div>
+            <div class="foh-control-btns">
+              <button class="btn btn-accent btn-md foh-show-btn" onclick="fohShowRoomCode()">Show</button>
+              <button class="btn btn-ghost btn-md foh-hide-btn" onclick="fohHide('room_code')">Hide</button>
+            </div>
+          </div>
+
+          <!-- Categories -->
+          <div class="foh-control-row">
+            <div class="foh-control-label">🎨 Categories</div>
+            <div class="foh-control-btns">
+              <button class="btn btn-purple btn-md foh-show-btn" onclick="fohShowCategories()">Show</button>
+              <button class="btn btn-ghost btn-md foh-hide-btn" onclick="fohHide('categories')">Hide</button>
+            </div>
+          </div>
+
+          <!-- Leaderboard -->
+          <div class="foh-control-row">
+            <div class="foh-control-label">🏆 Leaderboard</div>
+            <div class="foh-control-btns">
+              <button class="btn btn-gold btn-md foh-show-btn" onclick="fohShowLeaderboard()">Show</button>
+              <button class="btn btn-ghost btn-md foh-hide-btn" onclick="fohHide('leaderboard')">Hide</button>
+            </div>
+          </div>
+
+          <!-- End Round -->
+          <div class="foh-control-row">
+            <div class="foh-control-label">🏁 End Round & Winner</div>
+            <div class="foh-control-btns">
+              <button class="btn btn-green btn-md foh-show-btn" onclick="fohEndRound()">Show</button>
+              <button class="btn btn-ghost btn-md foh-hide-btn" onclick="fohHide('end_round')">Hide</button>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
@@ -1623,7 +1687,7 @@ function initAvailableQuestions() {
   
   selectedQ = null;
   document.getElementById('qPickBtn').classList.remove('selected');
-  document.getElementById('qPickLabel').innerText = 'Click Random Question';
+  document.getElementById('qPickLabel').innerText = 'Search question bank…';
   document.getElementById('qDisplay').classList.add('hidden');
   document.getElementById('openBuzzBtn').disabled = true;
   document.getElementById('resetBuzzBtn').disabled = true;
@@ -1900,6 +1964,12 @@ function startRound() {
   toast(`🚀 Round started! ${players.size} players ready. Click "Random Question" to begin`);
 }
 
+function fohHide(target) {
+  broadcast('foh_hide', { target });
+  const labels = { room_code: 'Room Code', categories: 'Categories', leaderboard: 'Leaderboard', end_round: 'End Round' };
+  toast(`🙈 ${labels[target] || target} hidden on FOH`);
+}
+
 function fohShowRoomCode() {
   broadcast('show_room_code', { roomCode });
   toast('📡 Room code sent to FOH');
@@ -1973,13 +2043,24 @@ function renderAll() {
   if (sorted.length === 0) {
     manualGrid.innerHTML = '<div class="empty-msg">No players yet</div>';
   } else {
-    manualGrid.innerHTML = sorted.map(p => `
+    manualGrid.innerHTML = sorted.map(p => {
+      let statusLabel = '';
+      let statusColor = 'var(--muted)';
+      if (buzzedId === p.id)           { statusLabel = '🔔 Buzzed';   statusColor = 'var(--gold)'; }
+      else if (p.status === 'correct') { statusLabel = '✅ Correct';  statusColor = 'var(--green)'; }
+      else if (p.status === 'wrong')   { statusLabel = '❌ Wrong';    statusColor = 'var(--red)'; }
+      else if (eliminated.has(p.id))   { statusLabel = '⚡ Out';      statusColor = 'var(--muted)'; }
+      else if (locked.has(p.id))       { statusLabel = '🔒 Locked';  statusColor = 'var(--muted)'; }
+      else                             { statusLabel = '● Waiting';   statusColor = 'var(--accent)'; }
+      return `
       <div class="pbg-card ${buzzedId === p.id ? 'buzzed' : ''} ${eliminated.has(p.id) ? 'eliminated' : ''}" onclick="forceBuzz('${p.id}')">
         <div class="pbg-avatar">${p.avatar}</div>
         <div class="pbg-name">${escapeHtml(p.name)}</div>
         <div class="pbg-score">${p.score}</div>
+        <div style="font-size:10px;font-weight:700;color:${statusColor};margin-top:2px;">${statusLabel}</div>
       </div>
-    `).join('');
+    `;
+    }).join('');
   }
   
   const overrideList = document.getElementById('overrideList');
@@ -2142,7 +2223,7 @@ async function aqDeleteQuestion(id) {
   if (selectedQ?.id === id) {
     selectedQ = null;
     document.getElementById('qPickBtn').classList.remove('selected');
-    document.getElementById('qPickLabel').innerText = 'Click Random Question';
+    document.getElementById('qPickLabel').innerText = 'Search question bank…';
     document.getElementById('qDisplay').classList.add('hidden');
     document.getElementById('openBuzzBtn').disabled = true;
     document.getElementById('resetBuzzBtn').disabled = true;
@@ -2170,6 +2251,7 @@ window.fullReset = fullReset;
 window.copyJoinLink = copyJoinLink;
 window.openQModal = openQModal;
 window.closeQModal = closeQModal;
+window.fohHide = fohHide;
 window.fohShowRoomCode = fohShowRoomCode;
 window.fohShowCategories = fohShowCategories;
 window.fohShowLeaderboard = fohShowLeaderboard;
