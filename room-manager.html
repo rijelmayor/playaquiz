@@ -634,19 +634,24 @@ function escapeHtml(str) {
 
 // ============================================
 // SMART LINK GENERATORS
+// PLAYER: Manual entry page (excitement!)
+// ADMIN/HOST/FOH: Direct access (efficiency)
 // ============================================
 function getPlayerLink(roomCode, gameType) {
+  // Player goes to manual entry page - builds anticipation
   if (gameType === 'final_round') {
-    return `${window.location.origin}/finalroundplayer.html?room=${roomCode}`;
+    return `${window.location.origin}/finalroundplayer.html`;  // No room param - manual entry
   }
-  return `${window.location.origin}/player-sp.html?room=${roomCode}`;
+  return `${window.location.origin}/player-sp.html`;  // No room param - manual entry
 }
 
 function getHostLink(roomCode, hostToken) {
+  // Host gets direct access with pre-filled room
   return `${window.location.origin}/hostcontrol.html?room=${roomCode}&token=${hostToken}`;
 }
 
 function getAdminLink(roomCode, gameType, hostToken) {
+  // Admin gets direct access with pre-filled room
   if (gameType === 'final_round') {
     return `${window.location.origin}/finalroundcontrol.html?room=${roomCode}&token=${hostToken}`;
   }
@@ -654,6 +659,7 @@ function getAdminLink(roomCode, gameType, hostToken) {
 }
 
 function getFOHLink(roomCode, gameType, hostToken) {
+  // FOH gets direct access with pre-filled room
   if (gameType === 'final_round') {
     return `${window.location.origin}/finalroundfoh.html?room=${roomCode}&token=${hostToken}`;
   }
@@ -884,7 +890,6 @@ async function loadScheduledRooms() {
         : '<span class="room-badge badge-sp">⚡ SP</span>';
       const schedDate = new Date(room.scheduled_date);
       
-      // Generate all links for scheduled room
       const playerLink = getPlayerLink(room.room_code, room.game_type);
       const hostLink = getHostLink(room.room_code, room.host_token);
       const adminLink = getAdminLink(room.room_code, room.game_type, room.host_token);
@@ -902,10 +907,10 @@ async function loadScheduledRooms() {
             <div class="dropdown" id="sched_dropdown_${room.id}">
               <button class="btn btn-sm btn-purple" onmouseenter="positionDropdown(this)">🔗 Share ▼</button>
               <div class="dropdown-content">
-                <button onclick="copyToClipboard('${playerLink}')">🎮 Player Link</button>
-                <button onclick="copyToClipboard('${hostLink}')">🎛️ Host Link</button>
-                <button onclick="copyToClipboard('${adminLink}')">👑 Admin Link</button>
-                <button onclick="copyToClipboard('${fohLink}')">📺 FOH Link</button>
+                <button onclick="copyToClipboard('${playerLink}')">🎮 Player Link (Manual Entry)</button>
+                <button onclick="copyToClipboard('${hostLink}')">🎛️ Host Link (Direct)</button>
+                <button onclick="copyToClipboard('${adminLink}')">👑 Admin Link (Direct)</button>
+                <button onclick="copyToClipboard('${fohLink}')">📺 FOH Link (Direct)</button>
               </div>
             </div>
             <button class="btn btn-sm btn-green" onclick="activateScheduledRoom('${room.id}', '${room.room_code}')">▶ Activate Now</button>
@@ -1030,10 +1035,10 @@ async function loadRooms() {
             <div class="dropdown" id="dropdown_${room.id}">
               <button class="btn btn-sm btn-purple" onmouseenter="positionDropdown(this)">🔗 Share ▼</button>
               <div class="dropdown-content">
-                <button onclick="copyToClipboard('${playerLink}')">🎮 Player Link</button>
-                <button onclick="copyToClipboard('${hostLink}')">🎛️ Host Link</button>
-                <button onclick="copyToClipboard('${adminLink}')">👑 Admin Link</button>
-                <button onclick="copyToClipboard('${fohLink}')">📺 FOH Link</button>
+                <button onclick="copyToClipboard('${playerLink}')">🎮 Player Link (Manual Entry)</button>
+                <button onclick="copyToClipboard('${hostLink}')">🎛️ Host Link (Direct)</button>
+                <button onclick="copyToClipboard('${adminLink}')">👑 Admin Link (Direct)</button>
+                <button onclick="copyToClipboard('${fohLink}')">📺 FOH Link (Direct)</button>
               </div>
             </div>
             ${room.status === 'scheduled' ? `<button class="btn btn-sm btn-orange" onclick="activateScheduledRoom('${room.id}', '${room.room_code}')">▶ Activate</button>` : ''}
