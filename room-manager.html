@@ -195,6 +195,7 @@
       border-radius: 20px;
       padding: 20px;
       transition: all 0.2s;
+      position: relative;
     }
     .room-card.active { border-color: #10b981; background: rgba(16,185,129,0.05); }
     .room-card.upcoming { border-color: #f59e0b; background: rgba(245,158,11,0.05); }
@@ -231,7 +232,12 @@
     .stat-value { font-size: 20px; font-weight: 700; color: #f59e0b; }
     .stat-label { font-size: 10px; color: #6b7a99; text-transform: uppercase; }
     .room-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
-    .dropdown { position: relative; display: inline-block; }
+    
+    /* Dropdown with auto-positioning */
+    .dropdown {
+      position: relative;
+      display: inline-block;
+    }
     .dropdown-content {
       display: none;
       position: absolute;
@@ -239,10 +245,17 @@
       min-width: 170px;
       border: 1px solid #2d3b52;
       border-radius: 12px;
-      z-index: 10;
+      z-index: 100;
       right: 0;
       margin-top: 4px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+      overflow: hidden;
+    }
+    .dropdown-content.dropup {
+      bottom: 100%;
+      top: auto;
+      margin-top: 0;
+      margin-bottom: 4px;
     }
     .dropdown-content button {
       width: 100%;
@@ -254,8 +267,9 @@
       cursor: pointer;
       font-size: 12px;
       font-family: inherit;
+      transition: background 0.15s;
     }
-    .dropdown-content button:hover { background: #1f2937; border-radius: 12px; }
+    .dropdown-content button:hover { background: #1f2937; }
     .dropdown:hover .dropdown-content { display: block; }
     
     .filter-bar { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
@@ -434,11 +448,9 @@ async function hashPassword(password) {
 
 // ============================================
 // DUAL-SOURCE AUTHENTICATION
-// Supports: app_settings (plain) + admin_settings (SHA256)
 // ============================================
 async function verifyPasswordDual(password) {
   try {
-    // First try: app_settings (plain text)
     const { data: plainData, error: plainError } = await sb
       .from('app_settings')
       .select('value')
@@ -449,7 +461,6 @@ async function verifyPasswordDual(password) {
       return { success: true };
     }
     
-    // Second try: admin_settings (SHA256 hash)
     const { data: adminData, error: adminError } = await sb
       .from('admin_settings')
       .select('admin_password_hash')
@@ -462,7 +473,6 @@ async function verifyPasswordDual(password) {
       }
     }
     
-    // If no records exist, create default in app_settings
     if ((plainError && plainError.code === 'PGRST116') || (adminError && adminError.code === 'PGRST116')) {
       await sb.from('app_settings').upsert({ 
         key: 'master_password', 
@@ -541,6 +551,26 @@ function logout() {
 }
 
 // ============================================
+// DROPDOWN POSITION FIX - prevents overflow
+// ============================================
+function positionDropdown(dropdownBtn) {
+  const dropdown = dropdownBtn.parentElement;
+  const content = dropdown.querySelector('.dropdown-content');
+  if (!content) return;
+  
+  content.classList.remove('dropup');
+  
+  const rect = dropdown.getBoundingClientRect();
+  const contentHeight = 180;
+  const spaceBelow = window.innerHeight - rect.bottom;
+  const spaceAbove = rect.top;
+  
+  if (spaceBelow < contentHeight && spaceAbove > contentHeight) {
+    content.classList.add('dropup');
+  }
+}
+
+// ============================================
 // CUSTOM CONFIRM DIALOG
 // ============================================
 let confirmResolve = null;
@@ -603,7 +633,7 @@ function escapeHtml(str) {
 }
 
 // ============================================
-// SMART LINK GENERATORS (SP + Final Round)
+// SMART LINK GENERATORS
 // ============================================
 function getPlayerLink(roomCode, gameType) {
   if (gameType === 'final_round') {
@@ -646,10 +676,6 @@ function displayTimezoneInfo() {
   const minutes = Math.abs(offset % 60).toString().padStart(2, '0');
   document.getElementById('userTimezone').innerText = tz;
   document.getElementById('utcOffset').innerHTML = `UTC ${sign}${hours}:${minutes}`;
-}
-
-function UTCToLocal(utcDate) {
-  return new Date(utcDate);
 }
 
 function formatLocalDate(date) {
@@ -858,6 +884,12 @@ async function loadScheduledRooms() {
         : '<span class="room-badge badge-sp">⚡ SP</span>';
       const schedDate = new Date(room.scheduled_date);
       
+      // Generate all links for scheduled room
+      const playerLink = getPlayerLink(room.room_code, room.game_type);
+      const hostLink = getHostLink(room.room_code, room.host_token);
+      const adminLink = getAdminLink(room.room_code, room.game_type, room.host_token);
+      const fohLink = getFOHLink(room.room_code, room.game_type, room.host_token);
+      
       return `
         <div class="room-card upcoming">
           <div class="room-card-header">
@@ -867,6 +899,15 @@ async function loadScheduledRooms() {
           <div class="room-date">📅 ${formatLocalDate(schedDate)}</div>
           <div style="font-size:14px;margin-bottom:12px;">${escapeHtml(room.title)}</div>
           <div class="room-actions">
+            <div class="dropdown" id="sched_dropdown_${room.id}">
+              <button class="btn btn-sm btn-purple" onmouseenter="positionDropdown(this)">🔗 Share ▼</button>
+              <div class="dropdown-content">
+                <button onclick="copyToClipboard('${playerLink}')">🎮 Player Link</button>
+                <button onclick="copyToClipboard('${hostLink}')">🎛️ Host Link</button>
+                <button onclick="copyToClipboard('${adminLink}')">👑 Admin Link</button>
+                <button onclick="copyToClipboard('${fohLink}')">📺 FOH Link</button>
+              </div>
+            </div>
             <button class="btn btn-sm btn-green" onclick="activateScheduledRoom('${room.id}', '${room.room_code}')">▶ Activate Now</button>
             <button class="btn btn-sm btn-red" onclick="deleteRoomWithConfirm('${room.id}', '${room.room_code}')">🗑️ Delete</button>
           </div>
@@ -986,8 +1027,8 @@ async function loadRooms() {
           </div>
           
           <div class="room-actions">
-            <div class="dropdown">
-              <button class="btn btn-sm btn-purple">🔗 Share ▼</button>
+            <div class="dropdown" id="dropdown_${room.id}">
+              <button class="btn btn-sm btn-purple" onmouseenter="positionDropdown(this)">🔗 Share ▼</button>
               <div class="dropdown-content">
                 <button onclick="copyToClipboard('${playerLink}')">🎮 Player Link</button>
                 <button onclick="copyToClipboard('${hostLink}')">🎛️ Host Link</button>
@@ -1129,6 +1170,7 @@ window.switchTab = switchTab;
 window.copyToClipboard = copyToClipboard;
 window.showLogoutConfirm = showLogoutConfirm;
 window.logout = logout;
+window.positionDropdown = positionDropdown;
 </script>
 </body>
 </html>
