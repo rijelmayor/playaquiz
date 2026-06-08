@@ -1,167 +1,492 @@
-<!-- index.html - Master Entry Point (Fixed Colors) -->
+<!-- index.html - PlayAQuiz Landing / Auth -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PlayAQuiz — Arena</title>
+  <title>PlayAQuiz — Arena Access</title>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --blue:   #3b82f6;
+      --purple: #a855f7;
+      --red:    #ef4444;
+      --dark:   #06080f;
+      --card-bg: rgba(13, 17, 32, 0.94);
+    }
+
     body {
-      background: linear-gradient(135deg, #0a0c15 0%, #06080f 100%);
       font-family: 'Space Grotesk', sans-serif;
+      background: var(--dark);
       min-height: 100vh;
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 24px;
+      overflow: hidden;
+      position: relative;
     }
-    .portal {
-      max-width: 1100px;
-      width: 100%;
+
+    /* ── Grid background ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(59,130,246,0.065) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(59,130,246,0.065) 1px, transparent 1px);
+      background-size: 44px 44px;
+      pointer-events: none;
+      z-index: 0;
     }
-    h1 {
-      text-align: center;
-      font-size: 56px;
-      font-weight: 800;
-      letter-spacing: -1px;
-      background: linear-gradient(135deg, #ffffff, #3b82f6, #a855f7);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-      margin-bottom: 16px;
+
+    /* ── Ambient orbs ── */
+    .orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      pointer-events: none;
+      z-index: 0;
     }
-    .sub {
-      text-align: center;
-      color: rgba(255,255,255,0.5);
-      margin-bottom: 48px;
-      font-size: 16px;
+    .orb-blue   { width: 420px; height: 420px; background: #3b82f6; opacity: 0.12; top: -120px; right: -80px; }
+    .orb-purple { width: 380px; height: 380px; background: #a855f7; opacity: 0.12; bottom: -100px; left: -80px; }
+    .orb-red    { width: 240px; height: 240px; background: #ef4444; opacity: 0.07; top: 45%; left: 35%; }
+
+    /* ── Scan-line shimmer (decorative) ── */
+    @keyframes scan {
+      0%   { transform: translateY(-100%); }
+      100% { transform: translateY(100vh); }
     }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 24px;
+    .scanline {
+      position: fixed;
+      left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(59,130,246,0.15), transparent);
+      animation: scan 6s linear infinite;
+      pointer-events: none;
+      z-index: 0;
     }
+
+    /* ── Card ── */
     .card {
-      background: rgba(13, 17, 32, 0.9);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(59,130,246,0.2);
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      max-width: 440px;
+      background: var(--card-bg);
+      border: 1px solid rgba(59,130,246,0.22);
       border-radius: 28px;
-      padding: 32px;
+      padding: 44px 40px 38px;
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.5), 0 40px 80px rgba(0,0,0,0.6);
+    }
+
+    /* Corner accents */
+    .card::before,
+    .card::after {
+      content: '';
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      border-color: var(--blue);
+      border-style: solid;
+      opacity: 0.5;
+    }
+    .card::before { top: 16px; left: 16px;  border-width: 2px 0 0 2px; border-radius: 4px 0 0 0; }
+    .card::after  { bottom: 16px; right: 16px; border-width: 0 2px 2px 0; border-radius: 0 0 4px 0; }
+
+    /* ── Logo ── */
+    .logo {
       text-align: center;
-      transition: all 0.3s ease;
+      font-size: 34px;
+      font-weight: 800;
+      letter-spacing: -1.5px;
+      color: #fff;
+      margin-bottom: 4px;
+      user-select: none;
+    }
+    .logo .a  { color: var(--blue); }
+    .logo .q  { color: var(--purple); }
+    .logo .bolt { opacity: 0.9; }
+
+    .tagline {
+      text-align: center;
+      font-size: 10.5px;
+      font-weight: 600;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.28);
+      margin-bottom: 34px;
+    }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 14px;
+      padding: 4px;
+      gap: 4px;
+      margin-bottom: 30px;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 10px 0;
+      border: none;
+      border-radius: 10px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
       cursor: pointer;
+      transition: all 0.22s ease;
+      background: transparent;
+      color: rgba(255,255,255,0.35);
+      letter-spacing: 0.3px;
     }
-    .card:hover {
-      transform: translateY(-8px);
-      border-color: rgba(59,130,246,0.5);
-      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+    .tab-btn.active {
+      background: linear-gradient(135deg, #1d4ed8 0%, #7c3aed 65%, #be123c 100%);
+      color: #fff;
     }
-    .card-icon { font-size: 56px; margin-bottom: 16px; }
-    .card-title { 
-      font-size: 22px; 
-      font-weight: 700; 
-      margin-bottom: 8px;
-      color: #ffffff;
-      letter-spacing: -0.3px;
+
+    /* ── Role badge ── */
+    .role-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(168,85,247,0.1);
+      border: 1px solid rgba(168,85,247,0.25);
+      border-radius: 40px;
+      padding: 5px 14px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #c084fc;
+      letter-spacing: 0.5px;
+      margin-bottom: 22px;
     }
-    .card-desc { 
-      font-size: 13px; 
-      color: rgba(255,255,255,0.55); 
-      margin-bottom: 20px;
+    .badge-wrap { text-align: center; }
+
+    /* ── Form fields ── */
+    .form-panel { display: none; }
+    .form-panel.active { display: block; }
+
+    .field { margin-bottom: 15px; }
+    .field label {
+      display: block;
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.38);
+      margin-bottom: 7px;
+    }
+    .field input {
+      width: 100%;
+      padding: 12px 15px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(59,130,246,0.18);
+      border-radius: 11px;
+      color: #fff;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .field input:focus {
+      border-color: rgba(59,130,246,0.55);
+      background: rgba(59,130,246,0.05);
+    }
+    .field input::placeholder { color: rgba(255,255,255,0.18); }
+
+    /* ── CTA button ── */
+    .cta {
+      display: block;
+      width: 100%;
+      margin-top: 10px;
+      padding: 14px;
+      border: none;
+      border-radius: 14px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 0.4px;
+      cursor: pointer;
+      background: linear-gradient(135deg, #1e40af 0%, #7c3aed 55%, #9f1239 100%);
+      color: #fff;
+      transition: opacity 0.2s, transform 0.15s;
+      position: relative;
+      overflow: hidden;
+    }
+    .cta::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.06) 50%, transparent 100%);
+      transform: translateX(-100%);
+      transition: transform 0.5s;
+    }
+    .cta:hover { opacity: 0.92; transform: translateY(-1px); }
+    .cta:hover::after { transform: translateX(100%); }
+    .cta:active { transform: scale(0.98); opacity: 1; }
+    .cta:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    /* ── Message banner ── */
+    .msg {
+      display: none;
+      font-size: 13px;
+      text-align: center;
+      padding: 11px 14px;
+      border-radius: 10px;
+      margin-top: 14px;
+      font-weight: 600;
       line-height: 1.5;
     }
-    .badge {
-      display: inline-block;
-      background: rgba(59,130,246,0.2);
-      border-radius: 40px;
-      padding: 4px 12px;
+    .msg.success { display: block; background: rgba(34,197,94,0.1);  border: 1px solid rgba(34,197,94,0.25);  color: #4ade80; }
+    .msg.error   { display: block; background: rgba(239,68,68,0.1);  border: 1px solid rgba(239,68,68,0.25);  color: #f87171; }
+    .msg.info    { display: block; background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.25); color: #93c5fd; }
+
+    /* ── Footer ── */
+    .card-footer {
+      margin-top: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .sep { height: 1px; flex: 1; background: rgba(255,255,255,0.07); }
+    .footer-text { font-size: 10.5px; color: rgba(255,255,255,0.2); white-space: nowrap; }
+
+    .status-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-top: 18px;
       font-size: 11px;
-      font-weight: 600;
-      color: #3b82f6;
+      color: rgba(255,255,255,0.22);
     }
-    .phase-tag {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      background: rgba(0,0,0,0.6);
-      padding: 8px 16px;
-      border-radius: 40px;
-      font-size: 12px;
-      color: rgba(255,255,255,0.4);
+    .dot { width: 6px; height: 6px; border-radius: 50%; background: #22c55e; flex-shrink: 0; }
+
+    /* ── Loading spinner ── */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,0.2);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
     }
-    @media (max-width: 768px) {
-      h1 { font-size: 36px; }
-      .grid { grid-template-columns: 1fr; }
-      .card-title { font-size: 18px; }
+
+    /* ── Hint link ── */
+    .hint {
+      font-size: 11.5px;
+      color: rgba(255,255,255,0.22);
+      text-align: center;
+      margin-top: 14px;
+      line-height: 1.7;
+    }
+
+    @media (max-width: 480px) {
+      .card { padding: 34px 24px 30px; border-radius: 22px; }
+      .logo { font-size: 28px; }
     }
   </style>
 </head>
 <body>
-<div class="portal">
-  <h1>⚡ PLAY<span style="color:#3b82f6">A</span>QUIZ</h1>
-  <div class="sub">The Ultimate Quiz Arena — Elimination → Final Showdown</div>
 
-  <div class="grid">
-    <!-- Admin Console -->
-    <div class="card" onclick="window.open('admin-sp.html', '_blank')">
-      <div class="card-icon">🎮</div>
-      <div class="card-title">Admin Console</div>
-      <div class="card-desc">Control game settings, timer, launch Phase 1, manage questions</div>
-      <div class="badge">Phase 1 & 2 Control</div>
-    </div>
+<div class="orb orb-blue"></div>
+<div class="orb orb-purple"></div>
+<div class="orb orb-red"></div>
+<div class="scanline"></div>
 
-    <!-- FOH Display -->
-    <div class="card" onclick="window.open('foh-sp.html', '_blank')">
-      <div class="card-icon">📺</div>
-      <div class="card-title">FOH Display</div>
-      <div class="card-desc">Main screen — shows QR, questions, leaderboard, results</div>
-      <div class="badge">Phase 1 Display</div>
-    </div>
+<div class="card">
+  <div class="logo"><span class="bolt">⚡</span> PLAY<span class="a">A</span><span class="q">QUIZ</span></div>
+  <div class="tagline">Game Master Access</div>
 
-    <!-- Player Join -->
-    <div class="card" onclick="window.open('player-sp.html', '_blank')">
-      <div class="card-icon">📱</div>
-      <div class="card-title">Player Join</div>
-      <div class="card-desc">Scan QR code to join Phase 1 — self-paced questions</div>
-      <div class="badge">Phase 1 Players</div>
-    </div>
-
-    <!-- Final Round FOH -->
-    <div class="card" onclick="window.open('finalroundfoh.html', '_blank')">
-      <div class="card-icon">🏆</div>
-      <div class="card-title">Final Round FOH</div>
-      <div class="card-desc">Buzzer round display — live scores, buzz indicator, winner podium</div>
-      <div class="badge">Phase 2 Display</div>
-    </div>
-
-    <!-- Final Round Control (Mobile) -->
-    <div class="card" onclick="window.open('finalroundcontrol.html', '_blank')">
-      <div class="card-icon">📱</div>
-      <div class="card-title">Final Round Control</div>
-      <div class="card-desc">Host mobile remote — buzzers, correct/wrong, next question</div>
-      <div class="badge">Phase 2 Control</div>
-    </div>
-
-    <!-- Final Round Player -->
-    <div class="card" onclick="window.open('finalroundplayer.html', '_blank')">
-      <div class="card-icon">🎯</div>
-      <div class="card-title">Final Round Player</div>
-      <div class="card-desc">Top 5 buzzer round — scan QR to compete in finale</div>
-      <div class="badge">Phase 2 Players</div>
-    </div>
+  <div class="tabs">
+    <button class="tab-btn active" id="tab-login"  onclick="switchTab('login')">Sign In</button>
+    <button class="tab-btn"        id="tab-reg"    onclick="switchTab('register')">Register</button>
   </div>
-  <div class="phase-tag">
-    🎯 Ready for action — open Admin first, then FOH, then share QR
+
+  <!-- ── LOGIN ── -->
+  <div id="panel-login" class="form-panel active">
+    <div class="badge-wrap">
+      <span class="role-badge">🎮 Admin / Game Master</span>
+    </div>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="login-email" placeholder="you@example.com" autocomplete="email" />
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password" />
+    </div>
+    <button class="cta" id="login-btn" onclick="doLogin()">Enter the Arena →</button>
+    <div id="login-msg" class="msg"></div>
+    <div class="hint">Forgot your password?<br>Use the reset link sent to your email.</div>
+  </div>
+
+  <!-- ── REGISTER ── -->
+  <div id="panel-register" class="form-panel">
+    <div class="badge-wrap">
+      <span class="role-badge">✨ Create Account</span>
+    </div>
+    <div class="field">
+      <label>Full Name</label>
+      <input type="text" id="reg-name" placeholder="Your full name" autocomplete="name" />
+    </div>
+    <div class="field">
+      <label>Email</label>
+      <input type="email" id="reg-email" placeholder="you@example.com" autocomplete="email" />
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="reg-pass" placeholder="Min. 8 characters" autocomplete="new-password" />
+    </div>
+    <div class="field">
+      <label>Confirm Password</label>
+      <input type="password" id="reg-confirm" placeholder="Repeat password" autocomplete="new-password" />
+    </div>
+    <button class="cta" id="reg-btn" onclick="doRegister()">Create Account →</button>
+    <div id="reg-msg" class="msg"></div>
+  </div>
+
+  <div class="card-footer">
+    <div class="sep"></div>
+    <span class="footer-text">PlayAQuiz Arena</span>
+    <div class="sep"></div>
+  </div>
+  <div class="status-row">
+    <span class="dot" id="conn-dot"></span>
+    <span id="conn-label">Connecting to Supabase…</span>
   </div>
 </div>
 
 <script>
-  // Auto-clear any stale session data on portal load (optional)
-  sessionStorage.removeItem('phase1_session');
-  sessionStorage.removeItem('phase2_session');
-  console.log('PlayAQuiz Arena — Ready for battle');
+  // ── Supabase config ──────────────────────────────────────────
+  const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
+  const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY_HERE'; // ← replace with your actual anon key
+
+  const { createClient } = supabase;
+  const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // ── Connection status ────────────────────────────────────────
+  const dot   = document.getElementById('conn-dot');
+  const label = document.getElementById('conn-label');
+
+  async function checkConnection() {
+    try {
+      await sb.auth.getSession();
+      dot.style.background   = '#22c55e';
+      label.textContent      = 'Supabase connected — secure auth';
+    } catch {
+      dot.style.background   = '#ef4444';
+      label.textContent      = 'Connection error — check your config';
+    }
+  }
+  checkConnection();
+
+  // ── Check if already logged in ──────────────────────────────
+  (async () => {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) {
+      window.location.href = 'room-manager.html';
+    }
+  })();
+
+  // ── Tab switcher ─────────────────────────────────────────────
+  function switchTab(tab) {
+    ['login','register'].forEach(t => {
+      document.getElementById('panel-' + t).classList.toggle('active', t === tab);
+      document.getElementById('tab-' + (t === 'login' ? 'login' : 'reg')).classList.toggle('active', t === tab);
+    });
+    // map tab id
+    document.getElementById('tab-login').classList.toggle('active', tab === 'login');
+    document.getElementById('tab-reg').classList.toggle('active',   tab === 'register');
+    clearMsg('login-msg');
+    clearMsg('reg-msg');
+  }
+
+  // ── Helpers ──────────────────────────────────────────────────
+  function showMsg(id, type, text) {
+    const el = document.getElementById(id);
+    el.textContent  = text;
+    el.className    = 'msg ' + type;
+  }
+  function clearMsg(id) {
+    const el = document.getElementById(id);
+    el.className    = 'msg';
+    el.textContent  = '';
+  }
+  function setLoading(btnId, loading) {
+    const btn = document.getElementById(btnId);
+    if (loading) {
+      btn._text     = btn.textContent;
+      btn.innerHTML = '<span class="spinner"></span>Loading…';
+      btn.disabled  = true;
+    } else {
+      btn.innerHTML  = btn._text;
+      btn.disabled   = false;
+    }
+  }
+
+  // ── Login ────────────────────────────────────────────────────
+  async function doLogin() {
+    clearMsg('login-msg');
+    const email = document.getElementById('login-email').value.trim();
+    const pass  = document.getElementById('login-pass').value;
+    if (!email || !pass) { showMsg('login-msg', 'error', '⚠ Please fill in all fields.'); return; }
+
+    setLoading('login-btn', true);
+    try {
+      const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+      if (error) throw error;
+      showMsg('login-msg', 'success', '✓ Authenticated — loading Room Manager…');
+      setTimeout(() => { window.location.href = 'room-manager.html'; }, 800);
+    } catch (err) {
+      showMsg('login-msg', 'error', '✗ ' + (err.message || 'Login failed. Try again.'));
+      setLoading('login-btn', false);
+    }
+  }
+
+  // ── Register ─────────────────────────────────────────────────
+  async function doRegister() {
+    clearMsg('reg-msg');
+    const name    = document.getElementById('reg-name').value.trim();
+    const email   = document.getElementById('reg-email').value.trim();
+    const pass    = document.getElementById('reg-pass').value;
+    const confirm = document.getElementById('reg-confirm').value;
+
+    if (!name || !email || !pass || !confirm) { showMsg('reg-msg', 'error', '⚠ All fields are required.'); return; }
+    if (pass.length < 8) { showMsg('reg-msg', 'error', '⚠ Password must be at least 8 characters.'); return; }
+    if (pass !== confirm) { showMsg('reg-msg', 'error', '⚠ Passwords do not match.'); return; }
+
+    setLoading('reg-btn', true);
+    try {
+      const { data, error } = await sb.auth.signUp({
+        email,
+        password: pass,
+        options: { data: { full_name: name } }
+      });
+      if (error) throw error;
+      showMsg('reg-msg', 'success', '✓ Account created! Check your email to confirm before signing in.');
+    } catch (err) {
+      showMsg('reg-msg', 'error', '✗ ' + (err.message || 'Registration failed. Try again.'));
+    } finally {
+      setLoading('reg-btn', false);
+    }
+  }
+
+  // ── Allow Enter key ──────────────────────────────────────────
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    if (document.getElementById('panel-login').classList.contains('active')) doLogin();
+    else doRegister();
+  });
 </script>
 </body>
 </html>
