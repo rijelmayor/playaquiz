@@ -2039,6 +2039,8 @@ function eliminatePlayer(playerId) {
   toast(`⚡ ${player.name} eliminated`);
 }
 
+
+
 function startRound() {
   const minPlayers = parseInt(document.getElementById('minPlayersInput').value) || 2;
   if (players.size < minPlayers) {
@@ -2052,16 +2054,46 @@ function startRound() {
   }
   
   gameStarted = true;
-  
   initAvailableQuestions();
   
   const points = parseInt(document.getElementById('pointsInput').value) || 100;
+  
+  // Broadcast round started with countdown sequence
   broadcast('round_started', { roomCode, pointsPerBuzz: points });
-  broadcast('show_room_code', { roomCode });
-  broadcast('show_category_picker', { categories });
-  broadcast('show_categories', { categories });
+  
+  // Send countdown sequence to FOH (3-2-1-GO!)
+  broadcast('round_countdown', { 
+    stage: 'ready',
+    message: 'READY...'
+  });
+  
+  // Countdown sequence
+  let count = 3;
+  const countdownInterval = setInterval(() => {
+    if (count > 0) {
+      broadcast('round_countdown', { 
+        stage: 'countdown',
+        count: count,
+        message: `${count}...`
+      });
+      count--;
+    } else {
+      broadcast('round_countdown', { 
+        stage: 'go',
+        message: '⚡ GO! ⚡',
+        roundStarted: true
+      });
+      clearInterval(countdownInterval);
+    }
+  }, 1000);
+  
+  // Remove these lines - they're no longer needed for START ROUND
+  // broadcast('show_room_code', { roomCode });
+  // broadcast('show_category_picker', { categories });
+  // broadcast('show_categories', { categories });
+  
   switchTab('game');
-  toast(`🚀 Round started! ${players.size} players ready. Click "Random Question" to begin`);
+  toast(`🚀 Round starting! ${players.size} players ready. Get ready for countdown...`);
 }
 
 function fohHide(target) {
