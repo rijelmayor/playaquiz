@@ -17,8 +17,6 @@
       --gold-dark: #ffaa00;
       --gold-glow: rgba(255, 215, 0, 0.3);
       --neon-blue: #00d4ff;
-      --neon-pink: #ff2d75;
-      --neon-purple: #b200ff;
       --green: #00ff88;
       --red: #ff3366;
       --arena-gradient: linear-gradient(135deg, #0a0a1a 0%, #1a1a3a 50%, #0a0a1a 100%);
@@ -49,14 +47,6 @@
     @keyframes gridMove {
       0% { transform: translate(0, 0); }
       100% { transform: translate(50px, 50px); }
-    }
-
-    body::after {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background: radial-gradient(ellipse at 50% 50%, rgba(0, 212, 255, 0.08) 0%, transparent 70%);
-      pointer-events: none;
     }
 
     .app {
@@ -546,6 +536,26 @@
       text-shadow: 0 0 30px var(--gold);
     }
 
+    /* Countdown Overlay */
+    #fohCountdownOverlay {
+      position: fixed;
+      inset: 0;
+      z-index: 400;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(16px);
+      pointer-events: none;
+    }
+    #fohCountdownOverlay.active { display: flex; }
+
+    @keyframes countdownPulse {
+      0% { transform: scale(0.5); opacity: 0; }
+      50% { transform: scale(1.2); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
     #roomEntryOverlay {
       position: fixed;
       inset: 0;
@@ -735,6 +745,13 @@
     </div>
   </div>
 
+  <!-- Countdown Overlay -->
+  <div id="fohCountdownOverlay">
+    <div style="text-align: center;">
+      <div id="countdownMessage" style="font-family: 'Orbitron', monospace; font-size: clamp(48px, 12vw, 120px); font-weight: 900; color: var(--gold); text-shadow: 0 0 40px var(--gold); animation: countdownPulse 0.5s ease-out;"></div>
+    </div>
+  </div>
+
   <div id="roomEntryOverlay">
     <div class="entry-card">
       <div class="entry-logo">⚡ PLAY A QUIZ ⚡</div>
@@ -765,6 +782,20 @@ function toast(msg) {
   setTimeout(() => t.remove(), 2800);
 }
 
+function playBeep(freq, type, duration) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if(ctx.state === 'suspended') ctx.resume();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type; osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.12, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.start(); osc.stop(ctx.currentTime + duration);
+  } catch(e) {}
+}
+
 function initBackgroundMusic() {
   bgmAudio = new Audio();
   bgmAudio.src = 'countdownbg.mp3';
@@ -779,20 +810,6 @@ function toggleBackgroundMusic() {
   const btn = document.getElementById('bgmToggleBtn');
   if(bgmAudio.paused) { bgmAudio.play().catch(()=>{}); bgmEnabled = true; btn.innerHTML = '🔊 BGM'; }
   else { bgmAudio.pause(); bgmEnabled = false; btn.innerHTML = '🔇 BGM'; }
-}
-
-function playBeep(freq, type, duration) {
-  try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    if(ctx.state === 'suspended') ctx.resume();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = type; osc.frequency.value = freq;
-    gain.gain.setValueAtTime(0.12, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
-    osc.connect(gain); gain.connect(ctx.destination);
-    osc.start(); osc.stop(ctx.currentTime + duration);
-  } catch(e) {}
 }
 
 function showScreen(id) {
@@ -869,6 +886,31 @@ function handleBroadcast(event, payload) {
       showScreen('waitingScreen');
       playBackgroundMusic();
       toast('🎮 Round has started!');
+      break;
+    case 'round_countdown':
+      // Handle countdown display on FOH
+      const countdownOverlay = document.getElementById('fohCountdownOverlay');
+      const msgDiv = document.getElementById('countdownMessage');
+      
+      if (payload.stage === 'ready') {
+        countdownOverlay.style.display = 'flex';
+        msgDiv.style.fontSize = 'clamp(32px, 8vw, 80px)';
+        msgDiv.textContent = payload.message || 'READY...';
+        playBeep(523.25, 'sine', 0.3);
+      } 
+      else if (payload.stage === 'countdown') {
+        msgDiv.style.fontSize = 'clamp(72px, 18vw, 180px)';
+        msgDiv.textContent = payload.count || '3';
+        playBeep(880, 'sine', 0.15);
+      } 
+      else if (payload.stage === 'go') {
+        msgDiv.style.fontSize = 'clamp(48px, 12vw, 100px)';
+        msgDiv.textContent = payload.message || '⚡ GO! ⚡';
+        playBeep(659.25, 'sine', 0.4);
+        setTimeout(() => {
+          countdownOverlay.style.display = 'none';
+        }, 2000);
+      }
       break;
     case 'show_category_picker':
       clearOverlay();
@@ -996,7 +1038,7 @@ function connectToRoom(code) {
 
   if(realtimeChannel) sb.removeChannel(realtimeChannel);
   realtimeChannel = sb.channel(`fr-${roomCode}`);
-  ['round_started', 'player_list_update', 'question_open', 'buzz_confirmed', 'correct', 'wrong', 'reset_for_next_question', 'reset_buzzers', 'buzzers_reopen', 'show_category_picker', 'round_ended', 'timer_start', 'full_game_reset', 'foh_hide'].forEach(ev => {
+  ['round_started', 'round_countdown', 'player_list_update', 'question_open', 'buzz_confirmed', 'correct', 'wrong', 'reset_for_next_question', 'reset_buzzers', 'buzzers_reopen', 'show_category_picker', 'round_ended', 'timer_start', 'full_game_reset', 'foh_hide'].forEach(ev => {
     realtimeChannel.on('broadcast', { event: ev }, ({ payload }) => handleBroadcast(ev, payload));
   });
   realtimeChannel.subscribe((status) => {
@@ -1015,7 +1057,6 @@ function connectToRoom(code) {
 
 let verifyDebounce = null, currentVerifyCode = '', roomVerified = false;
 
-// FIXED: Check game_sessions instead of game_rooms
 async function verifyRoom(code) {
   currentVerifyCode = code;
   const errorEl = document.getElementById('fohRoomError');
