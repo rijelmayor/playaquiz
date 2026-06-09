@@ -158,8 +158,21 @@
       justify-content: center;
       padding: 40px 60px;
       animation: screenGlowIn 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+      overflow: hidden;
     }
     .screen.active { display: flex; }
+
+    /* Question screen needs to scroll if content overflows on tablets */
+    #questionScreen {
+      justify-content: flex-start;
+      overflow-y: auto;
+      padding: 24px 40px 24px;
+    }
+
+    /* Center content within question screen */
+    #questionScreen > * {
+      flex-shrink: 0;
+    }
 
     @keyframes screenGlowIn {
       from { opacity: 0; transform: scale(0.97) translateY(15px); filter: blur(8px); }
@@ -248,7 +261,8 @@
       font-weight: 800;
       letter-spacing: 8px;
       color: var(--gold);
-      margin-bottom: 25px;
+      margin-bottom: 0;
+      margin-top: 24px;
       text-transform: uppercase;
       background: rgba(0, 0, 0, 0.5);
       padding: 8px 32px;
@@ -258,33 +272,36 @@
 
     .question-text {
       font-family: 'DM Sans', sans-serif;
-      font-size: clamp(32px, 6vw, 64px);
+      font-size: clamp(22px, 3.5vw, 52px);
       font-weight: 800;
-      line-height: 1.4;
+      line-height: 1.35;
       text-align: center;
-      margin-bottom: 50px;
+      margin-bottom: 28px;
+      margin-top: 16px;
       color: #ffffff;
       text-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
-      max-width: 1000px;
+      max-width: 960px;
+      width: 100%;
       letter-spacing: -0.5px;
+      word-break: break-word;
     }
 
     .options-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 24px;
+      gap: 16px;
       width: 100%;
-      max-width: 1000px;
+      max-width: 960px;
     }
 
     .opt-tile {
       background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(0, 0, 0, 0.4));
       border: 2px solid rgba(255, 215, 0, 0.3);
-      border-radius: 24px;
-      padding: 24px 28px;
+      border-radius: 20px;
+      padding: 16px 20px;
       display: flex;
       align-items: center;
-      gap: 20px;
+      gap: 16px;
       transition: all 0.3s ease;
       animation: optSlideIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
     }
@@ -307,26 +324,27 @@
 
     .opt-letter {
       font-family: 'Orbitron', monospace;
-      font-size: 32px;
+      font-size: 26px;
       font-weight: 900;
       color: var(--gold);
       background: rgba(0, 0, 0, 0.6);
-      width: 60px;
-      height: 60px;
+      width: 52px;
+      height: 52px;
       display: flex;
       align-items: center;
       justify-content: center;
-      border-radius: 16px;
+      border-radius: 14px;
       flex-shrink: 0;
       box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
     }
 
     .opt-text {
-      font-size: 20px;
+      font-size: 17px;
       font-weight: 600;
-      line-height: 1.5;
+      line-height: 1.4;
       flex: 1;
       color: #f0f0f0;
+      word-break: break-word;
     }
 
     .buzzer-open-badge {
@@ -540,7 +558,7 @@
     #fohCountdownOverlay {
       position: fixed;
       inset: 0;
-      z-index: 400;
+      z-index: 460;
       display: none;
       align-items: center;
       justify-content: center;
@@ -906,9 +924,9 @@
   </div>
 
   <!-- Loading Overlay -->
-  <div id="fohLoadingOverlay">
+<div id="fohLoadingOverlay">
     <div class="loading-ring"></div>
-    <div class="loading-text">LOADING NEXT CHALLENGE</div>
+    <div class="loading-text" id="fohLoadingText">PREPARING CHALLENGE</div>
     <div class="loading-dots">
       <span></span><span></span><span></span>
     </div>
@@ -946,6 +964,8 @@ let overlayTimer = null;
 let fohTimerInterval = null;
 let roomCodeOverlayTimer = null;
 let loadingOverlayTimer = null;
+let fohRoomValidityInterval = null;
+const FOH_ROOM_CHECK_MS = 20000; // check every 20 seconds
 
 function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]); }
 
@@ -997,9 +1017,9 @@ function clearOverlay() {
 }
 
 // Loading overlay functions
-function showLoadingOverlay(message = 'LOADING NEXT CHALLENGE') {
+function showLoadingOverlay(message = 'PREPARING CHALLENGE') {
   const overlay = document.getElementById('fohLoadingOverlay');
-  const textEl = overlay.querySelector('.loading-text');
+  const textEl = document.getElementById('fohLoadingText');
   if (textEl) textEl.textContent = message;
   overlay.classList.add('active');
 }
@@ -1097,6 +1117,7 @@ function handleBroadcast(event, payload) {
       break;
     case 'round_started':
       showScreen('waitingScreen');
+      showLoadingOverlay('PREPARING CHALLENGE');
       playBackgroundMusic();
       toast('🎮 Round has started!');
       break;
@@ -1168,15 +1189,26 @@ function handleBroadcast(event, payload) {
       break;
     case 'reset_for_next_question':
     case 'next_question':
-      // Show loading overlay — stays until question_open arrives (no auto-dismiss)
-      showLoadingOverlay('PREPARING NEXT CHALLENGE');
-      // Clear any existing timers
-      if (correctOverlayTimer) { clearTimeout(correctOverlayTimer); correctOverlayTimer = null; }
+      // If there's a correct overlay showing, keep it visible for 4 seconds before
+      // clearing it and showing the loading spinner
       buzzerOpenVisible = false;
       document.getElementById('fohBuzzerOpenIndicator').style.display = 'none';
-      clearOverlay();
       cachedPlayers.forEach(p => { if(p.status !== 'eliminated') p.status = 'waiting'; });
       renderPlayersList();
+      if (document.getElementById('overlayContainer').innerHTML.trim()) {
+        // Correct/wrong overlay is on screen — delay spinner by 4s
+        if (correctOverlayTimer) { clearTimeout(correctOverlayTimer); correctOverlayTimer = null; }
+        correctOverlayTimer = setTimeout(() => {
+          correctOverlayTimer = null;
+          clearOverlay();
+          showLoadingOverlay('PREPARING CHALLENGE');
+        }, 4000);
+      } else {
+        // No overlay showing — show loading immediately
+        if (correctOverlayTimer) { clearTimeout(correctOverlayTimer); correctOverlayTimer = null; }
+        clearOverlay();
+        showLoadingOverlay('PREPARING CHALLENGE');
+      }
       break;
     case 'question_open':
       // Dismiss loading overlay immediately when new question is pushed — no delay
@@ -1268,6 +1300,7 @@ function handleBroadcast(event, payload) {
       break;
     case 'full_game_reset':
       if(realtimeChannel) sb.removeChannel(realtimeChannel);
+      stopFohRoomValidityPoll();
       roomCode = null;
       cachedPlayers = [];
       document.getElementById('roomEntryOverlay').style.display = 'flex';
@@ -1292,6 +1325,51 @@ function scheduleReconnect() {
   }, delay);
 }
 
+// Room validity polling — kicks FOH back to entry screen if room goes inactive
+async function checkFohRoomActive() {
+  if (!roomCode) return;
+  try {
+    const { data, error } = await sb
+      .from('game_sessions')
+      .select('status')
+      .eq('room_code', roomCode)
+      .maybeSingle();
+
+    if (error || !data || data.status === 'ended') {
+      console.log('[FOH RoomValidity] Room no longer active, returning to entry screen');
+      stopFohRoomValidityPoll();
+      if(realtimeChannel) { sb.removeChannel(realtimeChannel); realtimeChannel = null; }
+      stopBackgroundMusic();
+      hideLoadingOverlay();
+      clearOverlay();
+      roomCode = null;
+      cachedPlayers = [];
+      document.getElementById('roomEntryOverlay').style.display = 'flex';
+      document.getElementById('fohRoomInput').value = '';
+      document.getElementById('fohRoomError').innerText = '⚠️ This room has ended.';
+      document.getElementById('roomDisplay').innerText = '——';
+      document.getElementById('fohFooterCode').innerText = '——';
+      document.getElementById('fohConnBadge').className = 'conn-badge';
+      document.getElementById('fohConnBadge').innerText = '⏳ Connecting';
+      showScreen('waitingScreen');
+      renderPlayersList();
+      toast('⚠️ Room ended — please enter a new room code.');
+    }
+  } catch(e) {
+    // Network error — don't kick, just retry next interval
+    console.warn('[FOH RoomValidity] Check failed, will retry:', e);
+  }
+}
+
+function startFohRoomValidityPoll() {
+  stopFohRoomValidityPoll();
+  fohRoomValidityInterval = setInterval(checkFohRoomActive, FOH_ROOM_CHECK_MS);
+}
+
+function stopFohRoomValidityPoll() {
+  if(fohRoomValidityInterval) { clearInterval(fohRoomValidityInterval); fohRoomValidityInterval = null; }
+}
+
 function connectToRoom(code) {
   roomCode = code.toUpperCase();
   document.getElementById('roomDisplay').innerText = roomCode;
@@ -1300,6 +1378,7 @@ function connectToRoom(code) {
   toast(`🎮 Connected to room ${roomCode}`);
 
   if(realtimeChannel) sb.removeChannel(realtimeChannel);
+  startFohRoomValidityPoll();
   realtimeChannel = sb.channel(`fr-${roomCode}`);
   const events = ['round_started', 'round_countdown', 'player_list_update', 'question_open', 'buzz_confirmed', 'correct', 'wrong', 'reset_for_next_question', 'next_question', 'reset_buzzers', 'buzzers_reopen', 'show_category_picker', 'show_categories', 'show_leaderboard', 'round_ended', 'timer_start', 'full_game_reset', 'foh_hide', 'show_room_code'];
   events.forEach(ev => {
