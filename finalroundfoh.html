@@ -3,585 +3,756 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>PlayAQuiz — Final Round Display</title>
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+  <title>PlayAQuiz — Final Round Arena</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
   <style>
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    
     :root {
-      --bg: #070510;
-      --surface: rgba(255,255,255,0.04);
-      --surface2: rgba(255,255,255,0.07);
-      --border: rgba(255,255,255,0.08);
-      --border2: rgba(255,255,255,0.14);
-      --gold: #f5c842;
-      --gold2: #fde68a;
-      --amber: #f97316;
-      --green: #22d3a0;
-      --red: #f43f5e;
-      --blue: #6366f1;
-      --violet: #a78bfa;
-      --text: #f0eeff;
-      --muted: rgba(240,238,255,0.4);
+      --bg-deep: #0a0a1a;
+      --bg-surface: rgba(10, 10, 26, 0.95);
+      --gold: #ffd700;
+      --gold-dark: #ffaa00;
+      --gold-glow: rgba(255, 215, 0, 0.3);
+      --neon-blue: #00d4ff;
+      --neon-pink: #ff2d75;
+      --neon-purple: #b200ff;
+      --green: #00ff88;
+      --red: #ff3366;
+      --arena-gradient: linear-gradient(135deg, #0a0a1a 0%, #1a1a3a 50%, #0a0a1a 100%);
+      --card-border: rgba(255, 215, 0, 0.2);
     }
 
     body {
-      background: var(--bg);
+      background: var(--arena-gradient);
       font-family: 'DM Sans', sans-serif;
-      color: var(--text);
+      color: #fff;
       height: 100vh;
       overflow: hidden;
+      position: relative;
     }
 
+    /* Animated background grid */
     body::before {
       content: '';
       position: fixed;
       inset: 0;
-      background:
-        radial-gradient(ellipse 70% 50% at 20% 10%, rgba(99,102,241,0.12) 0%, transparent 60%),
-        radial-gradient(ellipse 60% 40% at 80% 80%, rgba(245,200,66,0.07) 0%, transparent 55%),
-        radial-gradient(ellipse 50% 60% at 50% 50%, rgba(167,139,250,0.05) 0%, transparent 70%);
+      background-image: 
+        linear-gradient(rgba(0, 212, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 212, 255, 0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
       pointer-events: none;
-      z-index: 0;
+      animation: gridMove 20s linear infinite;
+    }
+
+    @keyframes gridMove {
+      0% { transform: translate(0, 0); }
+      100% { transform: translate(40px, 40px); }
     }
 
     body::after {
       content: '';
       position: fixed;
       inset: 0;
-      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.04) 2px, rgba(0,0,0,0.04) 4px);
+      background: radial-gradient(ellipse at 50% 50%, rgba(0, 212, 255, 0.05) 0%, transparent 70%);
       pointer-events: none;
-      z-index: 1;
     }
 
-    .app { height: 100vh; display: flex; flex-direction: column; position: relative; z-index: 2; }
+    .app {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      z-index: 2;
+    }
 
-    /* TOP BAR */
+    /* TOP BAR — Stadium Style */
     .top-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 10px 24px;
-      background: rgba(7,5,16,0.7);
-      backdrop-filter: blur(32px);
-      -webkit-backdrop-filter: blur(32px);
-      border-bottom: 1px solid rgba(255,255,255,0.07);
+      padding: 12px 24px;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(20px);
+      border-bottom: 2px solid var(--gold);
       flex-shrink: 0;
       position: relative;
     }
-    .top-bar::after {
+
+    .top-bar::before {
       content: '';
       position: absolute;
-      bottom: -1px; left: 0; right: 0;
-      height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(245,200,66,0.5), transparent);
+      bottom: -2px;
+      left: 0;
+      right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--gold), var(--neon-blue), var(--gold), transparent);
+      animation: scanline 3s linear infinite;
+    }
+
+    @keyframes scanline {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
     }
 
     .logo {
-      font-family: 'Syne', sans-serif;
-      font-size: 22px;
-      font-weight: 800;
-      letter-spacing: 4px;
-      background: linear-gradient(135deg, #fff 30%, var(--gold));
+      font-family: 'Orbitron', monospace;
+      font-size: 24px;
+      font-weight: 900;
+      letter-spacing: 6px;
+      background: linear-gradient(135deg, var(--gold), var(--neon-blue), var(--gold));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
+      text-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
     }
 
     .room-display {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 16px;
+      font-family: 'Orbitron', monospace;
+      font-size: 18px;
+      font-weight: 700;
       color: var(--gold);
-      background: rgba(245,200,66,0.06);
-      border: 1px solid rgba(245,200,66,0.2);
-      padding: 5px 18px;
-      border-radius: 30px;
-      letter-spacing: 3px;
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid var(--gold);
+      padding: 6px 20px;
+      border-radius: 40px;
+      letter-spacing: 4px;
+      box-shadow: 0 0 15px var(--gold-glow);
     }
 
     .conn-badge {
       font-size: 11px;
-      font-weight: 700;
-      padding: 4px 12px;
+      font-weight: 800;
+      padding: 5px 14px;
       border-radius: 20px;
-      background: rgba(0,0,0,0.4);
-      border: 1px solid var(--border2);
-      letter-spacing: 0.5px;
-      transition: all 0.3s;
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid var(--card-border);
+      letter-spacing: 1px;
     }
-    .conn-badge.live { color: var(--green); border-color: rgba(34,211,160,0.3); }
-    .conn-badge.reconnecting { color: var(--amber); border-color: rgba(249,115,22,0.3); animation: pulseBadge 1.5s infinite; }
-    .conn-badge.error { color: var(--red); border-color: rgba(244,63,94,0.3); }
-    @keyframes pulseBadge { 0%,100%{opacity:1} 50%{opacity:0.5} }
+    .conn-badge.live { color: var(--green); border-color: var(--green); box-shadow: 0 0 10px rgba(0, 255, 136, 0.3); }
+    .conn-badge.reconnecting { color: var(--gold); border-color: var(--gold); animation: pulse 1.5s infinite; }
 
     .audio-control {
-      font-size: 11px; font-weight: 700; padding: 4px 12px;
-      border-radius: 20px; background: rgba(0,0,0,0.4); border: 1px solid var(--border2);
-      color: var(--muted); cursor: pointer;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 5px 14px;
+      border-radius: 20px;
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid var(--card-border);
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.2s;
     }
-    .audio-control:hover { border-color: var(--border); color: var(--text); }
+    .audio-control:hover { border-color: var(--gold); color: var(--gold); transform: scale(1.02); }
 
-    /* MAIN GRID */
+    /* MAIN ARENA */
     .main-grid {
       flex: 1;
       display: grid;
-      grid-template-columns: 1fr 260px;
+      grid-template-columns: 1fr 300px;
       overflow: hidden;
+      gap: 0;
     }
 
-    /* GAME CONTENT */
+    /* GAME CONTENT — CENTER STAGE */
     .game-content {
       position: relative;
       overflow: hidden;
       display: flex;
       flex-direction: column;
+      background: radial-gradient(ellipse at 50% 30%, rgba(0, 212, 255, 0.05) 0%, transparent 70%);
     }
 
     /* SCREENS */
-    .screen { display: none; flex: 1; flex-direction: column; align-items: center; justify-content: center; padding: 40px 48px; animation: screenIn 0.5s cubic-bezier(0.22,1,0.36,1); }
+    .screen {
+      display: none;
+      flex: 1;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 48px;
+      animation: screenGlowIn 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+    }
     .screen.active { display: flex; }
-    @keyframes screenIn { from { opacity:0; transform: scale(0.98) translateY(10px); } to { opacity:1; transform:none; } }
 
-    /* WARMUP */
+    @keyframes screenGlowIn {
+      from { opacity: 0; transform: scale(0.96) translateY(20px); filter: blur(10px); }
+      to { opacity: 1; transform: none; filter: blur(0); }
+    }
+
+    /* WARMUP SCREEN — Epic Waiting */
     .warmup-container { text-align: center; }
     .warmup-logo {
-      font-family: 'Syne', sans-serif; font-size: clamp(36px, 6vw, 72px); font-weight: 800;
-      letter-spacing: 10px;
-      background: linear-gradient(135deg, #fff 30%, var(--gold));
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      margin-bottom: 12px;
+      font-family: 'Orbitron', monospace;
+      font-size: clamp(40px, 7vw, 80px);
+      font-weight: 900;
+      letter-spacing: 12px;
+      background: linear-gradient(135deg, #fff, var(--gold), var(--neon-blue));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 20px;
+      animation: logoPulse 2s ease-in-out infinite;
     }
+
+    @keyframes logoPulse {
+      0%, 100% { opacity: 0.9; text-shadow: 0 0 20px rgba(255, 215, 0, 0.3); }
+      50% { opacity: 1; text-shadow: 0 0 50px rgba(255, 215, 0, 0.6); }
+    }
+
     .warmup-banner {
-      font-size: clamp(13px, 2vw, 18px); letter-spacing: 6px; color: var(--muted);
-      text-transform: uppercase; margin-bottom: 36px;
+      font-size: 14px;
+      letter-spacing: 8px;
+      color: rgba(255, 255, 255, 0.5);
+      text-transform: uppercase;
+      margin-bottom: 40px;
     }
+
     .warmup-pulse-circle {
-      width: clamp(140px,22vw,220px); height: clamp(140px,22vw,220px);
+      width: clamp(160px, 25vw, 260px);
+      height: clamp(160px, 25vw, 260px);
       border-radius: 50%;
-      border: 2px solid rgba(245,200,66,0.2);
-      display: flex; align-items: center; justify-content: center;
+      border: 3px solid var(--gold);
+      display: flex;
+      align-items: center;
+      justify-content: center;
       margin: 0 auto 32px;
       position: relative;
-      animation: pulseCircle 2.5s ease-in-out infinite;
+      animation: arenaPulse 2s ease-in-out infinite;
+      background: radial-gradient(circle, rgba(255, 215, 0, 0.1), transparent);
     }
-    .warmup-pulse-circle::before, .warmup-pulse-circle::after {
-      content: ''; position: absolute; border-radius: 50%;
-      border: 1px solid rgba(245,200,66,0.1);
-      animation: expandRing 2.5s ease-out infinite;
-    }
-    .warmup-pulse-circle::before { inset: -20px; animation-delay: 0s; }
-    .warmup-pulse-circle::after  { inset: -40px; animation-delay: 0.4s; }
-    @keyframes pulseCircle { 0%,100%{ border-color: rgba(245,200,66,0.2); } 50%{ border-color: rgba(245,200,66,0.5); } }
-    @keyframes expandRing  { 0%{ opacity:0.6; transform:scale(1); } 100%{ opacity:0; transform:scale(1.3); } }
-    .inner-text { font-family: 'Syne', sans-serif; font-size: clamp(18px,3vw,28px); font-weight: 800; letter-spacing: 4px; color: var(--gold); }
-    .warmup-message { font-size: 14px; color: var(--muted); letter-spacing: 1px; }
 
-    /* QUESTION SCREEN */
-    .question-number {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 11px; font-weight: 700; letter-spacing: 4px;
-      color: var(--muted); margin-bottom: 18px;
-      text-transform: uppercase;
+    .warmup-pulse-circle::before,
+    .warmup-pulse-circle::after {
+      content: '';
+      position: absolute;
+      border-radius: 50%;
+      border: 1px solid var(--gold);
+      animation: ringExpand 2s ease-out infinite;
     }
+    .warmup-pulse-circle::before { inset: -15px; animation-delay: 0s; }
+    .warmup-pulse-circle::after { inset: -35px; animation-delay: 0.5s; }
+
+    @keyframes arenaPulse {
+      0%, 100% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.3); border-color: var(--gold); }
+      50% { box-shadow: 0 0 60px rgba(255, 215, 0, 0.6); border-color: var(--neon-blue); }
+    }
+
+    @keyframes ringExpand {
+      0% { opacity: 0.6; transform: scale(1); }
+      100% { opacity: 0; transform: scale(1.4); }
+    }
+
+    .inner-text {
+      font-family: 'Orbitron', monospace;
+      font-size: clamp(24px, 5vw, 42px);
+      font-weight: 900;
+      color: var(--gold);
+      text-shadow: 0 0 20px var(--gold);
+    }
+
+    .warmup-message {
+      font-size: 16px;
+      color: rgba(255, 255, 255, 0.6);
+      letter-spacing: 2px;
+    }
+
+    /* QUESTION SCREEN — Epic Question Display */
+    .question-number {
+      font-family: 'Orbitron', monospace;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 6px;
+      color: var(--gold);
+      margin-bottom: 20px;
+      text-transform: uppercase;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 6px 24px;
+      border-radius: 40px;
+      display: inline-block;
+    }
+
     .question-text {
       font-family: 'Syne', sans-serif;
-      font-size: clamp(22px, 4vw, 48px);
+      font-size: clamp(28px, 5vw, 56px);
       font-weight: 800;
-      line-height: 1.25;
+      line-height: 1.3;
       text-align: center;
-      margin-bottom: 32px;
-      color: var(--text);
+      margin-bottom: 40px;
+      color: #fff;
+      text-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
+      max-width: 1000px;
     }
+
     .options-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 14px;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
       width: 100%;
-      max-width: 800px;
+      max-width: 900px;
     }
+
     .opt-tile {
-      background: rgba(255,255,255,0.04);
-      border: 1.5px solid rgba(255,255,255,0.1);
-      border-radius: 18px;
-      padding: 16px 20px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(0, 0, 0, 0.3));
+      border: 2px solid rgba(255, 215, 0, 0.3);
+      border-radius: 20px;
+      padding: 20px 24px;
       display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      animation: optIn 0.4s cubic-bezier(0.22,1,0.36,1) both;
+      align-items: center;
+      gap: 16px;
+      transition: all 0.3s ease;
+      animation: optSlideIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
     }
+
+    .opt-tile:hover {
+      border-color: var(--gold);
+      transform: translateY(-3px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+
     .opt-tile:nth-child(1) { animation-delay: 0.05s; }
     .opt-tile:nth-child(2) { animation-delay: 0.1s; }
     .opt-tile:nth-child(3) { animation-delay: 0.15s; }
     .opt-tile:nth-child(4) { animation-delay: 0.2s; }
-    @keyframes optIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:none; } }
-    .opt-letter {
-      font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800;
-      color: var(--gold); flex-shrink: 0; min-width: 24px;
+
+    @keyframes optSlideIn {
+      from { opacity: 0; transform: translateX(-20px); }
+      to { opacity: 1; transform: translateX(0); }
     }
+
+    .opt-letter {
+      font-family: 'Orbitron', monospace;
+      font-size: 28px;
+      font-weight: 900;
+      color: var(--gold);
+      background: rgba(0, 0, 0, 0.5);
+      width: 50px;
+      height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      flex-shrink: 0;
+    }
+
     .opt-text {
-      font-size: clamp(14px, 2vw, 20px);
+      font-size: 18px;
       font-weight: 600;
       line-height: 1.4;
+      flex: 1;
     }
 
-    /* BUZZER OPEN BADGE */
+    /* BUZZER OPEN INDICATOR */
     .buzzer-open-badge {
-      display: inline-flex; align-items: center; gap: 10px;
-      background: rgba(244,63,94,0.12);
-      border: 1.5px solid rgba(244,63,94,0.4);
-      border-radius: 40px;
-      padding: 10px 24px;
-      font-family: 'Syne', sans-serif;
-      font-size: 14px; font-weight: 800; letter-spacing: 2px;
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(255, 51, 102, 0.15);
+      border: 2px solid var(--red);
+      border-radius: 60px;
+      padding: 14px 32px;
+      font-family: 'Orbitron', monospace;
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: 3px;
       color: var(--red);
-      animation: buzzerPulse 1s ease-in-out infinite;
+      margin-top: 30px;
+      animation: buzzerPulse 0.8s ease-in-out infinite;
     }
-    .buzzer-open-badge .dot {
-      width: 10px; height: 10px; border-radius: 50%;
-      background: var(--red); display: inline-block;
-      animation: dotBlink 0.8s step-end infinite;
-    }
-    @keyframes buzzerPulse { 0%,100%{ box-shadow: 0 0 0 rgba(244,63,94,0); } 50%{ box-shadow: 0 0 20px rgba(244,63,94,0.3); } }
-    @keyframes dotBlink { 0%,100%{ opacity:1; } 50%{ opacity:0; } }
 
-    /* CATEGORY PICKER */
-    .cat-pick-title {
-      font-family: 'Syne', sans-serif; font-size: clamp(22px,4vw,40px); font-weight: 800;
-      letter-spacing: 3px; margin-bottom: 32px; color: var(--gold);
+    .buzzer-open-badge .dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--red);
+      display: inline-block;
+      animation: dotBlink 0.6s step-end infinite;
     }
+
+    @keyframes buzzerPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(255, 51, 102, 0.4); }
+      50% { box-shadow: 0 0 0 20px rgba(255, 51, 102, 0); }
+    }
+
+    @keyframes dotBlink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    /* CATEGORY PICKER SCREEN */
+    .cat-pick-title {
+      font-family: 'Orbitron', monospace;
+      font-size: clamp(28px, 5vw, 48px);
+      font-weight: 900;
+      letter-spacing: 4px;
+      margin-bottom: 40px;
+      color: var(--gold);
+      text-shadow: 0 0 20px var(--gold);
+    }
+
     .catpick-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(140px, 200px));
+      grid-template-columns: repeat(auto-fill, minmax(180px, 220px));
       justify-content: center;
-      gap: 16px;
+      gap: 24px;
       width: 100%;
-      max-width: min(900px, 90vw);
-      align-self: center;
+      max-width: 1000px;
     }
+
     .cat-tile {
-      background: rgba(255,255,255,0.04);
-      border: 1.5px solid rgba(255,255,255,0.1);
-      border-radius: 20px;
-      padding: 24px 16px;
+      background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(0, 0, 0, 0.4));
+      border: 2px solid rgba(255, 215, 0, 0.3);
+      border-radius: 24px;
+      padding: 28px 16px;
       text-align: center;
-      animation: catTileIn 0.4s cubic-bezier(0.22,1,0.36,1) both;
-      cursor: default;
+      transition: all 0.3s ease;
+      animation: catReveal 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
     }
-    @keyframes catTileIn { from { opacity:0; transform:scale(0.9); } to { opacity:1; transform:none; } }
-    .cat-tile-icon { font-size: 40px; margin-bottom: 10px; }
-    .cat-tile-name { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 800; letter-spacing: 1px; }
 
-    /* OVERLAY BANNERS */
-    .overlay-container {
-      position: absolute; inset: 0; z-index: 200;
-      display: flex; align-items: center; justify-content: center;
-      padding: 24px;
-      background: rgba(7,5,16,0.75);
-      backdrop-filter: blur(8px);
-      animation: overlayIn 0.35s cubic-bezier(0.22,1,0.36,1);
+    .cat-tile:hover {
+      border-color: var(--gold);
+      transform: translateY(-5px);
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
     }
-    @keyframes overlayIn { from { opacity:0; } to { opacity:1; } }
-    .buzz-banner {
-      background: rgba(245,200,66,0.08);
-      border: 2px solid rgba(245,200,66,0.4);
-      border-radius: 28px;
-      padding: 40px 56px;
+
+    @keyframes catReveal {
+      from { opacity: 0; transform: scale(0.8); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .cat-tile-icon { font-size: 52px; margin-bottom: 12px; }
+    .cat-tile-name {
+      font-family: 'Syne', sans-serif;
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: 1px;
+    }
+
+    /* END SCREEN — CHAMPION PODIUM */
+    #endedScreen {
       text-align: center;
-      max-width: 600px;
     }
-    .winner-banner {
-      background: rgba(7,5,16,0.95);
-      border: 2px solid var(--green);
-      border-radius: 28px;
-      padding: 40px 56px;
-      text-align: center;
-      max-width: 600px;
-    }
-    .buzz-avatar { font-size: 56px; display: block; margin-bottom: 10px; }
-    .buzz-title {
-      font-family: 'Syne', sans-serif; font-size: clamp(28px, 5vw, 52px); font-weight: 800;
-      color: var(--text); line-height: 1.1; margin-bottom: 8px;
-    }
-    .buzz-subtitle { font-size: 16px; color: var(--muted); letter-spacing: 2px; font-weight: 600; }
 
-    /* END SCREEN */
-    #endedScreen { text-align: center; }
+    .podium {
+      margin: 30px 0;
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+    }
 
-    /* SIDE PANEL */
+    .winner-crown {
+      font-size: 60px;
+      animation: crownFloat 2s ease-in-out infinite;
+    }
+
+    @keyframes crownFloat {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    /* SIDE PANEL — LEADERBOARD */
     .side-panel {
-      background: rgba(0,0,0,0.15);
+      background: rgba(0, 0, 0, 0.7);
       backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border-left: 1px solid rgba(255,255,255,0.07);
+      border-left: 2px solid var(--gold);
       display: flex;
       flex-direction: column;
       overflow: hidden;
     }
+
     .side-title {
-      font-size: 10px; font-weight: 700; letter-spacing: 2px; color: var(--muted);
-      text-transform: uppercase; padding: 14px 16px 10px;
-      border-bottom: 1px solid rgba(255,255,255,0.07);
+      font-family: 'Orbitron', monospace;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 3px;
+      color: var(--gold);
+      text-transform: uppercase;
+      padding: 16px;
+      text-align: center;
+      border-bottom: 1px solid rgba(255, 215, 0, 0.3);
+      background: rgba(0, 0, 0, 0.5);
+    }
+
+    .player-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .p-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 215, 0, 0.2);
+      border-radius: 14px;
+      padding: 10px 14px;
+      transition: all 0.3s ease;
+    }
+
+    .p-row.active-buzz {
+      border-color: var(--gold);
+      background: rgba(255, 215, 0, 0.1);
+      box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+    }
+
+    .p-row.wrong-lock { border-color: var(--red); background: rgba(255, 51, 102, 0.05); }
+    .p-row.eliminated { opacity: 0.35; filter: grayscale(0.8); }
+
+    .p-avatar { font-size: 28px; flex-shrink: 0; }
+    .p-info { flex: 1; min-width: 0; }
+    .p-name {
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .p-status-sub { font-size: 10px; color: rgba(255, 255, 255, 0.5); }
+    .p-score {
+      font-family: 'Orbitron', monospace;
+      font-size: 18px;
+      font-weight: 900;
+      color: var(--gold);
       flex-shrink: 0;
     }
-    .player-list { flex: 1; overflow-y: auto; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; }
-    .p-row {
-      display: flex; align-items: center; gap: 10px;
-      background: rgba(255,255,255,0.03);
-      backdrop-filter: blur(8px);
-      border: 1px solid rgba(255,255,255,0.07);
-      border-radius: 12px; padding: 8px 10px;
-      transition: border-color 0.3s, background 0.3s;
+    .conn-led {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
     }
-    .p-row.active-buzz { border-color: var(--gold); background: rgba(245,200,66,0.06); }
-    .p-row.wrong-lock  { border-color: rgba(244,63,94,0.3); }
-    .p-row.eliminated  { opacity: 0.35; filter: grayscale(0.8); }
-    .p-avatar { font-size: 22px; flex-shrink: 0; }
-    .p-info { flex: 1; min-width: 0; }
-    .p-name { font-size: 12px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 5px; }
-    .p-status-sub { font-size: 10px; color: var(--muted); }
-    .p-score { font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 700; color: var(--gold); flex-shrink: 0; }
-    .conn-led { width: 6px; height: 6px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
-    .conn-led.online  { background: var(--green); box-shadow: 0 0 4px var(--green); }
+    .conn-led.online { background: var(--green); box-shadow: 0 0 8px var(--green); }
     .conn-led.offline { background: var(--red); }
 
-    /* FOOTER */
-    .footer {
-      padding: 6px 24px;
-      font-size: 10px; color: var(--muted); letter-spacing: 1px;
-      border-top: 1px solid var(--border);
-      flex-shrink: 0;
-      background: rgba(7,5,16,0.6);
-    }
-
-    /* FOH COUNTDOWN TIMER */
-    #fohTimerOverlay {
-      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-      z-index: 300; pointer-events: none;
-      display: none;
-    }
-    #fohTimerOverlay.active { display: block; }
-    .foh-timer-ring { position: relative; width: 160px; height: 160px; }
-    .foh-timer-ring svg { width: 160px; height: 160px; transform: rotate(-90deg); }
-    .foh-timer-ring .track { fill: none; stroke: rgba(255,255,255,0.06); stroke-width: 8; }
-    .foh-timer-ring .progress {
-      fill: none; stroke: var(--gold); stroke-width: 8; stroke-linecap: round;
-      stroke-dasharray: 283; stroke-dashoffset: 0; transition: stroke-dashoffset 1s linear, stroke 0.3s;
-    }
-    .foh-timer-number {
-      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-      font-family: 'Syne', sans-serif; font-size: 56px; font-weight: 800; color: var(--gold);
-    }
-
-    /* ROOM CODE DISPLAY OVERLAY */
-    #roomCodeDisplayOverlay {
-      position: fixed; inset: 0; z-index: 600;
-      background: rgba(7,5,16,0.97);
-      display: none;
-      flex-direction: column;
+    /* OVERLAY BANNERS */
+    .overlay-container {
+      position: absolute;
+      inset: 0;
+      z-index: 200;
+      display: flex;
       align-items: center;
       justify-content: center;
-      animation: rcOverlayIn 0.4s cubic-bezier(0.22,1,0.36,1);
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(12px);
+      animation: overlayFlash 0.4s ease;
     }
-    #roomCodeDisplayOverlay.active { display: flex; }
-    @keyframes rcOverlayIn { from { opacity:0; transform: scale(0.94); } to { opacity:1; transform:none; } }
-    .rc-label { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 800; letter-spacing: 8px; text-transform: uppercase; color: rgba(245,200,66,0.5); margin-bottom: 18px; }
-    .rc-logo { font-family: 'Syne', sans-serif; font-size: clamp(22px, 4vw, 38px); font-weight: 800; letter-spacing: 5px; background: linear-gradient(135deg, #fff 30%, var(--gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 32px; }
-    .rc-code-box { background: rgba(245,200,66,0.06); border: 2px solid rgba(245,200,66,0.4); border-radius: 24px; padding: 28px 56px; margin-bottom: 24px; box-shadow: 0 0 60px rgba(245,200,66,0.12); }
-    .rc-code { font-family: 'JetBrains Mono', monospace; font-size: clamp(52px, 12vw, 110px); font-weight: 700; letter-spacing: 16px; color: var(--gold); text-shadow: 0 0 40px rgba(245,200,66,0.6), 0 0 80px rgba(245,200,66,0.3); animation: rcPulse 2s ease-in-out infinite alternate; }
-    @keyframes rcPulse { from { text-shadow: 0 0 40px rgba(245,200,66,0.5); } to { text-shadow: 0 0 60px rgba(245,200,66,0.9), 0 0 120px rgba(245,200,66,0.5); } }
-    .rc-instruction { font-size: 15px; color: var(--muted); letter-spacing: 2px; font-weight: 500; margin-top: 8px; }
-    .rc-dismiss-hint { margin-top: 36px; font-size: 11px; letter-spacing: 3px; color: rgba(255,255,255,0.15); text-transform: uppercase; animation: blink 1.5s step-end infinite; }
-    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
 
-    /* MATRIX WELCOME SCREEN */
-    #matrixWelcome { position: fixed; inset: 0; z-index: 900; background: #000; display: none; flex-direction: column; align-items: center; justify-content: center; overflow: hidden; }
-    #matrixWelcome.active { display: flex; }
-    #matrixCanvas { position: absolute; inset: 0; width: 100%; height: 100%; }
-    .matrix-center { position: relative; z-index: 2; text-align: center; animation: matrixFadeIn 0.8s ease 0.5s both; }
-    @keyframes matrixFadeIn { from { opacity:0; transform: scale(0.9); } to { opacity:1; transform:none; } }
-    .matrix-logo-text { font-family: 'Syne', sans-serif; font-size: clamp(40px, 9vw, 88px); font-weight: 800; letter-spacing: 8px; color: #00ff41; text-shadow: 0 0 20px #00ff41, 0 0 60px #00ff41; animation: matrixGlitch 3s infinite; }
-    @keyframes matrixGlitch { 0%,92%,100%{ text-shadow: 0 0 20px #00ff41, 0 0 60px #00ff41; transform:none; } 93%{ text-shadow: -3px 0 #f43f5e, 3px 0 #6366f1; transform: translateX(2px); } 95%{ text-shadow: 3px 0 #f43f5e, -3px 0 #6366f1; transform: translateX(-2px); } 97%{ text-shadow: 0 0 20px #00ff41, 0 0 60px #00ff41; transform:none; } }
-    .matrix-sub { font-family: 'JetBrains Mono', monospace; font-size: 14px; letter-spacing: 6px; color: rgba(0,255,65,0.6); margin-top: 10px; text-transform: uppercase; animation: matrixTypeIn 1.2s steps(24,end) 1s both; overflow: hidden; white-space: nowrap; }
-    @keyframes matrixTypeIn { from{width:0} to{width:100%} }
-    .matrix-room-badge { margin-top: 28px; font-family: 'JetBrains Mono', monospace; font-size: 22px; color: #fff; background: rgba(0,255,65,0.08); border: 1px solid rgba(0,255,65,0.35); padding: 10px 28px; border-radius: 8px; letter-spacing: 6px; }
-    .matrix-enter-msg { margin-top: 20px; font-size: 12px; color: rgba(0,255,65,0.4); letter-spacing: 3px; animation: blink 1.2s step-end infinite; }
+    @keyframes overlayFlash {
+      from { backdrop-filter: blur(0); background: rgba(0, 0, 0, 0); }
+      to { backdrop-filter: blur(12px); background: rgba(0, 0, 0, 0.85); }
+    }
 
-    /* ── ROOM ENTRY — Glassmorphism ── */
+    .buzz-banner, .winner-banner {
+      background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(0, 0, 0, 0.8));
+      border: 3px solid var(--gold);
+      border-radius: 48px;
+      padding: 48px 72px;
+      text-align: center;
+      max-width: 600px;
+      animation: bannerPop 0.5s cubic-bezier(0.34, 1.2, 0.64, 1);
+    }
+
+    @keyframes bannerPop {
+      from { transform: scale(0.8); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .buzz-avatar { font-size: 72px; display: block; margin-bottom: 16px; }
+    .buzz-title {
+      font-family: 'Orbitron', monospace;
+      font-size: clamp(32px, 5vw, 56px);
+      font-weight: 900;
+      color: var(--gold);
+    }
+
+    /* TIMER OVERLAY */
+    #fohTimerOverlay {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 300;
+      display: none;
+    }
+    #fohTimerOverlay.active { display: block; animation: timerPop 0.3s ease; }
+    @keyframes timerPop { from { transform: translate(-50%, -50%) scale(0.5); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
+
+    .foh-timer-ring { position: relative; width: 200px; height: 200px; }
+    .foh-timer-ring svg { width: 200px; height: 200px; transform: rotate(-90deg); filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.5)); }
+    .foh-timer-ring .track { fill: none; stroke: rgba(255, 255, 255, 0.1); stroke-width: 8; }
+    .foh-timer-ring .progress { fill: none; stroke: var(--gold); stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 1s linear; }
+    .foh-timer-number {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'Orbitron', monospace;
+      font-size: 64px;
+      font-weight: 900;
+      color: var(--gold);
+      text-shadow: 0 0 20px var(--gold);
+    }
+
+    /* ROOM ENTRY — GLASS CARD */
     #roomEntryOverlay {
-      position: fixed; inset: 0; z-index: 800;
-      background: rgba(5,4,16,0.92);
+      position: fixed;
+      inset: 0;
+      z-index: 800;
+      background: rgba(0, 0, 0, 0.95);
       backdrop-filter: blur(24px);
-      display: flex; align-items: center; justify-content: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       padding: 20px;
-    }
-    /* Floating orbs behind the card */
-    #roomEntryOverlay::before {
-      content: '';
-      position: absolute; width: 400px; height: 400px; border-radius: 50%;
-      background: radial-gradient(circle, rgba(99,102,241,0.2) 0%, transparent 65%);
-      top: -100px; left: -100px; pointer-events: none;
-      animation: orbFloat 9s ease-in-out infinite alternate;
-    }
-    #roomEntryOverlay::after {
-      content: '';
-      position: absolute; width: 320px; height: 320px; border-radius: 50%;
-      background: radial-gradient(circle, rgba(245,200,66,0.12) 0%, transparent 65%);
-      bottom: -80px; right: -80px; pointer-events: none;
-      animation: orbFloat 11s ease-in-out infinite alternate-reverse;
-    }
-    @keyframes orbFloat {
-      from { transform: translate(0,0) scale(1); }
-      to   { transform: translate(25px,18px) scale(1.08); }
     }
 
     .entry-card {
-      position: relative; z-index: 1;
-      background: rgba(255,255,255,0.045);
-      backdrop-filter: blur(32px);
-      -webkit-backdrop-filter: blur(32px);
-      border: 1px solid rgba(255,255,255,0.12);
-      border-radius: 32px;
-      padding: 44px 36px 36px;
-      width: 100%; max-width: 420px;
+      background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(0, 0, 0, 0.6));
+      border: 2px solid var(--gold);
+      border-radius: 48px;
+      padding: 48px 40px;
+      width: 100%;
+      max-width: 480px;
       text-align: center;
-      box-shadow: 0 24px 64px rgba(0,0,0,0.6), 0 8px 24px rgba(0,0,0,0.4),
-                  inset 0 1px 0 rgba(255,255,255,0.1);
-      overflow: hidden;
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(255, 215, 0, 0.2);
+      animation: entryGlow 2s ease-in-out infinite;
     }
-    .entry-card::before {
-      content: '';
-      position: absolute; top: 0; left: 0; right: 0; height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3) 50%, transparent);
-    }
-    .entry-card::after {
-      content: '';
-      position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
-      background: radial-gradient(ellipse 60% 40% at 50% 0%, rgba(245,200,66,0.06) 0%, transparent 60%);
-      pointer-events: none;
+
+    @keyframes entryGlow {
+      0%, 100% { box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 215, 0, 0.2); }
+      50% { box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5), 0 0 60px rgba(255, 215, 0, 0.4); }
     }
 
     .entry-logo {
-      font-family: 'Syne', sans-serif; font-size: 32px; font-weight: 800;
-      letter-spacing: 6px;
-      background: linear-gradient(135deg, #fff 25%, var(--gold) 65%, var(--amber));
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-      margin-bottom: 6px; position: relative; z-index: 1;
+      font-family: 'Orbitron', monospace;
+      font-size: 36px;
+      font-weight: 900;
+      letter-spacing: 8px;
+      background: linear-gradient(135deg, #fff, var(--gold));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
     }
+
     .entry-sub {
-      font-size: 12px; color: var(--muted); margin-bottom: 32px;
-      letter-spacing: 1px; position: relative; z-index: 1;
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.5);
+      margin-bottom: 32px;
+      letter-spacing: 1px;
     }
 
-    .entry-label {
-      font-size: 10px; font-weight: 700; color: var(--muted);
-      letter-spacing: 2px; text-transform: uppercase;
-      margin-bottom: 10px; display: flex; align-items: center;
-      justify-content: center; gap: 6px; position: relative; z-index: 1;
-    }
-
-    /* Glassmorphism input */
-    .entry-input-wrap { position: relative; margin-bottom: 8px; z-index: 1; }
     .entry-input {
-      background: rgba(255,255,255,0.06);
-      border: 1.5px solid rgba(255,255,255,0.18);
-      border-radius: 16px;
-      padding: 16px 56px 16px 20px;
-      color: var(--text); font-size: 26px;
-      font-family: 'JetBrains Mono', monospace;
-      width: 100%; outline: none; text-align: center;
-      letter-spacing: 8px; text-transform: uppercase;
-      backdrop-filter: blur(8px);
-      caret-color: var(--gold);
-      transition: all 0.3s ease;
+      background: rgba(0, 0, 0, 0.6);
+      border: 2px solid rgba(255, 215, 0, 0.4);
+      border-radius: 60px;
+      padding: 16px 20px;
+      color: #fff;
+      font-size: 28px;
+      font-family: 'Orbitron', monospace;
+      width: 100%;
+      text-align: center;
+      letter-spacing: 8px;
+      text-transform: uppercase;
+      transition: all 0.3s;
     }
-    .entry-input::placeholder { color: rgba(240,238,255,0.18); letter-spacing: 4px; font-size: 18px; }
+
     .entry-input:focus {
-      border-color: rgba(245,200,66,0.55);
-      background: rgba(245,200,66,0.04);
-      box-shadow: 0 0 0 3px rgba(245,200,66,0.12), inset 0 1px 0 rgba(255,255,255,0.06);
+      border-color: var(--gold);
+      outline: none;
+      box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
     }
-    .entry-input.state-verifying {
-      border-color: rgba(167,139,250,0.5);
-      box-shadow: 0 0 0 3px rgba(167,139,250,0.1);
-    }
-    .entry-input.state-ok {
-      border-color: rgba(34,211,160,0.6);
-      background: rgba(34,211,160,0.04);
-      box-shadow: 0 0 0 3px rgba(34,211,160,0.12);
-    }
-    .entry-input.state-error {
-      border-color: rgba(244,63,94,0.6);
-      background: rgba(244,63,94,0.04);
-      animation: inputShake 0.4s ease;
-    }
-    @keyframes inputShake {
-      0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 60%{transform:translateX(6px)} 80%{transform:translateX(-3px)}
-    }
-
-    /* icon inside input */
-    .entry-verify-icon {
-      position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
-      width: 32px; height: 32px;
-      display: flex; align-items: center; justify-content: center;
-      pointer-events: none;
-    }
-    .entry-spinner {
-      width: 20px; height: 20px;
-      border: 2px solid rgba(167,139,250,0.3);
-      border-top-color: var(--violet);
-      border-radius: 50%;
-      animation: entrySpin 0.8s linear infinite;
-      display: none;
-    }
-    @keyframes entrySpin { to { transform: rotate(360deg); } }
-    .entry-check, .entry-cross { font-size: 20px; display: none; }
-
-    /* Status msg below input */
-    .entry-status-msg {
-      font-size: 11px; font-weight: 600; min-height: 18px;
-      text-align: center; letter-spacing: 0.5px;
-      transition: all 0.3s; margin-bottom: 16px; z-index: 1; position: relative;
-    }
-    .entry-status-msg.ok    { color: var(--green); }
-    .entry-status-msg.error { color: var(--red); }
-    .entry-status-msg.info  { color: var(--violet); }
 
     .entry-btn {
-      width: 100%; padding: 16px;
-      background: linear-gradient(135deg, var(--gold) 0%, var(--amber) 100%);
-      border: none; border-radius: 16px;
-      font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 800;
-      letter-spacing: 2px; color: #111; cursor: pointer;
-      position: relative; overflow: hidden; z-index: 1;
-      transition: all 0.25s; box-shadow: 0 4px 20px rgba(245,200,66,0.25);
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+      border: none;
+      border-radius: 60px;
+      font-family: 'Orbitron', monospace;
+      font-size: 16px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      color: #000;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-top: 20px;
     }
-    .entry-btn::before {
-      content: '';
-      position: absolute; inset: 0;
-      background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 60%);
-      opacity: 0; transition: opacity 0.2s;
+
+    .entry-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(255, 215, 0, 0.4); }
+
+    /* QR Container */
+    #finalQrContainer {
+      margin: 24px auto 0;
+      text-align: center;
     }
-    .entry-btn:hover::before { opacity: 1; }
-    .entry-btn:not(:disabled):hover {
-      box-shadow: 0 8px 30px rgba(245,200,66,0.4);
-      transform: translateY(-1px);
+
+    .qr-btn {
+      margin-top: 12px;
+      padding: 8px 20px;
+      background: rgba(255, 215, 0, 0.15);
+      border: 1px solid var(--gold);
+      border-radius: 40px;
+      color: var(--gold);
+      font-family: 'Orbitron', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
     }
-    .entry-btn:active { transform: scale(0.98); }
-    .entry-btn:disabled {
-      opacity: 0.4; cursor: not-allowed;
-      background: linear-gradient(135deg, rgba(245,200,66,0.5), rgba(249,115,22,0.5));
-      box-shadow: none; transform: none;
+
+    .qr-btn:hover {
+      background: var(--gold);
+      color: #000;
+      transform: scale(1.02);
     }
-    .entry-error { margin-top: 10px; font-size: 12px; color: var(--red); z-index:1; position:relative; }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.9);
+      border: 1px solid var(--gold);
+      border-radius: 40px;
+      padding: 10px 24px;
+      color: var(--gold);
+      font-family: 'Orbitron', monospace;
+      font-size: 12px;
+      z-index: 1000;
+      animation: toastIn 0.3s ease;
+    }
+
+    @keyframes toastIn {
+      from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+      to { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+
+    .footer {
+      padding: 8px 24px;
+      font-size: 10px;
+      color: rgba(255, 255, 255, 0.3);
+      text-align: center;
+      border-top: 1px solid rgba(255, 215, 0, 0.2);
+      flex-shrink: 0;
+    }
   </style>
 </head>
 <body>
 <div class="app">
   <div class="top-bar">
-    <div class="logo">PLAYAQUIZ</div>
-    <div style="display:flex; align-items:center; gap:10px;">
-      <button class="audio-control" id="bgmToggleBtn" onclick="toggleBackgroundMusic()">▶ BGM</button>
-      <div class="conn-badge" id="fohConnBadge">⏳ Not connected</div>
+    <div class="logo">⚡ PLAY<span style="color:var(--gold)">A</span>QUIZ ⚡</div>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <button class="audio-control" id="bgmToggleBtn" onclick="toggleBackgroundMusic()">🎵 BGM</button>
+      <div class="conn-badge" id="fohConnBadge">⏳ Connecting</div>
       <div class="room-display" id="roomDisplay">——</div>
     </div>
   </div>
@@ -591,52 +762,51 @@
       <!-- WARMUP / WAITING SCREEN -->
       <div id="waitingScreen" class="screen active">
         <div class="warmup-container">
-          <div class="warmup-logo">PLAYAQUIZ</div>
-          <div class="warmup-banner">The Grand Final Arena</div>
+          <div class="warmup-logo">FINAL ROUND</div>
+          <div class="warmup-banner">THE GRAND FINAL ARENA</div>
           <div class="warmup-pulse-circle"><div class="inner-text">READY</div></div>
           <div class="warmup-message">Waiting for the host to start the round...</div>
-          <!-- Add inside waiting screen -->
-<div id="finalQrContainer" style="margin: 24px auto 0; text-align: center;"></div>
-<button id="showFinalQrBtn" class="btn btn-sm" style="margin-top: 12px; background: rgba(245,200,66,0.2); color: #f5c842;" onclick="showFullFinalQR()">🔍 Show Full QR Code</button>
+          <div id="finalQrContainer" style="margin: 24px auto 0;"></div>
+          <button class="qr-btn" onclick="showFullFinalQR()">🔍 Show Full QR Code</button>
         </div>
       </div>
 
       <!-- QUESTION SCREEN -->
       <div id="questionScreen" class="screen">
-        <div class="question-number" id="fohQuestionMeta">CATEGORY SELECT</div>
+        <div class="question-number" id="fohQuestionMeta">⚡ QUESTION ⚡</div>
         <div class="question-text" id="fohQuestionText"></div>
         <div class="options-grid" id="fohOptionsContainer"></div>
-        <div id="fohBuzzerOpenIndicator" style="display:none;margin-top:20px;">
+        <div id="fohBuzzerOpenIndicator" style="display:none; margin-top: 30px;">
           <div class="buzzer-open-badge"><span class="dot"></span>BUZZERS ACTIVE — PRESS NOW!</div>
         </div>
       </div>
 
       <!-- CATEGORY PICKER SCREEN -->
       <div id="categoriesScreen" class="screen">
-        <h2 class="cat-pick-title" id="catPickTitle">Available Categories</h2>
+        <h2 class="cat-pick-title">🎯 SELECT CATEGORY 🎯</h2>
         <div class="catpick-grid" id="fohCategoriesContainer"></div>
       </div>
 
       <!-- END SCREEN -->
       <div id="endedScreen" class="screen">
-        <span style="font-size:90px; display:block; margin-bottom:10px;">👑</span>
-        <h2 class="cat-pick-title" style="margin-bottom:6px;">Final Match Champion</h2>
-        <div id="podiumWinnerName" style="font-size:clamp(32px,6vw,56px); font-weight:800; color:var(--gold);">—</div>
-        <div id="podiumWinnerScore" style="font-size:20px; color:var(--muted); margin-top:8px;"></div>
+        <div class="winner-crown">👑🏆👑</div>
+        <h2 class="cat-pick-title" style="margin-bottom: 16px;">GRAND CHAMPION</h2>
+        <div id="podiumWinnerName" style="font-size: clamp(36px, 7vw, 64px); font-weight: 900; color: var(--gold); text-shadow: 0 0 30px var(--gold);">—</div>
+        <div id="podiumWinnerScore" style="font-size: 24px; color: rgba(255,255,255,0.6); margin-top: 12px;"></div>
       </div>
 
       <div id="overlayContainer"></div>
     </div>
 
     <div class="side-panel">
-      <div class="side-title">Live Finalists</div>
+      <div class="side-title">🏆 LEADERBOARD 🏆</div>
       <div class="player-list" id="fohPlayersList"></div>
     </div>
   </div>
 
-  <div class="footer">PlayAQuiz — Final Round Display &nbsp;·&nbsp; <span id="fohFooterCode" style="color:var(--gold);">——</span></div>
+  <div class="footer">PLAYAQUIZ — FINAL ROUND DISPLAY &nbsp;|&nbsp; <span id="fohFooterCode" style="color:var(--gold);">——</span></div>
 
-  <!-- FOH COUNTDOWN TIMER -->
+  <!-- TIMER OVERLAY -->
   <div id="fohTimerOverlay">
     <div class="foh-timer-ring">
       <svg viewBox="0 0 100 100">
@@ -647,57 +817,19 @@
     </div>
   </div>
 
-  <!-- ROOM CODE DISPLAY OVERLAY -->
-  <div id="roomCodeDisplayOverlay">
-    <div class="rc-logo">PLAYAQUIZ</div>
-    <div class="rc-label">Join the Final Round</div>
-    <div class="rc-code-box"><div class="rc-code" id="rcCodeText">——</div></div>
-    <div class="rc-instruction">Enter this code on your device to join</div>
-    <div class="rc-dismiss-hint">Tap anywhere to dismiss</div>
-  </div>
-
-  <!-- MATRIX WELCOME SCREEN -->
-  <div id="matrixWelcome">
-    <canvas id="matrixCanvas"></canvas>
-    <div class="matrix-center">
-      <div class="matrix-logo-text">PLAYAQUIZ</div>
-      <div class="matrix-sub">THE GRAND FINAL ARENA</div>
-      <div class="matrix-room-badge" id="matrixRoomBadge">——</div>
-      <div class="matrix-enter-msg">PRESS ANYWHERE TO CONTINUE</div>
-    </div>
-  </div>
-
-  <!-- ROOM ENTRY OVERLAY — Glassmorphism -->
+  <!-- ROOM ENTRY OVERLAY -->
   <div id="roomEntryOverlay">
     <div class="entry-card">
-      <div class="entry-logo">PLAYAQUIZ</div>
+      <div class="entry-logo">⚡ PLAY A QUIZ ⚡</div>
       <div class="entry-sub">Enter the room code from the Control Panel</div>
-      <div class="entry-label">🔑 &nbsp;Room Code</div>
-      <div class="entry-input-wrap">
-        <input type="text" id="fohRoomInput" class="entry-input" placeholder="FR4X7K" maxlength="8"
-          autocomplete="off" inputmode="text"
-          oninput="onFohRoomInput(this)"
-          onkeydown="if(event.key==='Enter') submitFohRoom()">
-        <div class="entry-verify-icon">
-          <div class="entry-spinner" id="fohVerifySpinner"></div>
-          <span class="entry-check"  id="fohVerifyCheck">✅</span>
-          <span class="entry-cross"  id="fohVerifyCross">❌</span>
-        </div>
-      </div>
-      <div class="entry-status-msg" id="fohStatusMsg">Enter the code shown on the Control Panel</div>
-      <button class="entry-btn" id="fohConnectBtn" onclick="submitFohRoom()">CONNECT TO ROOM</button>
-      <div id="fohRoomError" class="entry-error"></div>
+      <input type="text" id="fohRoomInput" class="entry-input" placeholder="FR4X7K" maxlength="8" autocomplete="off" oninput="onFohRoomInput(this)" onkeydown="if(event.key==='Enter') submitFohRoom()">
+      <button class="entry-btn" id="fohConnectBtn" onclick="submitFohRoom()">⚡ CONNECT TO ROOM ⚡</button>
+      <div id="fohRoomError" style="margin-top: 12px; font-size: 12px; color: #ff3366;"></div>
     </div>
   </div>
 </div>
 
-
-<!-- Add these script tags to all 6 files -->
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-<script src="phase-config.js"></script>
-<script src="qr-manager.js"></script>
-<script src="phase-manager.js"></script>
-
 <script>
 const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
 const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
@@ -706,22 +838,22 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 let roomCode = null, realtimeChannel = null, cachedPlayers = [];
 let buzzerOpenVisible = false;
 let bgmAudio = null, bgmEnabled = true;
-let confettiTimer = null, overlayTimer = null;
+let overlayTimer = null;
 let fohTimerInterval = null;
-let roomCodeOverlayTimer = null;
-let matrixRAF = null;
 
-// ─── Reconnect state ──────────────────────────────────────────────────────────
-let fohReconnectTimer = null;
-let fohReconnectAttempts = 0;
-const FOH_RECONNECT_DELAYS = [3000, 6000, 12000, 20000];
+function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[m]); }
 
-// ─── Background music ─────────────────────────────────────────────────────────
+function toast(msg) {
+  const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2500);
+}
+
 function initBackgroundMusic() {
   bgmAudio = new Audio();
   bgmAudio.src = 'countdownbg.mp3';
   bgmAudio.loop = true;
-  bgmAudio.volume = 0.3;
+  bgmAudio.volume = 0.25;
   bgmAudio.load();
 }
 function playBackgroundMusic() { if(bgmAudio && bgmEnabled) bgmAudio.play().catch(()=>{}); }
@@ -729,11 +861,10 @@ function stopBackgroundMusic() { if(bgmAudio) { bgmAudio.pause(); bgmAudio.curre
 function toggleBackgroundMusic() {
   if(!bgmAudio) initBackgroundMusic();
   const btn = document.getElementById('bgmToggleBtn');
-  if(bgmAudio.paused) { bgmAudio.play().catch(()=>{}); bgmEnabled = true; btn.innerHTML = '‖ BGM'; }
-  else { bgmAudio.pause(); bgmEnabled = false; btn.innerHTML = '▶ BGM'; }
+  if(bgmAudio.paused) { bgmAudio.play().catch(()=>{}); bgmEnabled = true; btn.innerHTML = '🔊 BGM'; }
+  else { bgmAudio.pause(); bgmEnabled = false; btn.innerHTML = '🔇 BGM'; }
 }
 
-// ─── Beep sounds ──────────────────────────────────────────────────────────────
 function playBeep(freq, type, duration) {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -741,64 +872,21 @@ function playBeep(freq, type, duration) {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = type; osc.frequency.value = freq;
-    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+    gain.gain.setValueAtTime(0.12, ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
     osc.connect(gain); gain.connect(ctx.destination);
     osc.start(); osc.stop(ctx.currentTime + duration);
   } catch(e) {}
 }
 
-
-// Add to finalroundfoh.html script
-function displayPhase2QR() {
-  const roomCode = document.getElementById('roomDisplay')?.innerText || 
-                   document.getElementById('roomCode')?.innerText;
-  if (!roomCode) {
-    setTimeout(() => displayPhase2QR(), 1000);
-    return;
-  }
-  
-  if (window.QRDisplay) {
-    window.QRDisplay.renderToContainer('finalQrContainer', roomCode, 2, 180);
-  } else {
-    const container = document.getElementById('finalQrContainer');
-    if (container) {
-      container.innerHTML = `
-        <div style="background: #0d1120; border: 2px solid #f5c842; border-radius: 16px; padding: 20px; text-align: center;">
-          <div style="font-size: 36px; margin-bottom: 8px;">🏆</div>
-          <div style="font-family: monospace; font-size: 28px; font-weight: bold; color: #f5c842; letter-spacing: 4px;">${roomCode}</div>
-          <div style="font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 8px;">Top 5 Players — Enter this code</div>
-        </div>
-      `;
-    }
-  }
-}
-
-function showFullFinalQR() {
-  const roomCode = document.getElementById('roomDisplay')?.innerText;
-  if (roomCode && window.QRDisplay) {
-    window.QRDisplay.showQRModal(roomCode, 2);
-  }
-}
-
-// Call when room is connected
-const originalBootFOH = window.bootFOH;
-window.bootFOH = async function(session) {
-  if (originalBootFOH) await originalBootFOH(session);
-  setTimeout(displayPhase2QR, 500);
-};
-
-
-// ─── Screen management ────────────────────────────────────────────────────────
 function showScreen(id) {
   document.querySelectorAll('.game-content .screen').forEach(s => s.classList.remove('active'));
-  const el = document.getElementById(id);
-  if(el) el.classList.add('active');
+  document.getElementById(id)?.classList.add('active');
 }
 
-// ─── Overlay banners ──────────────────────────────────────────────────────────
 function clearOverlay() {
-  document.getElementById('overlayContainer').innerHTML = '';
+  const container = document.getElementById('overlayContainer');
+  if(container) container.innerHTML = '';
   if(overlayTimer) { clearTimeout(overlayTimer); overlayTimer = null; }
 }
 
@@ -806,62 +894,48 @@ function showBuzzOverlay(name, avatar) {
   clearOverlay();
   const div = document.createElement('div');
   div.className = 'overlay-container';
-  div.innerHTML = `<div class="buzz-banner"><span class="buzz-avatar">⚡</span><div class="buzz-title">${avatar || '🔔'} ${escapeHtml(name)}</div><div class="buzz-subtitle">Is Responding...</div></div>`;
+  div.innerHTML = `<div class="buzz-banner"><div class="buzz-avatar">⚡</div><div class="buzz-title">${avatar || '🔔'} ${escapeHtml(name)}</div><div style="font-size: 18px; margin-top: 12px;">IS RESPONDING...</div></div>`;
   document.getElementById('overlayContainer').appendChild(div);
-  overlayTimer = setTimeout(() => clearOverlay(), 6000);
+  overlayTimer = setTimeout(() => clearOverlay(), 5000);
 }
 
 function showCorrectOverlay(name, avatar, points) {
   clearOverlay();
   const div = document.createElement('div');
   div.className = 'overlay-container';
-  div.innerHTML = `<div class="winner-banner"><span style="font-size:70px;display:block;margin-bottom:10px;">💎</span><div class="buzz-title" style="font-size:clamp(28px,5vw,48px);">${avatar || '🏆'} ${escapeHtml(name)}</div><div style="font-size:18px;margin-top:8px;font-weight:700;color:var(--green);">CORRECT! +${points} POINTS</div></div>`;
+  div.innerHTML = `<div class="winner-banner"><div style="font-size: 80px;">💎</div><div class="buzz-title">${avatar || '🏆'} ${escapeHtml(name)}</div><div style="font-size: 20px; margin-top: 12px; color: #00ff88;">CORRECT! +${points} POINTS</div></div>`;
   document.getElementById('overlayContainer').appendChild(div);
-  overlayTimer = setTimeout(() => clearOverlay(), 20000);
+  overlayTimer = setTimeout(() => clearOverlay(), 8000);
+  try { canvasConfetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#ffd700', '#00ff88', '#ff2d75'] }); } catch(e) {}
 }
 
 function showWrongOverlay(name) {
   clearOverlay();
   const div = document.createElement('div');
   div.className = 'overlay-container';
-  div.innerHTML = `<div class="winner-banner" style="border-color:var(--red);"><span style="font-size:70px;display:block;margin-bottom:10px;">⚠️</span><div class="buzz-title" style="font-size:clamp(28px,5vw,48px);">${escapeHtml(name)}</div><div style="font-size:18px;margin-top:8px;font-weight:700;color:var(--red);">LOCKED OUT / WRONG ANSWER</div></div>`;
+  div.innerHTML = `<div class="winner-banner" style="border-color: #ff3366;"><div style="font-size: 80px;">❌</div><div class="buzz-title" style="color: #ff3366;">${escapeHtml(name)}</div><div style="font-size: 18px; margin-top: 12px;">LOCKED OUT</div></div>`;
   document.getElementById('overlayContainer').appendChild(div);
-  overlayTimer = setTimeout(() => clearOverlay(), 5000);
+  overlayTimer = setTimeout(() => clearOverlay(), 4000);
 }
 
-// ─── Confetti ─────────────────────────────────────────────────────────────────
-function launchConfetti(durationMs = 5000) {
-  try {
-    const end = Date.now() + durationMs;
-    (function frame() {
-      confetti({ particleCount: 4, angle: 60, spread: 60, origin: { x: 0, y: 0.75 } });
-      confetti({ particleCount: 4, angle: 120, spread: 60, origin: { x: 1, y: 0.75 } });
-      if(Date.now() < end) requestAnimationFrame(frame);
-    }());
-  } catch(e) {}
-}
-
-// ─── Player list ──────────────────────────────────────────────────────────────
 function renderPlayersList() {
   const container = document.getElementById('fohPlayersList');
   if(!container) return;
   if(!cachedPlayers.length) {
-    container.innerHTML = '<div style="padding:20px;color:var(--muted);font-size:13px;text-align:center;">Waiting for players...</div>';
+    container.innerHTML = '<div style="padding: 30px; text-align: center; color: rgba(255,255,255,0.4);">Waiting for players...</div>';
     return;
   }
   const sorted = [...cachedPlayers].sort((a,b) => (b.score||0) - (a.score||0));
-  container.innerHTML = sorted.map(p => {
-    const isOnline = p.connected !== false;
+  container.innerHTML = sorted.map((p, idx) => {
     let statusClass = '', subText = '';
-    if(p.status === 'buzzed')                          { statusClass = 'active-buzz'; subText = '💥 BUZZED'; }
-    else if(p.status === 'locked' || p.status==='wrong') { statusClass = 'wrong-lock'; subText = '🔒 Locked Out'; }
-    else if(p.eliminated || p.status === 'eliminated')  { statusClass = 'eliminated'; subText = '❌ Eliminated'; }
-    else if(!isOnline)                                  { subText = '🔌 Offline'; }
-    else                                                { subText = '● Connected'; }
+    if(p.status === 'buzzed') { statusClass = 'active-buzz'; subText = '⚡ BUZZED!'; }
+    else if(p.status === 'locked' || p.status === 'wrong') { statusClass = 'wrong-lock'; subText = '🔒 Locked'; }
+    else if(p.eliminated) { statusClass = 'eliminated'; subText = '❌ Eliminated'; }
+    else { subText = '● Ready'; }
     return `<div class="p-row ${statusClass}">
       <div class="p-avatar">${p.avatar || '🎮'}</div>
       <div class="p-info">
-        <div class="p-name"><span class="conn-led ${isOnline?'online':'offline'}"></span>${escapeHtml(p.name)}</div>
+        <div class="p-name"><span class="conn-led ${p.connected !== false ? 'online' : 'offline'}"></span>#${idx+1} ${escapeHtml(p.name)}</div>
         <div class="p-status-sub">${subText}</div>
       </div>
       <div class="p-score">${p.score || 0}</div>
@@ -869,107 +943,72 @@ function renderPlayersList() {
   }).join('');
 }
 
-// ─── Event handler ────────────────────────────────────────────────────────────
 function handleBroadcast(event, payload) {
   switch(event) {
-    case 'foh_hide':
-      // Hide specific overlays / return to waiting screen
-      switch(payload.target) {
-        case 'room_code':
-          hideRoomCodeOverlay();
-          break;
-        case 'categories':
-          if(document.getElementById('categoriesScreen').classList.contains('active')) {
-            showScreen('waitingScreen');
-          }
-          break;
-        case 'leaderboard':
-          // Leaderboard is shown on the side panel — clear it or return to waiting
-          showScreen('waitingScreen');
-          break;
-        case 'end_round':
-          if(document.getElementById('endedScreen').classList.contains('active')) {
-            showScreen('waitingScreen');
-          }
-          break;
-      }
-      break;
-
     case 'player_list_update':
       cachedPlayers = payload.players || [];
       renderPlayersList();
       break;
-
     case 'round_started':
       showScreen('waitingScreen');
       playBackgroundMusic();
+      toast('🎮 Round has started!');
       break;
-
     case 'show_category_picker':
       clearOverlay();
       showScreen('categoriesScreen');
-      buzzerOpenVisible = false;
       document.getElementById('fohBuzzerOpenIndicator').style.display = 'none';
       const cats = payload.categories || [];
-      document.getElementById('fohCategoriesContainer').innerHTML =
-        cats.map((c, i) => `<div class="cat-tile" style="animation-delay:${i*0.06}s;"><div class="cat-tile-icon">${c.icon || '📂'}</div><div class="cat-tile-name">${c.name}</div></div>`).join('');
+      const container = document.getElementById('fohCategoriesContainer');
+      if(!cats.length) container.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:rgba(255,255,255,0.5);">No categories yet</div>';
+      else container.innerHTML = cats.map((c, i) => `<div class="cat-tile" style="animation-delay:${i*0.06}s;"><div class="cat-tile-icon">${c.icon || '📂'}</div><div class="cat-tile-name">${escapeHtml(c.name)}</div></div>`).join('');
       playBeep(440, 'triangle', 0.2);
       break;
-
     case 'question_open':
       showScreen('questionScreen');
       buzzerOpenVisible = false;
       document.getElementById('fohBuzzerOpenIndicator').style.display = 'none';
-      document.getElementById('fohQuestionMeta').innerText = `QUESTION ${payload.questionNumber || ''}`;
-      document.getElementById('fohQuestionText').innerText = payload.question || '';
+      document.getElementById('fohQuestionMeta').innerHTML = `⚡ QUESTION ${payload.questionNumber || ''} ⚡`;
+      document.getElementById('fohQuestionText').innerHTML = escapeHtml(payload.question || '');
       const opts = payload.options || [];
       const letters = ['A','B','C','D'];
-      document.getElementById('fohOptionsContainer').innerHTML =
-        opts.map((opt, idx) => `<div class="opt-tile"><div class="opt-letter">${letters[idx]}</div><div class="opt-text">${escapeHtml(opt)}</div></div>`).join('');
+      document.getElementById('fohOptionsContainer').innerHTML = opts.map((opt, idx) => `<div class="opt-tile"><div class="opt-letter">${letters[idx]}</div><div class="opt-text">${escapeHtml(opt)}</div></div>`).join('');
       playBeep(523.25, 'sine', 0.35);
       break;
-
     case 'buzzers_reopen':
       buzzerOpenVisible = true;
       document.getElementById('fohBuzzerOpenIndicator').style.display = 'block';
       playBeep(880, 'sine', 0.1);
+      toast('🔔 BUZZERS ARE OPEN!');
       break;
-
     case 'buzz_confirmed':
       buzzerOpenVisible = false;
       document.getElementById('fohBuzzerOpenIndicator').style.display = 'none';
       if(fohTimerInterval) { clearInterval(fohTimerInterval); fohTimerInterval = null; document.getElementById('fohTimerOverlay').classList.remove('active'); }
       showBuzzOverlay(payload.playerName, payload.playerAvatar);
-      playBeep(392, 'sawtooth', 0.4);
-      { const p = cachedPlayers.find(p => p.id === payload.playerId); if(p) { p.status = 'buzzed'; renderPlayersList(); } }
+      const pBuzz = cachedPlayers.find(p => p.id === payload.playerId);
+      if(pBuzz) { pBuzz.status = 'buzzed'; renderPlayersList(); }
       break;
-
     case 'correct':
       clearOverlay();
       showCorrectOverlay(payload.playerName, payload.playerAvatar, payload.points || 100);
-      playBeep(659.25, 'sine', 0.5);
-      launchConfetti(5000);
-      { const p = cachedPlayers.find(p => p.id === payload.playerId); if(p) { p.score = payload.newScore; p.status = 'correct'; renderPlayersList(); } }
+      const pCorr = cachedPlayers.find(p => p.id === payload.playerId);
+      if(pCorr) { pCorr.score = payload.newScore; pCorr.status = 'correct'; renderPlayersList(); }
       break;
-
     case 'wrong':
       clearOverlay();
       showWrongOverlay(payload.playerName);
-      playBeep(180, 'sawtooth', 0.6);
-      { const p = cachedPlayers.find(p => p.id === payload.playerId); if(p) { p.status = 'wrong'; renderPlayersList(); } }
+      const pWrong = cachedPlayers.find(p => p.id === payload.playerId);
+      if(pWrong) { pWrong.status = 'wrong'; renderPlayersList(); }
       break;
-
     case 'reset_buzzers':
-    case 'next_question':
     case 'reset_for_next_question':
       buzzerOpenVisible = false;
       document.getElementById('fohBuzzerOpenIndicator').style.display = 'none';
       clearOverlay();
       cachedPlayers.forEach(p => { if(p.status !== 'eliminated') p.status = 'waiting'; });
       renderPlayersList();
-      if(event === 'next_question') showScreen('waitingScreen');
       break;
-
     case 'round_ended':
       buzzerOpenVisible = false;
       document.getElementById('fohBuzzerOpenIndicator').style.display = 'none';
@@ -977,296 +1016,144 @@ function handleBroadcast(event, payload) {
       showScreen('endedScreen');
       const winner = payload.winner;
       document.getElementById('podiumWinnerName').innerHTML = `${winner?.avatar || '🏆'} ${winner?.name || '—'}`;
-      document.getElementById('podiumWinnerScore').innerHTML = `Grand Champion with ${winner?.score || 0} points!`;
-      launchConfetti(8000);
+      document.getElementById('podiumWinnerScore').innerHTML = `GRAND CHAMPION with ${winner?.score || 0} points!`;
       stopBackgroundMusic();
+      try { canvasConfetti({ particleCount: 300, spread: 100, origin: { y: 0.5 }, startVelocity: 20 }); } catch(e) {}
       break;
-
     case 'timer_start':
-      startFohTimer(payload.seconds);
+      const TIMER_CIRCUMFERENCE = 2 * Math.PI * 45;
+      if(fohTimerInterval) clearInterval(fohTimerInterval);
+      const overlay = document.getElementById('fohTimerOverlay');
+      const numEl = document.getElementById('fohTimerNumber');
+      const progressEl = document.getElementById('fohTimerProgress');
+      progressEl.style.strokeDasharray = TIMER_CIRCUMFERENCE;
+      overlay.classList.add('active');
+      let remaining = payload.seconds;
+      const update = () => {
+        numEl.innerText = remaining;
+        progressEl.style.strokeDashoffset = TIMER_CIRCUMFERENCE * (1 - (remaining / payload.seconds));
+        if(remaining <= 3) progressEl.style.stroke = '#ff3366';
+        else if(remaining <= 6) progressEl.style.stroke = '#ffaa00';
+        else progressEl.style.stroke = '#ffd700';
+      };
+      update();
+      fohTimerInterval = setInterval(() => {
+        remaining--;
+        if(remaining <= 0) {
+          clearInterval(fohTimerInterval); fohTimerInterval = null;
+          numEl.innerText = '0';
+          setTimeout(() => overlay.classList.remove('active'), 800);
+        } else update();
+      }, 1000);
       break;
-
-    case 'show_room_code':
-      showRoomCodeOverlay(payload.roomCode);
-      break;
-
     case 'full_game_reset':
-      // Disconnect and go back to room entry
-      if(realtimeChannel) { sb.removeChannel(realtimeChannel); realtimeChannel = null; }
-      cancelFohReconnect();
+      if(realtimeChannel) sb.removeChannel(realtimeChannel);
       roomCode = null;
       cachedPlayers = [];
       document.getElementById('roomEntryOverlay').style.display = 'flex';
       document.getElementById('roomDisplay').innerText = '——';
       document.getElementById('fohFooterCode').innerText = '——';
-      document.getElementById('fohRoomInput').value = '';
       document.getElementById('fohConnBadge').className = 'conn-badge';
-      document.getElementById('fohConnBadge').innerText = '⏳ Not connected';
+      document.getElementById('fohConnBadge').innerText = '⏳ Connecting';
       showScreen('waitingScreen');
       renderPlayersList();
       break;
   }
 }
 
-// ─── FOH Reconnection ─────────────────────────────────────────────────────────
-function cancelFohReconnect() {
-  if(fohReconnectTimer) { clearTimeout(fohReconnectTimer); fohReconnectTimer = null; }
-  fohReconnectAttempts = 0;
-}
-
-function scheduleFohReconnect() {
-  if(fohReconnectTimer) return;
-  const delay = FOH_RECONNECT_DELAYS[Math.min(fohReconnectAttempts, FOH_RECONNECT_DELAYS.length-1)];
-  fohReconnectAttempts++;
-  const badge = document.getElementById('fohConnBadge');
-  badge.className = 'conn-badge reconnecting';
-  badge.innerText = `⟳ Reconnecting (${fohReconnectAttempts})...`;
-  fohReconnectTimer = setTimeout(() => {
-    fohReconnectTimer = null;
+let reconnectTimer = null, reconnectAttempts = 0;
+function scheduleReconnect() {
+  if(reconnectTimer) return;
+  const delay = [3000, 6000, 12000][Math.min(reconnectAttempts++, 2)];
+  reconnectTimer = setTimeout(() => {
+    reconnectTimer = null;
     if(roomCode) connectToRoom(roomCode);
   }, delay);
 }
 
-// ─── Channel connect ──────────────────────────────────────────────────────────
 function connectToRoom(code) {
-  roomCode = code.trim().toUpperCase();
+  roomCode = code.toUpperCase();
   document.getElementById('roomDisplay').innerText = roomCode;
   document.getElementById('fohFooterCode').innerText = roomCode;
   document.getElementById('roomEntryOverlay').style.display = 'none';
-  showMatrixWelcome(roomCode);
+  toast(`🎮 Connected to room ${roomCode}`);
 
-  if(realtimeChannel) { sb.removeChannel(realtimeChannel); realtimeChannel = null; }
-
+  if(realtimeChannel) sb.removeChannel(realtimeChannel);
   realtimeChannel = sb.channel(`fr-${roomCode}`);
-  const events = [
-    'round_started', 'player_list_update', 'question_open', 'buzz_confirmed', 'correct', 'wrong',
-    'next_question', 'reset_for_next_question', 'reset_buzzers', 'buzzers_reopen', 'eliminated',
-    'show_category_picker', 'round_ended', 'timer_start', 'full_game_reset', 'show_room_code', 'foh_hide'
-  ];
-  events.forEach(ev => {
+  ['round_started', 'player_list_update', 'question_open', 'buzz_confirmed', 'correct', 'wrong', 'reset_for_next_question', 'reset_buzzers', 'buzzers_reopen', 'show_category_picker', 'round_ended', 'timer_start', 'full_game_reset', 'foh_hide'].forEach(ev => {
     realtimeChannel.on('broadcast', { event: ev }, ({ payload }) => handleBroadcast(ev, payload));
   });
-
   realtimeChannel.subscribe((status) => {
     const badge = document.getElementById('fohConnBadge');
     if(status === 'SUBSCRIBED') {
-      cancelFohReconnect();
+      if(reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; reconnectAttempts = 0; }
       badge.className = 'conn-badge live';
       badge.innerText = '● LIVE';
-    } else if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-      badge.className = 'conn-badge error';
-      badge.innerText = '⚠ Disconnected';
-      if(roomCode) scheduleFohReconnect();
+    } else if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+      badge.className = 'conn-badge reconnecting';
+      badge.innerText = '⚠ Reconnecting';
+      scheduleReconnect();
     }
   });
 }
 
-// ─── FOH Room Input UX ────────────────────────────────────────────────────────
-let fohVerifyDebounce = null;
-let fohCurrentVerifyCode = '';
-let fohRoomVerified = false;
-
-function setFohVerifyUI(state, msg) {
-  const spinner  = document.getElementById('fohVerifySpinner');
-  const check    = document.getElementById('fohVerifyCheck');
-  const cross    = document.getElementById('fohVerifyCross');
-  const input    = document.getElementById('fohRoomInput');
-  const statusEl = document.getElementById('fohStatusMsg');
-  const btn      = document.getElementById('fohConnectBtn');
-
-  spinner.style.display = 'none';
-  check.style.display   = 'none';
-  cross.style.display   = 'none';
-  input.className = 'entry-input';
-  statusEl.className = 'entry-status-msg';
-  btn.disabled = true;
-  btn.innerText = 'CONNECT TO ROOM';
-
-  if (state === 'idle') {
-    statusEl.textContent = msg || 'Enter the code shown on the Control Panel';
-  } else if (state === 'typing') {
-    statusEl.classList.add('info');
-    statusEl.textContent = msg || 'Keep typing...';
-  } else if (state === 'verifying') {
-    spinner.style.display = 'block';
-    input.classList.add('state-verifying');
-    statusEl.classList.add('info');
-    statusEl.textContent = 'Checking room...';
-    btn.innerText = '⟳ Verifying...';
-  } else if (state === 'ok') {
-    check.style.display = 'block';
-    input.classList.add('state-ok');
-    statusEl.classList.add('ok');
-    statusEl.textContent = msg || '✓ Room verified! Click Connect.';
-    btn.disabled = false;
-  } else if (state === 'not-found') {
-    cross.style.display = 'block';
-    input.classList.add('state-error');
-    statusEl.classList.add('error');
-    statusEl.textContent = msg || '❌ Room not found. Check the code.';
-  } else if (state === 'inactive') {
-    cross.style.display = 'block';
-    input.classList.add('state-error');
-    statusEl.classList.add('error');
-    statusEl.textContent = msg || '❌ This room is no longer active.';
-  } else if (state === 'conn-error') {
-    cross.style.display = 'block';
-    input.classList.add('state-error');
-    statusEl.classList.add('error');
-    statusEl.textContent = msg || '❌ Connection error. Try again.';
-    btn.disabled = false;
-    btn.innerText = 'RETRY';
-  }
+let verifyDebounce = null, currentVerifyCode = '', roomVerified = false;
+async function verifyRoom(code) {
+  currentVerifyCode = code;
+  try {
+    const { data, error } = await sb.from('game_rooms').select('room_code, is_active').eq('room_code', code).single();
+    if(currentVerifyCode !== code) return;
+    if(error || !data) { toast('❌ Room not found'); roomVerified = false; return; }
+    if(!data.is_active) { toast('❌ Room is no longer active'); roomVerified = false; return; }
+    roomVerified = true;
+    toast(`✓ Room ${code} is ready!`);
+  } catch(e) { roomVerified = false; }
 }
 
 function onFohRoomInput(el) {
   const raw = el.value.replace(/[^A-Za-z0-9]/g,'').toUpperCase();
   el.value = raw;
-  fohRoomVerified = false;
-  setFohVerifyUI(raw.length < 4 ? 'idle' : 'typing');
-  if (fohVerifyDebounce) clearTimeout(fohVerifyDebounce);
-  if (raw.length >= 4) {
-    fohVerifyDebounce = setTimeout(() => fohVerifyRoom(raw), 500);
-  }
-}
-
-async function fohVerifyRoom(code) {
-  fohCurrentVerifyCode = code;
-  setFohVerifyUI('verifying');
-  try {
-    const { data, error } = await sb
-      .from('game_rooms')
-      .select('room_code, is_active')
-      .eq('room_code', code)
-      .single();
-
-    if (fohCurrentVerifyCode !== code) return;
-
-    if (error || !data)    { setFohVerifyUI('not-found'); fohRoomVerified = false; return; }
-    if (!data.is_active)   { setFohVerifyUI('inactive');  fohRoomVerified = false; return; }
-
-    fohRoomVerified = true;
-    setFohVerifyUI('ok', `✓ Room ${code} is live — click Connect!`);
-  } catch(err) {
-    if (fohCurrentVerifyCode !== code) return;
-    setFohVerifyUI('conn-error'); fohRoomVerified = false;
-  }
+  roomVerified = false;
+  if(verifyDebounce) clearTimeout(verifyDebounce);
+  if(raw.length >= 4) verifyDebounce = setTimeout(() => verifyRoom(raw), 500);
 }
 
 async function submitFohRoom() {
   const code = document.getElementById('fohRoomInput').value.trim().toUpperCase();
-  const errorEl = document.getElementById('fohRoomError');
-  errorEl.innerText = '';
-
-  if (code.length < 4) { setFohVerifyUI('idle','Enter at least 4 characters'); return; }
-
-  // If not yet verified, verify first
-  if (!fohRoomVerified) {
-    await fohVerifyRoom(code);
-    if (!fohRoomVerified) return;
-  }
-
-  // Verified — connect
-  setFohVerifyUI('verifying');
+  if(code.length < 4) { toast('Enter at least 4 characters'); return; }
+  if(!roomVerified) await verifyRoom(code);
+  if(!roomVerified && code.length >= 4) { toast('Please wait for room verification'); return; }
   connectToRoom(code);
 }
 
-function escapeHtml(str) {
-  if(!str) return '';
-  return str.replace(/[&<>]/g, m => m==='&'?'&amp;':m==='<'?'&lt;':'&gt;');
-}
-
-// ─── FOH Timer ────────────────────────────────────────────────────────────────
-const TIMER_CIRCUMFERENCE = 2 * Math.PI * 45; // r=45 → ~283
-function startFohTimer(seconds) {
-  if(fohTimerInterval) clearInterval(fohTimerInterval);
-  const overlay = document.getElementById('fohTimerOverlay');
-  const numEl = document.getElementById('fohTimerNumber');
-  const progressEl = document.getElementById('fohTimerProgress');
-  progressEl.style.strokeDasharray = TIMER_CIRCUMFERENCE;
-  overlay.classList.add('active');
-  let remaining = seconds;
-  const update = () => {
-    numEl.innerText = remaining;
-    const pct = remaining / seconds;
-    progressEl.style.strokeDashoffset = TIMER_CIRCUMFERENCE * (1 - pct);
-    if(remaining <= 3) { progressEl.style.stroke = 'var(--red)'; numEl.style.color = 'var(--red)'; }
-    else if(remaining <= 6) { progressEl.style.stroke = 'var(--amber)'; numEl.style.color = 'var(--amber)'; }
-    else { progressEl.style.stroke = 'var(--gold)'; numEl.style.color = 'var(--gold)'; }
-  };
-  update();
-  fohTimerInterval = setInterval(() => {
-    remaining--;
-    if(remaining <= 0) {
-      clearInterval(fohTimerInterval); fohTimerInterval = null;
-      numEl.innerText = '0';
-      progressEl.style.strokeDashoffset = TIMER_CIRCUMFERENCE;
-      setTimeout(() => overlay.classList.remove('active'), 800);
-    } else { update(); }
-  }, 1000);
-}
-
-// ─── Room code overlay ────────────────────────────────────────────────────────
-function showRoomCodeOverlay(code) {
-  const el = document.getElementById('roomCodeDisplayOverlay');
-  document.getElementById('rcCodeText').innerText = code || '——';
-  el.classList.add('active');
-  if(roomCodeOverlayTimer) clearTimeout(roomCodeOverlayTimer);
-  roomCodeOverlayTimer = setTimeout(() => hideRoomCodeOverlay(), 15000);
-  const dismiss = () => { hideRoomCodeOverlay(); el.removeEventListener('click', dismiss); };
-  el.addEventListener('click', dismiss);
-}
-function hideRoomCodeOverlay() {
-  const el = document.getElementById('roomCodeDisplayOverlay');
-  el.style.transition = 'opacity 0.4s';
-  el.style.opacity = '0';
-  setTimeout(() => { el.classList.remove('active'); el.style.opacity = ''; el.style.transition = ''; }, 420);
-  if(roomCodeOverlayTimer) { clearTimeout(roomCodeOverlayTimer); roomCodeOverlayTimer = null; }
-}
-
-// ─── Matrix welcome ───────────────────────────────────────────────────────────
-function showMatrixWelcome(code) {
-  const el = document.getElementById('matrixWelcome');
-  document.getElementById('matrixRoomBadge').innerText = code;
-  el.classList.add('active');
-  startMatrixCanvas();
-  const dismiss = () => { hideMatrixWelcome(); el.removeEventListener('click', dismiss); };
-  el.addEventListener('click', dismiss);
-  setTimeout(dismiss, 5500);
-}
-function hideMatrixWelcome() {
-  const el = document.getElementById('matrixWelcome');
-  el.style.transition = 'opacity 0.6s';
-  el.style.opacity = '0';
-  setTimeout(() => { el.classList.remove('active'); el.style.opacity = ''; el.style.transition = ''; if(matrixRAF) cancelAnimationFrame(matrixRAF); }, 650);
-}
-function startMatrixCanvas() {
-  const canvas = document.getElementById('matrixCanvas');
-  const ctx = canvas.getContext('2d');
-  function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
-  resize();
-  window.addEventListener('resize', resize);
-  const cols = Math.floor(canvas.width / 16);
-  const drops = Array.from({length: cols}, () => Math.random() * -50);
-  const chars = 'アイウエオカキクケコサシスセソタチツテトナニヌネノABCDEF0123456789PLAYAQUIZ!@#$%';
-  function draw() {
-    ctx.fillStyle = 'rgba(0,0,0,0.05)';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    for(let i = 0; i < drops.length; i++) {
-      const ch = chars[Math.floor(Math.random() * chars.length)];
-      ctx.fillStyle = drops[i] > 1 ? (Math.random() > 0.9 ? '#ffffff' : '#00ff41') : '#88ffaa';
-      ctx.font = '14px JetBrains Mono, monospace';
-      ctx.fillText(ch, i*16, drops[i]*16);
-      if(drops[i]*16 > canvas.height && Math.random() > 0.975) drops[i] = 0;
-      drops[i] += 0.6;
-    }
-    matrixRAF = requestAnimationFrame(draw);
+function showFullFinalQR() {
+  const currentRoom = roomCode || document.getElementById('roomDisplay').innerText;
+  if(currentRoom && currentRoom !== '——' && window.QRCode) {
+    const modalDiv = document.createElement('div');
+    modalDiv.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;';
+    modalDiv.innerHTML = `<div style="background:#fff;padding:30px;border-radius:24px;text-align:center;"><div id="fullQrCode"></div><div style="font-family:monospace;font-size:24px;margin-top:16px;color:#000;">${currentRoom}</div><button onclick="this.parentElement.parentElement.remove()" style="margin-top:20px;padding:10px 30px;border-radius:40px;border:none;background:#ffd700;cursor:pointer;">Close</button></div>`;
+    document.body.appendChild(modalDiv);
+    new QRCode(document.getElementById('fullQrCode'), { text: currentRoom, width: 256, height: 256 });
+  } else if(currentRoom && window.QRDisplay?.showQRModal) {
+    window.QRDisplay.showQRModal(currentRoom, 2);
+  } else {
+    toast('Room not connected yet');
   }
-  if(matrixRAF) cancelAnimationFrame(matrixRAF);
-  draw();
 }
 
-// ─── Init ─────────────────────────────────────────────────────────────────────
+function displayPhase2QR() {
+  const currentRoom = roomCode || document.getElementById('roomDisplay').innerText;
+  if(!currentRoom || currentRoom === '——') { setTimeout(displayPhase2QR, 1000); return; }
+  const container = document.getElementById('finalQrContainer');
+  if(container && window.QRCode) {
+    container.innerHTML = '';
+    const qrDiv = document.createElement('div');
+    qrDiv.id = 'tempQr';
+    container.appendChild(qrDiv);
+    new QRCode(qrDiv, { text: currentRoom, width: 120, height: 120 });
+  }
+}
+
 function init() {
   initBackgroundMusic();
   document.body.addEventListener('click', () => {
@@ -1274,12 +1161,15 @@ function init() {
     if(ctx.state === 'suspended') ctx.resume();
     if(bgmAudio && bgmAudio.paused && bgmEnabled) bgmAudio.play().catch(()=>{});
   }, { once: true });
+  setTimeout(displayPhase2QR, 500);
 }
+
 init();
 
 window.submitFohRoom = submitFohRoom;
 window.onFohRoomInput = onFohRoomInput;
 window.toggleBackgroundMusic = toggleBackgroundMusic;
+window.showFullFinalQR = showFullFinalQR;
 </script>
 </body>
 </html>
