@@ -980,6 +980,7 @@
           <div id="qDisplay" class="hidden"></div>
           <!-- IMPORT BUTTON + hidden file input -->
           <div style="margin-top: 12px; display: flex; gap: 10px;">
+            <button class="btn btn-purple btn-md btn-full" onclick="randomQuestion()">🎲 Random Question</button>
             <button class="btn btn-ghost btn-md" style="flex:1;" onclick="document.getElementById('importCsvInput').click()">📂 Import Questions (CSV)</button>
             <input type="file" id="importCsvInput" accept=".csv" style="display: none;" onchange="handleCsvImport(event)">
           </div>
@@ -1015,7 +1016,7 @@
           </div>
         </div>
       </div>
-      <button class="btn btn-purple btn-md btn-full" onclick="randomQuestion()">🎲 Random Question</button>
+      
     </div>
 
     <!-- Players Panel -->
@@ -2114,7 +2115,9 @@ function fohShowCategories() {
 }
 
 function fohShowLeaderboard() {
-  broadcast('player_list_update', { players: Array.from(players.values()) });
+  const playerList = Array.from(players.values());
+  broadcast('player_list_update', { players: playerList });
+  broadcast('show_leaderboard', { players: playerList });
   toast('🏆 Leaderboard pushed to FOH');
 }
 

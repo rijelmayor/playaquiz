@@ -1131,6 +1131,15 @@ function handleBroadcast(event, payload) {
     case 'foh_hide':
       if(payload.target === 'room_code') {
         hideRoomCodeOverlay();
+      } else if(payload.target === 'categories') {
+        // Revert to play/question screen (or waiting if no question loaded)
+        const activeQ = document.getElementById('fohQuestionText').innerHTML.trim();
+        showScreen(activeQ ? 'questionScreen' : 'waitingScreen');
+      } else if(payload.target === 'leaderboard') {
+        const activeQ2 = document.getElementById('fohQuestionText').innerHTML.trim();
+        showScreen(activeQ2 ? 'questionScreen' : 'waitingScreen');
+      } else if(payload.target === 'end_round') {
+        showScreen('waitingScreen');
       }
       break;
     case 'show_category_picker':
@@ -1143,9 +1152,23 @@ function handleBroadcast(event, payload) {
       else container.innerHTML = cats.map((c, i) => `<div class="cat-tile" style="animation-delay:${i*0.06}s;"><div class="cat-tile-icon">${c.icon || '📂'}</div><div class="cat-tile-name">${escapeHtml(c.name)}</div></div>`).join('');
       playBeep(440, 'triangle', 0.2);
       break;
+    case 'show_categories':
+      // Alias — same as show_category_picker
+      handleBroadcast('show_category_picker', payload);
+      break;
+    case 'show_leaderboard':
+      // Show leaderboard: update players then switch to waiting/play screen so the side leaderboard is the focus
+      // The side panel is always visible; just make sure we're not on categories/ended screen
+      if (payload.players) { cachedPlayers = payload.players; renderPlayersList(); }
+      clearOverlay();
+      hideLoadingOverlay();
+      const leaderQ = document.getElementById('fohQuestionText').innerHTML.trim();
+      showScreen(leaderQ ? 'questionScreen' : 'waitingScreen');
+      toast('🏆 LEADERBOARD UPDATED');
+      break;
     case 'reset_for_next_question':
     case 'next_question':
-      // Show loading overlay when moving to next question
+      // Show loading overlay — stays until question_open arrives (no auto-dismiss)
       showLoadingOverlay('PREPARING NEXT CHALLENGE');
       // Clear any existing timers
       if (correctOverlayTimer) { clearTimeout(correctOverlayTimer); correctOverlayTimer = null; }
@@ -1154,29 +1177,22 @@ function handleBroadcast(event, payload) {
       clearOverlay();
       cachedPlayers.forEach(p => { if(p.status !== 'eliminated') p.status = 'waiting'; });
       renderPlayersList();
-      // Hide loading after 1.5 seconds
-      setTimeout(() => hideLoadingOverlay(), 1500);
       break;
     case 'question_open':
-      // Show loading briefly before showing question
-      showLoadingOverlay('LOADING QUESTION');
+      // Dismiss loading overlay immediately when new question is pushed — no delay
+      hideLoadingOverlay();
       // Clear any correct overlay
       if (correctOverlayTimer) { clearTimeout(correctOverlayTimer); correctOverlayTimer = null; }
       clearOverlay();
-      
-      // Short delay to show loading animation, then display question
-      setTimeout(() => {
-        hideLoadingOverlay();
-        showScreen('questionScreen');
-        buzzerOpenVisible = false;
-        document.getElementById('fohBuzzerOpenIndicator').style.display = 'none';
-        document.getElementById('fohQuestionMeta').innerHTML = `⚡ QUESTION ${payload.questionNumber || ''} ⚡`;
-        document.getElementById('fohQuestionText').innerHTML = escapeHtml(payload.question || '');
-        const opts = payload.options || [];
-        const letters = ['A','B','C','D'];
-        document.getElementById('fohOptionsContainer').innerHTML = opts.map((opt, idx) => `<div class="opt-tile"><div class="opt-letter">${letters[idx]}</div><div class="opt-text">${escapeHtml(opt)}</div></div>`).join('');
-        playBeep(523.25, 'sine', 0.35);
-      }, 800);
+      showScreen('questionScreen');
+      buzzerOpenVisible = false;
+      document.getElementById('fohBuzzerOpenIndicator').style.display = 'none';
+      document.getElementById('fohQuestionMeta').innerHTML = `⚡ QUESTION ${payload.questionNumber || ''} ⚡`;
+      document.getElementById('fohQuestionText').innerHTML = escapeHtml(payload.question || '');
+      const opts = payload.options || [];
+      const letters = ['A','B','C','D'];
+      document.getElementById('fohOptionsContainer').innerHTML = opts.map((opt, idx) => `<div class="opt-tile"><div class="opt-letter">${letters[idx]}</div><div class="opt-text">${escapeHtml(opt)}</div></div>`).join('');
+      playBeep(523.25, 'sine', 0.35);
       break;
     case 'buzzers_reopen':
       buzzerOpenVisible = true;
@@ -1285,7 +1301,7 @@ function connectToRoom(code) {
 
   if(realtimeChannel) sb.removeChannel(realtimeChannel);
   realtimeChannel = sb.channel(`fr-${roomCode}`);
-  const events = ['round_started', 'round_countdown', 'player_list_update', 'question_open', 'buzz_confirmed', 'correct', 'wrong', 'reset_for_next_question', 'next_question', 'reset_buzzers', 'buzzers_reopen', 'show_category_picker', 'round_ended', 'timer_start', 'full_game_reset', 'foh_hide', 'show_room_code'];
+  const events = ['round_started', 'round_countdown', 'player_list_update', 'question_open', 'buzz_confirmed', 'correct', 'wrong', 'reset_for_next_question', 'next_question', 'reset_buzzers', 'buzzers_reopen', 'show_category_picker', 'show_categories', 'show_leaderboard', 'round_ended', 'timer_start', 'full_game_reset', 'foh_hide', 'show_room_code'];
   events.forEach(ev => {
     realtimeChannel.on('broadcast', { event: ev }, ({ payload }) => handleBroadcast(ev, payload));
   });
