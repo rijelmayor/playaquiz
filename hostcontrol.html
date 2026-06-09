@@ -15,19 +15,19 @@
     }
 
     :root {
-      --bg:    #0e0f11;
-      --s1:    #161819;
-      --s2:    #1c1e21;
-      --b1:    #2a2d32;
-      --b2:    #363a42;
-      --text:  #dde1e8;
-      --muted: #616978;
-      --accent:  #f59e0b;
-      --green:   #22c55e;
-      --gold:    #f59e0b;
-      --red:     #f43f5e;
-      --purple:  #818cf8;
-      --orange:  #fb923c;
+      --bg:        #0e0f11;
+      --s1:        #161819;
+      --s2:        #1c1e21;
+      --b1:        #2a2d32;
+      --b2:        #363a42;
+      --text:      #dde1e8;
+      --muted:     #616978;
+      --accent:    #f59e0b;   /* amber — primary action */
+      --green:     #22c55e;
+      --gold:      #f59e0b;
+      --red:       #f43f5e;
+      --purple:    #818cf8;
+      --orange:    #fb923c;
       --radius:    12px;
       --radius-sm:  8px;
     }
@@ -37,28 +37,27 @@
       font-family: 'DM Sans', sans-serif;
       color: var(--text);
       height: 100%;
-      width: 100%;
       overflow: hidden;
       overscroll-behavior: none;
     }
 
+    /* Every screen: hidden by default, shown as a strict bounded flex column */
     .screen {
       display: none;
-      flex-direction: column;
-      height: 100dvh;
       width: 100%;
-      overflow: hidden;
     }
     .screen.active {
       display: flex;
+      flex-direction: column;
+      height: 100dvh;
+      overflow: hidden;
     }
 
-    /* appScreen: strict bounded flex column so children can scroll */
-    #appScreen {
+    /* appScreen specifically: reinforce the flex column so the chain is unambiguous */
+    #appScreen.active {
+      display: flex;
+      flex-direction: column;
       height: 100dvh;
-      max-height: 100dvh;
-      display: flex !important;
-      flex-direction: column !important;
       overflow: hidden;
     }
 
@@ -225,20 +224,20 @@
       border-bottom-color: var(--gold);
     }
 
-    /* Panels */
+    /* Panels — the scroll heart of the layout */
     .tabs-content {
-      flex: 1 1 0;          /* 0 base size forces browser to honour the flex calculation */
-      min-height: 0;        /* prevents flex child overflowing its parent */
+      flex: 1 1 0;      /* 0 base keeps it from growing beyond available space */
+      min-height: 0;    /* essential: without this, flex child won't shrink on iOS */
       overflow: hidden;
       position: relative;
     }
     .tab-panel {
       position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;   /* explicit instead of inset shorthand */
-      overflow-y: scroll;                       /* scroll not auto — always creates scroll context */
+      top: 0; left: 0; right: 0; bottom: 0;
+      overflow-y: auto;
       overflow-x: hidden;
       -webkit-overflow-scrolling: touch;
-      padding: 14px 12px 120px;                /* generous bottom clears thumb zone */
+      padding: 14px 12px 120px; /* 120px bottom: ensures last button is never hidden */
       display: none;
       flex-direction: column;
       gap: 12px;
@@ -982,7 +981,8 @@
       .modal-box { max-width: 720px; }
     }
 
-    /* ── Game-controller cosmetic layer ── */
+
+    /* ── Game-controller cosmetic layer (no layout changes) ── */
     body {
       background-image: repeating-linear-gradient(
         0deg, transparent, transparent 3px,
@@ -997,29 +997,45 @@
       background: linear-gradient(180deg,#111315,var(--bg));
       border-bottom: 2px solid #000;
     }
-    .tab-btn.active { color:var(--gold); border-bottom-color:var(--gold); text-shadow:0 0 6px rgba(245,158,11,.6); }
+    .tab-btn.active {
+      color: var(--gold);
+      border-bottom-color: var(--gold);
+      text-shadow: 0 0 6px rgba(245,158,11,.6);
+    }
     .card {
       border-top-color: #2e3238;
       box-shadow: 0 4px 8px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.04);
     }
-    .card-hd { background:rgba(0,0,0,.25); }
-    .card-hd-title { color:#8a96aa; }
-    .btn { box-shadow:0 3px 0 rgba(0,0,0,.4); }
-    .btn:active { transform:translateY(2px) scale(.98); box-shadow:0 1px 0 rgba(0,0,0,.4); }
-    .btn-accent,.btn-gold { background:#f59e0b; color:#0e0f11; font-weight:800; }
-    .btn-ghost { background:var(--s2); border:1px solid var(--b2); color:var(--text); }
-    .big-room-code { text-shadow:0 0 12px rgba(245,158,11,.4); }
-    .room-chip { background:#111315; box-shadow:inset 0 1px 0 rgba(255,255,255,.04); }
-    .live-dot.on { box-shadow:0 0 5px var(--green),0 0 10px rgba(34,197,94,.4); }
-    .buzz-banner { background:rgba(245,158,11,.07); box-shadow:0 0 16px rgba(245,158,11,.15); }
-    .toast { background:#111315; box-shadow:0 4px 16px rgba(0,0,0,.6); }
-    .pbg-card { box-shadow:0 3px 0 rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.04); }
-    .pbg-card.buzzed { border-color:var(--gold); box-shadow:0 0 10px rgba(245,158,11,.25),0 3px 0 rgba(0,0,0,.4); }
-    .modal-box { box-shadow:0 20px 60px rgba(0,0,0,.7); }
-    @media (min-width:768px) {
-      .tab-btn.active { background:rgba(245,158,11,.08); border-left-color:var(--gold); border-bottom-color:transparent; }
+    .card-hd { background: rgba(0,0,0,.25); }
+    .card-hd-title { color: #8a96aa; }
+    .btn { box-shadow: 0 3px 0 rgba(0,0,0,.4); }
+    .btn:active { transform: translateY(2px) scale(.98); box-shadow: 0 1px 0 rgba(0,0,0,.4); }
+    .btn-accent, .btn-gold { background: #f59e0b; color: #0e0f11; font-weight: 800; }
+    .btn-ghost { background: var(--s2); border: 1px solid var(--b2); color: var(--text); }
+    .big-room-code { text-shadow: 0 0 12px rgba(245,158,11,.4); }
+    .room-chip { background: #111315; box-shadow: inset 0 1px 0 rgba(255,255,255,.04); }
+    .live-dot.on { box-shadow: 0 0 5px var(--green), 0 0 10px rgba(34,197,94,.4); }
+    .buzz-banner {
+      background: rgba(245,158,11,.07);
+      box-shadow: 0 0 16px rgba(245,158,11,.15);
     }
-
+    .pbg-card {
+      box-shadow: 0 3px 0 rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.04);
+    }
+    .pbg-card.buzzed {
+      border-color: var(--gold);
+      box-shadow: 0 0 10px rgba(245,158,11,.25), 0 3px 0 rgba(0,0,0,.4);
+    }
+    .modal-box { box-shadow: 0 20px 60px rgba(0,0,0,.7); }
+    @media (min-width: 768px) {
+      .tab-btn.active {
+        background: rgba(245,158,11,.08);
+        border-left-color: var(--gold);
+        border-bottom-color: transparent;
+        color: var(--gold);
+        text-shadow: 0 0 6px rgba(245,158,11,.5);
+      }
+    }
   </style>
 </head>
 <body>
