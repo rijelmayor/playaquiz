@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>PlayAQuiz — Final Round Arena</title>
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;700&family=JetBrains+Mono:wght@700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
   <style>
@@ -40,23 +40,23 @@
       position: fixed;
       inset: 0;
       background-image: 
-        linear-gradient(rgba(0, 212, 255, 0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(0, 212, 255, 0.03) 1px, transparent 1px);
-      background-size: 40px 40px;
+        linear-gradient(rgba(0, 212, 255, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 212, 255, 0.04) 1px, transparent 1px);
+      background-size: 50px 50px;
       pointer-events: none;
-      animation: gridMove 20s linear infinite;
+      animation: gridMove 25s linear infinite;
     }
 
     @keyframes gridMove {
       0% { transform: translate(0, 0); }
-      100% { transform: translate(40px, 40px); }
+      100% { transform: translate(50px, 50px); }
     }
 
     body::after {
       content: '';
       position: fixed;
       inset: 0;
-      background: radial-gradient(ellipse at 50% 50%, rgba(0, 212, 255, 0.05) 0%, transparent 70%);
+      background: radial-gradient(ellipse at 50% 50%, rgba(0, 212, 255, 0.08) 0%, transparent 70%);
       pointer-events: none;
     }
 
@@ -68,13 +68,13 @@
       z-index: 2;
     }
 
-    /* TOP BAR — Stadium Style */
+    /* TOP BAR */
     .top-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 12px 24px;
-      background: rgba(0, 0, 0, 0.6);
+      padding: 16px 28px;
+      background: rgba(0, 0, 0, 0.7);
       backdrop-filter: blur(20px);
       border-bottom: 2px solid var(--gold);
       flex-shrink: 0;
@@ -89,7 +89,7 @@
       right: 0;
       height: 2px;
       background: linear-gradient(90deg, transparent, var(--gold), var(--neon-blue), var(--gold), transparent);
-      animation: scanline 3s linear infinite;
+      animation: scanline 4s linear infinite;
     }
 
     @keyframes scanline {
@@ -99,10 +99,10 @@
 
     .logo {
       font-family: 'Orbitron', monospace;
-      font-size: 24px;
+      font-size: 26px;
       font-weight: 900;
       letter-spacing: 6px;
-      background: linear-gradient(135deg, var(--gold), var(--neon-blue), var(--gold));
+      background: linear-gradient(135deg, #fff, var(--gold), var(--neon-blue));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       text-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
@@ -110,37 +110,37 @@
 
     .room-display {
       font-family: 'Orbitron', monospace;
-      font-size: 18px;
-      font-weight: 700;
+      font-size: 20px;
+      font-weight: 800;
       color: var(--gold);
-      background: rgba(0, 0, 0, 0.5);
-      border: 1px solid var(--gold);
-      padding: 6px 20px;
+      background: rgba(0, 0, 0, 0.6);
+      border: 2px solid var(--gold);
+      padding: 8px 24px;
       border-radius: 40px;
-      letter-spacing: 4px;
-      box-shadow: 0 0 15px var(--gold-glow);
+      letter-spacing: 5px;
+      box-shadow: 0 0 20px var(--gold-glow);
     }
 
     .conn-badge {
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 800;
-      padding: 5px 14px;
-      border-radius: 20px;
-      background: rgba(0, 0, 0, 0.5);
+      padding: 6px 16px;
+      border-radius: 30px;
+      background: rgba(0, 0, 0, 0.6);
       border: 1px solid var(--card-border);
       letter-spacing: 1px;
     }
-    .conn-badge.live { color: var(--green); border-color: var(--green); box-shadow: 0 0 10px rgba(0, 255, 136, 0.3); }
+    .conn-badge.live { color: var(--green); border-color: var(--green); box-shadow: 0 0 12px rgba(0, 255, 136, 0.4); }
     .conn-badge.reconnecting { color: var(--gold); border-color: var(--gold); animation: pulse 1.5s infinite; }
 
     .audio-control {
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 800;
-      padding: 5px 14px;
-      border-radius: 20px;
-      background: rgba(0, 0, 0, 0.5);
+      padding: 6px 16px;
+      border-radius: 30px;
+      background: rgba(0, 0, 0, 0.6);
       border: 1px solid var(--card-border);
-      color: var(--muted);
+      color: #ccc;
       cursor: pointer;
       transition: all 0.2s;
     }
@@ -150,12 +150,12 @@
     .main-grid {
       flex: 1;
       display: grid;
-      grid-template-columns: 1fr 300px;
+      grid-template-columns: 1fr 320px;
       overflow: hidden;
       gap: 0;
     }
 
-    /* GAME CONTENT — CENTER STAGE */
+    /* GAME CONTENT */
     .game-content {
       position: relative;
       overflow: hidden;
@@ -171,52 +171,52 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 40px 48px;
-      animation: screenGlowIn 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+      padding: 40px 60px;
+      animation: screenGlowIn 0.5s cubic-bezier(0.22, 1, 0.36, 1);
     }
     .screen.active { display: flex; }
 
     @keyframes screenGlowIn {
-      from { opacity: 0; transform: scale(0.96) translateY(20px); filter: blur(10px); }
+      from { opacity: 0; transform: scale(0.97) translateY(15px); filter: blur(8px); }
       to { opacity: 1; transform: none; filter: blur(0); }
     }
 
-    /* WARMUP SCREEN — Epic Waiting */
+    /* WARMUP SCREEN */
     .warmup-container { text-align: center; }
     .warmup-logo {
       font-family: 'Orbitron', monospace;
-      font-size: clamp(40px, 7vw, 80px);
+      font-size: clamp(48px, 8vw, 90px);
       font-weight: 900;
-      letter-spacing: 12px;
+      letter-spacing: 15px;
       background: linear-gradient(135deg, #fff, var(--gold), var(--neon-blue));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      margin-bottom: 20px;
+      margin-bottom: 24px;
       animation: logoPulse 2s ease-in-out infinite;
     }
 
     @keyframes logoPulse {
       0%, 100% { opacity: 0.9; text-shadow: 0 0 20px rgba(255, 215, 0, 0.3); }
-      50% { opacity: 1; text-shadow: 0 0 50px rgba(255, 215, 0, 0.6); }
+      50% { opacity: 1; text-shadow: 0 0 60px rgba(255, 215, 0, 0.6); }
     }
 
     .warmup-banner {
-      font-size: 14px;
-      letter-spacing: 8px;
-      color: rgba(255, 255, 255, 0.5);
+      font-size: 16px;
+      letter-spacing: 10px;
+      color: rgba(255, 255, 255, 0.6);
       text-transform: uppercase;
-      margin-bottom: 40px;
+      margin-bottom: 50px;
     }
 
     .warmup-pulse-circle {
-      width: clamp(160px, 25vw, 260px);
-      height: clamp(160px, 25vw, 260px);
+      width: clamp(180px, 28vw, 280px);
+      height: clamp(180px, 28vw, 280px);
       border-radius: 50%;
       border: 3px solid var(--gold);
       display: flex;
       align-items: center;
       justify-content: center;
-      margin: 0 auto 32px;
+      margin: 0 auto 40px;
       position: relative;
       animation: arenaPulse 2s ease-in-out infinite;
       background: radial-gradient(circle, rgba(255, 215, 0, 0.1), transparent);
@@ -230,76 +230,78 @@
       border: 1px solid var(--gold);
       animation: ringExpand 2s ease-out infinite;
     }
-    .warmup-pulse-circle::before { inset: -15px; animation-delay: 0s; }
-    .warmup-pulse-circle::after { inset: -35px; animation-delay: 0.5s; }
+    .warmup-pulse-circle::before { inset: -20px; animation-delay: 0s; }
+    .warmup-pulse-circle::after { inset: -45px; animation-delay: 0.5s; }
 
     @keyframes arenaPulse {
-      0%, 100% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.3); border-color: var(--gold); }
-      50% { box-shadow: 0 0 60px rgba(255, 215, 0, 0.6); border-color: var(--neon-blue); }
+      0%, 100% { box-shadow: 0 0 30px rgba(255, 215, 0, 0.3); border-color: var(--gold); }
+      50% { box-shadow: 0 0 80px rgba(255, 215, 0, 0.6); border-color: var(--neon-blue); }
     }
 
     @keyframes ringExpand {
       0% { opacity: 0.6; transform: scale(1); }
-      100% { opacity: 0; transform: scale(1.4); }
+      100% { opacity: 0; transform: scale(1.5); }
     }
 
     .inner-text {
       font-family: 'Orbitron', monospace;
-      font-size: clamp(24px, 5vw, 42px);
+      font-size: clamp(28px, 6vw, 50px);
       font-weight: 900;
       color: var(--gold);
-      text-shadow: 0 0 20px var(--gold);
+      text-shadow: 0 0 30px var(--gold);
     }
 
     .warmup-message {
-      font-size: 16px;
-      color: rgba(255, 255, 255, 0.6);
+      font-size: 20px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.7);
       letter-spacing: 2px;
     }
 
-    /* QUESTION SCREEN — Epic Question Display */
+    /* QUESTION SCREEN — IMPROVED READABILITY */
     .question-number {
       font-family: 'Orbitron', monospace;
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: 6px;
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: 8px;
       color: var(--gold);
-      margin-bottom: 20px;
+      margin-bottom: 25px;
       text-transform: uppercase;
       background: rgba(0, 0, 0, 0.5);
-      padding: 6px 24px;
-      border-radius: 40px;
+      padding: 8px 32px;
+      border-radius: 50px;
       display: inline-block;
     }
 
     .question-text {
-      font-family: 'Syne', sans-serif;
-      font-size: clamp(28px, 5vw, 56px);
+      font-family: 'DM Sans', sans-serif;
+      font-size: clamp(32px, 6vw, 64px);
       font-weight: 800;
-      line-height: 1.3;
+      line-height: 1.4;
       text-align: center;
-      margin-bottom: 40px;
-      color: #fff;
-      text-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
+      margin-bottom: 50px;
+      color: #ffffff;
+      text-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
       max-width: 1000px;
+      letter-spacing: -0.5px;
     }
 
     .options-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 20px;
+      gap: 24px;
       width: 100%;
-      max-width: 900px;
+      max-width: 1000px;
     }
 
     .opt-tile {
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(0, 0, 0, 0.3));
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(0, 0, 0, 0.4));
       border: 2px solid rgba(255, 215, 0, 0.3);
-      border-radius: 20px;
-      padding: 20px 24px;
+      border-radius: 24px;
+      padding: 24px 28px;
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 20px;
       transition: all 0.3s ease;
       animation: optSlideIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
     }
@@ -307,7 +309,7 @@
     .opt-tile:hover {
       border-color: var(--gold);
       transform: translateY(-3px);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
     }
 
     .opt-tile:nth-child(1) { animation-delay: 0.05s; }
@@ -316,53 +318,55 @@
     .opt-tile:nth-child(4) { animation-delay: 0.2s; }
 
     @keyframes optSlideIn {
-      from { opacity: 0; transform: translateX(-20px); }
+      from { opacity: 0; transform: translateX(-25px); }
       to { opacity: 1; transform: translateX(0); }
     }
 
     .opt-letter {
       font-family: 'Orbitron', monospace;
-      font-size: 28px;
+      font-size: 32px;
       font-weight: 900;
       color: var(--gold);
-      background: rgba(0, 0, 0, 0.5);
-      width: 50px;
-      height: 50px;
+      background: rgba(0, 0, 0, 0.6);
+      width: 60px;
+      height: 60px;
       display: flex;
       align-items: center;
       justify-content: center;
-      border-radius: 12px;
+      border-radius: 16px;
       flex-shrink: 0;
+      box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
     }
 
     .opt-text {
-      font-size: 18px;
+      font-size: 20px;
       font-weight: 600;
-      line-height: 1.4;
+      line-height: 1.5;
       flex: 1;
+      color: #f0f0f0;
     }
 
     /* BUZZER OPEN INDICATOR */
     .buzzer-open-badge {
       display: inline-flex;
       align-items: center;
-      gap: 12px;
+      gap: 15px;
       background: rgba(255, 51, 102, 0.15);
       border: 2px solid var(--red);
       border-radius: 60px;
-      padding: 14px 32px;
+      padding: 16px 40px;
       font-family: 'Orbitron', monospace;
-      font-size: 18px;
+      font-size: 22px;
       font-weight: 900;
-      letter-spacing: 3px;
+      letter-spacing: 4px;
       color: var(--red);
-      margin-top: 30px;
+      margin-top: 40px;
       animation: buzzerPulse 0.8s ease-in-out infinite;
     }
 
     .buzzer-open-badge .dot {
-      width: 14px;
-      height: 14px;
+      width: 16px;
+      height: 16px;
       border-radius: 50%;
       background: var(--red);
       display: inline-block;
@@ -371,7 +375,7 @@
 
     @keyframes buzzerPulse {
       0%, 100% { box-shadow: 0 0 0 0 rgba(255, 51, 102, 0.4); }
-      50% { box-shadow: 0 0 0 20px rgba(255, 51, 102, 0); }
+      50% { box-shadow: 0 0 0 25px rgba(255, 51, 102, 0); }
     }
 
     @keyframes dotBlink {
@@ -382,28 +386,28 @@
     /* CATEGORY PICKER SCREEN */
     .cat-pick-title {
       font-family: 'Orbitron', monospace;
-      font-size: clamp(28px, 5vw, 48px);
+      font-size: clamp(32px, 6vw, 54px);
       font-weight: 900;
-      letter-spacing: 4px;
-      margin-bottom: 40px;
+      letter-spacing: 5px;
+      margin-bottom: 50px;
       color: var(--gold);
-      text-shadow: 0 0 20px var(--gold);
+      text-shadow: 0 0 25px var(--gold);
     }
 
     .catpick-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(180px, 220px));
+      grid-template-columns: repeat(auto-fill, minmax(200px, 240px));
       justify-content: center;
-      gap: 24px;
+      gap: 28px;
       width: 100%;
-      max-width: 1000px;
+      max-width: 1100px;
     }
 
     .cat-tile {
-      background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(0, 0, 0, 0.4));
+      background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(0, 0, 0, 0.5));
       border: 2px solid rgba(255, 215, 0, 0.3);
-      border-radius: 24px;
-      padding: 28px 16px;
+      border-radius: 28px;
+      padding: 32px 20px;
       text-align: center;
       transition: all 0.3s ease;
       animation: catReveal 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -412,47 +416,42 @@
     .cat-tile:hover {
       border-color: var(--gold);
       transform: translateY(-5px);
-      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
     }
 
     @keyframes catReveal {
-      from { opacity: 0; transform: scale(0.8); }
+      from { opacity: 0; transform: scale(0.85); }
       to { opacity: 1; transform: scale(1); }
     }
 
-    .cat-tile-icon { font-size: 52px; margin-bottom: 12px; }
+    .cat-tile-icon { font-size: 56px; margin-bottom: 16px; }
     .cat-tile-name {
-      font-family: 'Syne', sans-serif;
-      font-size: 18px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 20px;
       font-weight: 800;
       letter-spacing: 1px;
+      color: #fff;
     }
 
-    /* END SCREEN — CHAMPION PODIUM */
+    /* END SCREEN */
     #endedScreen {
       text-align: center;
     }
 
-    .podium {
-      margin: 30px 0;
-      display: flex;
-      justify-content: center;
-      gap: 30px;
-    }
-
     .winner-crown {
-      font-size: 60px;
+      font-size: 80px;
+      margin-bottom: 20px;
       animation: crownFloat 2s ease-in-out infinite;
     }
 
     @keyframes crownFloat {
       0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-10px); }
+      50% { transform: translateY(-12px); }
     }
 
     /* SIDE PANEL — LEADERBOARD */
     .side-panel {
-      background: rgba(0, 0, 0, 0.7);
+      background: rgba(0, 0, 0, 0.75);
       backdrop-filter: blur(20px);
       border-left: 2px solid var(--gold);
       display: flex;
@@ -462,12 +461,12 @@
 
     .side-title {
       font-family: 'Orbitron', monospace;
-      font-size: 12px;
+      font-size: 15px;
       font-weight: 900;
-      letter-spacing: 3px;
+      letter-spacing: 4px;
       color: var(--gold);
       text-transform: uppercase;
-      padding: 16px;
+      padding: 18px;
       text-align: center;
       border-bottom: 1px solid rgba(255, 215, 0, 0.3);
       background: rgba(0, 0, 0, 0.5);
@@ -476,59 +475,59 @@
     .player-list {
       flex: 1;
       overflow-y: auto;
-      padding: 12px;
+      padding: 16px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 10px;
     }
 
     .p-row {
       display: flex;
       align-items: center;
-      gap: 12px;
-      background: rgba(255, 255, 255, 0.05);
+      gap: 14px;
+      background: rgba(255, 255, 255, 0.06);
       border: 1px solid rgba(255, 215, 0, 0.2);
-      border-radius: 14px;
-      padding: 10px 14px;
+      border-radius: 16px;
+      padding: 12px 16px;
       transition: all 0.3s ease;
     }
 
     .p-row.active-buzz {
       border-color: var(--gold);
-      background: rgba(255, 215, 0, 0.1);
-      box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+      background: rgba(255, 215, 0, 0.12);
+      box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
     }
 
-    .p-row.wrong-lock { border-color: var(--red); background: rgba(255, 51, 102, 0.05); }
+    .p-row.wrong-lock { border-color: var(--red); background: rgba(255, 51, 102, 0.08); }
     .p-row.eliminated { opacity: 0.35; filter: grayscale(0.8); }
 
-    .p-avatar { font-size: 28px; flex-shrink: 0; }
+    .p-avatar { font-size: 32px; flex-shrink: 0; }
     .p-info { flex: 1; min-width: 0; }
     .p-name {
-      font-size: 13px;
+      font-size: 15px;
       font-weight: 700;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
       display: flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
     }
-    .p-status-sub { font-size: 10px; color: rgba(255, 255, 255, 0.5); }
+    .p-status-sub { font-size: 11px; color: rgba(255, 255, 255, 0.5); margin-top: 3px; }
     .p-score {
       font-family: 'Orbitron', monospace;
-      font-size: 18px;
+      font-size: 22px;
       font-weight: 900;
       color: var(--gold);
       flex-shrink: 0;
     }
     .conn-led {
-      width: 8px;
-      height: 8px;
+      width: 9px;
+      height: 9px;
       border-radius: 50%;
       display: inline-block;
     }
-    .conn-led.online { background: var(--green); box-shadow: 0 0 8px var(--green); }
+    .conn-led.online { background: var(--green); box-shadow: 0 0 10px var(--green); }
     .conn-led.offline { background: var(--red); }
 
     /* OVERLAY BANNERS */
@@ -539,23 +538,23 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: rgba(0, 0, 0, 0.85);
+      background: rgba(0, 0, 0, 0.9);
       backdrop-filter: blur(12px);
       animation: overlayFlash 0.4s ease;
     }
 
     @keyframes overlayFlash {
       from { backdrop-filter: blur(0); background: rgba(0, 0, 0, 0); }
-      to { backdrop-filter: blur(12px); background: rgba(0, 0, 0, 0.85); }
+      to { backdrop-filter: blur(12px); background: rgba(0, 0, 0, 0.9); }
     }
 
     .buzz-banner, .winner-banner {
-      background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(0, 0, 0, 0.8));
+      background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(0, 0, 0, 0.85));
       border: 3px solid var(--gold);
       border-radius: 48px;
-      padding: 48px 72px;
+      padding: 50px 80px;
       text-align: center;
-      max-width: 600px;
+      max-width: 650px;
       animation: bannerPop 0.5s cubic-bezier(0.34, 1.2, 0.64, 1);
     }
 
@@ -564,10 +563,10 @@
       to { transform: scale(1); opacity: 1; }
     }
 
-    .buzz-avatar { font-size: 72px; display: block; margin-bottom: 16px; }
+    .buzz-avatar { font-size: 80px; display: block; margin-bottom: 20px; }
     .buzz-title {
       font-family: 'Orbitron', monospace;
-      font-size: clamp(32px, 5vw, 56px);
+      font-size: clamp(36px, 6vw, 60px);
       font-weight: 900;
       color: var(--gold);
     }
@@ -584,8 +583,8 @@
     #fohTimerOverlay.active { display: block; animation: timerPop 0.3s ease; }
     @keyframes timerPop { from { transform: translate(-50%, -50%) scale(0.5); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
 
-    .foh-timer-ring { position: relative; width: 200px; height: 200px; }
-    .foh-timer-ring svg { width: 200px; height: 200px; transform: rotate(-90deg); filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.5)); }
+    .foh-timer-ring { position: relative; width: 220px; height: 220px; }
+    .foh-timer-ring svg { width: 220px; height: 220px; transform: rotate(-90deg); filter: drop-shadow(0 0 25px rgba(255, 215, 0, 0.5)); }
     .foh-timer-ring .track { fill: none; stroke: rgba(255, 255, 255, 0.1); stroke-width: 8; }
     .foh-timer-ring .progress { fill: none; stroke: var(--gold); stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 1s linear; }
     .foh-timer-number {
@@ -595,18 +594,18 @@
       align-items: center;
       justify-content: center;
       font-family: 'Orbitron', monospace;
-      font-size: 64px;
+      font-size: 72px;
       font-weight: 900;
       color: var(--gold);
-      text-shadow: 0 0 20px var(--gold);
+      text-shadow: 0 0 30px var(--gold);
     }
 
-    /* ROOM ENTRY — GLASS CARD */
+    /* ROOM ENTRY */
     #roomEntryOverlay {
       position: fixed;
       inset: 0;
       z-index: 800;
-      background: rgba(0, 0, 0, 0.95);
+      background: rgba(0, 0, 0, 0.96);
       backdrop-filter: blur(24px);
       display: flex;
       align-items: center;
@@ -615,51 +614,51 @@
     }
 
     .entry-card {
-      background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(0, 0, 0, 0.6));
+      background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(0, 0, 0, 0.7));
       border: 2px solid var(--gold);
       border-radius: 48px;
-      padding: 48px 40px;
+      padding: 52px 48px;
       width: 100%;
-      max-width: 480px;
+      max-width: 500px;
       text-align: center;
-      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(255, 215, 0, 0.2);
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6), 0 0 50px rgba(255, 215, 0, 0.2);
       animation: entryGlow 2s ease-in-out infinite;
     }
 
     @keyframes entryGlow {
-      0%, 100% { box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 215, 0, 0.2); }
-      50% { box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5), 0 0 60px rgba(255, 215, 0, 0.4); }
+      0%, 100% { box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6), 0 0 25px rgba(255, 215, 0, 0.2); }
+      50% { box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6), 0 0 70px rgba(255, 215, 0, 0.4); }
     }
 
     .entry-logo {
       font-family: 'Orbitron', monospace;
-      font-size: 36px;
+      font-size: 40px;
       font-weight: 900;
       letter-spacing: 8px;
       background: linear-gradient(135deg, #fff, var(--gold));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      margin-bottom: 8px;
+      margin-bottom: 12px;
     }
 
     .entry-sub {
-      font-size: 13px;
+      font-size: 15px;
       color: rgba(255, 255, 255, 0.5);
-      margin-bottom: 32px;
+      margin-bottom: 40px;
       letter-spacing: 1px;
     }
 
     .entry-input {
-      background: rgba(0, 0, 0, 0.6);
-      border: 2px solid rgba(255, 215, 0, 0.4);
+      background: rgba(0, 0, 0, 0.7);
+      border: 2px solid rgba(255, 215, 0, 0.5);
       border-radius: 60px;
-      padding: 16px 20px;
+      padding: 18px 24px;
       color: #fff;
-      font-size: 28px;
+      font-size: 32px;
       font-family: 'Orbitron', monospace;
       width: 100%;
       text-align: center;
-      letter-spacing: 8px;
+      letter-spacing: 10px;
       text-transform: uppercase;
       transition: all 0.3s;
     }
@@ -667,68 +666,50 @@
     .entry-input:focus {
       border-color: var(--gold);
       outline: none;
-      box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+      box-shadow: 0 0 25px rgba(255, 215, 0, 0.4);
+    }
+
+    .entry-input::placeholder {
+      font-size: 18px;
+      letter-spacing: 4px;
+      color: rgba(255,255,255,0.3);
     }
 
     .entry-btn {
       width: 100%;
-      padding: 16px;
+      padding: 18px;
       background: linear-gradient(135deg, var(--gold), var(--gold-dark));
       border: none;
       border-radius: 60px;
       font-family: 'Orbitron', monospace;
-      font-size: 16px;
+      font-size: 18px;
       font-weight: 900;
-      letter-spacing: 2px;
+      letter-spacing: 3px;
       color: #000;
       cursor: pointer;
       transition: all 0.2s;
-      margin-top: 20px;
+      margin-top: 25px;
     }
 
-    .entry-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(255, 215, 0, 0.4); }
-
-    /* QR Container */
-    #finalQrContainer {
-      margin: 24px auto 0;
-      text-align: center;
-    }
-
-    .qr-btn {
-      margin-top: 12px;
-      padding: 8px 20px;
-      background: rgba(255, 215, 0, 0.15);
-      border: 1px solid var(--gold);
-      border-radius: 40px;
-      color: var(--gold);
-      font-family: 'Orbitron', monospace;
-      font-size: 11px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .qr-btn:hover {
-      background: var(--gold);
-      color: #000;
-      transform: scale(1.02);
-    }
+    .entry-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 35px rgba(255, 215, 0, 0.5); }
 
     /* Toast */
     .toast {
       position: fixed;
-      bottom: 30px;
+      bottom: 35px;
       left: 50%;
       transform: translateX(-50%);
       background: rgba(0, 0, 0, 0.9);
       border: 1px solid var(--gold);
-      border-radius: 40px;
-      padding: 10px 24px;
+      border-radius: 50px;
+      padding: 12px 32px;
       color: var(--gold);
-      font-family: 'Orbitron', monospace;
-      font-size: 12px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
       z-index: 1000;
       animation: toastIn 0.3s ease;
+      white-space: nowrap;
     }
 
     @keyframes toastIn {
@@ -737,9 +718,9 @@
     }
 
     .footer {
-      padding: 8px 24px;
-      font-size: 10px;
-      color: rgba(255, 255, 255, 0.3);
+      padding: 10px 24px;
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.35);
       text-align: center;
       border-top: 1px solid rgba(255, 215, 0, 0.2);
       flex-shrink: 0;
@@ -750,7 +731,7 @@
 <div class="app">
   <div class="top-bar">
     <div class="logo">⚡ PLAY<span style="color:var(--gold)">A</span>QUIZ ⚡</div>
-    <div style="display:flex; align-items:center; gap:12px;">
+    <div style="display:flex; align-items:center; gap:15px;">
       <button class="audio-control" id="bgmToggleBtn" onclick="toggleBackgroundMusic()">🎵 BGM</button>
       <div class="conn-badge" id="fohConnBadge">⏳ Connecting</div>
       <div class="room-display" id="roomDisplay">——</div>
@@ -766,8 +747,6 @@
           <div class="warmup-banner">THE GRAND FINAL ARENA</div>
           <div class="warmup-pulse-circle"><div class="inner-text">READY</div></div>
           <div class="warmup-message">Waiting for the host to start the round...</div>
-          <div id="finalQrContainer" style="margin: 24px auto 0;"></div>
-          <button class="qr-btn" onclick="showFullFinalQR()">🔍 Show Full QR Code</button>
         </div>
       </div>
 
@@ -776,7 +755,7 @@
         <div class="question-number" id="fohQuestionMeta">⚡ QUESTION ⚡</div>
         <div class="question-text" id="fohQuestionText"></div>
         <div class="options-grid" id="fohOptionsContainer"></div>
-        <div id="fohBuzzerOpenIndicator" style="display:none; margin-top: 30px;">
+        <div id="fohBuzzerOpenIndicator" style="display:none; margin-top: 40px;">
           <div class="buzzer-open-badge"><span class="dot"></span>BUZZERS ACTIVE — PRESS NOW!</div>
         </div>
       </div>
@@ -790,9 +769,9 @@
       <!-- END SCREEN -->
       <div id="endedScreen" class="screen">
         <div class="winner-crown">👑🏆👑</div>
-        <h2 class="cat-pick-title" style="margin-bottom: 16px;">GRAND CHAMPION</h2>
-        <div id="podiumWinnerName" style="font-size: clamp(36px, 7vw, 64px); font-weight: 900; color: var(--gold); text-shadow: 0 0 30px var(--gold);">—</div>
-        <div id="podiumWinnerScore" style="font-size: 24px; color: rgba(255,255,255,0.6); margin-top: 12px;"></div>
+        <h2 class="cat-pick-title" style="margin-bottom: 20px;">GRAND CHAMPION</h2>
+        <div id="podiumWinnerName" style="font-size: clamp(42px, 8vw, 72px); font-weight: 900; color: var(--gold); text-shadow: 0 0 35px var(--gold);">—</div>
+        <div id="podiumWinnerScore" style="font-size: 28px; color: rgba(255,255,255,0.6); margin-top: 16px;"></div>
       </div>
 
       <div id="overlayContainer"></div>
@@ -824,12 +803,11 @@
       <div class="entry-sub">Enter the room code from the Control Panel</div>
       <input type="text" id="fohRoomInput" class="entry-input" placeholder="FR4X7K" maxlength="8" autocomplete="off" oninput="onFohRoomInput(this)" onkeydown="if(event.key==='Enter') submitFohRoom()">
       <button class="entry-btn" id="fohConnectBtn" onclick="submitFohRoom()">⚡ CONNECT TO ROOM ⚡</button>
-      <div id="fohRoomError" style="margin-top: 12px; font-size: 12px; color: #ff3366;"></div>
+      <div id="fohRoomError" style="margin-top: 15px; font-size: 13px; color: #ff3366; font-weight: 600;"></div>
     </div>
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <script>
 const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
 const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
@@ -846,7 +824,7 @@ function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, m =>
 function toast(msg) {
   const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
   document.body.appendChild(t);
-  setTimeout(() => t.remove(), 2500);
+  setTimeout(() => t.remove(), 2800);
 }
 
 function initBackgroundMusic() {
@@ -894,7 +872,7 @@ function showBuzzOverlay(name, avatar) {
   clearOverlay();
   const div = document.createElement('div');
   div.className = 'overlay-container';
-  div.innerHTML = `<div class="buzz-banner"><div class="buzz-avatar">⚡</div><div class="buzz-title">${avatar || '🔔'} ${escapeHtml(name)}</div><div style="font-size: 18px; margin-top: 12px;">IS RESPONDING...</div></div>`;
+  div.innerHTML = `<div class="buzz-banner"><div class="buzz-avatar">⚡</div><div class="buzz-title">${avatar || '🔔'} ${escapeHtml(name)}</div><div style="font-size: 22px; margin-top: 16px; font-weight: 600;">IS RESPONDING...</div></div>`;
   document.getElementById('overlayContainer').appendChild(div);
   overlayTimer = setTimeout(() => clearOverlay(), 5000);
 }
@@ -903,7 +881,7 @@ function showCorrectOverlay(name, avatar, points) {
   clearOverlay();
   const div = document.createElement('div');
   div.className = 'overlay-container';
-  div.innerHTML = `<div class="winner-banner"><div style="font-size: 80px;">💎</div><div class="buzz-title">${avatar || '🏆'} ${escapeHtml(name)}</div><div style="font-size: 20px; margin-top: 12px; color: #00ff88;">CORRECT! +${points} POINTS</div></div>`;
+  div.innerHTML = `<div class="winner-banner"><div style="font-size: 90px; margin-bottom: 10px;">💎</div><div class="buzz-title">${avatar || '🏆'} ${escapeHtml(name)}</div><div style="font-size: 24px; margin-top: 16px; font-weight: 700; color: #00ff88;">CORRECT! +${points} POINTS</div></div>`;
   document.getElementById('overlayContainer').appendChild(div);
   overlayTimer = setTimeout(() => clearOverlay(), 8000);
   try { canvasConfetti({ particleCount: 150, spread: 70, origin: { y: 0.6 }, colors: ['#ffd700', '#00ff88', '#ff2d75'] }); } catch(e) {}
@@ -913,7 +891,7 @@ function showWrongOverlay(name) {
   clearOverlay();
   const div = document.createElement('div');
   div.className = 'overlay-container';
-  div.innerHTML = `<div class="winner-banner" style="border-color: #ff3366;"><div style="font-size: 80px;">❌</div><div class="buzz-title" style="color: #ff3366;">${escapeHtml(name)}</div><div style="font-size: 18px; margin-top: 12px;">LOCKED OUT</div></div>`;
+  div.innerHTML = `<div class="winner-banner" style="border-color: #ff3366;"><div style="font-size: 90px;">❌</div><div class="buzz-title" style="color: #ff3366;">${escapeHtml(name)}</div><div style="font-size: 22px; margin-top: 16px; font-weight: 600;">LOCKED OUT</div></div>`;
   document.getElementById('overlayContainer').appendChild(div);
   overlayTimer = setTimeout(() => clearOverlay(), 4000);
 }
@@ -922,7 +900,7 @@ function renderPlayersList() {
   const container = document.getElementById('fohPlayersList');
   if(!container) return;
   if(!cachedPlayers.length) {
-    container.innerHTML = '<div style="padding: 30px; text-align: center; color: rgba(255,255,255,0.4);">Waiting for players...</div>';
+    container.innerHTML = '<div style="padding: 40px; text-align: center; color: rgba(255,255,255,0.45); font-size: 15px;">Waiting for players...</div>';
     return;
   }
   const sorted = [...cachedPlayers].sort((a,b) => (b.score||0) - (a.score||0));
@@ -960,7 +938,7 @@ function handleBroadcast(event, payload) {
       document.getElementById('fohBuzzerOpenIndicator').style.display = 'none';
       const cats = payload.categories || [];
       const container = document.getElementById('fohCategoriesContainer');
-      if(!cats.length) container.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:rgba(255,255,255,0.5);">No categories yet</div>';
+      if(!cats.length) container.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:rgba(255,255,255,0.5);font-size:18px;">No categories yet</div>';
       else container.innerHTML = cats.map((c, i) => `<div class="cat-tile" style="animation-delay:${i*0.06}s;"><div class="cat-tile-icon">${c.icon || '📂'}</div><div class="cat-tile-name">${escapeHtml(c.name)}</div></div>`).join('');
       playBeep(440, 'triangle', 0.2);
       break;
@@ -1120,38 +1098,12 @@ function onFohRoomInput(el) {
 
 async function submitFohRoom() {
   const code = document.getElementById('fohRoomInput').value.trim().toUpperCase();
-  if(code.length < 4) { toast('Enter at least 4 characters'); return; }
+  const errorEl = document.getElementById('fohRoomError');
+  errorEl.innerText = '';
+  if(code.length < 4) { errorEl.innerText = 'Enter at least 4 characters'; return; }
   if(!roomVerified) await verifyRoom(code);
-  if(!roomVerified && code.length >= 4) { toast('Please wait for room verification'); return; }
+  if(!roomVerified && code.length >= 4) { errorEl.innerText = 'Please wait for verification'; return; }
   connectToRoom(code);
-}
-
-function showFullFinalQR() {
-  const currentRoom = roomCode || document.getElementById('roomDisplay').innerText;
-  if(currentRoom && currentRoom !== '——' && window.QRCode) {
-    const modalDiv = document.createElement('div');
-    modalDiv.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;';
-    modalDiv.innerHTML = `<div style="background:#fff;padding:30px;border-radius:24px;text-align:center;"><div id="fullQrCode"></div><div style="font-family:monospace;font-size:24px;margin-top:16px;color:#000;">${currentRoom}</div><button onclick="this.parentElement.parentElement.remove()" style="margin-top:20px;padding:10px 30px;border-radius:40px;border:none;background:#ffd700;cursor:pointer;">Close</button></div>`;
-    document.body.appendChild(modalDiv);
-    new QRCode(document.getElementById('fullQrCode'), { text: currentRoom, width: 256, height: 256 });
-  } else if(currentRoom && window.QRDisplay?.showQRModal) {
-    window.QRDisplay.showQRModal(currentRoom, 2);
-  } else {
-    toast('Room not connected yet');
-  }
-}
-
-function displayPhase2QR() {
-  const currentRoom = roomCode || document.getElementById('roomDisplay').innerText;
-  if(!currentRoom || currentRoom === '——') { setTimeout(displayPhase2QR, 1000); return; }
-  const container = document.getElementById('finalQrContainer');
-  if(container && window.QRCode) {
-    container.innerHTML = '';
-    const qrDiv = document.createElement('div');
-    qrDiv.id = 'tempQr';
-    container.appendChild(qrDiv);
-    new QRCode(qrDiv, { text: currentRoom, width: 120, height: 120 });
-  }
 }
 
 function init() {
@@ -1161,7 +1113,6 @@ function init() {
     if(ctx.state === 'suspended') ctx.resume();
     if(bgmAudio && bgmAudio.paused && bgmEnabled) bgmAudio.play().catch(()=>{});
   }, { once: true });
-  setTimeout(displayPhase2QR, 500);
 }
 
 init();
@@ -1169,7 +1120,6 @@ init();
 window.submitFohRoom = submitFohRoom;
 window.onFohRoomInput = onFohRoomInput;
 window.toggleBackgroundMusic = toggleBackgroundMusic;
-window.showFullFinalQR = showFullFinalQR;
 </script>
 </body>
 </html>
