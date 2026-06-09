@@ -1210,31 +1210,31 @@ async function connectRoom(code) {
   appScreen.classList.remove('active');
   
   try {
-    // Create a game_session row — its UUID satisfies the questions.session_id FK
-    const { data: sessionRow, error: sessionErr } = await sb
+    // FIRST: Check if the room exists in game_sessions
+    const { data: existingSession, error: fetchError } = await sb
       .from('game_sessions')
-      .insert({ room_code: code, status: 'active', type: 'final_round' })
-      .select('id')
-      .single();
-
-    if (sessionErr) {
-      // If insert fails (e.g. RLS), try to fetch an existing session for this room
-      console.warn('[connectRoom] game_sessions insert failed, trying fetch:', sessionErr.message);
-      const { data: existing } = await sb
-        .from('game_sessions')
-        .select('id')
-        .eq('room_code', code)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .single();
-      sessionId = existing?.id ?? null;
-    } else {
-      sessionId = sessionRow.id;
+      .select('id, status, game_type, host_token')
+      .eq('room_code', code)
+      .maybeSingle();  // returns null if not found, no error
+    
+    if (fetchError) throw fetchError;
+    
+    if (!existingSession) {
+      // Room doesn't exist — show error, don't create
+      throw new Error(`Room "${code}" does not exist. Please check the code and try again.`);
     }
-
-    console.log('[connectRoom] sessionId:', sessionId);
-
-    await sb.from('game_rooms').delete().neq('room_code', code);
+    
+    // Room exists — use its session ID
+    sessionId = existingSession.id;
+    
+    // Optional: Verify the room is active/waiting (not ended)
+    if (existingSession.status === 'ended') {
+      throw new Error(`Room "${code}" has already ended. Please create a new room.`);
+    }
+    
+    console.log('[connectRoom] Found sessionId:', sessionId);
+    
+    // Update game_rooms table for presence tracking (optional, keep existing)
     await sb.from('game_rooms').upsert({
       room_code: code,
       is_active: true,
@@ -1252,11 +1252,12 @@ async function connectRoom(code) {
     loadingScreen.style.display = 'none';
     appScreen.classList.add('active');
     toast(`Connected to room ${roomCode}`);
+    
   } catch (err) {
     console.error('Connection error:', err);
     loadingScreen.style.display = 'none';
     joinScreen.classList.add('active');
-    toast('Failed to connect. Check room code.');
+    toast(err.message || 'Failed to connect. Check room code.');
   }
 }
 
