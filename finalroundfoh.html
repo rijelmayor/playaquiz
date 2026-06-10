@@ -1041,7 +1041,8 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 let roomCode = null, realtimeChannel = null, cachedPlayers = [];
 let buzzerOpenVisible = false;
 let bgmAudio = null, bgmEnabled = true;
-let sfxCorrect = null, sfxWrong = null, sfxStartQ = null, sfxWinner = null;
+let sfxCorrect = null, sfxWrong = null, sfxStartQ = null, sfxWinner = null, sfxBuzz = null;
+let tickTockCtx = null, tickTockInterval = null;
 let overlayTimer = null;
 let fohTimerInterval = null;
 let roomCodeOverlayTimer = null;
@@ -1093,11 +1094,45 @@ function initSFX() {
   sfxWrong   = new Audio('wrong.mp3');   sfxWrong.preload   = 'auto'; sfxWrong.volume   = 0.9;
   sfxStartQ  = new Audio('startq.mp3');  sfxStartQ.preload  = 'auto'; sfxStartQ.volume  = 0.85;
   sfxWinner  = new Audio('winner.mp3');  sfxWinner.preload  = 'auto'; sfxWinner.volume  = 1.0;
+  sfxBuzz    = new Audio('buzz.mp3');    sfxBuzz.preload    = 'auto'; sfxBuzz.volume    = 1.0;
 }
 
 function playSFX(sfx) {
   if(!sfx) return;
   try { sfx.currentTime = 0; sfx.play().catch(()=>{}); } catch(e) {}
+}
+
+function playTickTock(totalSeconds) {
+  stopTickTock();
+  try {
+    tickTockCtx = new (window.AudioContext || window.webkitAudioContext)();
+  } catch(e) { return; }
+
+  function tick(isAccent) {
+    if(!tickTockCtx) return;
+    const now = tickTockCtx.currentTime;
+    const osc = tickTockCtx.createOscillator();
+    const gain = tickTockCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = isAccent ? 1200 : 900;
+    gain.gain.setValueAtTime(isAccent ? 0.18 : 0.12, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+    osc.connect(gain); gain.connect(tickTockCtx.destination);
+    osc.start(now); osc.stop(now + 0.08);
+  }
+
+  let count = 0;
+  tick(true); // first tick immediately
+  tickTockInterval = setInterval(() => {
+    count++;
+    if(count >= totalSeconds) { stopTickTock(); return; }
+    tick(count % 2 === 0); // accent every other tick
+  }, 1000);
+}
+
+function stopTickTock() {
+  if(tickTockInterval) { clearInterval(tickTockInterval); tickTockInterval = null; }
+  if(tickTockCtx) { try { tickTockCtx.close(); } catch(e) {} tickTockCtx = null; }
 }
 
 function showScreen(id) {
@@ -1324,6 +1359,8 @@ function handleBroadcast(event, payload) {
       buzzerOpenVisible = false;
       document.getElementById('fohBuzzerOpenIndicator').style.display = 'none';
       if(fohTimerInterval) { clearInterval(fohTimerInterval); fohTimerInterval = null; document.getElementById('fohTimerOverlay').classList.remove('active'); }
+      stopTickTock();
+      playSFX(sfxBuzz);
       showBuzzOverlay(payload.playerName, payload.playerAvatar);
       const pBuzz = cachedPlayers.find(p => p.id === payload.playerId);
       if(pBuzz) { pBuzz.status = 'buzzed'; renderPlayersList(); }
@@ -1347,6 +1384,7 @@ function handleBroadcast(event, payload) {
       if (correctOverlayTimer) { clearTimeout(correctOverlayTimer); correctOverlayTimer = null; }
       buzzerOpenVisible = false;
       document.getElementById('fohBuzzerOpenIndicator').style.display = 'none';
+      stopTickTock();
       clearOverlay();
       cachedPlayers.forEach(p => { if(p.status !== 'eliminated') p.status = 'waiting'; });
       renderPlayersList();
@@ -1368,12 +1406,14 @@ function handleBroadcast(event, payload) {
     case 'timer_start':
       const TIMER_CIRCUMFERENCE = 2 * Math.PI * 45;
       if(fohTimerInterval) clearInterval(fohTimerInterval);
+      stopTickTock();
       const overlay = document.getElementById('fohTimerOverlay');
       const numEl = document.getElementById('fohTimerNumber');
       const progressEl = document.getElementById('fohTimerProgress');
       progressEl.style.strokeDasharray = TIMER_CIRCUMFERENCE;
       overlay.classList.add('active');
       let remaining = payload.seconds;
+      playTickTock(remaining);
       const update = () => {
         numEl.innerText = remaining;
         progressEl.style.strokeDashoffset = TIMER_CIRCUMFERENCE * (1 - (remaining / payload.seconds));
@@ -1386,6 +1426,7 @@ function handleBroadcast(event, payload) {
         remaining--;
         if(remaining <= 0) {
           clearInterval(fohTimerInterval); fohTimerInterval = null;
+          stopTickTock();
           numEl.innerText = '0';
           setTimeout(() => overlay.classList.remove('active'), 800);
         } else update();
@@ -1394,6 +1435,7 @@ function handleBroadcast(event, payload) {
     case 'full_game_reset':
       if(realtimeChannel) sb.removeChannel(realtimeChannel);
       stopFohRoomValidityPoll();
+      stopTickTock();
       roomCode = null;
       cachedPlayers = [];
       document.getElementById('roomEntryOverlay').style.display = 'flex';
