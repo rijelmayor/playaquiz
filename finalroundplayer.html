@@ -1458,7 +1458,7 @@ function handleEvent(event, payload) {
       updateBuzzerUI();
       break;
     case 'correct':
-      isOpen=false;
+      isOpen=false; // always close regardless of who answered
       if(payload.playerId===myId){
         updateScore(payload.newScore);
         myStatus='correct';
@@ -1494,9 +1494,9 @@ function handleEvent(event, payload) {
       }
       break;
     case 'reset_buzzers':
+      isOpen=true; // always update open state regardless of this player's wrong-answer status
       if(myStatus!=='eliminated' && !hasAnsweredWrongThisQuestion){
         myStatus='waiting';
-        isOpen=true;
         globalBuzzerEnabled=true;
         setStatus('🔴 BUZZ NOW!','var(--green)');
         updateBuzzerUI();

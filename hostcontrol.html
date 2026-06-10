@@ -1717,7 +1717,9 @@ function handleBuzz(payload) {
 function handleExternalCorrect(payload) {
   const player = players.get(payload.playerId);
   if (player) {
-    player.score = payload.newScore || (player.score + (parseInt(document.getElementById('pointsInput').value) || 100));
+    player.score = payload.newScore !== undefined
+      ? payload.newScore
+      : (player.score + (parseInt(document.getElementById('pointsInput').value) || 100));
     player.status = 'correct';
   }
   hideBuzzBanner();
@@ -1927,6 +1929,8 @@ function markCorrect() {
     newScore: player?.score,
     points: points
   });
+  // Push updated scores to FOH and all clients immediately after correct answer
+  broadcast('player_list_update', { players: Array.from(players.values()) });
   buzzedId = null;
   isOpen = false;
   renderAll();
