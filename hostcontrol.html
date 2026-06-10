@@ -967,6 +967,7 @@
             <input type="number" id="minPlayersInput" value="2" min="1" style="background:var(--bg);border:1px solid var(--b2);border-radius:10px;padding:12px;color:var(--text);width:100%;">
           </div>
           <button class="btn btn-gold btn-xl btn-full" onclick="startRound()">🚀 START ROUND</button>
+          <button class="btn btn-danger-ghost btn-full" style="margin-top:4px;" onclick="resetAllScores()">🔄 Reset All Scores to 0</button>
         </div>
       </div>
     </div>
@@ -1929,7 +1930,7 @@ function markCorrect() {
     newScore: player?.score,
     points: points
   });
-  // Push updated scores to FOH and all clients immediately after correct answer
+  // Push updated scores to FOH and all clients immediately
   broadcast('player_list_update', { players: Array.from(players.values()) });
   buzzedId = null;
   isOpen = false;
@@ -2140,6 +2141,20 @@ async function newRoomCode() {
   await sb.from('game_rooms').delete().neq('room_code', code);
   await sb.from('game_rooms').upsert({ room_code: code, is_active: true, control_id: 'hc_' + Date.now(), created_at: new Date() });
   setTimeout(() => connectRoom(code), 600);
+}
+
+function resetAllScores() {
+  if (!confirm('Reset ALL player scores to 0? This cannot be undone.')) return;
+  players.forEach(p => { p.score = 0; p.status = 'waiting'; });
+  locked.clear();
+  buzzedId = null;
+  isOpen = false;
+  hideBuzzBanner();
+  document.getElementById('correctBtn').disabled = true;
+  document.getElementById('wrongBtn').disabled = true;
+  broadcast('player_list_update', { players: Array.from(players.values()) });
+  renderAll();
+  toast('🔄 All scores reset to 0');
 }
 
 async function fullReset() {
@@ -2388,6 +2403,7 @@ window.unlockPlayer = unlockPlayer;
 window.eliminatePlayer = eliminatePlayer;
 window.newRoomCode = newRoomCode;
 window.fullReset = fullReset;
+window.resetAllScores = resetAllScores;
 window.copyJoinLink = copyJoinLink;
 window.openQModal = openQModal;
 window.closeQModal = closeQModal;

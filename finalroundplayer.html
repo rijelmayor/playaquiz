@@ -867,14 +867,15 @@ function autoDetectFinalRoomFromURL() {
     const roomInput = document.getElementById('roomInput');
     if (roomInput) {
       roomInput.value = roomParam.toUpperCase();
+      // Verify the room and advance to the name step automatically,
+      // but do NOT auto-join — player must still enter their name.
       setTimeout(() => {
         if (typeof verifyRoom === 'function') {
-          verifyRoom(roomParam.toUpperCase());
-          setTimeout(() => {
-            if (roomVerified && typeof joinGame === 'function') {
-              joinGame();
+          verifyRoom(roomParam.toUpperCase()).then(() => {
+            if (roomVerified && typeof goToStep === 'function') {
+              goToStep(2); // skip to name entry step, not straight into the game
             }
-          }, 1000);
+          });
         }
       }, 500);
     }
@@ -1582,34 +1583,14 @@ function handleEvent(event, payload) {
 
 // Initialize categories on load (only load, don't auto-show)
 (async function init() {
+  // Always clear any saved session on page load — player must log in fresh every time
+  clearIdentity();
   await loadCategories();
   autoDetectFinalRoomFromURL();
 })();
 
-(async function autoRejoin() {
-  const saved = loadIdentity();
-  if (!saved?.roomCode || !saved?.myId) return;
-
-  const isValid = await verifyRoomBeforeJoining(saved.roomCode);
-
-  if (!isValid) {
-    clearIdentity();
-    showToast('Previous room is no longer active. Please join a new game.', 4000);
-    return;
-  }
-
-  myId=saved.myId; myName=saved.myName; myAvatar=saved.myAvatar;
-  myScore=saved.myScore||0; myStatus=saved.myStatus||'waiting'; roomCode=saved.roomCode;
-  hasAnsweredWrongThisQuestion = false;
-  roomActive = true;
-  document.getElementById('roomInput').value = roomCode;
-  document.getElementById('nameInput').value = myName;
-  document.querySelectorAll('.avatar-opt').forEach(o=>o.classList.toggle('selected',o.innerText===myAvatar));
-  roomVerified=true;
-  updateConnectionBadge('reconnecting','⟳ Reconnecting...');
-  subscribeChannel();
-  startRoomValidityPoll(); // Start polling for room validity on auto-rejoin
-})();
+// autoRejoin removed: page refresh always returns to login screen.
+// Score is restored automatically via state_sync broadcast from host on rejoin.
 
 window.joinGame = joinGame;
 window.pickAvatar = pickAvatar;
