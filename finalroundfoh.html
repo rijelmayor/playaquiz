@@ -1041,6 +1041,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 let roomCode = null, realtimeChannel = null, cachedPlayers = [];
 let buzzerOpenVisible = false;
 let bgmAudio = null, bgmEnabled = true;
+let sfxCorrect = null, sfxWrong = null, sfxStartQ = null, sfxWinner = null;
 let overlayTimer = null;
 let fohTimerInterval = null;
 let roomCodeOverlayTimer = null;
@@ -1085,6 +1086,18 @@ function toggleBackgroundMusic() {
   const btn = document.getElementById('bgmToggleBtn');
   if(bgmAudio.paused) { bgmAudio.play().catch(()=>{}); bgmEnabled = true; btn.innerHTML = '🔊 BGM'; }
   else { bgmAudio.pause(); bgmEnabled = false; btn.innerHTML = '🔇 BGM'; }
+}
+
+function initSFX() {
+  sfxCorrect = new Audio('correct.mp3'); sfxCorrect.preload = 'auto'; sfxCorrect.volume = 0.9;
+  sfxWrong   = new Audio('wrong.mp3');   sfxWrong.preload   = 'auto'; sfxWrong.volume   = 0.9;
+  sfxStartQ  = new Audio('startq.mp3');  sfxStartQ.preload  = 'auto'; sfxStartQ.volume  = 0.85;
+  sfxWinner  = new Audio('winner.mp3');  sfxWinner.preload  = 'auto'; sfxWinner.volume  = 1.0;
+}
+
+function playSFX(sfx) {
+  if(!sfx) return;
+  try { sfx.currentTime = 0; sfx.play().catch(()=>{}); } catch(e) {}
 }
 
 function showScreen(id) {
@@ -1299,7 +1312,7 @@ function handleBroadcast(event, payload) {
       const opts = payload.options || [];
       const letters = ['A','B','C','D'];
       document.getElementById('fohOptionsContainer').innerHTML = opts.map((opt, idx) => `<div class="opt-tile"><div class="opt-letter">${letters[idx]}</div><div class="opt-text">${escapeHtml(opt)}</div></div>`).join('');
-      playBeep(523.25, 'sine', 0.35);
+      playSFX(sfxStartQ);
       break;
     case 'buzzers_reopen':
       buzzerOpenVisible = true;
@@ -1318,12 +1331,14 @@ function handleBroadcast(event, payload) {
     case 'correct':
       clearOverlay();
       if (correctDelayTimer) { clearTimeout(correctDelayTimer); correctDelayTimer = null; }
+      playSFX(sfxCorrect);
       showCorrectOverlay(payload.playerName, payload.playerAvatar, payload.points || 100);
       const pCorr = cachedPlayers.find(p => p.id === payload.playerId);
       if(pCorr) { pCorr.score = payload.newScore; pCorr.status = 'correct'; renderPlayersList(); }
       break;
     case 'wrong':
       clearOverlay();
+      playSFX(sfxWrong);
       showWrongOverlay(payload.playerName);
       const pWrong = cachedPlayers.find(p => p.id === payload.playerId);
       if(pWrong) { pWrong.status = 'wrong'; renderPlayersList(); }
@@ -1347,6 +1362,7 @@ function handleBroadcast(event, payload) {
       document.getElementById('podiumWinnerName').innerHTML = `${winner?.avatar || '🏆'} ${winner?.name || '—'}`;
       document.getElementById('podiumWinnerScore').innerHTML = `GRAND CHAMPION with ${winner?.score || 0} points!`;
       stopBackgroundMusic();
+      playSFX(sfxWinner);
       try { canvasConfetti({ particleCount: 300, spread: 100, origin: { y: 0.5 }, startVelocity: 20 }); } catch(e) {}
       break;
     case 'timer_start':
@@ -1540,6 +1556,7 @@ async function submitFohRoom() {
 
 function init() {
   initBackgroundMusic();
+  initSFX();
   document.body.addEventListener('click', () => {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     if(ctx.state === 'suspended') ctx.resume();
