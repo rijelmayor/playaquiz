@@ -1506,7 +1506,7 @@ function hideImportProgress() {
 async function loadQuestions() {
   if (!sessionId) return;
   try {
-    const { data: cats } = await sb.from('categories').select('*').eq('session_id', sessionId).order('name');
+    const { data: cats } = await sb.from('categories').select('*').order('name');
     categories = cats || [];
     const { data: qs } = await sb.from('questions').select('*, categories(name, icon)').eq('session_id', sessionId).order('created_at');
     allQuestions = qs || [];
@@ -2126,23 +2126,6 @@ function fohShowLeaderboard() {
   toast('🏆 Leaderboard pushed to FOH');
 }
 
-function fohEndRound() {
-  const sorted = Array.from(players.values()).filter(p => !eliminated.has(p.id)).sort((a, b) => b.score - a.score);
-  const winner = sorted[0];
-  broadcast('round_ended', { winner });
-  toast(`🏁 Round ended! Winner: ${winner?.name || 'N/A'}`);
-  gameStarted = false;
-}
-
-async function newRoomCode() {
-  if (!confirm('Generate new room code? All players must re-join.')) return;
-  const code = 'FR' + Math.random().toString(36).substring(2, 6).toUpperCase();
-  broadcast('full_game_reset', { newRoomCode: code });
-  await sb.from('game_rooms').delete().neq('room_code', code);
-  await sb.from('game_rooms').upsert({ room_code: code, is_active: true, control_id: 'hc_' + Date.now(), created_at: new Date() });
-  setTimeout(() => connectRoom(code), 600);
-}
-
 function resetAllScores() {
   if (!confirm('Reset ALL player scores to 0? This cannot be undone.')) return;
   players.forEach(p => { p.score = 0; p.status = 'waiting'; });
@@ -2155,6 +2138,39 @@ function resetAllScores() {
   broadcast('player_list_update', { players: Array.from(players.values()) });
   renderAll();
   toast('🔄 All scores reset to 0');
+}
+
+function fohEndRound() {
+  const sorted = Array.from(players.values())
+    .filter(p => !eliminated.has(p.id))
+    .sort((a, b) => b.score - a.score);
+
+  if (!sorted.length) {
+    toast('No players to declare a winner.');
+    return;
+  }
+
+  const topScore = sorted[0].score;
+  const tied = sorted.filter(p => p.score === topScore);
+
+  if (tied.length > 1) {
+    broadcast('round_ended', { winner: null, tied: tied, topScore: topScore });
+    toast(`🤝 TIE! ${tied.map(p => p.name).join(', ')} — all at ${topScore} pts`);
+  } else {
+    broadcast('round_ended', { winner: sorted[0], tied: null, topScore: topScore });
+    toast(`🏁 Round ended! Winner: ${sorted[0].name}`);
+  }
+
+  gameStarted = false;
+}
+
+async function newRoomCode() {
+  if (!confirm('Generate new room code? All players must re-join.')) return;
+  const code = 'FR' + Math.random().toString(36).substring(2, 6).toUpperCase();
+  broadcast('full_game_reset', { newRoomCode: code });
+  await sb.from('game_rooms').delete().neq('room_code', code);
+  await sb.from('game_rooms').upsert({ room_code: code, is_active: true, control_id: 'hc_' + Date.now(), created_at: new Date() });
+  setTimeout(() => connectRoom(code), 600);
 }
 
 async function fullReset() {
