@@ -468,7 +468,7 @@
     </div>
   </div>
   
-  <!-- COMPLETION SCREEN: Mobile-friendly -->
+  <!-- COMPLETION SCREEN: Mobile-friendly + Prize Claim -->
   <div id="completionScreen" class="hidden">
     <div class="completion-card">
       <div class="completion-icon">🎉</div>
@@ -491,21 +491,19 @@
       <div style="margin-top: 12px; font-size: clamp(12px,3.5vw,14px); color: rgba(255,255,255,0.5);">
         ✨ You've completed the quiz ✨
       </div>
+      <button class="prize-claim-btn" onclick="showPrizeClaim()">🎁 CLAIM YOUR PRIZE</button>
     </div>
   </div>
 
-  <!-- CONGRATULATORY OVERLAY -->
+  <!-- PRIZE CLAIM POPUP -->
   <div id="prizeOverlay" class="prize-overlay hidden">
     <div class="prize-popup">
-      <div class="prize-popup-icon">🎉</div>
-      <div class="prize-popup-title">CONGRATULATIONS!</div>
+      <div class="prize-popup-icon">🏆</div>
+      <div class="prize-popup-title">PRIZE CLAIM</div>
       <div class="prize-popup-score" id="prizeScoreInfo">Score: 0 pts</div>
       <div class="prize-popup-body">
-        🌟 Well done and thank you for joining the game!<br><br>
-        <div style="background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.4); border-radius: 14px; padding: 14px 16px; margin: 8px 0 12px;">
-          🏆 <strong style="color:#fbbf24; font-size: 1.05em;">Only the TOP 5 Players</strong> on the leaderboard will advance to the <strong style="color:#fbbf24;">Final Round!</strong>
-        </div>
-        A Final Round will commence in a moment — stay tuned and see if you made the cut!
+        🎊 Amazing job finishing the quiz!<br><br>
+        Please show this screen to the event staff to claim your prize. Your score and name have been recorded on the leaderboard.
       </div>
       <button class="prize-popup-close" onclick="closePrizeClaim()">✅ Got it — Close</button>
     </div>
@@ -879,7 +877,7 @@ async function submitAnswer(selectedIdx) {
   const playerToken = getPlayerToken();
   const playerId = localStorage.getItem('sp_player_id');
   
-  // Update player score
+  // SECURITY: Update player with token verification
   const { error: updateError } = await sb
     .from('players')
     .update({
@@ -887,11 +885,15 @@ async function submitAnswer(selectedIdx) {
       correct_count: correctCount,
       current_q_index: currentIndex + 1
     })
-    .eq('id', playerId);
+    .eq('id', playerId)
+    .eq('player_token', playerToken);  // Critical: Token verification
   
   if (updateError) {
-    console.error('Score update error:', updateError);
-    // Do NOT reload — let the player continue
+    console.error('Score update error - possible cheating attempt:', updateError);
+    toast('Session expired. Please refresh the page.', 'error');
+    clearPlayerSession();
+    location.reload();
+    return;
   }
   
   // SECURITY: Save answer with token
@@ -955,6 +957,7 @@ async function completeQuiz() {
   await sb.from('players')
     .update({ completed: true, completed_at: new Date() })
     .eq('id', playerId)
+    .eq('player_token', playerToken)
     .catch(e => console.log('Complete update error:', e));
   
   const accuracy = questions.length > 0 ? Math.round((correctCount / questions.length) * 100) : 0;
@@ -969,7 +972,6 @@ async function completeQuiz() {
   
   document.getElementById('quizScreen').classList.add('hidden');
   document.getElementById('completionScreen').classList.remove('hidden');
-  setTimeout(() => showPrizeClaim(), 1200);
 }
 
 function createConfetti() {
