@@ -468,7 +468,7 @@
     </div>
   </div>
   
-  <!-- COMPLETION SCREEN: Mobile-friendly + Prize Claim -->
+  <!-- COMPLETION SCREEN: Mobile-friendly -->
   <div id="completionScreen" class="hidden">
     <div class="completion-card">
       <div class="completion-icon">🎉</div>
@@ -491,19 +491,21 @@
       <div style="margin-top: 12px; font-size: clamp(12px,3.5vw,14px); color: rgba(255,255,255,0.5);">
         ✨ You've completed the quiz ✨
       </div>
-      <button class="prize-claim-btn" onclick="showPrizeClaim()">🎁 CLAIM YOUR PRIZE</button>
     </div>
   </div>
 
-  <!-- PRIZE CLAIM POPUP -->
+  <!-- CONGRATULATORY OVERLAY -->
   <div id="prizeOverlay" class="prize-overlay hidden">
     <div class="prize-popup">
-      <div class="prize-popup-icon">🏆</div>
-      <div class="prize-popup-title">PRIZE CLAIM</div>
+      <div class="prize-popup-icon">🎉</div>
+      <div class="prize-popup-title">CONGRATULATIONS!</div>
       <div class="prize-popup-score" id="prizeScoreInfo">Score: 0 pts</div>
       <div class="prize-popup-body">
-        🎊 Amazing job finishing the quiz!<br><br>
-        Please show this screen to the event staff to claim your prize. Your score and name have been recorded on the leaderboard.
+        🌟 Well done and thank you for joining the game!<br><br>
+        <div style="background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.4); border-radius: 14px; padding: 14px 16px; margin: 8px 0 12px;">
+          🏆 <strong style="color:#fbbf24; font-size: 1.05em;">Only the TOP 5 Players</strong> on the leaderboard will advance to the <strong style="color:#fbbf24;">Final Round!</strong>
+        </div>
+        A Final Round will commence in a moment — stay tuned and see if you made the cut!
       </div>
       <button class="prize-popup-close" onclick="closePrizeClaim()">✅ Got it — Close</button>
     </div>
@@ -854,80 +856,42 @@ function updateTimerDisplay(remaining) {
 }
 
 // ============================================
-// SUBMIT ANSWER with Token Verification
+// SUBMIT ANSWER
 // ============================================
-async function submitAnswer(selectedIdx) {
+function submitAnswer(selectedIdx) {
   if (answered) return;
   answered = true;
   if (timerInterval) clearInterval(timerInterval);
-  
+
   const q = questions[currentIndex];
   const isCorrect = (selectedIdx === q.correct_option);
   const elapsed = (Date.now() - questionStartTime) / 1000;
   const basePoints = q.points || 100;
   let pointsEarned = 0;
-  
+
   if (isCorrect) {
     const speedBonus = Math.max(0.3, Math.min(1.0, 1 - (elapsed / 35)));
     pointsEarned = Math.round(basePoints * speedBonus);
     score += pointsEarned;
     correctCount++;
   }
-  
-  const playerToken = getPlayerToken();
-  const playerId = localStorage.getItem('sp_player_id');
-  
-  // SECURITY: Update player with token verification
-  const { error: updateError } = await sb
-    .from('players')
-    .update({
-      score: score,
-      correct_count: correctCount,
-      current_q_index: currentIndex + 1
-    })
-    .eq('id', playerId)
-    .eq('player_token', playerToken);  // Critical: Token verification
-  
-  if (updateError) {
-    console.error('Score update error - possible cheating attempt:', updateError);
-    toast('Session expired. Please refresh the page.', 'error');
-    clearPlayerSession();
-    location.reload();
-    return;
-  }
-  
-  // SECURITY: Save answer with token
-  await sb.from('answers').insert({
-    session_id: SESSION_ID,
-    question_id: q.id,
-    player_id: playerId,
-    chosen_option: selectedIdx,
-    is_correct: isCorrect,
-    points_earned: pointsEarned,
-    time_taken_ms: elapsed * 1000,
-    player_token: playerToken  // Store token with answer
-  }).catch(e => console.log('Answer save error:', e));
-  
+
+  // Show feedback immediately — no await, UI never blocks
   const letters = ['A', 'B', 'C', 'D'];
   const feedbackDiv = document.getElementById('feedback');
   feedbackDiv.classList.remove('hidden');
-  
+
   if (isCorrect) {
     feedbackDiv.className = 'feedback feedback-correct';
     const bonusText = elapsed < 10 ? ' ⚡ Speed bonus!' : '';
     feedbackDiv.innerHTML = `✅ Correct! +${pointsEarned} points${bonusText}`;
-    // Play success sound
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
-      o.connect(g);
-      g.connect(ctx.destination);
-      o.frequency.value = 880;
-      g.gain.value = 0.1;
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.frequency.value = 880; g.gain.value = 0.1;
       g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-      o.start();
-      o.stop(ctx.currentTime + 0.3);
+      o.start(); o.stop(ctx.currentTime + 0.3);
     } catch(e) {}
   } else {
     feedbackDiv.className = 'feedback feedback-wrong';
@@ -935,10 +899,20 @@ async function submitAnswer(selectedIdx) {
     const correctText = q[`option_${String.fromCharCode(97 + q.correct_option)}`];
     feedbackDiv.innerHTML = `❌ Wrong! Correct answer: ${correctLetter}. ${escapeHtml(correctText)}`;
   }
-  
+
   document.querySelectorAll('.option-btn').forEach(btn => btn.disabled = true);
   document.getElementById('nextBtn').classList.remove('hidden');
   document.getElementById('scoreDisplay').innerHTML = `${score} pts`;
+
+  // Fire-and-forget DB saves — nothing blocks the UI
+  const playerId = localStorage.getItem('sp_player_id');
+  sb.from('players').update({ score, correct_count: correctCount, current_q_index: currentIndex + 1 })
+    .eq('id', playerId).then(() => {}).catch(() => {});
+  sb.from('answers').insert({
+    session_id: SESSION_ID, question_id: q.id, player_id: playerId,
+    chosen_option: selectedIdx, is_correct: isCorrect,
+    points_earned: pointsEarned, time_taken_ms: elapsed * 1000
+  }).then(() => {}).catch(() => {});
 }
 
 async function loadNextQuestion() {
@@ -957,7 +931,6 @@ async function completeQuiz() {
   await sb.from('players')
     .update({ completed: true, completed_at: new Date() })
     .eq('id', playerId)
-    .eq('player_token', playerToken)
     .catch(e => console.log('Complete update error:', e));
   
   const accuracy = questions.length > 0 ? Math.round((correctCount / questions.length) * 100) : 0;
@@ -972,6 +945,7 @@ async function completeQuiz() {
   
   document.getElementById('quizScreen').classList.add('hidden');
   document.getElementById('completionScreen').classList.remove('hidden');
+  setTimeout(() => showPrizeClaim(), 1200);
 }
 
 function createConfetti() {
