@@ -969,8 +969,8 @@
       </div>
 
       <div id="endedScreen" class="screen">
-        <div class="winner-crown">👑🏆👑</div>
-        <h2 class="cat-pick-title" style="margin-bottom: 20px;">GRAND CHAMPION</h2>
+        <div class="winner-crown" id="endedCrown">👑🏆👑</div>
+        <h2 class="cat-pick-title" style="margin-bottom: 20px;" id="endedTitle">GRAND CHAMPION</h2>
         <div id="podiumWinnerName" style="font-size: clamp(42px, 8vw, 72px); font-weight: 900; color: var(--gold); text-shadow: 0 0 35px var(--gold);">—</div>
         <div id="podiumWinnerScore" style="font-size: 28px; color: rgba(255,255,255,0.6); margin-top: 16px;"></div>
       </div>
@@ -1303,11 +1303,31 @@ function handleBroadcast(event, payload) {
       clearOverlay();
       showScreen('categoriesScreen');
       document.getElementById('fohBuzzerOpenIndicator').style.display = 'none';
-      const cats = payload.categories || [];
-      const container = document.getElementById('fohCategoriesContainer');
-      if(!cats.length) container.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:rgba(255,255,255,0.5);font-size:18px;">No categories yet</div>';
-      else container.innerHTML = cats.map((c, i) => `<div class="cat-tile" style="animation-delay:${i*0.06}s;"><div class="cat-tile-icon">${c.icon || '📂'}</div><div class="cat-tile-name">${escapeHtml(c.name)}</div></div>`).join('');
       playBeep(440, 'triangle', 0.2);
+      // Always fetch ALL categories from DB (same as player side)
+      (async () => {
+        const container = document.getElementById('fohCategoriesContainer');
+        container.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:rgba(255,255,255,0.5);font-size:18px;">Loading categories...</div>';
+        try {
+          const { data, error } = await sb.from('categories').select('*').order('name');
+          if (error) throw error;
+          const allCats = data || [];
+          if (!allCats.length) {
+            container.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:rgba(255,255,255,0.5);font-size:18px;">No categories yet</div>';
+          } else {
+            container.innerHTML = allCats.map((c, i) => `<div class="cat-tile" style="animation-delay:${i*0.06}s;"><div class="cat-tile-icon">${c.icon || '📂'}</div><div class="cat-tile-name">${escapeHtml(c.name)}</div></div>`).join('');
+          }
+        } catch(e) {
+          console.error('[FOH] Failed to load categories:', e);
+          // Fallback to payload categories if DB fetch fails
+          const fallback = payload.categories || [];
+          if (!fallback.length) {
+            container.innerHTML = '<div style="grid-column:1/-1;text-align:center;color:rgba(255,255,255,0.5);font-size:18px;">No categories yet</div>';
+          } else {
+            container.innerHTML = fallback.map((c, i) => `<div class="cat-tile" style="animation-delay:${i*0.06}s;"><div class="cat-tile-icon">${c.icon || '📂'}</div><div class="cat-tile-name">${escapeHtml(c.name)}</div></div>`).join('');
+          }
+        }
+      })();
       break;
     case 'show_categories':
       handleBroadcast('show_category_picker', payload);
@@ -1396,9 +1416,26 @@ function handleBroadcast(event, payload) {
       if (correctOverlayTimer) { clearTimeout(correctOverlayTimer); correctOverlayTimer = null; }
       hideLoadingOverlay();
       showScreen('endedScreen');
-      const winner = payload.winner;
-      document.getElementById('podiumWinnerName').innerHTML = `${winner?.avatar || '🏆'} ${winner?.name || '—'}`;
-      document.getElementById('podiumWinnerScore').innerHTML = `GRAND CHAMPION with ${winner?.score || 0} points!`;
+
+      if (payload.tied && payload.tied.length > 1) {
+        // TIE — show all tied players
+        document.getElementById('endedCrown').innerText = '🤝🏆🤝';
+        document.getElementById('endedTitle').innerText = "IT'S A TIE!";
+        document.getElementById('podiumWinnerName').innerHTML =
+          payload.tied.map(p => `${p.avatar || '🏆'} ${p.name}`).join(' &nbsp;&nbsp;·&nbsp;&nbsp; ');
+        document.getElementById('podiumWinnerScore').innerHTML =
+          `All scored ${payload.topScore} points — Tiebreaker needed!`;
+      } else {
+        // SINGLE WINNER
+        const winner = payload.winner;
+        document.getElementById('endedCrown').innerText = '👑🏆👑';
+        document.getElementById('endedTitle').innerText = 'GRAND CHAMPION';
+        document.getElementById('podiumWinnerName').innerHTML =
+          `${winner?.avatar || '🏆'} ${winner?.name || '—'}`;
+        document.getElementById('podiumWinnerScore').innerHTML =
+          `GRAND CHAMPION with ${winner?.score || 0} points!`;
+      }
+
       stopBackgroundMusic();
       playSFX(sfxWinner);
       try { canvasConfetti({ particleCount: 300, spread: 100, origin: { y: 0.5 }, startVelocity: 20 }); } catch(e) {}
