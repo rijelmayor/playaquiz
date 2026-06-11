@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://*.supabase.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co; img-src 'self' data: https:; font-src 'self' https://fonts.gstatic.com;">
   <title>PlayAQuiz — Player (Self-Paced)</title>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -490,19 +491,18 @@
       <div style="margin-top: 12px; font-size: clamp(12px,3.5vw,14px); color: rgba(255,255,255,0.5);">
         ✨ You've completed the quiz ✨
       </div>
-      <button class="prize-claim-btn" onclick="showPrizeClaim()">🎁 CLAIM YOUR PRIZE</button>
     </div>
   </div>
 
-  <!-- PRIZE CLAIM POPUP -->
+  <!-- CONGRATULATORY OVERLAY -->
   <div id="prizeOverlay" class="prize-overlay hidden">
     <div class="prize-popup">
-      <div class="prize-popup-icon">🏆</div>
-      <div class="prize-popup-title">PRIZE CLAIM</div>
+      <div class="prize-popup-icon">🎉</div>
+      <div class="prize-popup-title">CONGRATULATIONS!</div>
       <div class="prize-popup-score" id="prizeScoreInfo">Score: 0 pts</div>
       <div class="prize-popup-body">
-        🎊 Amazing job finishing the quiz!<br><br>
-        Please show this screen to the event staff to claim your prize. Your score and name have been recorded on the leaderboard.
+        🌟 Well done for completing the quiz!<br><br>
+        Thank you for joining the game. A <strong style="color:#fbbf24;">Final Round</strong> will commence in a moment — stay tuned and get ready!
       </div>
       <button class="prize-popup-close" onclick="closePrizeClaim()">✅ Got it — Close</button>
     </div>
@@ -535,7 +535,33 @@ let realtimeChannel = null;
 let quizStarted = false;
 let ROOM_CODE = null;
 
-// ── Timezone utilities (identical to room-manager.html) ──────────────────────
+// ============================================
+// SECURITY: Player Token Management
+// ============================================
+
+// Generate or retrieve player token for security verification
+function getPlayerToken() {
+    let token = localStorage.getItem('sp_player_token');
+    if (!token) {
+        // Generate a secure UUID v4 compatible token
+        token = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+        localStorage.setItem('sp_player_token', token);
+    }
+    return token;
+}
+
+// Clear player session (logout)
+function clearPlayerSession() {
+    localStorage.removeItem('sp_player_token');
+    localStorage.removeItem('sp_player_id');
+    localStorage.removeItem('sp_session_id');
+    localStorage.removeItem('sp_player');
+}
+
+// ── Timezone utilities ──────────────────────
 function getUserTimezone() {
   return Intl.DateTimeFormat().resolvedOptions().timeZone;
 }
@@ -546,12 +572,10 @@ function getTimezoneOffset() {
   const sign = offset <= 0 ? '+' : '-';
   return `${sign}${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
 }
-// Convert UTC timestamp → local Date object  (same as room-manager UTCToLocal)
 function UTCToLocal(utcDate) {
   const date = new Date(utcDate);
   return new Date(date.getTime() + (date.getTimezoneOffset() * 60000));
 }
-// Format a local Date for display  (same as room-manager formatLocalDate)
 function formatLocalDate(date) {
   return date.toLocaleString(undefined, {
     year: 'numeric', month: 'short', day: 'numeric',
@@ -595,10 +619,9 @@ async function checkRoomStatus(roomCode) {
       .maybeSingle();
     if (error || !session) return { available: false, reason: '❌ Room not found. Please check the code.' };
     if (session.status === 'scheduled') {
-      const scheduledDate = new Date(session.scheduled_date); // raw UTC
+      const scheduledDate = new Date(session.scheduled_date);
       const now = new Date();
       if (scheduledDate > now) {
-        // Convert UTC → local using same method as room-manager
         const localDate = UTCToLocal(session.scheduled_date);
         const formattedDate = formatLocalDate(localDate);
         const tz = getUserTimezone();
@@ -627,6 +650,7 @@ function updateConnectionStatus(connected, message) {
     text.innerText = message || 'Reconnecting...';
   }
 }
+
 async function checkConnection() {
   try {
     const { error } = await sb.from('game_sessions').select('id').limit(1);
@@ -642,6 +666,9 @@ async function checkConnection() {
   }
 }
 
+// ============================================
+// MAIN JOIN FUNCTION with Token Security
+// ============================================
 async function joinGame() {
   const roomCode = document.getElementById('roomInput').value.trim().toUpperCase();
   const playerName = document.getElementById('nameInput').value.trim();
@@ -666,7 +693,7 @@ async function joinGame() {
   
   const isActive = await checkGameStatus();
   if (!isActive) {
-    showError('⏳ The game has not been activated yet. Please wait for the admin to start the game. You can try again later.');
+    showError('⏳ The game has not been activated yet. Please wait for the admin to start the game.');
     joinBtn.disabled = false;
     joinBtn.innerText = '🚀 Join Game';
     return;
@@ -675,12 +702,17 @@ async function joinGame() {
   joinBtn.innerText = 'Joining...';
   
   try {
+    // Get or generate player token
+    const playerToken = getPlayerToken();
+    
+    // Check if name already taken
     const { data: existing } = await sb
       .from('players')
       .select('id')
       .eq('session_id', SESSION_ID)
       .eq('name', playerName)
       .maybeSingle();
+      
     if (existing) {
       showError('Name already taken in this room');
       joinBtn.disabled = false;
@@ -688,37 +720,53 @@ async function joinGame() {
       return;
     }
     
+    // Create new player with token
     const { data: player, error: playerError } = await sb
       .from('players')
       .insert({
         session_id: SESSION_ID,
         name: playerName,
         avatar_color: selectedAvatar,
+        player_token: playerToken,  // SECURITY: Store token
         score: 0,
         correct_count: 0,
         current_q_index: 0
       })
       .select()
       .single();
+      
     if (playerError) {
-      showError('Could not join: ' + playerError.message);
+      if (playerError.code === '23505') { // Unique violation
+        showError('Name already taken in this room');
+      } else {
+        showError('Could not join: ' + playerError.message);
+      }
       joinBtn.disabled = false;
       joinBtn.innerText = '🚀 Join Game';
       return;
     }
     
     myPlayer = player;
-    localStorage.setItem('sp_player', JSON.stringify({ id: myPlayer.id, session: SESSION_ID, name: playerName, avatar: selectedAvatar }));
     
+    // Store player info with token
+    localStorage.setItem('sp_player', JSON.stringify({ 
+      id: myPlayer.id, 
+      session: SESSION_ID, 
+      name: playerName, 
+      avatar: selectedAvatar 
+    }));
+    localStorage.setItem('sp_player_id', myPlayer.id);
+    localStorage.setItem('sp_session_id', SESSION_ID);
+    
+    // Load questions
     const { data: qs, error: qError } = await sb
       .from('questions')
       .select('*')
       .eq('session_id', SESSION_ID)
       .order('created_at');
-    if (qError) {
-      showError('Error loading questions');
-      return;
-    }
+      
+    if (qError) throw qError;
+    
     questions = qs || [];
     if (questions.length === 0) {
       showError('No questions available. Please wait for admin to add questions.');
@@ -737,6 +785,7 @@ async function joinGame() {
   } catch (err) {
     console.error('Join error:', err);
     showError('Connection error. Please try again.');
+    clearPlayerSession();
   } finally {
     joinBtn.disabled = false;
     joinBtn.innerText = '🚀 Join Game';
@@ -803,46 +852,70 @@ function updateTimerDisplay(remaining) {
   }
 }
 
+// ============================================
+// SUBMIT ANSWER with Token Verification
+// ============================================
 async function submitAnswer(selectedIdx) {
   if (answered) return;
   answered = true;
   if (timerInterval) clearInterval(timerInterval);
+  
   const q = questions[currentIndex];
   const isCorrect = (selectedIdx === q.correct_option);
   const elapsed = (Date.now() - questionStartTime) / 1000;
   const basePoints = q.points || 100;
   let pointsEarned = 0;
+  
   if (isCorrect) {
     const speedBonus = Math.max(0.3, Math.min(1.0, 1 - (elapsed / 35)));
     pointsEarned = Math.round(basePoints * speedBonus);
     score += pointsEarned;
     correctCount++;
   }
-  try {
-    await sb.from('players').update({
+  
+  const playerToken = getPlayerToken();
+  const playerId = localStorage.getItem('sp_player_id');
+  
+  // SECURITY: Update player with token verification
+  const { error: updateError } = await sb
+    .from('players')
+    .update({
       score: score,
       correct_count: correctCount,
       current_q_index: currentIndex + 1
-    }).eq('id', myPlayer.id);
-  } catch(e) { console.log('Score update error:', e); }
-  try {
-    await sb.from('answers').insert({
-      session_id: SESSION_ID,
-      question_id: q.id,
-      player_id: myPlayer.id,
-      chosen_option: selectedIdx,
-      is_correct: isCorrect,
-      points_earned: pointsEarned,
-      time_taken_ms: elapsed * 1000
-    });
-  } catch(e) { console.log('Answer save error:', e); }
+    })
+    .eq('id', playerId)
+    .eq('player_token', playerToken);  // Critical: Token verification
+  
+  if (updateError) {
+    console.error('Score update error - possible cheating attempt:', updateError);
+    toast('Session expired. Please refresh the page.', 'error');
+    clearPlayerSession();
+    location.reload();
+    return;
+  }
+  
+  // SECURITY: Save answer with token
+  await sb.from('answers').insert({
+    session_id: SESSION_ID,
+    question_id: q.id,
+    player_id: playerId,
+    chosen_option: selectedIdx,
+    is_correct: isCorrect,
+    points_earned: pointsEarned,
+    time_taken_ms: elapsed * 1000,
+    player_token: playerToken  // Store token with answer
+  }).catch(e => console.log('Answer save error:', e));
+  
   const letters = ['A', 'B', 'C', 'D'];
   const feedbackDiv = document.getElementById('feedback');
   feedbackDiv.classList.remove('hidden');
+  
   if (isCorrect) {
     feedbackDiv.className = 'feedback feedback-correct';
     const bonusText = elapsed < 10 ? ' ⚡ Speed bonus!' : '';
     feedbackDiv.innerHTML = `✅ Correct! +${pointsEarned} points${bonusText}`;
+    // Play success sound
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
       const o = ctx.createOscillator();
@@ -861,6 +934,7 @@ async function submitAnswer(selectedIdx) {
     const correctText = q[`option_${String.fromCharCode(97 + q.correct_option)}`];
     feedbackDiv.innerHTML = `❌ Wrong! Correct answer: ${correctLetter}. ${escapeHtml(correctText)}`;
   }
+  
   document.querySelectorAll('.option-btn').forEach(btn => btn.disabled = true);
   document.getElementById('nextBtn').classList.remove('hidden');
   document.getElementById('scoreDisplay').innerHTML = `${score} pts`;
@@ -874,9 +948,17 @@ async function loadNextQuestion() {
 
 async function completeQuiz() {
   if (timerInterval) clearInterval(timerInterval);
-  try {
-    await sb.from('players').update({ completed: true, completed_at: new Date() }).eq('id', myPlayer.id);
-  } catch(e) {}
+  
+  const playerToken = getPlayerToken();
+  const playerId = localStorage.getItem('sp_player_id');
+  
+  // Mark as completed with token verification
+  await sb.from('players')
+    .update({ completed: true, completed_at: new Date() })
+    .eq('id', playerId)
+    .eq('player_token', playerToken)
+    .catch(e => console.log('Complete update error:', e));
+  
   const accuracy = questions.length > 0 ? Math.round((correctCount / questions.length) * 100) : 0;
   document.getElementById('finalScore').innerText = score;
   document.getElementById('finalCorrect').innerText = `${correctCount}/${questions.length}`;
@@ -889,7 +971,9 @@ async function completeQuiz() {
   
   document.getElementById('quizScreen').classList.add('hidden');
   document.getElementById('completionScreen').classList.remove('hidden');
-}
+
+  // Auto-show congratulatory overlay
+  setTimeout(() => showPrizeClaim(), 1200);
 
 function createConfetti() {
   const confetti = document.createElement('div');
@@ -910,6 +994,10 @@ function showPrizeClaim() {
   document.getElementById('prizeOverlay').classList.remove('hidden');
 }
 
+function showCongratulationsOverlay() {
+  showPrizeClaim();
+}
+
 function closePrizeClaim() {
   document.getElementById('prizeOverlay').classList.add('hidden');
 }
@@ -919,6 +1007,15 @@ function showError(msg) {
   errDiv.innerText = msg;
   setTimeout(() => errDiv.innerText = '', 5000);
 }
+
+function toast(msg, type = 'info') {
+  const toastDiv = document.createElement('div');
+  toastDiv.className = 'toast';
+  toastDiv.innerText = msg;
+  document.body.appendChild(toastDiv);
+  setTimeout(() => toastDiv.remove(), 3000);
+}
+
 function setupRealtime() {
   if (realtimeChannel) try { sb.removeChannel(realtimeChannel); } catch(e) {}
   realtimeChannel = sb.channel(`player-${myPlayer.id}`);
@@ -933,63 +1030,140 @@ function setupRealtime() {
     })
     .subscribe();
 }
-function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;'); }
 
-async function autoRejoin() {
-  const saved = localStorage.getItem('sp_player');
-  if (!saved) return;
-  try {
-    const data = JSON.parse(saved);
-    const { data: player, error } = await sb.from('players').select('*').eq('id', data.id).maybeSingle();
-    if (error || !player) { localStorage.removeItem('sp_player'); return; }
-    if (player.is_eliminated) { localStorage.removeItem('sp_player'); return; }
-    myPlayer = player;
-    SESSION_ID = player.session_id;
-    score = player.score || 0;
-    correctCount = player.correct_count || 0;
-    selectedAvatar = player.avatar_color || '😎';
-    const savedIndex = player.current_q_index || 0;
-    const { data: session } = await sb.from('game_sessions').select('room_code').eq('id', SESSION_ID).single();
-    if (session) ROOM_CODE = session.room_code;
-    const { data: qs } = await sb.from('questions').select('*').eq('session_id', SESSION_ID).order('created_at');
-    questions = qs || [];
-    if (questions.length === 0) return;
-    document.getElementById('playerAvatar').innerText = selectedAvatar;
-    document.getElementById('playerName').innerText = player.name;
-    if (player.completed === true || savedIndex >= questions.length) {
-      const accuracy = questions.length > 0 ? Math.round((player.correct_count / questions.length) * 100) : 0;
-      document.getElementById('finalScore').innerText = player.score || 0;
-      document.getElementById('finalCorrect').innerText = `${player.correct_count || 0}/${questions.length}`;
-      document.getElementById('finalAccuracy').innerText = `${accuracy}%`;
-      document.getElementById('joinScreen').classList.add('hidden');
-      document.getElementById('completionScreen').classList.remove('hidden');
-      for (let i = 0; i < 50; i++) setTimeout(() => createConfetti(), i * 30);
-    } else if (savedIndex > 0) {
-      document.getElementById('joinScreen').classList.add('hidden');
-      document.getElementById('startScreen').classList.remove('hidden');
-      document.getElementById('startTotalQuestions').innerHTML = `${questions.length}<span style="font-size: 14px;"> (Resume from Q${savedIndex + 1})</span>`;
-      const startBtn = document.querySelector('#startScreen .start-btn');
-      startBtn.innerHTML = '▶️ RESUME QUIZ →';
-    } else {
-      document.getElementById('joinScreen').classList.add('hidden');
-      document.getElementById('startScreen').classList.remove('hidden');
-      document.getElementById('startTotalQuestions').innerText = questions.length;
-    }
-    setupRealtime();
-    updateConnectionStatus(true, 'Connected');
-  } catch(e) { console.log('Auto-rejoin failed:', e); localStorage.removeItem('sp_player'); }
+function escapeHtml(str) { 
+  if (!str) return ''; 
+  return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;'); 
 }
 
+// ============================================
+// AUTO REJOIN with Token Verification
+// ============================================
+async function autoRejoin() {
+  const playerToken = getPlayerToken();
+  const playerId = localStorage.getItem('sp_player_id');
+  const sessionId = localStorage.getItem('sp_session_id');
+  
+  if (!playerToken || !playerId || !sessionId) {
+    // Try old format for backward compatibility
+    const saved = localStorage.getItem('sp_player');
+    if (saved) {
+      try {
+        const data = JSON.parse(saved);
+        const { data: player, error } = await sb
+          .from('players')
+          .select('*')
+          .eq('id', data.id)
+          .maybeSingle();
+        if (!error && player) {
+          // Migrate to new token system
+          const newToken = getPlayerToken();
+          await sb.from('players')
+            .update({ player_token: newToken })
+            .eq('id', player.id);
+          myPlayer = player;
+          SESSION_ID = player.session_id;
+          score = player.score || 0;
+          correctCount = player.correct_count || 0;
+          selectedAvatar = player.avatar_color || '😎';
+          localStorage.setItem('sp_player_id', player.id);
+          localStorage.setItem('sp_session_id', player.session_id);
+          await loadQuestionsAndResume();
+          return;
+        }
+      } catch(e) {}
+    }
+    return;
+  }
+  
+  // Verify player with token
+  const { data: player, error } = await sb
+    .from('players')
+    .select('*')
+    .eq('id', playerId)
+    .eq('player_token', playerToken)
+    .maybeSingle();
+  
+  if (error || !player) {
+    console.log('Auto-rejoin failed: invalid token');
+    clearPlayerSession();
+    return;
+  }
+  
+  if (player.is_eliminated) {
+    clearPlayerSession();
+    return;
+  }
+  
+  myPlayer = player;
+  SESSION_ID = player.session_id;
+  score = player.score || 0;
+  correctCount = player.correct_count || 0;
+  selectedAvatar = player.avatar_color || '😎';
+  
+  await loadQuestionsAndResume();
+}
+
+async function loadQuestionsAndResume() {
+  const { data: session } = await sb
+    .from('game_sessions')
+    .select('room_code')
+    .eq('id', SESSION_ID)
+    .single();
+  if (session) ROOM_CODE = session.room_code;
+  
+  const { data: qs } = await sb
+    .from('questions')
+    .select('*')
+    .eq('session_id', SESSION_ID)
+    .order('created_at');
+  questions = qs || [];
+  
+  if (questions.length === 0) return;
+  
+  document.getElementById('playerAvatar').innerText = selectedAvatar;
+  document.getElementById('playerName').innerText = myPlayer.name;
+  
+  const savedIndex = myPlayer.current_q_index || 0;
+  
+  if (myPlayer.completed === true || savedIndex >= questions.length) {
+    const accuracy = questions.length > 0 ? Math.round((myPlayer.correct_count / questions.length) * 100) : 0;
+    document.getElementById('finalScore').innerText = myPlayer.score || 0;
+    document.getElementById('finalCorrect').innerText = `${myPlayer.correct_count || 0}/${questions.length}`;
+    document.getElementById('finalAccuracy').innerText = `${accuracy}%`;
+    document.getElementById('joinScreen').classList.add('hidden');
+    document.getElementById('completionScreen').classList.remove('hidden');
+    for (let i = 0; i < 50; i++) setTimeout(() => createConfetti(), i * 30);
+  } else if (savedIndex > 0) {
+    document.getElementById('joinScreen').classList.add('hidden');
+    document.getElementById('startScreen').classList.remove('hidden');
+    document.getElementById('startTotalQuestions').innerHTML = `${questions.length}<span style="font-size: 14px;"> (Resume from Q${savedIndex + 1})</span>`;
+    const startBtn = document.querySelector('#startScreen .start-btn');
+    startBtn.innerHTML = '▶️ RESUME QUIZ →';
+  } else {
+    document.getElementById('joinScreen').classList.add('hidden');
+    document.getElementById('startScreen').classList.remove('hidden');
+    document.getElementById('startTotalQuestions').innerText = questions.length;
+  }
+  
+  setupRealtime();
+  updateConnectionStatus(true, 'Connected');
+}
+
+// Initialize
 buildAvatarGrid();
 selectAvatar(document.querySelector('.avatar-opt'), '😎');
 displayTimezoneInfo();
+
 const urlParams = new URLSearchParams(window.location.search);
 const roomFromUrl = urlParams.get('room');
 if (roomFromUrl) document.getElementById('roomInput').value = roomFromUrl.toUpperCase();
+
 autoRejoin();
 setInterval(checkConnection, 5000);
 checkConnection();
 
+// Expose functions globally
 window.joinGame = joinGame;
 window.selectAvatar = selectAvatar;
 window.submitAnswer = submitAnswer;
