@@ -468,7 +468,7 @@
     </div>
   </div>
   
-  <!-- COMPLETION SCREEN: Mobile-friendly + Prize Claim -->
+  <!-- COMPLETION SCREEN: Mobile-friendly -->
   <div id="completionScreen" class="hidden">
     <div class="completion-card">
       <div class="completion-icon">🎉</div>
@@ -491,7 +491,6 @@
       <div style="margin-top: 12px; font-size: clamp(12px,3.5vw,14px); color: rgba(255,255,255,0.5);">
         ✨ You've completed the quiz ✨
       </div>
-
     </div>
   </div>
 
@@ -503,7 +502,10 @@
       <div class="prize-popup-score" id="prizeScoreInfo">Score: 0 pts</div>
       <div class="prize-popup-body">
         🌟 Well done and thank you for joining the game!<br><br>
-        A <strong style="color:#fbbf24;">Final Round</strong> will commence in a moment — stay tuned and get ready!
+        <div style="background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.4); border-radius: 14px; padding: 14px 16px; margin: 8px 0 12px;">
+          🏆 <strong style="color:#fbbf24; font-size: 1.05em;">Only the TOP 5 Players</strong> on the leaderboard will advance to the <strong style="color:#fbbf24;">Final Round!</strong>
+        </div>
+        A Final Round will commence in a moment — stay tuned and see if you made the cut!
       </div>
       <button class="prize-popup-close" onclick="closePrizeClaim()">✅ Got it — Close</button>
     </div>
@@ -972,7 +974,6 @@ async function completeQuiz() {
   
   document.getElementById('quizScreen').classList.add('hidden');
   document.getElementById('completionScreen').classList.remove('hidden');
-  setTimeout(() => showPrizeClaim(), 1200);
 }
 
 function createConfetti() {
