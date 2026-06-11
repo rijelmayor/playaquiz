@@ -876,15 +876,13 @@ function submitAnswer(selectedIdx) {
     correctCount++;
   }
 
-  // Show feedback immediately — no await, UI never blocks
+  // Show feedback immediately — UI never waits on network
   const letters = ['A', 'B', 'C', 'D'];
   const feedbackDiv = document.getElementById('feedback');
   feedbackDiv.classList.remove('hidden');
-
   if (isCorrect) {
     feedbackDiv.className = 'feedback feedback-correct';
-    const bonusText = elapsed < 10 ? ' ⚡ Speed bonus!' : '';
-    feedbackDiv.innerHTML = `✅ Correct! +${pointsEarned} points${bonusText}`;
+    feedbackDiv.innerHTML = `✅ Correct! +${pointsEarned} points${elapsed < 10 ? ' ⚡ Speed bonus!' : ''}`;
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
       const o = ctx.createOscillator(); const g = ctx.createGain();
@@ -895,16 +893,13 @@ function submitAnswer(selectedIdx) {
     } catch(e) {}
   } else {
     feedbackDiv.className = 'feedback feedback-wrong';
-    const correctLetter = letters[q.correct_option];
-    const correctText = q[`option_${String.fromCharCode(97 + q.correct_option)}`];
-    feedbackDiv.innerHTML = `❌ Wrong! Correct answer: ${correctLetter}. ${escapeHtml(correctText)}`;
+    feedbackDiv.innerHTML = `❌ Wrong! Correct answer: ${letters[q.correct_option]}. ${escapeHtml(q['option_' + String.fromCharCode(97 + q.correct_option)])}`;
   }
-
   document.querySelectorAll('.option-btn').forEach(btn => btn.disabled = true);
   document.getElementById('nextBtn').classList.remove('hidden');
   document.getElementById('scoreDisplay').innerHTML = `${score} pts`;
 
-  // Fire-and-forget DB saves — nothing blocks the UI
+  // Fire-and-forget — nothing blocks the UI
   const playerId = localStorage.getItem('sp_player_id');
   sb.from('players').update({ score, correct_count: correctCount, current_q_index: currentIndex + 1 })
     .eq('id', playerId).then(() => {}).catch(() => {});
@@ -915,37 +910,29 @@ function submitAnswer(selectedIdx) {
   }).then(() => {}).catch(() => {});
 }
 
-async function loadNextQuestion() {
+function loadNextQuestion() {
   currentIndex++;
-  if (currentIndex < questions.length) await loadQuestion(currentIndex);
-  else await completeQuiz();
+  if (currentIndex < questions.length) loadQuestion(currentIndex);
+  else completeQuiz();
 }
 
-async function completeQuiz() {
+function completeQuiz() {
   if (timerInterval) clearInterval(timerInterval);
-  
-  const playerToken = getPlayerToken();
-  const playerId = localStorage.getItem('sp_player_id');
-  
-  // Mark as completed with token verification
-  await sb.from('players')
-    .update({ completed: true, completed_at: new Date() })
-    .eq('id', playerId)
-    .catch(e => console.log('Complete update error:', e));
-  
+
+  // Show completion screen instantly — no awaiting network
   const accuracy = questions.length > 0 ? Math.round((correctCount / questions.length) * 100) : 0;
   document.getElementById('finalScore').innerText = score;
   document.getElementById('finalCorrect').innerText = `${correctCount}/${questions.length}`;
   document.getElementById('finalAccuracy').innerText = `${accuracy}%`;
-  
-  // Trigger confetti animation
-  for (let i = 0; i < 100; i++) {
-    setTimeout(() => createConfetti(), i * 30);
-  }
-  
   document.getElementById('quizScreen').classList.add('hidden');
   document.getElementById('completionScreen').classList.remove('hidden');
+  for (let i = 0; i < 100; i++) setTimeout(() => createConfetti(), i * 30);
   setTimeout(() => showPrizeClaim(), 1200);
+
+  // Fire-and-forget DB update
+  const playerId = localStorage.getItem('sp_player_id');
+  sb.from('players').update({ completed: true, completed_at: new Date() })
+    .eq('id', playerId).then(() => {}).catch(() => {});
 }
 
 function createConfetti() {
