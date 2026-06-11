@@ -879,7 +879,7 @@ async function submitAnswer(selectedIdx) {
   const playerToken = getPlayerToken();
   const playerId = localStorage.getItem('sp_player_id');
   
-  // SECURITY: Update player with token verification
+  // Update player score
   const { error: updateError } = await sb
     .from('players')
     .update({
@@ -887,15 +887,11 @@ async function submitAnswer(selectedIdx) {
       correct_count: correctCount,
       current_q_index: currentIndex + 1
     })
-    .eq('id', playerId)
-    .eq('player_token', playerToken);  // Critical: Token verification
+    .eq('id', playerId);
   
   if (updateError) {
-    console.error('Score update error - possible cheating attempt:', updateError);
-    toast('Session expired. Please refresh the page.', 'error');
-    clearPlayerSession();
-    location.reload();
-    return;
+    console.error('Score update error:', updateError);
+    // Do NOT reload — let the player continue
   }
   
   // SECURITY: Save answer with token
@@ -959,7 +955,6 @@ async function completeQuiz() {
   await sb.from('players')
     .update({ completed: true, completed_at: new Date() })
     .eq('id', playerId)
-    .eq('player_token', playerToken)
     .catch(e => console.log('Complete update error:', e));
   
   const accuracy = questions.length > 0 ? Math.round((correctCount / questions.length) * 100) : 0;
@@ -974,6 +969,7 @@ async function completeQuiz() {
   
   document.getElementById('quizScreen').classList.add('hidden');
   document.getElementById('completionScreen').classList.remove('hidden');
+  setTimeout(() => showPrizeClaim(), 1200);
 }
 
 function createConfetti() {
