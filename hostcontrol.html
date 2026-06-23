@@ -821,8 +821,8 @@
       #panel-game > .card:nth-child(2) { grid-column: 2; grid-row: 1; }
       #panel-game > .buzz-banner { grid-column: 1 / -1; grid-row: 2; }
       #panel-game > .btn-grid-2 { grid-column: 1 / -1; grid-row: 3; }
-      #panel-game > .card:nth-child(5) { grid-column: 1; grid-row: 4; }
-      #panel-game > .btn.btn-ghost.btn-md.btn-full { grid-column: 2; grid-row: 4; align-self: center; }
+      #panel-game > #revealBtn { grid-column: 1 / -1; grid-row: 4; }
+      #panel-game > .card:nth-child(6) { grid-column: 1 / -1; grid-row: 5; }
 
       #correctBtn, #wrongBtn { padding: 18px; font-size: 16px; }
 
@@ -1005,6 +1005,7 @@
         <button class="btn btn-green btn-lg" id="correctBtn" onclick="markCorrect()" disabled>✅ CORRECT</button>
         <button class="btn btn-red btn-lg" id="wrongBtn" onclick="markWrong()" disabled>❌ WRONG</button>
       </div>
+      <button class="btn btn-ghost btn-md btn-full" id="revealBtn" style="margin-top:8px;" onclick="revealAnswer()" disabled title="Nobody can answer — show the correct answer with no credit and move on. Need to credit a specific player instead? Use Force Buzz on the Players tab, then mark Correct.">🛑 Reveal Answer &amp; Skip</button>
       <div class="card">
         <div class="card-hd"><div class="card-hd-title">⏱️ Timer</div></div>
         <div class="card-bd">
@@ -1878,6 +1879,7 @@ function openQuestion() {
   hideBuzzBanner();
   document.getElementById('correctBtn').disabled = true;
   document.getElementById('wrongBtn').disabled = true;
+  document.getElementById('revealBtn').disabled = false;
   
   players.forEach((p, id) => {
     if (!eliminated.has(id)) p.status = 'waiting';
@@ -1923,6 +1925,7 @@ function markCorrect() {
   hideBuzzBanner();
   document.getElementById('correctBtn').disabled = true;
   document.getElementById('wrongBtn').disabled = true;
+  document.getElementById('revealBtn').disabled = true;
   broadcast('correct', {
     playerId: buzzedId,
     playerName: player?.name,
@@ -1965,6 +1968,34 @@ function markWrong() {
   }
 }
 
+function revealAnswer() {
+  if (!selectedQ) return;
+  if (!confirm('Nobody answered correctly? This reveals the correct answer with no points awarded and moves to the next question.')) return;
+
+  const opts = [selectedQ.option_a, selectedQ.option_b, selectedQ.option_c, selectedQ.option_d];
+  const letters = ['A', 'B', 'C', 'D'];
+  const correctIdx = selectedQ.correct_option;
+
+  hideBuzzBanner();
+  document.getElementById('correctBtn').disabled = true;
+  document.getElementById('wrongBtn').disabled = true;
+  document.getElementById('revealBtn').disabled = true;
+
+  buzzedId = null;
+  isOpen = false;
+  locked.clear();
+  players.forEach((p, id) => { if (!eliminated.has(id)) p.status = 'waiting'; });
+
+  broadcast('question_revealed', {
+    correctLetter: letters[correctIdx],
+    correctText: opts[correctIdx]
+  });
+  broadcast('player_list_update', { players: Array.from(players.values()) });
+  renderAll();
+  toast(`🛑 Answer revealed: ${letters[correctIdx]} — no points awarded`);
+  setTimeout(() => broadcast('reset_for_next_question', {}), 4000);
+}
+
 function startTimer() {
   const seconds = parseInt(document.getElementById('timerInput').value) || 10;
   broadcast('timer_start', { seconds });
@@ -1988,17 +2019,21 @@ function toggleBuzzer() {
 function forceBuzz(playerId) {
   const player = players.get(playerId);
   if (!player || eliminated.has(playerId)) return;
-  if (!isOpen) {
-    toast('Buzzers are not open');
+  if (!selectedQ) {
+    toast('No question is live');
     return;
   }
   if (buzzedId) {
     toast('Someone already buzzed');
     return;
   }
+  // Note: intentionally allowed even when isOpen is false / everyone is locked out.
+  // This is the override path — e.g. a player answered correctly out loud after
+  // being locked out, and the host wants to credit them without a dummy player.
   
   buzzedId = playerId;
   isOpen = false;
+  locked.delete(playerId);
   player.status = 'buzzed';
   players.forEach((p, id) => {
     if (id !== playerId && !eliminated.has(id)) p.status = 'locked';
@@ -2135,6 +2170,7 @@ function resetAllScores() {
   hideBuzzBanner();
   document.getElementById('correctBtn').disabled = true;
   document.getElementById('wrongBtn').disabled = true;
+  document.getElementById('revealBtn').disabled = true;
   broadcast('player_list_update', { players: Array.from(players.values()) });
   renderAll();
   toast('🔄 All scores reset to 0');
@@ -2278,6 +2314,7 @@ function resetLocalState() {
   hideBuzzBanner();
   document.getElementById('correctBtn').disabled = true;
   document.getElementById('wrongBtn').disabled = true;
+  document.getElementById('revealBtn').disabled = true;
   document.getElementById('openBuzzBtn').disabled = true;
   document.getElementById('resetBuzzBtn').disabled = true;
 }
@@ -2411,6 +2448,7 @@ window.openQuestion = openQuestion;
 window.resetBuzzers = resetBuzzers;
 window.markCorrect = markCorrect;
 window.markWrong = markWrong;
+window.revealAnswer = revealAnswer;
 window.randomQuestion = randomQuestion;
 window.startTimer = startTimer;
 window.toggleBuzzer = toggleBuzzer;

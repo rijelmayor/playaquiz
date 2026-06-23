@@ -1205,6 +1205,20 @@ function showWrongOverlay(name) {
   overlayTimer = setTimeout(() => clearOverlay(), 3000);
 }
 
+function showRevealOverlay(letter, text) {
+  if (correctOverlayTimer) { clearTimeout(correctOverlayTimer); correctOverlayTimer = null; }
+  clearOverlay();
+  const div = document.createElement('div');
+  div.className = 'overlay-container';
+  div.innerHTML = `<div class="winner-banner" style="border-color: #ffb020;"><div style="font-size: 64px;">🛑</div><div class="buzz-title" style="color: #ffb020;">NO ONE GOT IT</div><div style="font-size: 22px; margin-top: 16px; font-weight: 700;">Correct answer: ${escapeHtml(letter || '')} — ${escapeHtml(text || '')}</div></div>`;
+  document.getElementById('overlayContainer').appendChild(div);
+  correctOverlayTimer = setTimeout(() => {
+    correctOverlayTimer = null;
+    clearOverlay();
+    showLoadingOverlay('PREPARING CHALLENGE');
+  }, 4000);
+}
+
 function hideRoomCodeOverlay() {
   const el = document.getElementById('roomCodeDisplayOverlay');
   if(el) {
@@ -1409,6 +1423,14 @@ function handleBroadcast(event, payload) {
       const pWrong = cachedPlayers.find(p => p.id === payload.playerId);
       if(pWrong) { pWrong.status = 'wrong'; renderPlayersList(); }
       break;
+    case 'question_revealed':
+      clearOverlay();
+      if (correctDelayTimer) { clearTimeout(correctDelayTimer); correctDelayTimer = null; }
+      playSFX(sfxWrong);
+      showRevealOverlay(payload.correctLetter, payload.correctText);
+      cachedPlayers.forEach(p => { if(p.status !== 'eliminated') p.status = 'waiting'; });
+      renderPlayersList();
+      break;
     case 'reset_buzzers':
       if (correctOverlayTimer) { clearTimeout(correctOverlayTimer); correctOverlayTimer = null; }
       buzzerOpenVisible = false;
@@ -1561,7 +1583,7 @@ function connectToRoom(code) {
   if(realtimeChannel) sb.removeChannel(realtimeChannel);
   startFohRoomValidityPoll();
   realtimeChannel = sb.channel(`fr-${roomCode}`);
-  const events = ['round_started', 'round_countdown', 'player_list_update', 'question_open', 'buzz_confirmed', 'correct', 'wrong', 'reset_for_next_question', 'next_question', 'reset_buzzers', 'buzzers_reopen', 'show_category_picker', 'show_categories', 'show_leaderboard', 'round_ended', 'timer_start', 'full_game_reset', 'foh_hide', 'show_room_code'];
+  const events = ['round_started', 'round_countdown', 'player_list_update', 'question_open', 'buzz_confirmed', 'correct', 'wrong', 'question_revealed', 'reset_for_next_question', 'next_question', 'reset_buzzers', 'buzzers_reopen', 'show_category_picker', 'show_categories', 'show_leaderboard', 'round_ended', 'timer_start', 'full_game_reset', 'foh_hide', 'show_room_code'];
   events.forEach(ev => {
     realtimeChannel.on('broadcast', { event: ev }, ({ payload }) => handleBroadcast(ev, payload));
   });
@@ -1642,6 +1664,30 @@ async function submitFohRoom() {
   connectToRoom(code);
 }
 
+function unlockAudioElement(audio) {
+  // Browsers only allow an <audio>/Audio() element to play programmatically
+  // later in the session if that SAME element was successfully played at least
+  // once during a real user gesture (click/tap). Without this, the very first
+  // playSFX() call triggered by a Supabase Realtime event (not a user gesture)
+  // gets silently rejected by autoplay policy, and our .catch(()=>{}) swallows
+  // the error -- which is why SFX appeared to "not work" with no console error.
+  if(!audio) return;
+  const prevVolume = audio.volume;
+  audio.volume = 0;
+  const p = audio.play();
+  if(p && typeof p.catch === 'function') {
+    p.then(() => {
+      audio.pause();
+      audio.currentTime = 0;
+      audio.volume = prevVolume;
+    }).catch(() => {
+      audio.volume = prevVolume;
+    });
+  } else {
+    audio.volume = prevVolume;
+  }
+}
+
 function init() {
   initBackgroundMusic();
   initSFX();
@@ -1649,6 +1695,7 @@ function init() {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     if(ctx.state === 'suspended') ctx.resume();
     if(bgmAudio && bgmAudio.paused && bgmEnabled) bgmAudio.play().catch(()=>{});
+    [sfxCorrect, sfxWrong, sfxStartQ, sfxWinner, sfxBuzz].forEach(unlockAudioElement);
   }, { once: true });
 }
 

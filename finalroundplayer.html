@@ -867,13 +867,12 @@ function autoDetectFinalRoomFromURL() {
     const roomInput = document.getElementById('roomInput');
     if (roomInput) {
       roomInput.value = roomParam.toUpperCase();
-      // Verify the room and advance to the name step automatically,
-      // but do NOT auto-join — player must still enter their name.
+      // Verify room then advance to name step only — player must still enter their name
       setTimeout(() => {
         if (typeof verifyRoom === 'function') {
           verifyRoom(roomParam.toUpperCase()).then(() => {
             if (roomVerified && typeof goToStep === 'function') {
-              goToStep(2); // skip to name entry step, not straight into the game
+              goToStep(2);
             }
           });
         }
@@ -1381,7 +1380,7 @@ function subscribeChannel() {
     }
 
     ch = sb.channel(`fr-${roomCode}`);
-    const evts = ['round_started','question_open','buzz_confirmed','correct','wrong',
+    const evts = ['round_started','question_open','buzz_confirmed','correct','wrong','question_revealed',
       'next_question','reset_buzzers','reset_for_next_question','buzzers_reopen',
       'buzzer_toggle','eliminated','round_ended','timer_start','state_sync',
       'full_game_reset','player_list_update'];
@@ -1485,6 +1484,15 @@ function handleEvent(event, payload) {
         }
       }
       break;
+    case 'question_revealed':
+      isOpen=false;
+      hideOptions();
+      if(myStatus!=='eliminated'){
+        myStatus='waiting';
+        setStatus(`🛑 No one got it — answer was ${payload.correctLetter || ''}`,'var(--amber)');
+      }
+      updateBuzzerUI();
+      break;
     case 'buzzers_reopen':
       if(myStatus!=='eliminated' && !hasAnsweredWrongThisQuestion){
         isOpen=true;
@@ -1542,14 +1550,28 @@ function handleEvent(event, payload) {
       isOpen=false;
       hideCorrectPlayerOverlay();
       hideOptions();
+      const tied=payload.tied;
       const winner=payload.winner;
-      if(winner&&winner.id===myId){
-        document.getElementById('questionBox').innerHTML='🏆 YOU ARE THE CHAMPION!';
-        setStatus('🏆 CHAMPION!','var(--gold)');
-        launchConfetti();
+      if(tied && tied.length > 1){
+        const iAmTied = tied.some(p => p.id === myId);
+        if(iAmTied){
+          document.getElementById('questionBox').innerHTML='🤝 IT\'S A TIE!';
+          setStatus('🤝 YOU TIED FOR THE TOP!','var(--gold)');
+          launchConfetti();
+        } else {
+          const names = tied.map(p => p.name).join(' & ');
+          document.getElementById('questionBox').innerText=`🤝 Tie: ${names}`;
+          setStatus(`🤝 Tie between ${names}`,'var(--muted)');
+        }
       } else {
-        document.getElementById('questionBox').innerText=`🏆 Winner: ${winner?.name||'?'}`;
-        setStatus(`Winner: ${winner?.name||'?'}`,'var(--muted)');
+        if(winner && winner.id===myId){
+          document.getElementById('questionBox').innerHTML='🏆 YOU ARE THE CHAMPION!';
+          setStatus('🏆 CHAMPION!','var(--gold)');
+          launchConfetti();
+        } else {
+          document.getElementById('questionBox').innerText=`🏆 Winner: ${winner?.name||'?'}`;
+          setStatus(`Winner: ${winner?.name||'?'}`,'var(--muted)');
+        }
       }
       updateBuzzerUI(); 
       break;
