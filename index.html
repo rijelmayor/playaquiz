@@ -285,35 +285,52 @@
     }
 
     async function authenticateGateway() {
-      const u = document.getElementById('usernameField').value.trim();
-      const p = document.getElementById('passwordField').value;
-      const err = document.getElementById('errorMessage');
-      err.textContent = '';
+  const u = document.getElementById('usernameField').value.trim();
+  const p = document.getElementById('passwordField').value;
+  const err = document.getElementById('errorMessage');
+  err.textContent = '';
 
-      if (!u || !p) { err.textContent = 'Identity credentials incomplete.'; return; }
+  if (!u || !p) { err.textContent = 'Identity credentials incomplete.'; return; }
 
-      try {
-        const { data, error } = await sb
-          .from('manager_users')
-          .select('username, role')
-          .eq('username', u)
-          .eq('password_hash', p) // Structured query matching explicit credentials
-          .maybeSingle();
+  try {
+    // PROTOCOL A: Try the new structured table first
+    const { data: userData, error: userError } = await sb
+      .from('manager_users')
+      .select('username, role')
+      .eq('username', u)
+      .eq('password_hash', p)
+      .maybeSingle();
 
-        if (error) throw error;
-
-        if (data) {
-          sessionStorage.setItem('cosmic_token', 'active_verified');
-          sessionStorage.setItem('cosmic_operator', data.username);
-          dispatchNotification('Handshake verified. Access granted.');
-          revealTerminal(data.username);
-        } else {
-          err.textContent = 'Invalid identification matching protocols.';
-        }
-      } catch (ex) {
-        err.textContent = 'Access failed: ' + ex.message;
-      }
+    if (!userError && userData) {
+      sessionStorage.setItem('cosmic_token', 'active_verified');
+      sessionStorage.setItem('cosmic_operator', userData.username);
+      dispatchNotification('Handshake verified via Core Table.');
+      revealTerminal(userData.username);
+      return;
     }
+
+    // PROTOCOL B: Fallback to your legacy app_settings table
+    // This allows access if you haven't run the new SQL migration yet
+    const { data: legacyData, error: legacyError } = await sb
+      .from('app_settings')
+      .select('value')
+      .eq('key', 'master_password')
+      .maybeSingle();
+
+    if (!legacyError && legacyData && p === legacyData.value) {
+      sessionStorage.setItem('cosmic_token', 'active_verified');
+      sessionStorage.setItem('cosmic_operator', u);
+      dispatchNotification('Handshake verified via Legacy Key.');
+      revealTerminal(u);
+      return;
+    }
+
+    // If both protocols yield nothing:
+    err.textContent = 'Invalid identification matching protocols.';
+  } catch (ex) {
+    err.textContent = 'Access failed: ' + ex.message;
+  }
+}
 
     function revealTerminal(user) {
       document.getElementById('authGateway').style.display = 'none';
