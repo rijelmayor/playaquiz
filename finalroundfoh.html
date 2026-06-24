@@ -1086,22 +1086,34 @@ function initBackgroundMusic() {
   bgmAudio = new Audio();
   bgmAudio.src = 'countdownbg.mp3';
   bgmAudio.loop = true;
-  bgmAudio.volume = 0.25;
+  bgmAudio.volume = 0.07;
   bgmAudio.load();
+}
+
+/* Duck BGM while an SFX is playing, then restore */
+let bgmDuckTimer = null;
+function duckBGM(durationMs) {
+  if (!bgmAudio || bgmAudio.paused) return;
+  if (bgmDuckTimer) clearTimeout(bgmDuckTimer);
+  bgmAudio.volume = 0.02; // near-silent during SFX
+  bgmDuckTimer = setTimeout(() => {
+    if (bgmAudio && bgmEnabled) bgmAudio.volume = 0.07;
+    bgmDuckTimer = null;
+  }, durationMs);
 }
 function playBackgroundMusic() { if(bgmAudio && bgmEnabled) bgmAudio.play().catch(()=>{}); }
 function stopBackgroundMusic() { if(bgmAudio) { bgmAudio.pause(); bgmAudio.currentTime = 0; } }
 function toggleBackgroundMusic() {
   if(!bgmAudio) initBackgroundMusic();
   const btn = document.getElementById('bgmToggleBtn');
-  if(bgmAudio.paused) { bgmAudio.play().catch(()=>{}); bgmEnabled = true; btn.innerHTML = '🔊 BGM'; }
+  if(bgmAudio.paused) { bgmAudio.volume = 0.07; bgmAudio.play().catch(()=>{}); bgmEnabled = true; btn.innerHTML = '🔊 BGM'; }
   else { bgmAudio.pause(); bgmEnabled = false; btn.innerHTML = '🔇 BGM'; }
 }
 
 function initSFX() {
-  sfxCorrect = new Audio('correct.mp3'); sfxCorrect.preload = 'auto'; sfxCorrect.volume = 0.9;
-  sfxWrong   = new Audio('wrong.mp3');   sfxWrong.preload   = 'auto'; sfxWrong.volume   = 0.9;
-  sfxStartQ  = new Audio('startq.mp3');  sfxStartQ.preload  = 'auto'; sfxStartQ.volume  = 0.85;
+  sfxCorrect = new Audio('correct.mp3'); sfxCorrect.preload = 'auto'; sfxCorrect.volume = 1.0;
+  sfxWrong   = new Audio('wrong.mp3');   sfxWrong.preload   = 'auto'; sfxWrong.volume   = 1.0;
+  sfxStartQ  = new Audio('startq.mp3');  sfxStartQ.preload  = 'auto'; sfxStartQ.volume  = 1.0;
   sfxWinner  = new Audio('winner.mp3');  sfxWinner.preload  = 'auto'; sfxWinner.volume  = 1.0;
   sfxBuzz    = new Audio('buzz.mp3');    sfxBuzz.preload    = 'auto'; sfxBuzz.volume    = 1.0;
 }
@@ -1109,6 +1121,50 @@ function initSFX() {
 function playSFX(sfx) {
   if(!sfx) return;
   try { sfx.currentTime = 0; sfx.play().catch(()=>{}); } catch(e) {}
+  duckBGM(sfx === sfxWrong ? 2500 : sfx === sfxCorrect ? 3000 : sfx === sfxWinner ? 5000 : 2000);
+}
+
+/* Synthesized loud wrong buzzer — layered on top of wrong.mp3 for impact */
+function playWrongBuzzer() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (ctx.state === 'suspended') ctx.resume();
+    const now = ctx.currentTime;
+
+    // Low harsh descending buzz
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.type = 'sawtooth';
+    osc1.frequency.setValueAtTime(220, now);
+    osc1.frequency.exponentialRampToValueAtTime(80, now + 0.6);
+    gain1.gain.setValueAtTime(0.55, now);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.65);
+    osc1.connect(gain1); gain1.connect(ctx.destination);
+    osc1.start(now); osc1.stop(now + 0.65);
+
+    // Harsh mid buzz for texture
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = 'square';
+    osc2.frequency.setValueAtTime(180, now);
+    osc2.frequency.exponentialRampToValueAtTime(60, now + 0.5);
+    gain2.gain.setValueAtTime(0.4, now);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+    osc2.connect(gain2); gain2.connect(ctx.destination);
+    osc2.start(now); osc2.stop(now + 0.55);
+
+    // Short thud punch at the start
+    const oscThud = ctx.createOscillator();
+    const gainThud = ctx.createGain();
+    oscThud.type = 'sine';
+    oscThud.frequency.setValueAtTime(100, now);
+    oscThud.frequency.exponentialRampToValueAtTime(40, now + 0.18);
+    gainThud.gain.setValueAtTime(0.7, now);
+    gainThud.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+    oscThud.connect(gainThud); gainThud.connect(ctx.destination);
+    oscThud.start(now); oscThud.stop(now + 0.2);
+
+  } catch(e) {}
 }
 
 function playTickTock(totalSeconds) {
@@ -1419,6 +1475,7 @@ function handleBroadcast(event, payload) {
     case 'wrong':
       clearOverlay();
       playSFX(sfxWrong);
+      playWrongBuzzer();
       showWrongOverlay(payload.playerName);
       const pWrong = cachedPlayers.find(p => p.id === payload.playerId);
       if(pWrong) { pWrong.status = 'wrong'; renderPlayersList(); }
@@ -1427,6 +1484,7 @@ function handleBroadcast(event, payload) {
       clearOverlay();
       if (correctDelayTimer) { clearTimeout(correctDelayTimer); correctDelayTimer = null; }
       playSFX(sfxWrong);
+      playWrongBuzzer();
       showRevealOverlay(payload.correctLetter, payload.correctText);
       cachedPlayers.forEach(p => { if(p.status !== 'eliminated') p.status = 'waiting'; });
       renderPlayersList();
