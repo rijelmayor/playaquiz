@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://*.supabase.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net; img-src 'self' data: https: api.qrserver.com; font-src 'self' https://fonts.gstatic.com;">
-  <title>PlayAQuiz — Cosmic Gateway</title>
+  <title>PlayAQuiz — Solar Gateway Array</title>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&family=Bebas+Neue&display=swap" rel="stylesheet">
   <link rel="icon" href="data:,">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -13,17 +13,15 @@
     *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
 
     :root {
-      --bg: #020408;
-      --nebula-purple: rgba(124, 58, 237, 0.12);
-      --nebula-blue: rgba(29, 78, 216, 0.12);
-      --glass-bg: rgba(8, 12, 24, 0.75);
-      --glass-border: rgba(255, 255, 255, 0.07);
-      --glass-glow: rgba(59, 130, 246, 0.15);
-      --text: #e2e8f0;
-      --text-muted: #64748b;
+      --bg: #020308;
+      --solar-amber: #ff9f1c;
+      --nova-gold: #ffd166;
+      --nebula-deep: #0f142c;
+      --glass-bg: rgba(10, 15, 35, 0.65);
+      --glass-border: rgba(255, 255, 255, 0.06);
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
       --accent-blue: #3b82f6;
-      --accent-purple: #a78bfa;
-      --accent-green: #10b981;
     }
 
     body {
@@ -38,113 +36,137 @@
       justify-content: center;
     }
 
-    /* Animated Cosmic Atmosphere */
+    /* Cosmic Canvas & Starfield Layers */
     .universe-bg {
+      position: fixed; inset: 0; z-index: -3;
+      background: radial-gradient(circle at 50% 50%, var(--nebula-deep) 0%, #020308 100%);
+    }
+    .star-layer-1 {
       position: fixed; inset: 0; z-index: -2;
-      background: radial-gradient(circle at 15% 25%, var(--nebula-purple) 0%, transparent 45%),
-                  radial-gradient(circle at 85% 75%, var(--nebula-blue) 0%, transparent 45%),
-                  #020408;
+      background-image: radial-gradient(white, rgba(255,255,255,.1) 1px, transparent 20px);
+      background-size: 300px 300px;
+      opacity: 0.3;
+      animation: drift 140s linear infinite;
     }
-    .stars {
-      position: fixed; inset: 0; z-index: -1;
-      background-image: radial-gradient(white, rgba(255,255,255,.15) 1px, transparent 30px);
-      background-size: 450px 450px;
-      opacity: 0.35;
-      animation: orbit 180s linear infinite;
+    .star-layer-2 {
+      position: fixed; inset: 0; z-index: -2;
+      background-image: radial-gradient(rgba(255, 209, 102, 0.8), transparent 2px);
+      background-size: 400px 400px;
+      opacity: 0.2;
+      animation: drift 90s linear infinite reverse;
     }
-    @keyframes orbit { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+    @keyframes drift { from { transform: translateY(0px) rotate(0deg); } to { transform: translateY(-400px) rotate(360deg); } }
 
-    /* Core Glassmorphism Template */
+    /* Interactive Mouse Tracker (Solar Flare Effect) */
+    .solar-luminary {
+      position: fixed;
+      width: 450px; height: 450px;
+      background: radial-gradient(circle, rgba(255, 159, 28, 0.18) 0%, rgba(255, 209, 102, 0.05) 45%, transparent 70%);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: -1;
+      transform: translate(-50%, -50%);
+      transition: width 0.2s, height 0.2s;
+      mix-blend-mode: screen;
+    }
+
+    /* Advanced Glassmorphism Construction */
     .glass-card {
       background: var(--glass-bg);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
+      backdrop-filter: blur(25px) saturate(160%);
+      -webkit-backdrop-filter: blur(25px) saturate(160%);
       border: 1px solid var(--glass-border);
       border-radius: 24px;
-      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255,255,255,0.1);
-      transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 30px 70px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255,255,255,0.08);
+      transform-style: preserve-3d;
+      transition: border-color 0.5s, box-shadow 0.5s, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     }
     .glass-card:hover {
-      border-color: rgba(59, 130, 246, 0.25);
-      box-shadow: 0 35px 70px rgba(0, 0, 0, 0.7), 0 0 50px var(--glass-glow);
+      border-color: rgba(255, 159, 28, 0.35);
+      box-shadow: 0 40px 90px rgba(0, 0, 0, 0.8), 0 0 40px rgba(255, 159, 28, 0.15);
     }
 
-    /* Authentication Form Wrapper */
+    /* Auth Panel Form Styles */
     .gateway-container { width: min(420px, 92vw); padding: 50px 36px; text-align: center; }
-    .logo-container { margin-bottom: 36px; }
+    .logo-container { margin-bottom: 36px; position: relative; }
     .logo {
-      font-family: 'Bebas Neue', sans-serif; font-size: 56px; letter-spacing: 2px;
-      background: linear-gradient(135deg, #fff 40%, var(--accent-blue) 75%, var(--accent-purple) 100%);
+      font-family: 'Bebas Neue', sans-serif; font-size: 58px; letter-spacing: 3px;
+      background: linear-gradient(135deg, #fff 30%, var(--solar-amber) 75%, var(--nova-gold) 100%);
       -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      animation: solarPulse 4s ease-in-out infinite alternate;
     }
-    .tagline { font-size: 13px; color: var(--text-muted); margin-top: -4px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px; }
+    @keyframes solarPulse { from { filter: drop-shadow(0 0 2px rgba(255,159,28,0)); } to { filter: drop-shadow(0 0 12px rgba(255,159,28,0.4)); } }
+    .tagline { font-size: 11px; color: var(--solar-amber); margin-top: -2px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; }
 
-    /* Forms Elements */
     .input-group { margin-bottom: 22px; text-align: left; }
-    .input-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 7px; }
+    .input-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-muted); margin-bottom: 7px; }
     .input-field {
-      width: 100%; background: rgba(3, 5, 10, 0.7); border: 1px solid var(--glass-border);
+      width: 100%; background: rgba(2, 4, 10, 0.75); border: 1px solid var(--glass-border);
       border-radius: 12px; padding: 14px 16px; font-size: 15px; color: #fff;
       transition: all 0.25s; font-family: 'Space Grotesk', sans-serif;
     }
-    .input-field:focus { outline: none; border-color: var(--accent-blue); box-shadow: 0 0 14px rgba(59, 130, 246, 0.25); }
+    .input-field:focus { outline: none; border-color: var(--solar-amber); box-shadow: 0 0 14px rgba(255, 159, 28, 0.25); }
 
-    /* Functional Interactive Buttons */
     .btn-cosmic {
-      width: 100%; padding: 15px; background: linear-gradient(135deg, var(--accent-blue), #1d4ed8);
-      border: none; border-radius: 12px; color: white; font-size: 15px; font-weight: 700;
+      width: 100%; padding: 15px; background: linear-gradient(135deg, var(--solar-amber), #d97706);
+      border: none; border-radius: 12px; color: #020308; font-size: 15px; font-weight: 800;
       cursor: pointer; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); margin-top: 8px;
+      text-transform: uppercase; letter-spacing: 1px;
     }
-    .btn-cosmic:hover { transform: translateY(-2px); filter: brightness(1.15); box-shadow: 0 10px 25px rgba(59, 130, 246, 0.4); }
-    .error-msg { color: #f87171; font-size: 13px; margin-top: 16px; min-height: 18px; font-weight: 500; }
+    .btn-cosmic:hover { transform: translateY(-2px); filter: brightness(1.1); box-shadow: 0 10px 25px rgba(255, 159, 28, 0.35); }
+    .error-msg { color: #ef4444; font-size: 13px; margin-top: 16px; min-height: 18px; font-weight: 500; }
 
-    /* Hub Operations Dashboard Terminal */
-    .dashboard-container { display: none; width: min(1080px, 95vw); padding: 44px; animation: warpIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-    @keyframes warpIn { from { opacity:0; transform: scale(0.97) translateY(12px); } to { opacity:1; transform: scale(1) translateY(0); } }
+    /* Grid Array Terminal */
+    .dashboard-container { display: none; width: min(1140px, 95vw); padding: 48px; animation: superWarp 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes superWarp { from { opacity:0; transform: scale(0.95) translateY(20px); filter: blur(5px); } to { opacity:1; transform: scale(1) translateY(0); filter: blur(0); } }
     
-    .dash-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--glass-border); padding-bottom: 26px; margin-bottom: 36px; }
-    .user-pill { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.05); padding: 6px 16px; border-radius: 30px; font-size: 13px; font-weight: 600; }
+    .dash-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--glass-border); padding-bottom: 28px; margin-bottom: 40px; }
+    .user-pill { display: flex; align-items: center; gap: 8px; background: rgba(255, 159, 28, 0.08); border: 1px solid rgba(255, 159, 28, 0.2); padding: 6px 16px; border-radius: 30px; font-size: 13px; font-weight: 600; color: var(--nova-gold); }
     .btn-logout { background: transparent; border: 1px solid rgba(239, 68, 68, 0.25); color: #f87171; padding: 6px 14px; border-radius: 30px; cursor: pointer; font-size: 12px; font-weight: 600; transition: all 0.2s; }
     .btn-logout:hover { background: rgba(239, 68, 68, 0.12); border-color: rgba(239, 68, 68, 0.5); }
 
-    /* Portal Routing Links Architecture */
-    .portal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 22px; }
-    .portal-card { background: rgba(255,255,255,0.01); border: 1px solid var(--glass-border); border-radius: 16px; padding: 26px; transition: all 0.3s ease; display: flex; flex-direction: column; justify-content: space-between; }
-    .portal-card:hover { background: rgba(255,255,255,0.04); border-color: rgba(167, 139, 250, 0.25); transform: translateY(-4px); }
-    .portal-info h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; color: #fff; letter-spacing: -0.3px; }
-    .portal-info p { font-size: 13px; color: #94a3b8; margin-bottom: 24px; line-height: 1.5; }
+    /* Navigation Core Units */
+    .portal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 24px; }
+    .portal-card { background: rgba(255,255,255,0.01); border: 1px solid var(--glass-border); border-radius: 18px; padding: 28px; transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1); display: flex; flex-direction: column; justify-content: space-between; position: relative; overflow: hidden; }
+    .portal-card::before { content: ''; position: absolute; inset:0; background: radial-gradient(circle at cubic-bezier(0,0,0,0), rgba(255, 159, 28, 0.04), transparent 60%); opacity:0; transition: opacity 0.3s; pointer-events: none; }
+    .portal-card:hover::before { opacity:1; }
+    .portal-card:hover { border-color: rgba(255, 209, 102, 0.2); transform: translateY(-5px) scale(1.01); background: rgba(10, 15, 35, 0.8); }
     
-    .action-row { display: flex; gap: 8px; }
-    .action-btn { flex: 1; padding: 11px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; text-decoration: none; text-align: center; transition: all 0.2s; border: none; }
-    .btn-launch { background: var(--accent-blue); color: white; }
-    .btn-launch:hover { filter: brightness(1.1); }
-    .btn-copy { background: rgba(255,255,255,0.07); color: var(--text); }
-    .btn-copy:hover { background: rgba(255,255,255,0.14); }
-    .btn-qr { background: rgba(167, 139, 250, 0.12); color: var(--accent-purple); }
-    .btn-qr:hover { background: rgba(167, 139, 250, 0.22); }
+    .portal-info h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; color: #fff; letter-spacing: -0.2px; }
+    .portal-info p { font-size: 13px; color: #94a3b8; margin-bottom: 26px; line-height: 1.6; }
+    
+    .action-row { display: flex; gap: 8px; position: relative; z-index: 2; }
+    .action-btn { flex: 1; padding: 12px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; text-decoration: none; text-align: center; transition: all 0.2s; border: none; }
+    .btn-launch { background: linear-gradient(135deg, var(--solar-amber), #d97706); color: #020308; }
+    .btn-launch:hover { filter: brightness(1.15); transform: translateY(-1px); }
+    .btn-copy { background: rgba(255,255,255,0.06); color: var(--text); border: 1px solid rgba(255,255,255,0.04); }
+    .btn-copy:hover { background: rgba(255,255,255,0.12); }
+    .btn-qr { background: rgba(255, 209, 102, 0.08); color: var(--nova-gold); border: 1px solid rgba(255, 209, 102, 0.1); }
+    .btn-qr:hover { background: rgba(255, 209, 102, 0.18); }
 
-    /* System Micro-Modal for QRs */
-    .qr-modal { position: fixed; inset:0; background: rgba(2,4,8,0.85); backdrop-filter: blur(16px); display: flex; align-items: center; justify-content: center; z-index: 100; opacity:0; pointer-events: none; transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+    /* Modals Configuration */
+    .qr-modal { position: fixed; inset:0; background: rgba(2,3,8,0.9); backdrop-filter: blur(20px); display: flex; align-items: center; justify-content: center; z-index: 100; opacity:0; pointer-events: none; transition: opacity 0.4s ease; }
     .qr-modal.active { opacity: 1; pointer-events: all; }
-    .qr-card { padding: 36px; text-align: center; max-width: 340px; }
-    .qr-frame { background: white; padding: 16px; border-radius: 14px; margin: 20px 0; display: inline-block; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+    .qr-card { padding: 40px; text-align: center; max-width: 350px; border-color: var(--solar-amber); }
+    .qr-frame { background: white; padding: 16px; border-radius: 14px; margin: 22px 0; display: inline-block; }
     .qr-frame img { display: block; width: 190px; height: 190px; }
 
-    /* Dynamic Toast Notification Array */
     .toast-tray { position: fixed; bottom: 24px; right: 24px; z-index: 1000; }
-    .toast { background: #0b1329; border: 1px solid rgba(16, 185, 129, 0.2); border-left: 4px solid var(--accent-green); padding: 14px 24px; border-radius: 10px; box-shadow: 0 12px 35px rgba(0,0,0,0.6); font-size: 13px; font-weight: 500; animation: slideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    .toast { background: #0c0f1d; border: 1px solid rgba(255, 159, 28, 0.2); border-left: 4px solid var(--solar-amber); padding: 14px 24px; border-radius: 10px; box-shadow: 0 15px 40px rgba(0,0,0,0.7); font-size: 13px; font-weight: 600; animation: slideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
     @keyframes slideIn { from{transform: translateX(120%); opacity:0;} to{transform: translateX(0); opacity:1;} }
   </style>
 </head>
 <body>
 
   <div class="universe-bg"></div>
-  <div class="stars"></div>
+  <div class="star-layer-1"></div>
+  <div class="star-layer-2"></div>
+  <div class="solar-luminary" id="solarLuminary"></div>
 
   <div id="authGateway" class="glass-card gateway-container">
     <div class="logo-container">
-      <div class="logo">PLAY<span style="color:var(--accent-blue)">A</span>QUIZ</div>
-      <div class="tagline">System Access Node</div>
+      <div class="logo">PLAY<span style="color:var(--solar-amber)">A</span>QUIZ</div>
+      <div class="tagline">Solar Command Nexus</div>
     </div>
     
     <div class="input-group">
@@ -153,23 +175,23 @@
     </div>
 
     <div class="input-group">
-      <label>Passphrase Matrix</label>
+      <label>Passphrase Key</label>
       <input type="password" id="passwordField" class="input-field" placeholder="••••••••" autocomplete="current-password">
     </div>
 
-    <button class="btn-cosmic" id="loginBtn" onclick="processAuthentication()">Sync Terminal Gateway →</button>
+    <button class="btn-cosmic" onclick="processAuthentication()">Ignite Terminal Engine →</button>
     <div id="errorMessage" class="error-msg"></div>
   </div>
 
   <div id="controlTerminal" class="glass-card dashboard-container">
     <div class="dash-header">
       <div>
-        <h1 style="font-size: 26px; font-weight: 800; letter-spacing: -0.5px;">Control Dashboard</h1>
-        <p style="font-size: 13px; color: #64748b; margin-top: 2px;">Authenticated with playaquiz.xyz central matrix</p>
+        <h1 style="font-size: 28px; font-weight: 800; letter-spacing: -0.5px; background: linear-gradient(to right, #fff, var(--nova-gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Solar Array System</h1>
+        <p style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">Synchronized deployment modules</p>
       </div>
       <div style="display: flex; gap: 14px; align-items: center;">
-        <div class="user-pill">🔑 <span id="activeUser">Operator</span></div>
-        <button class="btn-logout" onclick="killSession()">Disconnect Node</button>
+        <div class="user-pill">☀️ <span id="activeUser">Operator</span></div>
+        <button class="btn-logout" onclick="killSession()">Disconnect Core</button>
       </div>
     </div>
 
@@ -262,26 +284,32 @@
 
   <div id="qrModal" class="qr-modal" onclick="closeQRModal()">
     <div class="glass-card qr-card" onclick="event.stopPropagation()">
-      <h3 style="font-size: 16px; font-weight: 700;">System Link QR Stream</h3>
+      <h3 style="font-size: 16px; font-weight: 700; color: #fff;">System Link QR Stream</h3>
       <div class="qr-frame">
         <img id="qrImg" src="" alt="System Link QR">
       </div>
-      <p style="font-size:11px; color:#64748b; word-break:break-all; padding: 0 8px;" id="qrTargetUrl"></p>
-      <button class="btn-cosmic" style="padding:10px; margin-top:20px; font-size:13px;" onclick="closeQRModal()">Dismiss View</button>
+      <p style="font-size:11px; color:var(--text-muted); word-break:break-all;" id="qrTargetUrl"></p>
+      <button class="btn-cosmic" style="padding:10px; margin-top:20px; font-size:13px;" onclick="closeQRModal()">Dismiss Matrix</button>
     </div>
   </div>
 
   <div class="toast-tray" id="toastTray"></div>
 
   <script>
-    // System Connection Initializations
     const SUPABASE_URL  = 'https://efgirqbaayfjwswnwbop.supabase.co';
     const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
+    // Dynamic Tracking Luminary (The Sun Effect)
+    const luminary = document.getElementById('solarLuminary');
+    window.addEventListener('mousemove', (e) => {
+      luminary.style.left = e.clientX + 'px';
+      luminary.style.top = e.clientY + 'px';
+    });
+
     function dispatchNotification(msg) {
       const tray = document.getElementById('toastTray');
-      tray.innerHTML = `<div class="toast">⚡ ${msg}</div>`;
+      tray.innerHTML = `<div class="toast">☀️ ${msg}</div>`;
       setTimeout(() => { tray.innerHTML = ''; }, 3000);
     }
 
@@ -293,47 +321,38 @@
 
       if (!u || !p) { err.textContent = 'Identity credentials incomplete.'; return; }
 
-      // EMERGENCY RECOVERY OVERRIDE
-      // If Database connections are missing setup, this prevents structural lockout
+      // EMERGENCY OVERRIDE
       if (u === 'admin' && p === 'cosmic2026') {
-        executeAuthorization(u, 'Emergency Configuration Matrix');
+        executeAuthorization(u, 'Solar Core Engine');
         return;
       }
 
       try {
-        // PROTOCOL PHASE 1: Query Structured User Accounts
         const { data: userRow, error: userErr } = await sb
           .from('manager_users')
-          .select('username, role')
+          .select('username')
           .eq('username', u)
           .eq('password_hash', p)
           .maybeSingle();
 
-        if (userErr) console.warn("Protocol 1 Query Notice:", userErr.message);
-
         if (!userErr && userRow) {
-          executeAuthorization(userRow.username, 'Core Security Clearance');
+          executeAuthorization(userRow.username, 'Database Array');
           return;
         }
 
-        // PROTOCOL PHASE 2: Check Legacy Override App Setting Key
         const { data: appRow, error: appErr } = await sb
           .from('app_settings')
           .select('value')
           .eq('key', 'master_password')
           .maybeSingle();
 
-        if (appErr) console.warn("Protocol 2 Query Notice:", appErr.message);
-
         if (!appErr && appRow && p === appRow.value) {
-          executeAuthorization(u, 'Legacy Override Protocol');
+          executeAuthorization(u, 'Legacy Override Matrix');
           return;
         }
 
-        // Fallback catch if everything yields nothing matching
-        err.textContent = 'Invalid identification matching protocols.';
+        err.textContent = 'Invalid credentials within this solar quadrant.';
       } catch (ex) {
-        console.error("System connection failure logged:", ex);
         err.textContent = 'Access Exception: ' + ex.message;
       }
     }
@@ -358,7 +377,7 @@
 
     function copyRoute(url) {
       navigator.clipboard.writeText(url).then(() => {
-        dispatchNotification('Route duplicated to dashboard matrix.');
+        dispatchNotification('Route duplicated to local matrix.');
       });
     }
 
@@ -376,7 +395,6 @@
       document.getElementById('qrModal').classList.remove('active');
     }
 
-    // Node state verification on load sequence
     (() => {
       if(sessionStorage.getItem('cosmic_token') === 'active_verified') {
         revealDashboard(sessionStorage.getItem('cosmic_operator') || 'Operator');
