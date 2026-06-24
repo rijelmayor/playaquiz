@@ -3,1361 +3,356 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://*.supabase.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co; img-src 'self' data: https:; font-src 'self' https://fonts.gstatic.com;">
-  <title>PlayAQuiz — Room Manager</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://*.supabase.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co; img-src 'self' data: https: api.qrserver.com; font-src 'self' https://fonts.gstatic.com;">
+  <title>PlayAQuiz — Cosmic Gateway</title>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&family=Bebas+Neue&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-  <!--
-  ═══════════════════════════════════════════════════════════
-  DATABASE SETUP — run once in Supabase SQL Editor
-  ═══════════════════════════════════════════════════════════
-  CREATE TABLE IF NOT EXISTS app_settings (
-    key   TEXT PRIMARY KEY,
-    value TEXT NOT NULL,
-    updated_at TIMESTAMPTZ DEFAULT now()
-  );
-  INSERT INTO app_settings (key, value)
-    VALUES ('master_password', 'admin123')
-    ON CONFLICT (key) DO NOTHING;
-  ═══════════════════════════════════════════════════════════
-  -->
 
   <style>
     *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
 
     :root {
-      --bg:       #0a0c15;
-      --bg-deep:  #06080f;
-      --card:     rgba(13,17,32,0.92);
-      --card2:    rgba(17,22,40,0.88);
-      --border:   rgba(59,130,246,0.18);
-      --border-hi:rgba(59,130,246,0.4);
-      --blue:     #3b82f6;
-      --green:    #10b981;
-      --purple:   #8b5cf6;
-      --amber:    #f59e0b;
-      --red:      #ef4444;
-      --text:     #e8edf7;
-      --muted:    #6b7a99;
+      --bg: #03050a;
+      --nebula-purple: rgba(139, 92, 246, 0.15);
+      --nebula-blue: rgba(59, 130, 246, 0.15);
+      --glass-bg: rgba(10, 14, 30, 0.7);
+      --glass-border: rgba(255, 255, 255, 0.08);
+      --glass-glow: rgba(59, 130, 246, 0.2);
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --accent-blue: #3b82f6;
+      --accent-purple: #a78bfa;
+      --accent-green: #10b981;
     }
 
     body {
-      background: linear-gradient(145deg, var(--bg) 0%, var(--bg-deep) 100%);
+      background-color: var(--bg);
       font-family: 'Space Grotesk', sans-serif;
       color: var(--text);
       min-height: 100vh;
-      padding: 20px;
+      overflow-x: hidden;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
-    ::-webkit-scrollbar { width:6px; }
-    ::-webkit-scrollbar-track { background:transparent; }
-    ::-webkit-scrollbar-thumb { background:var(--border-hi); border-radius:3px; }
+    /* Cosmic Background & Floating Stars */
+    .universe-bg {
+      position: fixed; inset: 0; z-index: -2;
+      background: radial-gradient(circle at 20% 30%, var(--nebula-purple) 0%, transparent 40%),
+                  radial-gradient(circle at 80% 70%, var(--nebula-blue) 0%, transparent 45%),
+                  #03050a;
+    }
+    .stars {
+      position: fixed; inset: 0; z-index: -1;
+      background-image: radial-gradient(white, rgba(255,255,255,.2) 2px, transparent 40px);
+      background-size: 550px 550px;
+      opacity: 0.4;
+      animation: orbit 120s linear infinite;
+    }
+    @keyframes orbit { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
-    /* ── PASSWORD OVERLAY ── */
-    .pw-overlay {
-      position:fixed; inset:0;
-      background:rgba(3,5,11,0.97);
-      backdrop-filter:blur(24px);
-      display:flex; align-items:center; justify-content:center;
-      z-index:2000;
+    /* Glassmorphism Containers */
+    .glass-card {
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      border-radius: 28px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), inset 0 1px 2px var(--glass-border);
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     }
-    .pw-card {
-      background:var(--card);
-      border:2px solid var(--border-hi);
-      border-radius:32px;
-      padding:52px 48px;
-      text-align:center;
-      width:min(420px,92vw);
-      box-shadow:0 40px 80px rgba(0,0,0,0.6);
+    .glass-card:hover {
+      border-color: rgba(59, 130, 246, 0.3);
+      box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6), 0 0 40px var(--glass-glow);
     }
-    .pw-icon  { font-size:52px; margin-bottom:16px; }
-    .pw-title { font-size:26px; font-weight:800; margin-bottom:6px; }
-    .pw-sub   { font-size:13px; color:var(--muted); margin-bottom:28px; }
-    .pw-input {
-      background:#06080f;
-      border:2px solid #2d3b52;
-      border-radius:14px;
-      padding:16px 20px;
-      font-size:22px;
-      font-family:'JetBrains Mono', monospace;
-      color:#fff; width:100%;
-      margin-bottom:18px;
-      text-align:center; letter-spacing:5px;
-      transition:border-color 0.2s;
-    }
-    .pw-input:focus { outline:none; border-color:var(--blue); }
-    .pw-error  { color:var(--red);   font-size:13px; margin-top:10px; min-height:18px; }
-    .pw-status { color:var(--amber); font-size:13px; margin-top:4px;  min-height:18px; }
 
-    /* ── LAYOUT ── */
-    .app { max-width:1440px; margin:0 auto; display:none; }
-
-    /* ── HEADER ── */
-    .header {
-      display:flex; justify-content:space-between;
-      align-items:center; gap:12px; flex-wrap:wrap;
-      padding:18px 24px;
-      background:var(--card);
-      border:1px solid var(--border);
-      border-radius:20px;
-      margin-bottom:22px;
-    }
+    /* Auth Gateway Panel */
+    .gateway-container { width: min(440px, 92vw); padding: 48px 40px; text-align: center; }
+    .logo-container { margin-bottom: 32px; }
     .logo {
-      font-family:'Bebas Neue', sans-serif; font-size:34px;
-      background:linear-gradient(135deg,#fff 0%,#3b82f6 55%,#8b5cf6 100%);
-      -webkit-background-clip:text; -webkit-text-fill-color:transparent;
-      line-height:1;
+      font-family: 'Bebas Neue', sans-serif; font-size: 54px; letter-spacing: 2px;
+      background: linear-gradient(135deg, #fff 30%, var(--accent-blue) 70%, var(--accent-purple) 100%);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     }
-    .pill {
-      display:flex; align-items:center; gap:8px;
-      padding:7px 16px;
-      background:rgba(0,0,0,0.35);
-      border-radius:40px;
-      font-size:12px; color:var(--muted);
-    }
-    .date-input-sm {
-      background:#06080f; border:1px solid #2d3b52;
-      border-radius:8px; padding:5px 10px;
-      color:#fff; font-size:12px; width:130px;
-    }
-    .conn-dot {
-      width:9px; height:9px; border-radius:50%;
-      background:var(--red); animation:blink 1.5s infinite; flex-shrink:0;
-    }
-    .conn-dot.live { background:var(--green); }
-    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
-    .logout-btn {
-      display:flex; align-items:center; gap:8px;
-      padding:8px 18px;
-      background:rgba(239,68,68,0.12);
-      border:1px solid rgba(239,68,68,0.3);
-      border-radius:40px; color:var(--red);
-      font-family:'Space Grotesk',sans-serif;
-      font-weight:700; font-size:13px;
-      cursor:pointer; transition:all 0.2s;
-    }
-    .logout-btn:hover { background:rgba(239,68,68,0.25); border-color:var(--red); }
+    .tagline { font-size: 14px; color: var(--text-muted); margin-top: -6px; }
 
-    /* ── STATS ── */
-    .stats-bar {
-      display:grid; grid-template-columns:repeat(4,1fr);
-      gap:14px; margin-bottom:20px;
+    /* Input Fields */
+    .input-group { margin-bottom: 20px; text-align: left; }
+    .input-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 6px; }
+    .input-wrapper { position: relative; }
+    .input-field {
+      width: 100%; background: rgba(5, 7, 15, 0.6); border: 1px solid var(--glass-border);
+      border-radius: 12px; padding: 14px 16px; font-size: 15px; color: #fff;
+      transition: all 0.2s; font-family: 'Space Grotesk', sans-serif;
     }
-    .stat-card {
-      background:var(--card); border:1px solid var(--border);
-      border-radius:20px; padding:18px 16px;
-      text-align:center; transition:border-color 0.2s;
-    }
-    .stat-card:hover { border-color:var(--border-hi); }
-    .stat-num { font-size:30px; font-weight:800; color:var(--blue); line-height:1; }
-    .stat-lbl { font-size:11px; color:var(--muted); margin-top:6px; text-transform:uppercase; letter-spacing:0.5px; }
+    .input-field:focus { outline: none; border-color: var(--accent-blue); box-shadow: 0 0 12px rgba(59, 130, 246, 0.2); }
 
-    /* ── TABS ── */
-    .tabs {
-      display:flex; gap:4px;
-      background:rgba(13,17,32,0.6);
-      border-radius:14px; padding:4px;
-      margin-bottom:20px;
+    /* Buttons */
+    .btn-cosmic {
+      width: 100%; padding: 14px; background: linear-gradient(135deg, var(--accent-blue), #2563eb);
+      border: none; border-radius: 12px; color: white; font-size: 15px; font-weight: 700;
+      cursor: pointer; transition: all 0.3s; margin-top: 10px;
     }
-    .tab {
-      flex:1; padding:11px 20px;
-      background:transparent; border:none;
-      color:var(--muted);
-      font-family:'Space Grotesk',sans-serif;
-      font-weight:700; font-size:14px;
-      cursor:pointer; border-radius:11px;
-      transition:all 0.2s;
-    }
-    .tab.active { background:var(--blue); color:#fff; }
-    .tab-panel  { display:none; animation:fadeUp 0.3s ease; }
-    .tab-panel.active { display:block; }
-    @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
+    .btn-cosmic:hover { transform: translateY(-2px); filter: brightness(1.1); box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4); }
+    .error-msg { color: #f87171; font-size: 13px; margin-top: 14px; min-height: 18px; }
 
-    /* ── FORM CARD ── */
-    .form-card {
-      background:linear-gradient(135deg,rgba(59,130,246,0.07),rgba(139,92,246,0.04));
-      border:2px solid rgba(59,130,246,0.28);
-      border-radius:24px; padding:28px 30px;
-      margin-bottom:22px;
-    }
-    .form-title { font-size:20px; font-weight:800; margin-bottom:20px; display:flex; align-items:center; gap:10px; }
-    .field-row  { display:flex; gap:14px; flex-wrap:wrap; margin-bottom:16px; }
-    .field      { flex:1; min-width:130px; }
-    .field label {
-      display:block; font-size:10px; font-weight:700;
-      text-transform:uppercase; letter-spacing:0.8px;
-      color:var(--muted); margin-bottom:6px;
-    }
-    input, select {
-      background:#06080f; border:1px solid #2d3b52;
-      border-radius:11px; padding:11px 14px;
-      color:var(--text); font-family:'Space Grotesk',sans-serif;
-      font-size:14px; outline:none; width:100%;
-      transition:border-color 0.2s;
-    }
-    input:focus, select:focus { border-color:var(--blue); }
-    .code-input {
-      font-family:'JetBrains Mono',monospace;
-      font-size:20px; color:var(--blue);
-      letter-spacing:4px; text-align:center;
-      border:2px solid #2d3b52;
-    }
-    .code-input:focus { border-color:var(--blue); }
-    .btn-row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:4px; }
+    /* Terminal/Dashboard Panel */
+    .dashboard-container { display: none; width: min(1040px, 95vw); padding: 40px; animation: warpIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes warpIn { from { opacity:0; transform: scale(0.96) translateY(10px); } to { opacity:1; transform: scale(1) translateY(0); } }
+    
+    .dash-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--glass-border); padding-bottom: 24px; margin-bottom: 32px; }
+    .user-pill { display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.04); padding: 6px 16px; border-radius: 30px; font-size: 13px; }
+    .btn-logout { background: transparent; border: 1px solid rgba(239, 68, 68, 0.3); color: #f87171; padding: 6px 14px; border-radius: 30px; cursor: pointer; font-size: 12px; font-weight: 600; }
+    .btn-logout:hover { background: rgba(239, 68, 68, 0.1); }
 
-    /* ── BUTTONS ── */
-    .btn {
-      display:inline-flex; align-items:center; gap:7px;
-      padding:11px 22px; border:none; border-radius:12px;
-      font-family:'Space Grotesk',sans-serif;
-      font-weight:700; font-size:13px; color:#fff;
-      cursor:pointer; transition:all 0.15s; white-space:nowrap;
-    }
-    .btn:hover:not(:disabled) { filter:brightness(1.12); transform:translateY(-1px); }
-    .btn:active:not(:disabled) { transform:translateY(0); }
-    .btn:disabled { opacity:0.5; cursor:not-allowed; transform:none !important; }
-    .btn-blue   { background:var(--blue); }
-    .btn-green  { background:var(--green); }
-    .btn-purple { background:var(--purple); }
-    .btn-amber  { background:var(--amber); color:#111; }
-    .btn-red    { background:var(--red); }
-    .btn-ghost  { background:rgba(255,255,255,0.06); border:1px solid #2d3b52; color:var(--text); }
-    .btn-sm     { padding:7px 14px; font-size:12px; border-radius:9px; }
+    /* Platform Navigation Grid */
+    .portal-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 20px; }
+    .portal-card { background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border); border-radius: 18px; padding: 24px; transition: all 0.3s; display: flex; flex-direction: column; justify-content: space-between; }
+    .portal-card:hover { background: rgba(255,255,255,0.05); border-color: rgba(167, 139, 250, 0.3); transform: translateY(-3px); }
+    .portal-info h3 { font-size: 18px; font-weight: 700; margin-bottom: 6px; color: #fff; }
+    .portal-info p { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; line-height: 1.5; }
+    
+    .action-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .action-btn { flex: 1; padding: 10px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; text-decoration: none; text-align: center; transition: all 0.2s; border: none; }
+    .btn-launch { background: var(--accent-blue); color: white; }
+    .btn-copy { background: rgba(255,255,255,0.08); color: var(--text); }
+    .btn-copy:hover { background: rgba(255,255,255,0.15); }
+    .btn-qr { background: rgba(167, 139, 250, 0.15); color: var(--accent-purple); }
+    .btn-qr:hover { background: rgba(167, 139, 250, 0.25); }
 
-    /* ── COPY PANEL (post-create) ── */
-    .copy-panel {
-      display:none;
-      background:linear-gradient(135deg,rgba(16,185,129,0.08),rgba(59,130,246,0.05));
-      border:2px solid rgba(16,185,129,0.35);
-      border-radius:18px; padding:22px 26px;
-      margin-top:18px; animation:fadeUp 0.35s ease;
-    }
-    .copy-panel.show { display:block; }
-    .copy-panel-title { font-size:13px; font-weight:700; color:var(--green); margin-bottom:4px; }
-    .copy-panel-code  {
-      font-family:'JetBrains Mono',monospace;
-      font-size:20px; font-weight:700;
-      color:var(--blue); letter-spacing:3px; margin-bottom:4px;
-    }
-    .copy-panel-mode  { font-size:11px; color:var(--muted); margin-bottom:14px; }
-    .copy-grid { display:flex; gap:8px; flex-wrap:wrap; }
-    .cpbtn {
-      position:relative;
-      display:inline-flex; align-items:center; gap:6px;
-      padding:9px 15px; border:none; border-radius:11px;
-      font-family:'Space Grotesk',sans-serif;
-      font-weight:700; font-size:12px;
-      cursor:pointer; transition:all 0.15s;
-    }
-    .cpbtn:hover { filter:brightness(1.1); transform:translateY(-1px); }
-    .cpbtn-player  { background:#1d4ed8; color:#fff; }
-    .cpbtn-host    { background:#7c3aed; color:#fff; }
-    .cpbtn-admin   { background:var(--green); color:#fff; }
-    .cpbtn-foh     { background:var(--purple); color:#fff; }
-    .copy-flash {
-      display:none; position:absolute; top:-26px; left:50%;
-      transform:translateX(-50%);
-      background:var(--green); color:#fff;
-      font-size:10px; padding:3px 8px; border-radius:6px;
-      white-space:nowrap; pointer-events:none;
-    }
-    .cpbtn.flashed .copy-flash { display:block; animation:popIn 0.15s ease; }
-    @keyframes popIn { from{transform:translateX(-50%) scale(0.8);opacity:0} to{transform:translateX(-50%) scale(1);opacity:1} }
+    /* Modal for QR Generation */
+    .qr-modal { position: fixed; inset:0; background: rgba(3,5,10,0.85); backdrop-filter: blur(12px); display: flex; align-items: center; justify-content: center; z-index: 100; opacity:0; pointer-events: none; transition: opacity 0.3s ease; }
+    .qr-modal.active { opacity: 1; pointer-events: all; }
+    .qr-card { padding: 32px; text-align: center; max-width: 320px; }
+    .qr-frame { background: white; padding: 16px; border-radius: 12px; margin: 18px 0; display: inline-block; }
+    .qr-frame img { display: block; width: 200px; height: 200px; }
 
-    /* ── FILTER BAR ── */
-    .filter-bar { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:18px; }
-    .filter-btn {
-      padding:7px 18px;
-      background:rgba(255,255,255,0.05);
-      border:1px solid #2d3b52; border-radius:40px;
-      color:var(--muted);
-      font-family:'Space Grotesk',sans-serif;
-      font-weight:600; font-size:13px;
-      cursor:pointer; transition:all 0.15s;
-    }
-    .filter-btn.active { background:var(--blue); color:#fff; border-color:var(--blue); }
-
-    /* ── ROOMS GRID ── */
-    .rooms-grid {
-      display:grid;
-      grid-template-columns:repeat(auto-fill,minmax(380px,1fr));
-      gap:18px; margin-top:4px;
-    }
-
-    /* ── ROOM CARD ── */
-    .room-card {
-      background:var(--card); border:1px solid var(--border);
-      border-radius:20px; padding:20px;
-      transition:border-color 0.2s, box-shadow 0.2s;
-      position:relative; overflow:visible;
-    }
-    .room-card::before {
-      content:''; position:absolute; top:0; left:0; right:0; height:2px;
-      background:linear-gradient(90deg,transparent,var(--blue),transparent);
-      opacity:0; transition:opacity 0.3s; border-radius:20px 20px 0 0;
-    }
-    .room-card:hover { border-color:var(--border-hi); box-shadow:0 8px 32px rgba(59,130,246,0.08); }
-    .room-card:hover::before { opacity:1; }
-    .room-card.card-active   { border-color:rgba(16,185,129,0.4); background:rgba(16,185,129,0.04); }
-    .room-card.card-active::before { background:linear-gradient(90deg,transparent,var(--green),transparent); opacity:1; }
-    .room-card.card-ended    { opacity:0.55; border-color:rgba(239,68,68,0.3); }
-    .room-card.card-upcoming { border-color:rgba(245,158,11,0.35); background:rgba(245,158,11,0.03); }
-    .room-card.card-upcoming::before { background:linear-gradient(90deg,transparent,var(--amber),transparent); opacity:1; }
-
-    .card-head {
-      display:flex; justify-content:space-between;
-      align-items:flex-start; margin-bottom:8px; gap:8px;
-    }
-    .card-code {
-      font-family:'JetBrains Mono',monospace;
-      font-size:22px; font-weight:700;
-      color:var(--blue); letter-spacing:3px;
-    }
-    .card-badges { display:flex; gap:5px; flex-wrap:wrap; justify-content:flex-end; }
-    .badge {
-      padding:3px 10px; border-radius:20px;
-      font-size:10px; font-weight:700; letter-spacing:0.3px;
-    }
-    .badge-waiting { background:rgba(245,158,11,0.18); color:var(--amber); }
-    .badge-active  { background:rgba(16,185,129,0.18); color:var(--green); }
-    .badge-ended   { background:rgba(239,68,68,0.18);  color:var(--red); }
-    .badge-sched   { background:rgba(139,92,246,0.18); color:var(--purple); }
-    .badge-sp      { background:rgba(59,130,246,0.15); color:var(--blue); }
-    .badge-final   { background:rgba(245,200,66,0.18); color:#f5c842; }
-
-    .card-title { font-size:13px; color:var(--muted); margin-bottom:3px; }
-    .card-date  { font-size:11px; color:var(--muted); margin-bottom:12px; display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
-    .tz-badge {
-      background:rgba(59,130,246,0.15); border-radius:20px;
-      padding:2px 9px; font-size:10px;
-      display:inline-flex; align-items:center;
-    }
-    .card-stats {
-      display:flex; gap:16px; padding:10px 0;
-      border-top:1px solid rgba(255,255,255,0.05);
-      border-bottom:1px solid rgba(255,255,255,0.05);
-      margin-bottom:14px;
-    }
-    .cstat      { flex:1; text-align:center; }
-    .cstat-num  { font-size:18px; font-weight:700; color:var(--amber); }
-    .cstat-lbl  { font-size:10px; color:var(--muted); }
-    .card-actions { display:flex; gap:7px; flex-wrap:wrap; }
-
-    /* ── DROPDOWN ── */
-    .dropdown { position:relative; display:inline-block; }
-    .dropdown-menu {
-      display:none;
-      position:absolute;
-      background:#0d1120;
-      min-width:195px;
-      border:1px solid #2d3b52;
-      border-radius:12px;
-      z-index:200;
-      right:0; top:calc(100% + 4px);
-      box-shadow:0 8px 24px rgba(0,0,0,0.55);
-      overflow:hidden;
-    }
-    .dropdown-menu.dropup { top:auto; bottom:calc(100% + 4px); }
-    .dropdown-menu button {
-      width:100%; text-align:left;
-      background:none; border:none;
-      padding:10px 16px; color:var(--text);
-      cursor:pointer; font-size:12px;
-      font-family:'Space Grotesk',sans-serif; font-weight:600;
-      transition:background 0.12s;
-      display:flex; align-items:center; gap:8px;
-    }
-    .dropdown-menu button:hover { background:rgba(255,255,255,0.07); }
-    .dropdown-menu .dm-divider {
-      height:1px; background:rgba(255,255,255,0.06); margin:4px 0;
-    }
-    .dropdown:hover .dropdown-menu { display:block; }
-
-    /* ── TOAST ── */
-    .toast-stack {
-      position:fixed; bottom:24px; right:24px;
-      display:flex; flex-direction:column; gap:8px;
-      z-index:9000; pointer-events:none;
-    }
-    .toast {
-      display:flex; align-items:center; gap:10px;
-      padding:12px 18px;
-      background:var(--card2); border:1px solid #2d3b52;
-      border-radius:12px; font-size:13px; font-weight:600;
-      box-shadow:0 8px 32px rgba(0,0,0,0.4);
-      animation:slideIn 0.3s ease; pointer-events:all;
-    }
-    .toast.t-success { border-left:3px solid var(--green); }
-    .toast.t-error   { border-left:3px solid var(--red);   }
-    .toast.t-info    { border-left:3px solid var(--blue);  }
-    .toast.fade-out  { animation:slideOut 0.3s ease forwards; }
-    @keyframes slideIn  { from{opacity:0;transform:translateX(60px)} to{opacity:1;transform:none} }
-    @keyframes slideOut { from{opacity:1;transform:none} to{opacity:0;transform:translateX(60px)} }
-
-    /* ── DIALOG ── */
-    .dialog-overlay {
-      position:fixed; inset:0;
-      background:rgba(0,0,0,0.8);
-      backdrop-filter:blur(8px);
-      display:flex; align-items:center; justify-content:center;
-      z-index:5000;
-    }
-    .dialog-card {
-      background:var(--card); border:1px solid #2d3b52;
-      border-radius:24px; padding:36px 32px;
-      max-width:440px; width:90%; text-align:center;
-      box-shadow:0 32px 64px rgba(0,0,0,0.5);
-      animation:fadeUp 0.25s ease;
-    }
-    .dialog-icon  { font-size:44px; margin-bottom:14px; }
-    .dialog-title { font-size:20px; font-weight:800; margin-bottom:8px; }
-    .dialog-msg   { font-size:14px; color:var(--muted); line-height:1.6; }
-    .dialog-btns  { display:flex; gap:12px; margin-top:26px; }
-
-    /* ── SETTINGS PANEL ── */
-    .settings-section {
-      background:var(--card); border:1px solid var(--border);
-      border-radius:20px; padding:24px 28px; margin-bottom:18px;
-    }
-    .settings-title { font-size:16px; font-weight:700; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
-
-    /* ── MISC ── */
-    .state-msg { text-align:center; padding:48px 20px; color:var(--muted); font-size:14px; }
-    .hidden { display:none !important; }
-    @media(max-width:700px){
-      body { padding:12px; }
-      .stats-bar { grid-template-columns:repeat(2,1fr); }
-      .rooms-grid { grid-template-columns:1fr; }
-      .form-card  { padding:20px 16px; }
-    }
-    @media(max-width:420px){
-      .tabs .tab { font-size:12px; padding:10px 8px; }
-    }
+    /* Notification Ticker */
+    .toast-tray { position: fixed; bottom: 24px; right: 24px; z-index: 1000; }
+    .toast { background: #0f172a; border-left: 4px solid var(--accent-green); padding: 12px 24px; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); font-size: 13px; animation: slideIn 0.3s forwards; }
+    @keyframes slideIn { from{transform: translateX(100%); opacity:0;} to{transform: translateX(0); opacity:1;} }
   </style>
 </head>
 <body>
 
-<!-- PASSWORD OVERLAY -->
-<div id="pwOverlay" class="pw-overlay">
-  <div class="pw-card">
-    <div class="pw-icon">🔐</div>
-    <div class="pw-title">Room Manager</div>
-    <div class="pw-sub">Enter master password to continue</div>
-    <input type="password" id="pwInput" class="pw-input" placeholder="••••••••"
-           autocomplete="current-password"
-           onkeypress="if(event.key==='Enter') verifyPassword()">
-    <button class="btn btn-green" id="pwBtn" onclick="verifyPassword()"
-            style="width:100%;justify-content:center;padding:14px;">
-      Unlock Manager →
-    </button>
-    <div id="pwError"  class="pw-error"></div>
-    <div id="pwStatus" class="pw-status"></div>
-  </div>
-</div>
+  <div class="universe-bg"></div>
+  <div class="stars"></div>
 
-<!-- TOAST STACK -->
-<div id="toastStack" class="toast-stack"></div>
-
-<!-- CONFIRM DIALOG -->
-<div id="dlgOverlay" class="dialog-overlay hidden">
-  <div class="dialog-card">
-    <div class="dialog-icon"  id="dlgIcon">⚠️</div>
-    <div class="dialog-title" id="dlgTitle">Are you sure?</div>
-    <div class="dialog-msg"   id="dlgMsg"></div>
-    <div class="dialog-btns">
-      <button class="btn btn-ghost" onclick="resolveDlg(false)"
-              style="flex:1;justify-content:center;">Cancel</button>
-      <button class="btn btn-red"   id="dlgConfirmBtn" onclick="resolveDlg(true)"
-              style="flex:1;justify-content:center;">Confirm</button>
+  <div id="authGateway" class="glass-card gateway-container">
+    <div class="logo-container">
+      <div class="logo">PLAY<span style="color:var(--accent-blue)">A</span>QUIZ</div>
+      <div class="tagline">The Universe Gateway Portal</div>
     </div>
-  </div>
-</div>
-
-<!-- LOGOUT DIALOG -->
-<div id="logoutDlg" class="dialog-overlay hidden">
-  <div class="dialog-card">
-    <div class="dialog-icon">🚪</div>
-    <div class="dialog-title">Log out?</div>
-    <div class="dialog-msg">You'll need the master password to access the manager again.</div>
-    <div class="dialog-btns">
-      <button class="btn btn-ghost" onclick="closeLogout()" style="flex:1;justify-content:center;">Cancel</button>
-      <button class="btn btn-red"   onclick="doLogout()"    style="flex:1;justify-content:center;">Yes, Logout</button>
+    
+    <div class="input-group">
+      <label>Cosmic Identification</label>
+      <input type="text" id="usernameField" class="input-field" placeholder="Username" autocomplete="username">
     </div>
-  </div>
-</div>
 
-<!-- APP -->
-<div id="app" class="app">
-
-  <!-- HEADER -->
-  <div class="header">
-    <div class="logo">PLAY<span style="color:var(--blue)">A</span>QUIZ</div>
-    <div class="pill">🌍 <span id="tzName"></span> <span id="tzOffset" style="background:rgba(59,130,246,0.18);border-radius:20px;padding:2px 9px;font-size:11px;"></span></div>
-    <div class="pill">
-      📅
-      <input type="date" id="dateFilter" class="date-input-sm" onchange="onDateFilter()">
-      <button class="btn btn-ghost btn-sm" onclick="clearDateFilter()" style="padding:4px 10px;font-size:11px;">✕</button>
+    <div class="input-group">
+      <label>Security Keyphrase</label>
+      <input type="password" id="passwordField" class="input-field" placeholder="••••••••" autocomplete="current-password">
     </div>
-    <div class="pill">
-      <div class="conn-dot" id="connDot"></div>
-      <span id="connText">Connecting…</span>
-    </div>
-    <button class="logout-btn" onclick="openLogout()">🚪 Logout</button>
+
+    <button class="btn-cosmic" id="loginBtn" onclick="authenticateGateway()">Initiate Sync →</button>
+    <div id="errorMessage" class="error-msg"></div>
   </div>
 
-  <!-- STATS -->
-  <div class="stats-bar">
-    <div class="stat-card"><div class="stat-num" id="sTotalRooms">0</div><div class="stat-lbl">Total Rooms</div></div>
-    <div class="stat-card"><div class="stat-num" id="sActive" style="color:var(--green)">0</div><div class="stat-lbl">Active / Waiting</div></div>
-    <div class="stat-card"><div class="stat-num" id="sPlayers" style="color:var(--amber)">0</div><div class="stat-lbl">Total Players</div></div>
-    <div class="stat-card"><div class="stat-num" id="sUpcoming" style="color:var(--purple)">0</div><div class="stat-lbl">Upcoming</div></div>
-  </div>
-
-  <!-- TABS -->
-  <div class="tabs">
-    <button class="tab active" onclick="switchTab('create')">✨ Create Room</button>
-    <button class="tab" onclick="switchTab('manage')">📋 Manage Rooms</button>
-    <button class="tab" onclick="switchTab('schedule')">📅 Schedule Room</button>
-    <button class="tab" onclick="switchTab('settings')">⚙️ Settings</button>
-  </div>
-
-  <!-- TAB: CREATE -->
-  <div id="tab-create" class="tab-panel active">
-    <div class="form-card">
-      <div class="form-title">🏠 Create New Game Room</div>
-      <div class="field-row">
-        <div class="field" style="max-width:180px;">
-          <label>Room Code (4–8 chars)</label>
-          <input type="text" id="cCode" class="code-input" placeholder="QUIZ" maxlength="8" autocomplete="off">
-        </div>
-        <div class="field">
-          <label>Game Title</label>
-          <input type="text" id="cTitle" placeholder="My Quiz Game" value="Quiz Game">
-        </div>
-        <div class="field" style="max-width:215px;">
-          <label>Game Mode</label>
-          <select id="cMode">
-            <option value="self_paced">⚡ Self-Paced</option>
-            <option value="final_round">🎯 Final Round (Buzzer)</option>
-          </select>
-        </div>
+  <div id="controlTerminal" class="glass-card dashboard-container">
+    <div class="dash-header">
+      <div>
+        <h1 style="font-size: 24px; font-weight: 800;">Command Terminal</h1>
+        <p style="font-size: 13px; color: var(--text-muted);">Synchronized with playaquiz.xyz systems</p>
       </div>
-      <div class="btn-row">
-        <button class="btn btn-green" id="createBtn" onclick="createRoom()">✨ Create Room</button>
-        <button class="btn btn-ghost" onclick="genCode('cCode')">🎲 Random Code</button>
+      <div style="display: flex; gap: 14px; align-items: center;">
+        <div class="user-pill">🛡️ <span id="activeUser">Operator</span></div>
+        <button class="btn-logout" onclick="terminateSession()">Disconnect</button>
       </div>
     </div>
 
-    <!-- Share panel shown after creation -->
-    <div id="createPanel" class="copy-panel">
-      <div class="copy-panel-title">✅ Room created! Share these links:</div>
-      <div class="copy-panel-code" id="cpCode"></div>
-      <div class="copy-panel-mode" id="cpMode"></div>
-      <div class="copy-grid">
-        <button class="cpbtn cpbtn-player" onclick="cpCopy('player')">
-          <span class="copy-flash">Copied!</span>🎮 Player Link
-        </button>
-        <button class="cpbtn cpbtn-host" onclick="cpCopy('host')">
-          <span class="copy-flash">Copied!</span>🎛️ Host Link
-        </button>
-        <button class="cpbtn cpbtn-admin" onclick="cpCopy('admin')">
-          <span class="copy-flash">Copied!</span>👑 Admin Link
-        </button>
-        <button class="cpbtn cpbtn-foh" onclick="cpCopy('foh')">
-          <span class="copy-flash">Copied!</span>📺 FOH Link
-        </button>
+    <div class="portal-grid">
+      <div class="portal-card">
+        <div class="portal-info">
+          <h3>Room Management Matrix</h3>
+          <p>Deploy sessions, evaluate active rooms, configure properties, and configure engine setups.</p>
+        </div>
+        <div class="action-row">
+          <a class="action-btn btn-launch" href="https://www.playaquiz.xyz/room-manager.html" target="_blank">Launch</a>
+          <button class="action-btn btn-copy" onclick="copyRoute('https://www.playaquiz.xyz/room-manager.html')">Copy</button>
+          <button class="action-btn btn-qr" onclick="generateQR('https://www.playaquiz.xyz/room-manager.html')">QR</button>
+        </div>
+      </div>
+
+      <div class="portal-card">
+        <div class="portal-info">
+          <h3>Self-Paced Master Controller</h3>
+          <p>Command center dashboard for orchestrating asynchronous quiz configurations.</p>
+        </div>
+        <div class="action-row">
+          <a class="action-btn btn-launch" href="https://www.playaquiz.xyz/admin-sp.html" target="_blank">Launch</a>
+          <button class="action-btn btn-copy" onclick="copyRoute('https://www.playaquiz.xyz/admin-sp.html')">Copy</button>
+          <button class="action-btn btn-qr" onclick="generateQR('https://www.playaquiz.xyz/admin-sp.html')">QR</button>
+        </div>
+      </div>
+
+      <div class="portal-card">
+        <div class="portal-info">
+          <h3>Self-Paced Front of House</h3>
+          <p>Public stadium projection visualizer displaying real-time updates for asynchronous modes.</p>
+        </div>
+        <div class="action-row">
+          <a class="action-btn btn-launch" href="https://www.playaquiz.xyz/foh-sp.html" target="_blank">Launch</a>
+          <button class="action-btn btn-copy" onclick="copyRoute('https://www.playaquiz.xyz/foh-sp.html')">Copy</button>
+          <button class="action-btn btn-qr" onclick="generateQR('https://www.playaquiz.xyz/foh-sp.html')">QR</button>
+        </div>
+      </div>
+
+      <div class="portal-card">
+        <div class="portal-info">
+          <h3>Self-Paced Player Entrance</h3>
+          <p>Main ingestion pipeline for contestants engaging in self-guided game modes.</p>
+        </div>
+        <div class="action-row">
+          <a class="action-btn btn-launch" href="https://www.playaquiz.xyz/player-sp.html" target="_blank">Launch</a>
+          <button class="action-btn btn-copy" onclick="copyRoute('https://www.playaquiz.xyz/player-sp.html')">Copy</button>
+          <button class="action-btn btn-qr" onclick="generateQR('https://www.playaquiz.xyz/player-sp.html')">QR</button>
+        </div>
+      </div>
+
+      <div class="portal-card">
+        <div class="portal-info">
+          <h3>Final Round Command Deck</h3>
+          <p>Precision execution desk for synchronizing high-intensity active buzzer components.</p>
+        </div>
+        <div class="action-row">
+          <a class="action-btn btn-launch" href="https://www.playaquiz.xyz/hostcontrol.html" target="_blank">Launch</a>
+          <button class="action-btn btn-copy" onclick="copyRoute('https://www.playaquiz.xyz/hostcontrol.html')">Copy</button>
+          <button class="action-btn btn-qr" onclick="generateQR('https://www.playaquiz.xyz/hostcontrol.html')">QR</button>
+        </div>
+      </div>
+
+      <div class="portal-card">
+        <div class="portal-info">
+          <h3>Final Round Arena Array</h3>
+          <p>High-fidelity scoreboard output tailored specifically for synchronous match events.</p>
+        </div>
+        <div class="action-row">
+          <a class="action-btn btn-launch" href="https://www.playaquiz.xyz/finalroundfoh.html" target="_blank">Launch</a>
+          <button class="action-btn btn-copy" onclick="copyRoute('https://www.playaquiz.xyz/finalroundfoh.html')">Copy</button>
+          <button class="action-btn btn-qr" onclick="generateQR('https://www.playaquiz.xyz/finalroundfoh.html')">QR</button>
+        </div>
+      </div>
+
+      <div class="portal-card">
+        <div class="portal-info">
+          <h3>Final Round Buzzer Interface</h3>
+          <p>Ultra-low latency device terminal assigning active live buzzers to field players.</p>
+        </div>
+        <div class="action-row">
+          <a class="action-btn btn-launch" href="https://www.playaquiz.xyz/finalroundplayer.html" target="_blank">Launch</a>
+          <button class="action-btn btn-copy" onclick="copyRoute('https://www.playaquiz.xyz/finalroundplayer.html')">Copy</button>
+          <button class="action-btn btn-qr" onclick="generateQR('https://www.playaquiz.xyz/finalroundplayer.html')">QR</button>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- TAB: MANAGE -->
-  <div id="tab-manage" class="tab-panel">
-    <div class="filter-bar">
-      <button class="filter-btn active" onclick="setFilter('all',this)">All Rooms</button>
-      <button class="filter-btn" onclick="setFilter('active',this)">🟢 Active / Waiting</button>
-      <button class="filter-btn" onclick="setFilter('upcoming',this)">🟡 Upcoming</button>
-      <button class="filter-btn" onclick="setFilter('ended',this)">🔴 Ended</button>
-    </div>
-    <div class="rooms-grid" id="roomsGrid">
-      <div class="state-msg">Loading rooms…</div>
+  <div id="qrModal" class="qr-modal" onclick="closeQRModal()">
+    <div class="glass-card qr-card" onclick="event.stopPropagation()">
+      <h3 style="font-size: 16px;">System Link Matrix QR</h3>
+      <div class="qr-frame">
+        <img id="qrImg" src="" alt="QR Data Stream">
+      </div>
+      <p style="font-size:11px; color:var(--text-muted); word-break:break-all;" id="qrTargetUrl"></p>
+      <button class="btn-cosmic" style="padding:8px; margin-top:16px; font-size:12px;" onclick="closeQRModal()">Dismiss</button>
     </div>
   </div>
 
-  <!-- TAB: SCHEDULE -->
-  <div id="tab-schedule" class="tab-panel">
-    <div class="form-card">
-      <div class="form-title">📅 Schedule Future Room</div>
-      <div class="field-row">
-        <div class="field" style="max-width:160px;">
-          <label>Room Code</label>
-          <input type="text" id="sCode" placeholder="FUTURE" maxlength="8">
-        </div>
-        <div class="field">
-          <label>Game Title</label>
-          <input type="text" id="sTitle" placeholder="Event Title">
-        </div>
-        <div class="field" style="max-width:215px;">
-          <label>Game Mode</label>
-          <select id="sMode">
-            <option value="self_paced">⚡ Self-Paced</option>
-            <option value="final_round">🎯 Final Round (Buzzer)</option>
-          </select>
-        </div>
-      </div>
-      <div class="field-row">
-        <div class="field">
-          <label>Date (your local time)</label>
-          <input type="date" id="sDate">
-        </div>
-        <div class="field">
-          <label>Time (your local time)</label>
-          <input type="time" id="sTime">
-        </div>
-      </div>
-      <div class="btn-row">
-        <button class="btn btn-amber" id="schedBtn" onclick="scheduleRoom()">📅 Schedule Room</button>
-        <button class="btn btn-ghost" onclick="genCode('sCode')">🎲 Random Code</button>
-        <span style="font-size:11px;color:var(--muted);">⏰ Saved in UTC · displayed in your local timezone</span>
-      </div>
-    </div>
-    <h3 style="margin:4px 0 14px;font-size:16px;font-weight:700;">📅 Upcoming Scheduled Rooms</h3>
-    <div class="rooms-grid" id="scheduledGrid"><div class="state-msg">Loading…</div></div>
-  </div>
+  <div class="toast-tray" id="toastTray"></div>
 
-  <!-- TAB: SETTINGS -->
-  <div id="tab-settings" class="tab-panel">
+  <script>
+    // System Configurations
+    const SUPABASE_URL  = 'https://efgirqbaayfjwswnwbop.supabase.co';
+    const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-    <div class="settings-section">
-      <div class="settings-title">🔑 Change Master Password</div>
-      <p style="font-size:13px;color:var(--muted);margin-bottom:18px;line-height:1.6;">
-        The master password is stored in your Supabase <code style="background:rgba(255,255,255,0.08);padding:2px 6px;border-radius:4px;">app_settings</code> table
-        under the key <code style="background:rgba(255,255,255,0.08);padding:2px 6px;border-radius:4px;">master_password</code>.
-        Changing it here updates the database immediately — no code changes needed.
-      </p>
-      <div class="field-row" style="max-width:600px;">
-        <div class="field">
-          <label>Current Password</label>
-          <input type="password" id="pwCurrent" placeholder="Current password" autocomplete="current-password">
-        </div>
-        <div class="field">
-          <label>New Password</label>
-          <input type="password" id="pwNew" placeholder="New password (min 6 chars)" autocomplete="new-password">
-        </div>
-        <div class="field">
-          <label>Confirm New Password</label>
-          <input type="password" id="pwConfirm" placeholder="Repeat new password" autocomplete="new-password">
-        </div>
-      </div>
-      <div class="btn-row">
-        <button class="btn btn-blue" id="changePwBtn" onclick="changePassword()">🔑 Update Password</button>
-      </div>
-      <div id="pwChangeMsg" style="margin-top:12px;font-size:13px;min-height:18px;"></div>
-    </div>
-
-    <div class="settings-section">
-      <div class="settings-title">📋 SQL Setup Reference</div>
-      <p style="font-size:13px;color:var(--muted);margin-bottom:12px;">
-        If you haven't created the <code style="background:rgba(255,255,255,0.08);padding:2px 6px;border-radius:4px;">app_settings</code> table yet, run this once in Supabase:
-      </p>
-      <pre style="background:#06080f;border:1px solid #2d3b52;border-radius:12px;padding:16px;font-size:12px;color:#93c5fd;overflow-x:auto;line-height:1.7;">CREATE TABLE IF NOT EXISTS app_settings (
-  key        TEXT PRIMARY KEY,
-  value      TEXT NOT NULL,
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-INSERT INTO app_settings (key, value)
-  VALUES ('master_password', 'admin123')
-  ON CONFLICT (key) DO NOTHING;</pre>
-    </div>
-
-  </div>
-
-</div><!-- /app -->
-
-<script>
-/* ════════════════════════════════════════
-   CONFIG
-════════════════════════════════════════ */
-const SUPABASE_URL  = 'https://efgirqbaayfjwswnwbop.supabase.co';
-const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
-
-/* ════════════════════════════════════════
-   STATE
-════════════════════════════════════════ */
-let isAuthed     = false;
-let roomFilter   = 'all';
-let dateFilter   = null;
-let panelData    = {};      // { roomCode, hostToken, gameType }
-let dlgResolve   = null;
-
-/* ════════════════════════════════════════
-   TOAST
-════════════════════════════════════════ */
-function toast(msg, type = 'info', dur = 3200) {
-  const stack = document.getElementById('toastStack');
-  const el = document.createElement('div');
-  el.className = `toast t-${type}`;
-  el.textContent = msg;
-  stack.appendChild(el);
-  setTimeout(() => {
-    el.classList.add('fade-out');
-    setTimeout(() => el.remove(), 320);
-  }, dur);
-}
-
-/* ════════════════════════════════════════
-   CONFIRM DIALOG
-════════════════════════════════════════ */
-function showConfirm(title, msg, icon = '⚠️', confirmLabel = 'Confirm', confirmCls = 'btn-red') {
-  return new Promise(resolve => {
-    dlgResolve = resolve;
-    document.getElementById('dlgIcon').textContent  = icon;
-    document.getElementById('dlgTitle').textContent = title;
-    document.getElementById('dlgMsg').textContent   = msg;
-    const cb = document.getElementById('dlgConfirmBtn');
-    cb.textContent = confirmLabel;
-    cb.className   = `btn ${confirmCls}`;
-    cb.style.cssText = 'flex:1;justify-content:center;';
-    document.getElementById('dlgOverlay').classList.remove('hidden');
-  });
-}
-function resolveDlg(val) {
-  document.getElementById('dlgOverlay').classList.add('hidden');
-  if (dlgResolve) { dlgResolve(val); dlgResolve = null; }
-}
-
-/* ════════════════════════════════════════
-   LOGOUT
-════════════════════════════════════════ */
-function openLogout()  { document.getElementById('logoutDlg').classList.remove('hidden'); }
-function closeLogout() { document.getElementById('logoutDlg').classList.add('hidden'); }
-function doLogout() {
-  ['rm_auth','rm_auth_ts'].forEach(k => localStorage.removeItem(k));
-  sessionStorage.clear(); isAuthed = false;
-  toast('🔐 Logged out.', 'info');
-  setTimeout(() => location.reload(), 600);
-}
-
-/* ════════════════════════════════════════
-   AUTH — password stored in app_settings table
-   Falls back to admin_settings SHA-256 if needed
-════════════════════════════════════════ */
-async function sha256(str) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
-}
-
-async function verifyPasswordWithDB(input) {
-  // PRIMARY: app_settings plain-text (editable from Settings tab)
-  try {
-    const { data, error } = await sb
-      .from('app_settings').select('value')
-      .eq('key','master_password').maybeSingle();
-
-    if (!error && data) {
-      if (data.value === input) return { ok: true };
-      // Don't fall through — table exists, password just wrong
-      // BUT still try admin_settings as secondary (legacy support)
-    }
-    // Table missing (42P01) — auto-bootstrap
-    if (error?.code === '42P01') {
-      await sb.from('app_settings').upsert(
-        { key:'master_password', value:'admin123', updated_at:new Date().toISOString() },
-        { onConflict:'key' }
-      );
-      if (input === 'admin123') return { ok: true };
-      return { ok: false, err: 'Incorrect password.' };
-    }
-  } catch(_) {}
-
-  // FALLBACK: admin_settings SHA-256 (legacy)
-  try {
-    const { data } = await sb
-      .from('admin_settings').select('admin_password_hash').maybeSingle();
-    if (data) {
-      const h = await sha256(input);
-      if (h === data.admin_password_hash) return { ok: true };
-    }
-  } catch(_) {}
-
-  return { ok: false, err: 'Incorrect password.' };
-}
-
-async function verifyPassword() {
-  const input  = document.getElementById('pwInput').value;
-  const errEl  = document.getElementById('pwError');
-  const stsEl  = document.getElementById('pwStatus');
-  const btn    = document.getElementById('pwBtn');
-  errEl.textContent = '';
-  if (!input) { errEl.textContent = 'Please enter the password.'; return; }
-  btn.disabled = true; btn.textContent = 'Verifying…';
-  stsEl.textContent = 'Checking credentials…';
-
-  const res = await verifyPasswordWithDB(input);
-  stsEl.textContent = '';
-  btn.disabled = false; btn.textContent = 'Unlock Manager →';
-
-  if (res.ok) {
-    isAuthed = true;
-    localStorage.setItem('rm_auth', 'true');
-    localStorage.setItem('rm_auth_ts', Date.now().toString());
-    document.getElementById('pwOverlay').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-    initApp();
-  } else {
-    errEl.textContent = res.err || 'Incorrect password.';
-    setTimeout(() => errEl.textContent = '', 3500);
-  }
-}
-
-function checkExistingAuth() {
-  const ts = localStorage.getItem('rm_auth_ts');
-  if (localStorage.getItem('rm_auth') === 'true' && ts) {
-    if ((Date.now() - parseInt(ts)) / 3600000 < 24) {
-      isAuthed = true;
-      document.getElementById('pwOverlay').style.display = 'none';
-      document.getElementById('app').style.display = 'block';
-      initApp(); return;
-    }
-    ['rm_auth','rm_auth_ts'].forEach(k => localStorage.removeItem(k));
-  }
-}
-
-/* ════════════════════════════════════════
-   CHANGE PASSWORD (Settings tab)
-   Updates app_settings table directly
-════════════════════════════════════════ */
-async function changePassword() {
-  const current  = document.getElementById('pwCurrent').value;
-  const newPw    = document.getElementById('pwNew').value;
-  const confirm  = document.getElementById('pwConfirm').value;
-  const msgEl    = document.getElementById('pwChangeMsg');
-  const btn      = document.getElementById('changePwBtn');
-
-  msgEl.textContent = ''; msgEl.style.color = '';
-
-  if (!current || !newPw || !confirm) {
-    msgEl.style.color = 'var(--red)';
-    msgEl.textContent = 'Please fill in all three fields.'; return;
-  }
-  if (newPw.length < 6) {
-    msgEl.style.color = 'var(--red)';
-    msgEl.textContent = 'New password must be at least 6 characters.'; return;
-  }
-  if (newPw !== confirm) {
-    msgEl.style.color = 'var(--red)';
-    msgEl.textContent = 'New passwords do not match.'; return;
-  }
-
-  btn.disabled = true; btn.textContent = 'Verifying…';
-  const check = await verifyPasswordWithDB(current);
-  if (!check.ok) {
-    msgEl.style.color = 'var(--red)';
-    msgEl.textContent = 'Current password is incorrect.';
-    btn.disabled = false; btn.textContent = '🔑 Update Password'; return;
-  }
-
-  btn.textContent = 'Saving…';
-  try {
-    const { error } = await sb.from('app_settings')
-      .upsert({ key:'master_password', value:newPw, updated_at:new Date().toISOString() },
-               { onConflict:'key' });
-    if (error) throw error;
-    msgEl.style.color = 'var(--green)';
-    msgEl.textContent = '✅ Password updated successfully! Use the new password next time you log in.';
-    ['pwCurrent','pwNew','pwConfirm'].forEach(id => document.getElementById(id).value = '');
-    toast('🔑 Master password updated.', 'success');
-  } catch (err) {
-    msgEl.style.color = 'var(--red)';
-    msgEl.textContent = 'Error: ' + err.message;
-  } finally {
-    btn.disabled = false; btn.textContent = '🔑 Update Password';
-  }
-}
-
-/* ════════════════════════════════════════
-   INIT
-════════════════════════════════════════ */
-function initApp() {
-  showTimezone();
-  pollConn();
-  setInterval(pollConn, 6000);
-  genCode('cCode');
-  loadRooms();
-  loadScheduledRooms();
-  refreshStats();
-  setInterval(() => {
-    const manageActive = document.getElementById('tab-manage').classList.contains('active');
-    if (manageActive) loadRooms();
-    refreshStats();
-  }, 15000);
-}
-
-/* ════════════════════════════════════════
-   TIMEZONE
-════════════════════════════════════════ */
-function showTimezone() {
-  const tz  = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  const off = new Date().getTimezoneOffset();
-  const h   = Math.abs(Math.floor(off / 60));
-  const m   = Math.abs(off % 60);
-  const sgn = off <= 0 ? '+' : '-';
-  document.getElementById('tzName').textContent   = tz;
-  document.getElementById('tzOffset').textContent =
-    `UTC ${sgn}${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
-}
-function fmtDate(d) {
-  return d.toLocaleString(undefined,
-    { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit', hour12:true });
-}
-function fmtDateFull(d) {
-  return d.toLocaleString(undefined,
-    { year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit', hour12:true });
-}
-
-/* ════════════════════════════════════════
-   CONNECTION
-════════════════════════════════════════ */
-async function pollConn() {
-  const dot = document.getElementById('connDot');
-  const txt = document.getElementById('connText');
-  try {
-    const { error } = await sb.from('game_sessions').select('id',{count:'exact',head:true});
-    if (!error) { dot.classList.add('live'); txt.textContent = 'Connected'; }
-    else throw error;
-  } catch {
-    dot.classList.remove('live'); txt.textContent = 'Reconnecting…';
-  }
-}
-
-/* ════════════════════════════════════════
-   TABS
-════════════════════════════════════════ */
-function switchTab(name) {
-  const names = ['create','manage','schedule','settings'];
-  document.querySelectorAll('.tab').forEach((t,i) =>
-    t.classList.toggle('active', names[i] === name));
-  document.querySelectorAll('.tab-panel').forEach(p =>
-    p.classList.remove('active'));
-  document.getElementById(`tab-${name}`).classList.add('active');
-  if (name === 'manage')   loadRooms();
-  if (name === 'schedule') loadScheduledRooms();
-}
-
-/* ════════════════════════════════════════
-   CODE / TOKEN GENERATORS
-════════════════════════════════════════ */
-function genCode(fieldId) {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ0123456789';
-  let c = '';
-  for (let i = 0; i < 6; i++) c += chars[Math.floor(Math.random() * chars.length)];
-  document.getElementById(fieldId).value = c;
-}
-function genHostToken() {
-  return 'ht_' + crypto.randomUUID().replace(/-/g, '');
-}
-
-/* ════════════════════════════════════════
-   SMART LINK BUILDERS
-   Player  → manual entry page (no room param, builds anticipation)
-   Host    → hostcontrol.html with room+token
-   Admin   → mode-specific admin with room+token
-   FOH     → mode-specific FOH with room+token
-════════════════════════════════════════ */
-const BASE = window.location.origin +
-             window.location.pathname.replace(/\/[^/]*$/, '/');
-
-function getPlayerLink(roomCode, gameType) {
-  // No room param intentional — player enters code manually
-  return gameType === 'final_round'
-    ? `${BASE}finalroundplayer.html`
-    : `${BASE}player-sp.html`;
-}
-function getHostLink(roomCode, hostToken) {
-  return `${BASE}hostcontrol.html?room=${roomCode}&token=${hostToken}`;
-}
-function getAdminLink(roomCode, gameType, hostToken) {
-  return gameType === 'final_round'
-    ? `${BASE}finalroundcontrol.html?room=${roomCode}&token=${hostToken}`
-    : `${BASE}admin-sp.html?room=${roomCode}&token=${hostToken}`;
-}
-function getFOHLink(roomCode, gameType, hostToken) {
-  return gameType === 'final_round'
-    ? `${BASE}finalroundfoh.html?room=${roomCode}&token=${hostToken}`
-    : `${BASE}foh-sp.html?room=${roomCode}&token=${hostToken}`;
-}
-
-/* ════════════════════════════════════════
-   COPY TO CLIPBOARD
-════════════════════════════════════════ */
-async function copyToClipboard(text) {
-  try { await navigator.clipboard.writeText(text); } catch(_) {}
-  toast('📋 Link copied to clipboard!', 'success');
-}
-
-/* ════════════════════════════════════════
-   POST-CREATE PANEL COPY
-════════════════════════════════════════ */
-function cpCopy(role) {
-  const { roomCode, hostToken, gameType } = panelData;
-  if (!roomCode) return;
-  const urls = {
-    player: getPlayerLink(roomCode, gameType),
-    host:   getHostLink(roomCode, hostToken),
-    admin:  getAdminLink(roomCode, gameType, hostToken),
-    foh:    getFOHLink(roomCode, gameType, hostToken)
-  };
-  copyToClipboard(urls[role]);
-  const btn = document.querySelector(`.cpbtn-${role}`);
-  if (btn) {
-    btn.classList.add('flashed');
-    setTimeout(() => btn.classList.remove('flashed'), 1800);
-  }
-}
-
-/* ════════════════════════════════════════
-   DROPDOWN SMART POSITIONING
-════════════════════════════════════════ */
-function positionDropdown(triggerBtn) {
-  const dd      = triggerBtn.closest('.dropdown');
-  const menu    = dd.querySelector('.dropdown-menu');
-  if (!menu) return;
-  menu.classList.remove('dropup');
-  const rect        = dd.getBoundingClientRect();
-  const menuHeight  = 200;
-  const spaceBelow  = window.innerHeight - rect.bottom;
-  if (spaceBelow < menuHeight && rect.top > menuHeight)
-    menu.classList.add('dropup');
-}
-
-/* ════════════════════════════════════════
-   CREATE ROOM
-════════════════════════════════════════ */
-async function createRoom() {
-  let code   = document.getElementById('cCode').value.trim().toUpperCase();
-  const title    = document.getElementById('cTitle').value.trim() || 'Quiz Game';
-  const gameType = document.getElementById('cMode').value;
-  const btn      = document.getElementById('createBtn');
-
-  if (!code) { genCode('cCode'); code = document.getElementById('cCode').value; }
-  if (code.length < 3) { toast('Room code must be at least 3 characters.', 'error'); return; }
-
-  btn.disabled = true; btn.textContent = 'Creating…';
-  try {
-    const { data: dup } = await sb.from('game_sessions')
-      .select('id').eq('room_code', code).maybeSingle();
-    if (dup) { toast(`Room code "${code}" already exists!`, 'error'); return; }
-
-    const hostToken = genHostToken();
-    const tokenExp  = new Date(); tokenExp.setDate(tokenExp.getDate() + 30);
-
-    const { error } = await sb.from('game_sessions').insert({
-      room_code: code, title, status: 'waiting',
-      game_type: gameType, host_token: hostToken,
-      host_token_expires: tokenExp.toISOString(),
-      created_at: new Date().toISOString()
-    });
-    if (error) throw error;
-
-    panelData = { roomCode: code, hostToken, gameType };
-    document.getElementById('cpCode').textContent = code;
-    document.getElementById('cpMode').innerHTML =
-      `Mode: <strong>${gameType === 'final_round' ? '🎯 Final Round' : '⚡ Self-Paced'}</strong>`;
-    document.getElementById('createPanel').classList.add('show');
-    document.getElementById('cCode').value = '';
-
-    toast(`✅ Room "${code}" created!`, 'success');
-    await loadRooms(); await loadScheduledRooms(); refreshStats();
-
-  } catch (err) {
-    console.error(err);
-    toast('Error creating room: ' + err.message, 'error');
-  } finally {
-    btn.disabled = false; btn.textContent = '✨ Create Room';
-  }
-}
-
-/* ════════════════════════════════════════
-   SCHEDULE ROOM
-════════════════════════════════════════ */
-async function scheduleRoom() {
-  const code     = document.getElementById('sCode').value.trim().toUpperCase();
-  const title    = document.getElementById('sTitle').value.trim() || 'Scheduled Quiz';
-  const gameType = document.getElementById('sMode').value;
-  const dateVal  = document.getElementById('sDate').value;
-  const timeVal  = document.getElementById('sTime').value;
-  const btn      = document.getElementById('schedBtn');
-
-  if (!code)    { toast('Enter a room code.', 'error'); return; }
-  if (!dateVal) { toast('Select a scheduled date.', 'error'); return; }
-
-  const [y,mo,d] = dateVal.split('-').map(Number);
-  const [h,mi]   = timeVal ? timeVal.split(':').map(Number) : [0,0];
-  const local    = new Date(y, mo-1, d, h, mi, 0);
-  if (local <= new Date()) { toast('Scheduled time must be in the future.', 'error'); return; }
-  const utc = new Date(local.getTime() - local.getTimezoneOffset() * 60000);
-
-  btn.disabled = true; btn.textContent = 'Scheduling…';
-  try {
-    const { data: dup } = await sb.from('game_sessions')
-      .select('id').eq('room_code', code).maybeSingle();
-    if (dup) { toast(`Room code "${code}" already exists!`, 'error'); return; }
-
-    const hostToken = genHostToken();
-    const tokenExp  = new Date(); tokenExp.setDate(tokenExp.getDate() + 30);
-
-    const { error } = await sb.from('game_sessions').insert({
-      room_code: code, title, status: 'scheduled',
-      game_type: gameType, host_token: hostToken,
-      host_token_expires: tokenExp.toISOString(),
-      scheduled_date: utc.toISOString(),
-      created_at: new Date().toISOString()
-    });
-    if (error) throw error;
-
-    toast(`✅ Room "${code}" scheduled for ${fmtDateFull(local)}`, 'success');
-    ['sCode','sTitle','sDate','sTime'].forEach(id =>
-      document.getElementById(id).value = '');
-    await loadRooms(); await loadScheduledRooms(); refreshStats();
-  } catch (err) {
-    toast('Error scheduling room: ' + err.message, 'error');
-  } finally {
-    btn.disabled = false; btn.textContent = '📅 Schedule Room';
-  }
-}
-
-/* ════════════════════════════════════════
-   LOAD ROOMS (Manage tab)
-════════════════════════════════════════ */
-async function loadRooms() {
-  const grid = document.getElementById('roomsGrid');
-  try {
-    let q = sb.from('game_sessions').select('*')
-      .order('created_at', { ascending: false });
-    if (dateFilter) {
-      const s = new Date(dateFilter), e = new Date(dateFilter);
-      e.setDate(e.getDate() + 1);
-      q = q.gte('created_at', s.toISOString()).lt('created_at', e.toISOString());
-    }
-    const { data: rooms, error } = await q;
-    if (error) throw error;
-    if (!rooms?.length) {
-      grid.innerHTML = '<div class="state-msg">No rooms found.</div>'; return;
+    function dispatchNotification(txt) {
+      const tray = document.getElementById('toastTray');
+      tray.innerHTML = `<div class="toast">⚡ ${txt}</div>`;
+      setTimeout(() => { tray.innerHTML = ''; }, 3000);
     }
 
-    let list = rooms;
-    if (roomFilter === 'active')   list = rooms.filter(r => r.status === 'active' || r.status === 'waiting');
-    if (roomFilter === 'upcoming') list = rooms.filter(r => r.status === 'scheduled');
-    if (roomFilter === 'ended')    list = rooms.filter(r => r.status === 'ended');
-    if (!list.length) {
-      grid.innerHTML = '<div class="state-msg">No rooms match this filter.</div>'; return;
-    }
+    async function authenticateGateway() {
+      const u = document.getElementById('usernameField').value.trim();
+      const p = document.getElementById('passwordField').value;
+      const err = document.getElementById('errorMessage');
+      err.textContent = '';
 
-    const withCounts = await Promise.all(list.map(async r => {
+      if (!u || !p) { err.textContent = 'Identity credentials incomplete.'; return; }
+
       try {
-        const { count } = await sb.from('players')
-          .select('*',{count:'exact',head:true}).eq('session_id', r.id);
-        return { ...r, playerCount: count || 0 };
-      } catch { return { ...r, playerCount: 0 }; }
-    }));
+        const { data, error } = await sb
+          .from('manager_users')
+          .select('username, role')
+          .eq('username', u)
+          .eq('password_hash', p) // Structured query matching explicit credentials
+          .maybeSingle();
 
-    grid.innerHTML = withCounts.map(r => roomCardHTML(r, false)).join('');
-  } catch (err) {
-    console.error(err);
-    grid.innerHTML = '<div class="state-msg" style="color:var(--red)">Error loading rooms.</div>';
-  }
-}
+        if (error) throw error;
 
-/* ════════════════════════════════════════
-   LOAD SCHEDULED ROOMS
-════════════════════════════════════════ */
-async function loadScheduledRooms() {
-  const grid = document.getElementById('scheduledGrid');
-  try {
-    const { data: rooms, error } = await sb.from('game_sessions')
-      .select('*').eq('status','scheduled')
-      .order('scheduled_date', { ascending: true });
-    if (error) throw error;
-    if (!rooms?.length) {
-      grid.innerHTML = '<div class="state-msg">No scheduled rooms.</div>'; return;
+        if (data) {
+          sessionStorage.setItem('cosmic_token', 'active_verified');
+          sessionStorage.setItem('cosmic_operator', data.username);
+          dispatchNotification('Handshake verified. Access granted.');
+          revealTerminal(data.username);
+        } else {
+          err.textContent = 'Invalid identification matching protocols.';
+        }
+      } catch (ex) {
+        err.textContent = 'Access failed: ' + ex.message;
+      }
     }
-    grid.innerHTML = rooms.map(r => roomCardHTML(r, true)).join('');
-  } catch (err) {
-    console.error(err);
-    grid.innerHTML = '<div class="state-msg" style="color:var(--red)">Error loading scheduled rooms.</div>';
-  }
-}
 
-/* ════════════════════════════════════════
-   ROOM CARD HTML (unified for both grids)
-════════════════════════════════════════ */
-function roomCardHTML(r, isScheduled) {
-  const isFinal   = r.game_type === 'final_round';
-  const modeTag   = isFinal
-    ? '<span class="badge badge-final">🎯 FINAL</span>'
-    : '<span class="badge badge-sp">⚡ SP</span>';
+    function revealTerminal(user) {
+      document.getElementById('authGateway').style.display = 'none';
+      document.getElementById('controlTerminal').style.display = 'block';
+      document.getElementById('activeUser').textContent = user;
+    }
 
-  let statusBadge = 'badge-waiting', cardClass = '',
-      statusText  = (r.status || 'waiting').toUpperCase();
-  if (r.status === 'active')    { statusBadge = 'badge-active';  cardClass = 'card-active'; }
-  if (r.status === 'ended')     { statusBadge = 'badge-ended';   cardClass = 'card-ended'; }
-  if (r.status === 'scheduled') { statusBadge = 'badge-sched';   cardClass = 'card-upcoming'; statusText = 'SCHEDULED'; }
+    function terminateSession() {
+      sessionStorage.clear();
+      location.reload();
+    }
 
-  const dateStr = r.scheduled_date
-    ? `📅 ${fmtDateFull(new Date(r.scheduled_date))} <span class="tz-badge">Local</span>`
-    : `📅 Created: ${fmtDate(new Date(r.created_at))}`;
+    function copyRoute(url) {
+      navigator.clipboard.writeText(url).then(() => {
+        dispatchNotification('Route duplicated to local matrix.');
+      });
+    }
 
-  const rc  = esc(r.room_code);
-  const gt  = r.game_type || 'self_paced';
-  const ht  = esc(r.host_token || '');
-  const sid = esc(r.id);
+    function generateQR(url) {
+      const frame = document.getElementById('qrModal');
+      const img = document.getElementById('qrImg');
+      const text = document.getElementById('qrTargetUrl');
+      
+      // Leveraging secure public charts generation engine
+      img.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
+      text.textContent = url;
+      frame.classList.add('active');
+    }
 
-  const playerLink = getPlayerLink(rc, gt);
-  const hostLink   = getHostLink(rc, ht);
-  const adminLink  = getAdminLink(rc, gt, ht);
-  const fohLink    = getFOHLink(rc, gt, ht);
+    function closeQRModal() {
+      document.getElementById('qrModal').classList.remove('active');
+    }
 
-  const activateBtn = (r.status === 'scheduled' || isScheduled)
-    ? `<button class="btn btn-sm btn-green" onclick="activateRoom('${sid}','${rc}')">▶ Activate</button>`
-    : '';
-
-  return `<div class="room-card ${cardClass}">
-    <div class="card-head">
-      <div class="card-code">${rc}</div>
-      <div class="card-badges">
-        <span class="badge ${statusBadge}">${statusText}</span>
-        ${modeTag}
-      </div>
-    </div>
-    <div class="card-title">${esc(r.title || 'Untitled')}</div>
-    <div class="card-date">${dateStr}</div>
-    <div class="card-stats">
-      <div class="cstat">
-        <div class="cstat-num">${r.playerCount || 0}</div>
-        <div class="cstat-lbl">Players</div>
-      </div>
-    </div>
-    <div class="card-actions">
-      <div class="dropdown">
-        <button class="btn btn-sm btn-purple" onmouseenter="positionDropdown(this)">🔗 Share ▼</button>
-        <div class="dropdown-menu">
-          <button onclick="copyToClipboard('${playerLink}')">🎮 Player Link <span style="font-size:10px;color:var(--muted);">(manual entry)</span></button>
-          <button onclick="copyToClipboard('${hostLink}')">🎛️ Host Link <span style="font-size:10px;color:var(--muted);">(direct)</span></button>
-          <div class="dm-divider"></div>
-          <button onclick="copyToClipboard('${adminLink}')">👑 Admin Link <span style="font-size:10px;color:var(--muted);">(direct)</span></button>
-          <button onclick="copyToClipboard('${fohLink}')">📺 FOH Link <span style="font-size:10px;color:var(--muted);">(direct)</span></button>
-          <div class="dm-divider"></div>
-          <button onclick="window.open('${adminLink}','_blank')">🚀 Open Admin</button>
-          <button onclick="window.open('${fohLink}','_blank')">📺 Open FOH</button>
-        </div>
-      </div>
-      ${activateBtn}
-      <button class="btn btn-sm btn-red" onclick="deleteRoom('${sid}','${rc}')">🗑️ Delete</button>
-    </div>
-  </div>`;
-}
-
-/* ════════════════════════════════════════
-   ACTIVATE ROOM
-════════════════════════════════════════ */
-async function activateRoom(sessionId, roomCode) {
-  const ok = await showConfirm(
-    `Activate "${roomCode}"?`,
-    'This will make the room immediately available to players.',
-    '▶️', 'Activate Now', 'btn-green'
-  );
-  if (!ok) return;
-  try {
-    await sb.from('game_sessions')
-      .update({ status:'waiting', scheduled_date:null }).eq('id', sessionId);
-    toast(`✅ Room "${roomCode}" is now live!`, 'success');
-    await loadRooms(); await loadScheduledRooms(); refreshStats();
-  } catch (err) {
-    toast('Error activating room: ' + err.message, 'error');
-  }
-}
-
-/* ════════════════════════════════════════
-   DELETE ROOM
-════════════════════════════════════════ */
-async function deleteRoom(sessionId, roomCode) {
-  const ok = await showConfirm(
-    `Delete "${roomCode}"?`,
-    'This permanently removes the room and ALL associated data — players, answers, questions, and categories. This cannot be undone.',
-    '🗑️', 'Delete Forever', 'btn-red'
-  );
-  if (!ok) return;
-  try {
-    for (const t of ['answers','players','game_events','questions','categories'])
-      await sb.from(t).delete().eq('session_id', sessionId);
-    const { error } = await sb.from('game_sessions').delete().eq('id', sessionId);
-    if (error) throw error;
-    toast(`🗑️ Room "${roomCode}" deleted.`, 'info');
-    await loadRooms(); await loadScheduledRooms(); refreshStats();
-  } catch (err) {
-    toast('Error deleting room: ' + err.message, 'error');
-  }
-}
-
-/* ════════════════════════════════════════
-   STATS
-════════════════════════════════════════ */
-async function refreshStats() {
-  try {
-    const { data: rooms }   = await sb.from('game_sessions').select('status');
-    const { data: players } = await sb.from('players').select('session_id');
-    document.getElementById('sTotalRooms').textContent =
-      rooms?.length || 0;
-    document.getElementById('sActive').textContent =
-      rooms?.filter(r => r.status === 'active' || r.status === 'waiting').length || 0;
-    document.getElementById('sPlayers').textContent =
-      players?.length || 0;
-    document.getElementById('sUpcoming').textContent =
-      rooms?.filter(r => r.status === 'scheduled').length || 0;
-  } catch(_) {}
-}
-
-/* ════════════════════════════════════════
-   FILTERS
-════════════════════════════════════════ */
-function setFilter(val, btn) {
-  roomFilter = val;
-  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  loadRooms();
-}
-function onDateFilter() {
-  dateFilter = document.getElementById('dateFilter').value || null;
-  loadRooms();
-}
-function clearDateFilter() {
-  document.getElementById('dateFilter').value = '';
-  dateFilter = null; loadRooms();
-}
-
-/* ════════════════════════════════════════
-   UTILS
-════════════════════════════════════════ */
-function esc(s) {
-  if (!s) return '';
-  return String(s).replace(/[&<>"']/g, c =>
-    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-
-/* ════════════════════════════════════════
-   BOOT
-════════════════════════════════════════ */
-checkExistingAuth();
-
-Object.assign(window, {
-  verifyPassword, changePassword,
-  switchTab, createRoom, scheduleRoom,
-  genCode, cpCopy, copyToClipboard,
-  positionDropdown, setFilter, onDateFilter, clearDateFilter,
-  deleteRoom, activateRoom,
-  resolveDlg, openLogout, closeLogout, doLogout
-});
-</script>
+    // Verify system state persistence on boot sequence
+    (() => {
+      if(sessionStorage.getItem('cosmic_token') === 'active_verified') {
+        revealTerminal(sessionStorage.getItem('cosmic_operator') || 'Operator');
+      }
+    })();
+  </script>
 </body>
 </html>
