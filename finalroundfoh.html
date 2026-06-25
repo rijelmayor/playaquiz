@@ -42,6 +42,31 @@
       background-size: 50px 50px;
       pointer-events: none;
       animation: gridMove 25s linear infinite;
+      z-index: 1;
+    }
+
+    /* Event background photo, set per-room from Supabase via event-title.html.
+       Sits behind the grid/gradient and below all content. A dark scrim
+       sits on top of the photo (not the text) so the image stays
+       atmospheric while text remains fully readable regardless of what
+       photo is used. */
+    #eventBgImage {
+      position: fixed;
+      inset: 0;
+      background-position: center;
+      background-size: cover;
+      background-repeat: no-repeat;
+      opacity: 0;
+      transition: opacity 0.8s ease;
+      z-index: 0;
+    }
+    #eventBgImage.loaded { opacity: 0.35; }
+    #eventBgScrim {
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(ellipse at 50% 40%, rgba(10,10,26,0.55) 0%, rgba(10,10,26,0.88) 100%);
+      z-index: 0;
+      pointer-events: none;
     }
 
     @keyframes gridMove {
@@ -942,6 +967,8 @@
   </style>
 </head>
 <body>
+<div id="eventBgImage"></div>
+<div id="eventBgScrim"></div>
 <div class="app">
   <div class="top-bar">
     <div class="logo">⚡ PLAY<span style="color:var(--gold)">A</span>QUIZ ⚡</div>
@@ -956,7 +983,7 @@
     <div class="game-content">
       <div id="waitingScreen" class="screen active">
         <div class="warmup-container">
-          <div class="warmup-logo">FINAL ROUND</div>
+          <div class="warmup-logo" id="eventTitleDisplay">FINAL ROUND</div>
           <div class="warmup-banner">THE GRAND FINAL ARENA</div>
           <div class="warmup-pulse-circle"><div class="inner-text">READY</div></div>
           <div class="warmup-message">Waiting for the host to start the round...</div>
@@ -1631,12 +1658,52 @@ function stopFohRoomValidityPoll() {
   if(fohRoomValidityInterval) { clearInterval(fohRoomValidityInterval); fohRoomValidityInterval = null; }
 }
 
+// ============================================================
+// Event branding (per-room title + background image), set via
+// event-title.html and stored in the event_branding table.
+// Falls back to the default "FINAL ROUND" / plain arena background
+// if no branding row exists for this room yet.
+// ============================================================
+async function applyEventBranding(code) {
+  const titleEl = document.getElementById('eventTitleDisplay');
+  const bgEl = document.getElementById('eventBgImage');
+  try {
+    const { data, error } = await sb
+      .from('event_branding')
+      .select('event_title, background_image_url')
+      .eq('room_code', code)
+      .maybeSingle();
+    if (error) throw error;
+
+    titleEl.innerText = (data && data.event_title) ? data.event_title : 'FINAL ROUND';
+
+    if (data && data.background_image_url) {
+      // Preload so the fade-in only happens once the image is actually ready
+      const img = new Image();
+      img.onload = () => {
+        bgEl.style.backgroundImage = `url('${data.background_image_url}')`;
+        bgEl.classList.add('loaded');
+      };
+      img.onerror = () => { bgEl.classList.remove('loaded'); };
+      img.src = data.background_image_url;
+    } else {
+      bgEl.classList.remove('loaded');
+      bgEl.style.backgroundImage = '';
+    }
+  } catch (err) {
+    console.warn('[applyEventBranding] failed, using defaults:', err);
+    titleEl.innerText = 'FINAL ROUND';
+  }
+}
+
 function connectToRoom(code) {
   roomCode = code.toUpperCase();
   document.getElementById('roomDisplay').innerText = roomCode;
   document.getElementById('fohFooterCode').innerText = roomCode;
   document.getElementById('roomEntryOverlay').style.display = 'none';
   toast(`🎮 Connected to room ${roomCode}`);
+
+  applyEventBranding(roomCode);
 
   if(realtimeChannel) sb.removeChannel(realtimeChannel);
   startFohRoomValidityPoll();
