@@ -1676,13 +1676,19 @@ function persistPlayer(player) {
   if (_persistTimers.has(id)) clearTimeout(_persistTimers.get(id));
   _persistTimers.set(id, setTimeout(() => {
     _persistTimers.delete(id);
+    // final_round_players.status only allows 'active' | 'eliminated' | 'winner'.
+    // The in-memory `player.status` tracks fine-grained UI states (waiting,
+    // buzzed, correct, wrong, locked, ...) that don't map 1:1 to the DB —
+    // those are reconstructed from score/eliminated on the way back in via
+    // pendingRecovery, so it's safe to collapse them here.
+    const dbStatus = eliminated.has(player.id) ? 'eliminated' : 'active';
     sb.from('final_round_players').upsert({
       final_session_id: finalSessionId,
       player_id: player.id,
       name: player.name,
       avatar: player.avatar,
       score: player.score,
-      status: eliminated.has(player.id) ? 'eliminated' : player.status
+      status: dbStatus
     }, { onConflict: 'final_session_id,player_id' })
       .then(({ error }) => { if (error) console.warn('[persistPlayer] failed:', error); });
   }, 400));
@@ -1812,19 +1818,23 @@ function handlePlayerJoin(payload) {
   } else if (pendingRecovery.has(payload.name)) {
     // Host reloaded earlier — player wasn't in memory at all, but we
     // have their persisted score/status from before the reload.
+    // final_round_players.status is only ever 'active' | 'eliminated' | 'winner',
+    // so map back to a sensible in-memory UI status (waiting/eliminated) —
+    // 'active' doesn't correspond to any in-memory status string.
     const saved = pendingRecovery.get(payload.name);
     pendingRecovery.delete(payload.name);
+    const wasEliminated = saved.status === 'eliminated';
     const restored = {
       id: payload.id,
       name: payload.name,
       avatar: payload.avatar || saved.avatar,
       score: saved.score || 0,
-      status: saved.status === 'eliminated' ? 'eliminated' : (saved.status || 'waiting'),
+      status: wasEliminated ? 'eliminated' : 'waiting',
       connected: true,
       lastSeen: Date.now()
     };
     players.set(payload.id, restored);
-    if (saved.status === 'eliminated') eliminated.add(payload.id);
+    if (wasEliminated) eliminated.add(payload.id);
     broadcast('state_sync', {
       playerId: payload.id,
       score: restored.score,
