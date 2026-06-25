@@ -1249,6 +1249,7 @@ async function connectRoom(code) {
     
     await ensureFinalRoundSession(code);  // find-or-create + recover players
     await loadQuestions();
+    applyRecoveredQuestionState();        // restore selectedQ now that allQuestions is loaded
     setupRealtime();
     
     document.getElementById('chipCode').innerText = roomCode;
@@ -1566,6 +1567,7 @@ function selectQuestion(id) {
     document.getElementById('resetBuzzBtn').disabled = false;
     closeQModal();
     toast('Question selected');
+    persistQuestionState();
   }
 }
 
@@ -1609,6 +1611,7 @@ let pendingRecovery = new Map(); // name -> persisted row
 async function ensureFinalRoundSession(code) {
   finalSessionId = null;
   pendingRecovery.clear();
+  recoveredQuestionState = null;
   try {
     const { data, error } = await sb
       .from('final_round_sessions')
@@ -1616,10 +1619,22 @@ async function ensureFinalRoundSession(code) {
         { room_code: code, main_session_id: sessionId, status: 'active' },
         { onConflict: 'room_code' }
       )
-      .select('id')
+      .select('id, current_question, question_number, used_question_ids, buzzed_player_id')
       .single();
     if (error) throw error;
     finalSessionId = data.id;
+
+    // Restore used-question history right away — this doesn't depend
+    // on allQuestions being loaded yet, so it's safe to set now.
+    if (Array.isArray(data.used_question_ids)) {
+      usedQIds = new Set(data.used_question_ids);
+      qCounter = data.question_number || 0;
+    }
+    // The actual question object can only be restored once
+    // allQuestions has loaded — stash it for applyRecoveredQuestionState().
+    if (data.current_question) {
+      recoveredQuestionState = { questionId: data.current_question, questionNumber: data.question_number || 0 };
+    }
 
     const { data: existingPlayers, error: playersErr } = await sb
       .from('final_round_players')
@@ -1634,6 +1649,24 @@ async function ensureFinalRoundSession(code) {
   } catch (err) {
     console.warn('[ensureFinalRoundSession] failed (continuing without recovery):', err);
   }
+}
+
+let recoveredQuestionState = null; // { questionId, questionNumber } — applied once allQuestions is loaded
+
+function applyRecoveredQuestionState() {
+  if (!recoveredQuestionState || !allQuestions.length) return;
+  const q = allQuestions.find(q => q.id === recoveredQuestionState.questionId);
+  recoveredQuestionState = null;
+  if (!q) return; // question may have been deleted since — nothing we can do
+
+  selectedQ = q;
+  document.getElementById('qPickLabel').innerText = q.question_text.substring(0, 50) + '…';
+  document.getElementById('qPickBtn').classList.add('selected');
+  renderSelectedQDisplay();
+  document.getElementById('qNumBadge').innerHTML = `Q#${qCounter}`;
+  document.getElementById('openBuzzBtn').disabled = false;
+  document.getElementById('resetBuzzBtn').disabled = false;
+  toast(`🗂️ Recovered question ${qCounter}: "${q.question_text.substring(0, 40)}…" — host's buzzer state was NOT restored; reopen buzzers if needed`);
 }
 
 let _persistTimers = new Map(); // playerId -> debounce timer
@@ -1657,6 +1690,21 @@ function persistPlayer(player) {
 
 function persistAllPlayers() {
   players.forEach(p => persistPlayer(p));
+}
+
+let _questionPersistTimer = null;
+function persistQuestionState() {
+  if (!finalSessionId) return;
+  if (_questionPersistTimer) clearTimeout(_questionPersistTimer);
+  _questionPersistTimer = setTimeout(() => {
+    _questionPersistTimer = null;
+    sb.from('final_round_sessions').update({
+      current_question: selectedQ ? selectedQ.id : null,
+      question_number: qCounter,
+      used_question_ids: Array.from(usedQIds)
+    }).eq('id', finalSessionId)
+      .then(({ error }) => { if (error) console.warn('[persistQuestionState] failed:', error); });
+  }, 300);
 }
 
 async function clearPersistedPlayers() {
@@ -1693,6 +1741,16 @@ function setupRealtime() {
       if (status === 'SUBSCRIBED') {
         dot.classList.add('on');
         if (lbl) lbl.innerText = 'Live';
+        if (pendingRecovery.size > 0) {
+          // Ask every connected player to silently re-announce itself —
+          // covers players whose tab never reloaded and so never sent
+          // a fresh player_join on their own. Repeat a couple of times
+          // in case a player's own channel wasn't quite subscribed yet
+          // on the first broadcast.
+          broadcast('host_requesting_rejoin', {});
+          setTimeout(() => { if (pendingRecovery.size > 0) broadcast('host_requesting_rejoin', {}); }, 3000);
+          setTimeout(() => { if (pendingRecovery.size > 0) broadcast('host_requesting_rejoin', {}); }, 8000);
+        }
       } else {
         dot.classList.remove('on');
         if (lbl) lbl.innerText = 'Offline';
@@ -1924,6 +1982,7 @@ function initAvailableQuestions() {
   document.getElementById('resetBuzzBtn').disabled = true;
   
   toast(`📚 ${availableQuestions.length} questions available`);
+  persistQuestionState();
 }
 
 function shuffleArray(array) {
@@ -1974,6 +2033,7 @@ function randomQuestion() {
   document.getElementById('resetBuzzBtn').disabled = false;
   
   toast(`🎲 Random question loaded! (${availableQuestions.length} remaining) Click OPEN BUZZERS to start`);
+  persistQuestionState();
   
   broadcast('random_question_loaded', {
     questionNumber: qCounter,
@@ -2067,6 +2127,7 @@ function markCorrect() {
   renderAll();
   toast(`✅ +${points} points!`);
   setTimeout(() => broadcast('reset_for_next_question', {}), 500);
+  persistQuestionState();
 }
 
 function markWrong() {
@@ -2122,6 +2183,7 @@ function revealAnswer() {
   renderAll();
   toast(`🛑 Answer revealed: ${letters[correctIdx]} — no points awarded`);
   setTimeout(() => broadcast('reset_for_next_question', {}), 4000);
+  persistQuestionState();
 }
 
 function startTimer() {
@@ -2442,6 +2504,9 @@ function resetLocalState() {
   eliminated.clear();
   locked.clear();
   pendingRecovery.clear();
+  selectedQ = null;
+  usedQIds.clear();
+  qCounter = 0;
   buzzedId = null;
   isOpen = false;
   hideBuzzBanner();
@@ -2450,6 +2515,9 @@ function resetLocalState() {
   document.getElementById('revealBtn').disabled = true;
   document.getElementById('openBuzzBtn').disabled = true;
   document.getElementById('resetBuzzBtn').disabled = true;
+  document.getElementById('qPickBtn')?.classList.remove('selected');
+  document.getElementById('qPickLabel') && (document.getElementById('qPickLabel').innerText = 'Search question bank…');
+  document.getElementById('qDisplay')?.classList.add('hidden');
 }
 
 function switchTab(tab) {

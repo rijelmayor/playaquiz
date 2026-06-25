@@ -1436,7 +1436,7 @@ function subscribeChannel() {
     const evts = ['round_started','question_open','buzz_confirmed','correct','wrong','question_revealed',
       'next_question','reset_buzzers','reset_for_next_question','buzzers_reopen',
       'buzzer_toggle','eliminated','round_ended','timer_start','state_sync',
-      'full_game_reset','player_list_update'];
+      'full_game_reset','player_list_update','host_requesting_rejoin'];
     evts.forEach(ev => ch.on('broadcast',{event:ev},({payload})=>handleEvent(ev,payload)));
 
     let subTimeout = setTimeout(()=>{
@@ -1652,6 +1652,15 @@ function handleEvent(event, payload) {
         showToast('✅ Back in the game!',2500);
         saveIdentity();
       } 
+      break;
+    case 'host_requesting_rejoin':
+      // Host just reconnected/reloaded and lost its in-memory roster.
+      // Silently re-announce ourselves — no user action needed. The
+      // host will match us back to our saved score (or know we're
+      // still here even if eliminated).
+      if(myId && myName && ch){
+        ch.send({type:'broadcast',event:'player_join',payload:{id:myId,name:myName,avatar:myAvatar,timestamp:Date.now()}});
+      }
       break;
   }
 }
