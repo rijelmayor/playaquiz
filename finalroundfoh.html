@@ -60,11 +60,11 @@
       transition: opacity 0.8s ease;
       z-index: 0;
     }
-    #eventBgImage.loaded { opacity: 0.35; }
+    #eventBgImage.loaded { opacity: 0.75; }
     #eventBgScrim {
       position: fixed;
       inset: 0;
-      background: radial-gradient(ellipse at 50% 40%, rgba(10,10,26,0.55) 0%, rgba(10,10,26,0.88) 100%);
+      background: radial-gradient(ellipse at 50% 40%, rgba(10,10,26,0.25) 0%, rgba(10,10,26,0.55) 100%);
       z-index: 0;
       pointer-events: none;
     }
@@ -697,14 +697,16 @@
     .warmup-container { text-align: center; }
     .warmup-logo {
       font-family: 'Orbitron', monospace;
-      font-size: clamp(48px, 8vw, 90px);
+      font-size: clamp(28px, 4.5vw, 56px);
       font-weight: 900;
-      letter-spacing: 15px;
+      letter-spacing: 6px;
       background: linear-gradient(135deg, #fff, var(--gold), var(--neon-blue));
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       margin-bottom: 24px;
       animation: logoPulse 2s ease-in-out infinite;
+      line-height: 1.2;
+      max-width: 90vw;
     }
 
     @keyframes logoPulse {
