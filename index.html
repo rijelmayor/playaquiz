@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self' https: data:; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://*.supabase.co; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://cdn.jsdelivr.net; img-src 'self' data: https: api.qrserver.com; font-src 'self' https://fonts.gstatic.com;">
-  <title>PlayAQuiz — Solar Gateway Array</title>
+  <title>PlayAQuiz — Control Center</title>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&family=Bebas+Neue&display=swap" rel="stylesheet">
   <link rel="icon" href="data:,">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -114,7 +114,40 @@
       text-transform: uppercase; letter-spacing: 1px;
     }
     .btn-cosmic:hover { transform: translateY(-2px); filter: brightness(1.1); box-shadow: 0 10px 25px rgba(255, 159, 28, 0.35); }
+    .btn-cosmic:disabled { opacity: 0.65; cursor: not-allowed; transform: none; filter: none; box-shadow: none; }
+    .btn-cosmic .spinner {
+      display: inline-block; width: 14px; height: 14px; border-radius: 50%;
+      border: 2px solid rgba(2,4,10,0.3); border-top-color: #020308;
+      animation: spin 0.7s linear infinite; vertical-align: -2px; margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
     .error-msg { color: #ef4444; font-size: 13px; margin-top: 16px; min-height: 18px; font-weight: 500; }
+    .error-msg.success { color: #4ade80; }
+
+    .password-wrap { position: relative; }
+    .password-wrap .input-field { padding-right: 46px; }
+    .pw-toggle {
+      position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; color: var(--text-muted); cursor: pointer;
+      padding: 8px; display: flex; align-items: center; border-radius: 8px; transition: color 0.2s, background 0.2s;
+    }
+    .pw-toggle:hover { color: var(--solar-amber); background: rgba(255,255,255,0.04); }
+    .pw-toggle:focus-visible, .input-field:focus-visible, .btn-cosmic:focus-visible, .link-btn:focus-visible, .action-btn:focus-visible, .btn-logout:focus-visible {
+      outline: 2px solid var(--solar-amber); outline-offset: 2px;
+    }
+
+    .link-btn {
+      display: block; margin: 20px auto 0; background: none; border: none;
+      color: var(--text-muted); font-size: 13px; font-weight: 600; cursor: pointer;
+      text-decoration: underline; text-decoration-color: transparent; transition: color 0.2s, text-decoration-color 0.2s;
+    }
+    .link-btn:hover { color: var(--nova-gold); text-decoration-color: var(--nova-gold); }
+
+    .portal-tag {
+      display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase;
+      color: var(--nova-gold); background: rgba(255, 209, 102, 0.1); border: 1px solid rgba(255, 209, 102, 0.2);
+      padding: 3px 9px; border-radius: 20px; margin-bottom: 12px;
+    }
 
     /* Grid Array Terminal */
     .dashboard-container { display: none; width: min(1140px, 95vw); padding: 48px; animation: superWarp 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
@@ -166,40 +199,71 @@
   <div id="authGateway" class="glass-card gateway-container">
     <div class="logo-container">
       <div class="logo">PLAY<span style="color:var(--solar-amber)">A</span>QUIZ</div>
-      <div class="tagline">Solar Command Nexus</div>
-    </div>
-    
-    <div class="input-group">
-      <label>Operator Signature</label>
-      <input type="text" id="usernameField" class="input-field" placeholder="Username" autocomplete="username">
+      <div class="tagline">Host &amp; Admin Sign In</div>
     </div>
 
-    <div class="input-group">
-      <label>Passphrase Key</label>
-      <input type="password" id="passwordField" class="input-field" placeholder="••••••••" autocomplete="current-password">
-    </div>
+    <form id="authForm" novalidate>
+      <div class="input-group">
+        <label for="emailField">Email</label>
+        <input type="email" id="emailField" class="input-field" placeholder="you@example.com" autocomplete="email" required>
+      </div>
 
-    <button class="btn-cosmic" onclick="processAuthentication()">Ignite Terminal Engine →</button>
-    <div id="errorMessage" class="error-msg"></div>
+      <div class="input-group">
+        <label for="passwordField">Password</label>
+        <div class="password-wrap">
+          <input type="password" id="passwordField" class="input-field" placeholder="••••••••" autocomplete="current-password" required minlength="6">
+          <button type="button" class="pw-toggle" id="pwToggle" aria-label="Show password" title="Show password">
+            <svg id="eyeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-cosmic" id="submitBtn">
+        <span id="submitBtnText">Sign In →</span>
+      </button>
+      <div id="errorMessage" class="error-msg" role="alert"></div>
+    </form>
+
+    <button type="button" class="link-btn" id="forgotBtn">Forgot your password?</button>
+  </div>
+
+  <div id="forgotGateway" class="glass-card gateway-container" style="display:none;">
+    <div class="logo-container">
+      <div class="logo">PLAY<span style="color:var(--solar-amber)">A</span>QUIZ</div>
+      <div class="tagline">Reset Password</div>
+    </div>
+    <p style="font-size:13px; color:var(--text-muted); margin-bottom:20px; line-height:1.6;">Enter the email tied to your account. We'll send a secure link to reset your password.</p>
+    <form id="forgotForm" novalidate>
+      <div class="input-group">
+        <label for="resetEmailField">Email</label>
+        <input type="email" id="resetEmailField" class="input-field" placeholder="you@example.com" autocomplete="email" required>
+      </div>
+      <button type="submit" class="btn-cosmic" id="resetBtn">
+        <span id="resetBtnText">Send Reset Link</span>
+      </button>
+      <div id="resetMessage" class="error-msg" role="alert"></div>
+    </form>
+    <button type="button" class="link-btn" id="backToLoginBtn">← Back to sign in</button>
   </div>
 
   <div id="controlTerminal" class="glass-card dashboard-container">
     <div class="dash-header">
       <div>
-        <h1 style="font-size: 28px; font-weight: 800; letter-spacing: -0.5px; background: linear-gradient(to right, #fff, var(--nova-gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Solar Array System</h1>
-        <p style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">Synchronized deployment modules</p>
+        <h1 style="font-size: 28px; font-weight: 800; letter-spacing: -0.5px; background: linear-gradient(to right, #fff, var(--nova-gold)); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Control Center</h1>
+        <p style="font-size: 13px; color: var(--text-muted); margin-top: 2px;">Choose a tool to launch</p>
       </div>
       <div style="display: flex; gap: 14px; align-items: center;">
         <div class="user-pill">☀️ <span id="activeUser">Operator</span></div>
-        <button class="btn-logout" onclick="killSession()">Disconnect Core</button>
+        <button class="btn-logout" onclick="killSession()">Log Out</button>
       </div>
     </div>
 
     <div class="portal-grid">
       <div class="portal-card">
         <div class="portal-info">
-          <h3>Room Management Matrix</h3>
-          <p>Deploy sessions, evaluate active rooms, and manage core gameplay spaces.</p>
+          <span class="portal-tag">Setup</span>
+          <h3>Room Manager</h3>
+          <p>Create new game rooms, view active sessions, and manage room codes.</p>
         </div>
         <div class="action-row">
           <a class="action-btn btn-launch" href="https://www.playaquiz.xyz/room-manager.html" target="_blank">Launch</a>
@@ -210,8 +274,9 @@
 
       <div class="portal-card">
         <div class="portal-info">
-          <h3>Self-Paced Master Controller</h3>
-          <p>Command center dashboard for orchestrating asynchronous game configurations.</p>
+          <span class="portal-tag">Host</span>
+          <h3>Self-Paced: Admin</h3>
+          <p>Manage questions and control the elimination-round game from here.</p>
         </div>
         <div class="action-row">
           <a class="action-btn btn-launch" href="https://www.playaquiz.xyz/admin-sp.html" target="_blank">Launch</a>
@@ -222,8 +287,9 @@
 
       <div class="portal-card">
         <div class="portal-info">
-          <h3>Self-Paced Front of House</h3>
-          <p>Public arena visualization module for active, self-guided game layouts.</p>
+          <span class="portal-tag">Display</span>
+          <h3>Self-Paced: Front of House</h3>
+          <p>Public screen showing live game progress — put this on the projector or TV.</p>
         </div>
         <div class="action-row">
           <a class="action-btn btn-launch" href="https://www.playaquiz.xyz/foh-sp.html" target="_blank">Launch</a>
@@ -234,8 +300,9 @@
 
       <div class="portal-card">
         <div class="portal-info">
-          <h3>Self-Paced Player Entrance</h3>
-          <p>Main intake point and player interface for self-guided game variations.</p>
+          <span class="portal-tag">Player</span>
+          <h3>Self-Paced: Player Entry</h3>
+          <p>Share this link or QR code with players to join the elimination round.</p>
         </div>
         <div class="action-row">
           <a class="action-btn btn-launch" href="https://www.playaquiz.xyz/player-sp.html" target="_blank">Launch</a>
@@ -246,8 +313,9 @@
 
       <div class="portal-card">
         <div class="portal-info">
-          <h3>Final Round Command Deck</h3>
-          <p>High-priority control deck managing rapid live buzzer interactions.</p>
+          <span class="portal-tag">Host</span>
+          <h3>Final Round: Host Control</h3>
+          <p>Run the live buzzer final from your phone or tablet — open questions, reveal answers, award points.</p>
         </div>
         <div class="action-row">
           <a class="action-btn btn-launch" href="https://www.playaquiz.xyz/hostcontrol.html" target="_blank">Launch</a>
@@ -258,8 +326,9 @@
 
       <div class="portal-card">
         <div class="portal-info">
-          <h3>Final Round Arena Array</h3>
-          <p>Public main-stage scoreboard output optimized for synchronous event modules.</p>
+          <span class="portal-tag">Display</span>
+          <h3>Final Round: Front of House</h3>
+          <p>Public scoreboard and buzzer display — put this on the main stage screen.</p>
         </div>
         <div class="action-row">
           <a class="action-btn btn-launch" href="https://www.playaquiz.xyz/finalroundfoh.html" target="_blank">Launch</a>
@@ -270,8 +339,9 @@
 
       <div class="portal-card">
         <div class="portal-info">
-          <h3>Final Round Buzzer Interface</h3>
-          <p>Ultra-responsive handheld player terminal assigning live participant inputs.</p>
+          <span class="portal-tag">Player</span>
+          <h3>Final Round: Buzzer</h3>
+          <p>Share this link or QR code with finalists to use as their buzzer.</p>
         </div>
         <div class="action-row">
           <a class="action-btn btn-launch" href="https://www.playaquiz.xyz/finalroundplayer.html" target="_blank">Launch</a>
@@ -284,12 +354,12 @@
 
   <div id="qrModal" class="qr-modal" onclick="closeQRModal()">
     <div class="glass-card qr-card" onclick="event.stopPropagation()">
-      <h3 style="font-size: 16px; font-weight: 700; color: #fff;">System Link QR Stream</h3>
+      <h3 style="font-size: 16px; font-weight: 700; color: #fff;">Scan to Open</h3>
       <div class="qr-frame">
-        <img id="qrImg" src="" alt="System Link QR">
+        <img id="qrImg" src="" alt="QR code linking to the selected tool">
       </div>
       <p style="font-size:11px; color:var(--text-muted); word-break:break-all;" id="qrTargetUrl"></p>
-      <button class="btn-cosmic" style="padding:10px; margin-top:20px; font-size:13px;" onclick="closeQRModal()">Dismiss Matrix</button>
+      <button class="btn-cosmic" style="padding:10px; margin-top:20px; font-size:13px;" onclick="closeQRModal()">Close</button>
     </div>
   </div>
 
@@ -313,71 +383,132 @@
       setTimeout(() => { tray.innerHTML = ''; }, 3000);
     }
 
-    async function processAuthentication() {
-      const u = document.getElementById('usernameField').value.trim();
-      const p = document.getElementById('passwordField').value;
-      const err = document.getElementById('errorMessage');
-      err.textContent = '';
+    // ---------- Password visibility toggle ----------
+    const pwField = document.getElementById('passwordField');
+    const pwToggle = document.getElementById('pwToggle');
+    const eyeIcon = document.getElementById('eyeIcon');
+    const EYE_OPEN = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/>';
+    const EYE_OFF  = '<path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a18.5 18.5 0 0 1 4.22-5.94M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19M1 1l22 22"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/>';
+    pwToggle.addEventListener('click', () => {
+      const showing = pwField.type === 'text';
+      pwField.type = showing ? 'password' : 'text';
+      eyeIcon.innerHTML = showing ? EYE_OPEN : EYE_OFF;
+      pwToggle.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
+      pwToggle.title = showing ? 'Show password' : 'Hide password';
+    });
 
-      if (!u || !p) { err.textContent = 'Identity credentials incomplete.'; return; }
+    // ---------- Sign in (real Supabase Auth — no hardcoded credentials) ----------
+    const authForm = document.getElementById('authForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const submitBtnText = document.getElementById('submitBtnText');
+    const errEl = document.getElementById('errorMessage');
 
-      // EMERGENCY OVERRIDE
-      if (u === 'admin' && p === 'cosmic2026') {
-        executeAuthorization(u, 'Solar Core Engine');
+    authForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errEl.textContent = '';
+      errEl.classList.remove('success');
+
+      const email = document.getElementById('emailField').value.trim();
+      const password = pwField.value;
+
+      if (!email || !password) {
+        errEl.textContent = 'Please enter both email and password.';
         return;
       }
 
+      setSubmitting(true);
       try {
-        const { data: userRow, error: userErr } = await sb
-          .from('manager_users')
-          .select('username')
-          .eq('username', u)
-          .eq('password_hash', p)
-          .maybeSingle();
+        const { data, error } = await sb.auth.signInWithPassword({ email, password });
 
-        if (!userErr && userRow) {
-          executeAuthorization(userRow.username, 'Database Array');
+        if (error) {
+          errEl.textContent = friendlyAuthError(error);
           return;
         }
 
-        const { data: appRow, error: appErr } = await sb
-          .from('app_settings')
-          .select('value')
-          .eq('key', 'master_password')
-          .maybeSingle();
-
-        if (!appErr && appRow && p === appRow.value) {
-          executeAuthorization(u, 'Legacy Override Matrix');
-          return;
-        }
-
-        err.textContent = 'Invalid credentials within this solar quadrant.';
+        const displayName = data.user?.user_metadata?.full_name || data.user?.email || 'Operator';
+        dispatchNotification(`Welcome back, ${displayName}.`);
+        revealDashboard(displayName);
       } catch (ex) {
-        err.textContent = 'Access Exception: ' + ex.message;
+        errEl.textContent = 'Something went wrong. Please try again.';
+      } finally {
+        setSubmitting(false);
       }
+    });
+
+    function friendlyAuthError(error) {
+      const msg = (error.message || '').toLowerCase();
+      if (msg.includes('invalid login credentials')) return 'Incorrect email or password.';
+      if (msg.includes('email not confirmed')) return 'Please confirm your email before signing in.';
+      if (msg.includes('rate limit')) return 'Too many attempts. Please wait a moment and try again.';
+      return error.message || 'Sign in failed. Please try again.';
     }
 
-    function executeAuthorization(username, layerName) {
-      sessionStorage.setItem('cosmic_token', 'active_verified');
-      sessionStorage.setItem('cosmic_operator', username);
-      dispatchNotification(`Handshake verified via ${layerName}.`);
-      revealDashboard(username);
+    function setSubmitting(isSubmitting) {
+      submitBtn.disabled = isSubmitting;
+      submitBtnText.innerHTML = isSubmitting ? '<span class="spinner"></span>Signing in…' : 'Sign In →';
     }
 
+    // ---------- Forgot password ----------
+    const forgotBtn = document.getElementById('forgotBtn');
+    const backToLoginBtn = document.getElementById('backToLoginBtn');
+    const forgotForm = document.getElementById('forgotForm');
+    const resetBtn = document.getElementById('resetBtn');
+    const resetBtnText = document.getElementById('resetBtnText');
+    const resetMsg = document.getElementById('resetMessage');
+
+    forgotBtn.addEventListener('click', () => {
+      document.getElementById('authGateway').style.display = 'none';
+      document.getElementById('forgotGateway').style.display = 'block';
+    });
+    backToLoginBtn.addEventListener('click', () => {
+      document.getElementById('forgotGateway').style.display = 'none';
+      document.getElementById('authGateway').style.display = 'block';
+      resetMsg.textContent = '';
+    });
+
+    forgotForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      resetMsg.textContent = '';
+      resetMsg.classList.remove('success');
+      const email = document.getElementById('resetEmailField').value.trim();
+      if (!email) { resetMsg.textContent = 'Please enter your email.'; return; }
+
+      resetBtn.disabled = true;
+      resetBtnText.innerHTML = '<span class="spinner"></span>Sending…';
+      try {
+        const { error } = await sb.auth.resetPasswordForEmail(email, {
+          redirectTo: window.location.origin + window.location.pathname
+        });
+        if (error) {
+          resetMsg.textContent = error.message || 'Could not send reset link.';
+        } else {
+          resetMsg.textContent = 'Check your inbox for a password reset link.';
+          resetMsg.classList.add('success');
+        }
+      } catch (ex) {
+        resetMsg.textContent = 'Something went wrong. Please try again.';
+      } finally {
+        resetBtn.disabled = false;
+        resetBtnText.textContent = 'Send Reset Link';
+      }
+    });
+
+    // ---------- Session handling ----------
     function revealDashboard(user) {
       document.getElementById('authGateway').style.display = 'none';
+      document.getElementById('forgotGateway').style.display = 'none';
       document.getElementById('controlTerminal').style.display = 'block';
       document.getElementById('activeUser').textContent = user;
     }
 
-    function killSession() {
-      sessionStorage.clear();
+    async function killSession() {
+      await sb.auth.signOut();
       location.reload();
     }
 
     function copyRoute(url) {
       navigator.clipboard.writeText(url).then(() => {
-        dispatchNotification('Route duplicated to local matrix.');
+        dispatchNotification('Link copied to clipboard.');
       });
     }
 
@@ -395,11 +526,22 @@
       document.getElementById('qrModal').classList.remove('active');
     }
 
-    (() => {
-      if(sessionStorage.getItem('cosmic_token') === 'active_verified') {
-        revealDashboard(sessionStorage.getItem('cosmic_operator') || 'Operator');
+    // On load, check for an existing valid Supabase session (handles refresh + magic-link/reset redirects)
+    (async () => {
+      const { data } = await sb.auth.getSession();
+      if (data.session?.user) {
+        const displayName = data.session.user.user_metadata?.full_name || data.session.user.email || 'Operator';
+        revealDashboard(displayName);
       }
     })();
+
+    // Keep dashboard state in sync if the session is signed out elsewhere (e.g. another tab)
+    sb.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') {
+        document.getElementById('controlTerminal').style.display = 'none';
+        document.getElementById('authGateway').style.display = 'block';
+      }
+    });
   </script>
 </body>
 </html>
