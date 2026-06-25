@@ -360,6 +360,45 @@
     }
     .flash-sub { font-size: 14px; color: rgba(255,255,255,0.6); }
 
+    #welcomeBackOverlay {
+      position: fixed; inset: 0; z-index: 9998;
+      display: none; align-items: center; justify-content: center;
+      background: rgba(5,4,16,0.9);
+      backdrop-filter: blur(20px);
+      padding: 20px;
+    }
+    #welcomeBackOverlay.show { display: flex; }
+    .welcome-back-card {
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--glass-border-strong);
+      border-radius: 24px;
+      padding: 32px 28px; text-align: center;
+      max-width: 360px; width: 100%;
+      box-shadow: var(--shadow-lg), 0 0 50px rgba(245,200,66,0.12);
+    }
+    .welcome-back-avatar { font-size: 52px; margin-bottom: 10px; }
+    .welcome-back-title {
+      font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 800;
+      color: var(--gold); margin-bottom: 6px;
+    }
+    .welcome-back-sub { font-size: 14px; color: var(--muted); margin-bottom: 22px; line-height: 1.5; }
+    .welcome-back-sub b { color: var(--text); }
+    .welcome-back-actions { display: flex; flex-direction: column; gap: 10px; }
+    .wb-btn-resume {
+      background: linear-gradient(135deg, var(--gold), var(--amber));
+      color: #1a1300; border: none; border-radius: 14px;
+      padding: 14px; font-size: 15px; font-weight: 700;
+      cursor: pointer; transition: transform 0.15s;
+    }
+    .wb-btn-resume:active { transform: scale(0.97); }
+    .wb-btn-fresh {
+      background: transparent; border: 1px solid var(--glass-border-strong);
+      color: var(--muted); border-radius: 14px;
+      padding: 12px; font-size: 13px; font-weight: 600;
+      cursor: pointer;
+    }
+
     #reconnectBanner {
       position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
       background: linear-gradient(90deg, rgba(249,115,22,0.95), rgba(245,200,66,0.95));
@@ -693,6 +732,18 @@
   </style>
 </head>
 <body>
+
+<div id="welcomeBackOverlay">
+  <div class="welcome-back-card">
+    <div class="welcome-back-avatar" id="wbAvatar">😎</div>
+    <div class="welcome-back-title">Welcome back!</div>
+    <div class="welcome-back-sub">Resume as <b id="wbName">—</b> in room <b id="wbRoom">——</b> with <b id="wbScore">0</b> pts?</div>
+    <div class="welcome-back-actions">
+      <button class="wb-btn-resume" onclick="confirmWelcomeBack()">⚡ Yes, resume my game</button>
+      <button class="wb-btn-fresh" onclick="declineWelcomeBack()">Start fresh instead</button>
+    </div>
+  </div>
+</div>
 
 <div id="verifyFlash">
   <div class="flash-card">
@@ -1333,9 +1384,11 @@ function stopRoomValidityPoll() {
   if (roomValidityInterval) { clearInterval(roomValidityInterval); roomValidityInterval = null; }
 }
 
-function saveIdentity()  { try { sessionStorage.setItem('fr_identity', JSON.stringify({myId,myName,myAvatar,roomCode,myScore,myStatus})); } catch(e) {} }
-function loadIdentity()  { try { const s=sessionStorage.getItem('fr_identity'); return s?JSON.parse(s):null; } catch(e){return null;} }
-function clearIdentity() { try { sessionStorage.removeItem('fr_identity'); } catch(e) {} }
+const IDENTITY_TTL_MS = 30 * 60 * 1000; // offer "welcome back" for up to 30 min after disconnect
+
+function saveIdentity()  { try { localStorage.setItem('fr_identity', JSON.stringify({myId,myName,myAvatar,roomCode,myScore,myStatus,savedAt:Date.now()})); } catch(e) {} }
+function loadIdentity()  { try { const s=localStorage.getItem('fr_identity'); return s?JSON.parse(s):null; } catch(e){return null;} }
+function clearIdentity() { try { localStorage.removeItem('fr_identity'); } catch(e) {} }
 
 function resetToJoinScreen(newRoomCode = null) {
   if (ch) { try { sb.removeChannel(ch); } catch(e) {} ch = null; }
@@ -1604,15 +1657,76 @@ function handleEvent(event, payload) {
 }
 
 // Initialize categories on load (only load, don't auto-show)
+let _pendingResume = null; // identity object awaiting user confirmation
+
 (async function init() {
-  // Always clear any saved session on page load — player must log in fresh every time
-  clearIdentity();
   await loadCategories();
+
+  const saved = loadIdentity();
+  const urlRoom = new URLSearchParams(window.location.search).get('room')?.toUpperCase() || null;
+
+  const isFresh = saved && (Date.now() - (saved.savedAt || 0) < IDENTITY_TTL_MS);
+  const roomMatches = saved && (!urlRoom || saved.roomCode === urlRoom);
+
+  if (isFresh && roomMatches && saved.myId && saved.roomCode) {
+    const stillActive = await verifyRoomBeforeJoining(saved.roomCode);
+    if (stillActive) {
+      _pendingResume = saved;
+      showWelcomeBack(saved);
+      return; // wait for user's choice before doing anything else
+    }
+  }
+
+  // No valid resumable session — clear anything stale and start fresh
+  clearIdentity();
   autoDetectFinalRoomFromURL();
 })();
 
-// autoRejoin removed: page refresh always returns to login screen.
-// Score is restored automatically via state_sync broadcast from host on rejoin.
+function showWelcomeBack(identity) {
+  document.getElementById('wbAvatar').innerText = identity.myAvatar || '😎';
+  document.getElementById('wbName').innerText = identity.myName || 'Player';
+  document.getElementById('wbRoom').innerText = identity.roomCode || '——';
+  document.getElementById('wbScore').innerText = identity.myScore || 0;
+  document.getElementById('welcomeBackOverlay').classList.add('show');
+}
+
+function hideWelcomeBack() {
+  document.getElementById('welcomeBackOverlay').classList.remove('show');
+}
+
+function confirmWelcomeBack() {
+  if (!_pendingResume) return;
+  const identity = _pendingResume;
+  _pendingResume = null;
+  hideWelcomeBack();
+
+  myId = identity.myId;
+  myName = identity.myName;
+  myAvatar = identity.myAvatar || '😎';
+  roomCode = identity.roomCode;
+  myScore = identity.myScore || 0;
+  myStatus = 'waiting'; // host's state_sync on rejoin will correct this if needed
+  isOpen = false; globalBuzzerEnabled = true; hasAnsweredWrongThisQuestion = false;
+  roomVerified = true; roomActive = true;
+
+  saveIdentity();
+  subscribeChannel();
+  startRoomValidityPoll();
+}
+
+function declineWelcomeBack() {
+  _pendingResume = null;
+  hideWelcomeBack();
+  clearIdentity();
+  autoDetectFinalRoomFromURL();
+}
+
+window.confirmWelcomeBack = confirmWelcomeBack;
+window.declineWelcomeBack = declineWelcomeBack;
+
+// autoRejoin removed: a returning player is now offered an explicit
+// "Welcome back" choice instead of either silently rejoining or being
+// forced back to a blank login screen. See init() above.
 
 window.joinGame = joinGame;
 window.pickAvatar = pickAvatar;

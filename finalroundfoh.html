@@ -1651,6 +1651,9 @@ function connectToRoom(code) {
       if(reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; reconnectAttempts = 0; }
       badge.className = 'conn-badge live';
       badge.innerText = '● LIVE';
+      // FOH may have just reloaded/reconnected — ask the host for the
+      // current player roster instead of waiting for the next organic update.
+      realtimeChannel.send({ type: 'broadcast', event: 'foh_requesting_sync', payload: {} });
     } else if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
       badge.className = 'conn-badge reconnecting';
       badge.innerText = '⚠ Reconnecting';

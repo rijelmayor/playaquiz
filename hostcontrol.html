@@ -1162,6 +1162,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 // State
 let roomCode = '';
 let sessionId = null;   // UUID scoping all questions & categories to this room session
+let finalSessionId = null; // UUID of the final_round_sessions row for this room (recovery scope)
 let channel = null;
 let players = new Map();
 let eliminated = new Set();
@@ -1246,6 +1247,7 @@ async function connectRoom(code) {
       player_count: 0
     });
     
+    await ensureFinalRoundSession(code);  // find-or-create + recover players
     await loadQuestions();
     setupRealtime();
     
@@ -1589,6 +1591,86 @@ function fireQuestion(id) {
   setTimeout(() => openQuestion(), 100);
 }
 
+// ============================================================
+// Player roster recovery (survives host reload/crash/disconnect)
+// ============================================================
+// final_round_sessions.room_code is UNIQUE, so upsert-by-room_code
+// safely finds the existing row on a reconnect or creates it on the
+// very first connect. final_round_players is keyed by
+// (final_session_id, player_id), also UNIQUE, so persistPlayer can
+// upsert directly.
+//
+// pendingRecovery holds players loaded from the DB that haven't
+// actively reconnected yet this session. They are NOT rendered in
+// the UI until a matching player_join arrives — a player who never
+// comes back should not clutter the list.
+let pendingRecovery = new Map(); // name -> persisted row
+
+async function ensureFinalRoundSession(code) {
+  finalSessionId = null;
+  pendingRecovery.clear();
+  try {
+    const { data, error } = await sb
+      .from('final_round_sessions')
+      .upsert(
+        { room_code: code, main_session_id: sessionId, status: 'active' },
+        { onConflict: 'room_code' }
+      )
+      .select('id')
+      .single();
+    if (error) throw error;
+    finalSessionId = data.id;
+
+    const { data: existingPlayers, error: playersErr } = await sb
+      .from('final_round_players')
+      .select('*')
+      .eq('final_session_id', finalSessionId);
+    if (playersErr) throw playersErr;
+
+    if (existingPlayers && existingPlayers.length) {
+      existingPlayers.forEach(row => pendingRecovery.set(row.name, row));
+      toast(`🗂️ Found ${existingPlayers.length} player${existingPlayers.length === 1 ? '' : 's'} from a previous session — they'll reappear as they reconnect`);
+    }
+  } catch (err) {
+    console.warn('[ensureFinalRoundSession] failed (continuing without recovery):', err);
+  }
+}
+
+let _persistTimers = new Map(); // playerId -> debounce timer
+function persistPlayer(player) {
+  if (!finalSessionId || !player) return;
+  const id = player.id;
+  if (_persistTimers.has(id)) clearTimeout(_persistTimers.get(id));
+  _persistTimers.set(id, setTimeout(() => {
+    _persistTimers.delete(id);
+    sb.from('final_round_players').upsert({
+      final_session_id: finalSessionId,
+      player_id: player.id,
+      name: player.name,
+      avatar: player.avatar,
+      score: player.score,
+      status: eliminated.has(player.id) ? 'eliminated' : player.status
+    }, { onConflict: 'final_session_id,player_id' })
+      .then(({ error }) => { if (error) console.warn('[persistPlayer] failed:', error); });
+  }, 400));
+}
+
+function persistAllPlayers() {
+  players.forEach(p => persistPlayer(p));
+}
+
+async function clearPersistedPlayers() {
+  if (!finalSessionId) return;
+  try {
+    await sb.from('final_round_players').delete().eq('final_session_id', finalSessionId);
+    await sb.from('final_round_sessions').delete().eq('id', finalSessionId);
+  } catch (err) {
+    console.warn('[clearPersistedPlayers] failed:', err);
+  }
+  pendingRecovery.clear();
+  finalSessionId = null;
+}
+
 function setupRealtime() {
   if (channel) sb.removeChannel(channel);
   
@@ -1656,6 +1738,12 @@ function handlePlayerJoin(payload) {
     broadcast('player_list_update', { players: Array.from(players.values()) });
     renderAll();
     toast(`🔄 ${payload.avatar} ${payload.name} reconnected`);
+    persistPlayer(existing);
+    if (finalSessionId) {
+      sb.from('final_round_players').delete()
+        .eq('final_session_id', finalSessionId).eq('player_id', oldId)
+        .then(({ error }) => { if (error) console.warn('[handlePlayerJoin] old-row cleanup failed:', error); });
+    }
     return;
   }
 
@@ -1663,6 +1751,41 @@ function handlePlayerJoin(payload) {
     const p = players.get(payload.id);
     p.connected = true;
     p.lastSeen = Date.now();
+  } else if (pendingRecovery.has(payload.name)) {
+    // Host reloaded earlier — player wasn't in memory at all, but we
+    // have their persisted score/status from before the reload.
+    const saved = pendingRecovery.get(payload.name);
+    pendingRecovery.delete(payload.name);
+    const restored = {
+      id: payload.id,
+      name: payload.name,
+      avatar: payload.avatar || saved.avatar,
+      score: saved.score || 0,
+      status: saved.status === 'eliminated' ? 'eliminated' : (saved.status || 'waiting'),
+      connected: true,
+      lastSeen: Date.now()
+    };
+    players.set(payload.id, restored);
+    if (saved.status === 'eliminated') eliminated.add(payload.id);
+    broadcast('state_sync', {
+      playerId: payload.id,
+      score: restored.score,
+      status: restored.status,
+      isEliminated: eliminated.has(payload.id),
+      isQuestionOpen: isOpen,
+      questionText: selectedQ?.question_text || null,
+      questionOptions: selectedQ
+        ? [selectedQ.option_a, selectedQ.option_b, selectedQ.option_c, selectedQ.option_d]
+        : []
+    });
+    if (saved.player_id && saved.player_id !== payload.id && finalSessionId) {
+      // old row was keyed by the player's previous id; replace it
+      sb.from('final_round_players').delete()
+        .eq('final_session_id', finalSessionId).eq('player_id', saved.player_id)
+        .then(({ error }) => { if (error) console.warn('[handlePlayerJoin] recovery old-row cleanup failed:', error); });
+    }
+    persistPlayer(restored);
+    toast(`🗂️ ${restored.avatar} ${restored.name} recovered — score restored (${restored.score} pts)`);
   } else {
     players.set(payload.id, {
       id: payload.id,
@@ -1673,6 +1796,7 @@ function handlePlayerJoin(payload) {
       connected: true,
       lastSeen: Date.now()
     });
+    persistPlayer(players.get(payload.id));
     toast(`✨ ${payload.avatar} ${payload.name} joined`);
   }
   broadcast('player_list_update', { players: Array.from(players.values()) });
@@ -1723,6 +1847,7 @@ function handleExternalCorrect(payload) {
       ? payload.newScore
       : (player.score + (parseInt(document.getElementById('pointsInput').value) || 100));
     player.status = 'correct';
+    persistPlayer(player);
   }
   hideBuzzBanner();
   buzzedId = null;
@@ -1735,6 +1860,7 @@ function handleExternalWrong(payload) {
   if (player) {
     player.status = 'wrong';
     locked.add(payload.playerId);
+    persistPlayer(player);
   }
   hideBuzzBanner();
   buzzedId = null;
@@ -1744,7 +1870,7 @@ function handleExternalWrong(payload) {
 function handleExternalEliminated(payload) {
   eliminated.add(payload.playerId);
   const player = players.get(payload.playerId);
-  if (player) player.status = 'eliminated';
+  if (player) { player.status = 'eliminated'; persistPlayer(player); }
   if (buzzedId === payload.playerId) {
     buzzedId = null;
     hideBuzzBanner();
@@ -1921,6 +2047,7 @@ function markCorrect() {
   if (player) {
     player.score += points;
     player.status = 'correct';
+    persistPlayer(player);
   }
   hideBuzzBanner();
   document.getElementById('correctBtn').disabled = true;
@@ -1948,6 +2075,7 @@ function markWrong() {
   if (player) {
     player.status = 'wrong';
     locked.add(buzzedId);
+    persistPlayer(player);
   }
   hideBuzzBanner();
   document.getElementById('correctBtn').disabled = true;
@@ -2069,6 +2197,7 @@ function eliminatePlayer(playerId) {
   
   eliminated.add(playerId);
   player.status = 'eliminated';
+  persistPlayer(player);
   if (buzzedId === playerId) {
     buzzedId = null;
     hideBuzzBanner();
@@ -2172,6 +2301,7 @@ function resetAllScores() {
   document.getElementById('wrongBtn').disabled = true;
   document.getElementById('revealBtn').disabled = true;
   broadcast('player_list_update', { players: Array.from(players.values()) });
+  persistAllPlayers();
   renderAll();
   toast('🔄 All scores reset to 0');
 }
@@ -2204,6 +2334,7 @@ async function newRoomCode() {
   if (!confirm('Generate new room code? All players must re-join.')) return;
   const code = 'FR' + Math.random().toString(36).substring(2, 6).toUpperCase();
   broadcast('full_game_reset', { newRoomCode: code });
+  await clearPersistedPlayers();
   await sb.from('game_rooms').delete().neq('room_code', code);
   await sb.from('game_rooms').upsert({ room_code: code, is_active: true, control_id: 'hc_' + Date.now(), created_at: new Date() });
   setTimeout(() => connectRoom(code), 600);
@@ -2213,6 +2344,7 @@ async function fullReset() {
   if (!confirm('⚠️ FULL RESET: This will clear all players and create a new room.')) return;
   const code = 'FR' + Math.random().toString(36).substring(2, 6).toUpperCase();
   broadcast('full_game_reset', { newRoomCode: code });
+  await clearPersistedPlayers();
   await sb.from('game_rooms').delete().neq('room_code', code);
   await sb.from('game_rooms').upsert({ room_code: code, is_active: true, control_id: 'hc_' + Date.now(), created_at: new Date() });
   setTimeout(() => connectRoom(code), 600);
@@ -2309,6 +2441,7 @@ function resetLocalState() {
   players.clear();
   eliminated.clear();
   locked.clear();
+  pendingRecovery.clear();
   buzzedId = null;
   isOpen = false;
   hideBuzzBanner();
