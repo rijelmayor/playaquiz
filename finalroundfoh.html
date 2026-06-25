@@ -1134,6 +1134,10 @@ function playBackgroundMusic() { if(bgmAudio && bgmEnabled) bgmAudio.play().catc
 function stopBackgroundMusic() { if(bgmAudio) { bgmAudio.pause(); bgmAudio.currentTime = 0; } }
 function toggleBackgroundMusic() {
   if(!bgmAudio) initBackgroundMusic();
+  // Make sure SFX are unlocked regardless of whether this is the first
+  // click on the page — don't rely on this button happening to be the
+  // one-time global unlock gesture (see init()).
+  [sfxCorrect, sfxWrong, sfxStartQ, sfxWinner, sfxBuzz].forEach(unlockAudioElement);
   const btn = document.getElementById('bgmToggleBtn');
   if(bgmAudio.paused) { bgmAudio.volume = 0.07; bgmAudio.play().catch(()=>{}); bgmEnabled = true; btn.innerHTML = '🔊 BGM'; }
   else { bgmAudio.pause(); bgmEnabled = false; btn.innerHTML = '🔇 BGM'; }
@@ -1821,12 +1825,16 @@ function unlockAudioElement(audio) {
 function init() {
   initBackgroundMusic();
   initSFX();
-  document.body.addEventListener('click', () => {
+  const unlockAll = () => {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
     if(ctx.state === 'suspended') ctx.resume();
     if(bgmAudio && bgmAudio.paused && bgmEnabled) bgmAudio.play().catch(()=>{});
     [sfxCorrect, sfxWrong, sfxStartQ, sfxWinner, sfxBuzz].forEach(unlockAudioElement);
-  }, { once: true });
+    document.body.removeEventListener('click', unlockAll);
+    document.body.removeEventListener('touchstart', unlockAll);
+  };
+  document.body.addEventListener('click', unlockAll);
+  document.body.addEventListener('touchstart', unlockAll);
 }
 
 init();
