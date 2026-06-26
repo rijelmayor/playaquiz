@@ -313,31 +313,41 @@
 <div id="errorBanner" style="display:none; position:fixed; top:0; left:0; right:0; background:#D14545; color:#fff; padding:14px 16px; font-family:monospace; font-size:12px; z-index:9999; max-height:50vh; overflow-y:auto; white-space:pre-wrap; word-break:break-word;"></div>
 
 <script>
+  function showBannerMsg(msg) {
+    var banner = document.getElementById('errorBanner');
+    banner.style.display = 'block';
+    banner.textContent += msg + '\n\n';
+  }
   window.addEventListener('error', function(e) {
-    var banner = document.getElementById('errorBanner');
-    banner.style.display = 'block';
-    banner.textContent += '⚠ ERROR: ' + e.message + ' (line ' + e.lineno + ')\n\n';
-  });
+    if (e.target && e.target.tagName === 'SCRIPT') {
+      showBannerMsg('⚠ SCRIPT FAILED TO LOAD: ' + (e.target.src || '(inline script)') + '\nThis usually means no internet connection, a blocked CDN, or a firewall/ad-blocker issue.');
+      return;
+    }
+    var msg = e.message || e.error && e.error.message;
+    if (!msg || msg === 'Script error.') {
+      showBannerMsg('⚠ A script error occurred but the browser hid the details (often a cross-origin script issue). Try reloading, or check your connection.');
+      return;
+    }
+    showBannerMsg('⚠ ERROR: ' + msg + ' (line ' + e.lineno + ', col ' + e.colno + ')\nFile: ' + (e.filename || 'unknown'));
+  }, true);
   window.addEventListener('unhandledrejection', function(e) {
-    var banner = document.getElementById('errorBanner');
-    banner.style.display = 'block';
-    banner.textContent += '⚠ PROMISE REJECTION: ' + (e.reason && e.reason.message ? e.reason.message : JSON.stringify(e.reason)) + '\n\n';
+    showBannerMsg('⚠ PROMISE REJECTION: ' + (e.reason && e.reason.message ? e.reason.message : JSON.stringify(e.reason)));
   });
 </script>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onerror="showBannerMsg('⚠ Supabase CDN script tag failed to fire onload — likely blocked by network/firewall/ad-blocker. URL: https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2')"></script>
 <script>
   if (typeof window.supabase === 'undefined') {
-    var banner = document.getElementById('errorBanner');
-    banner.style.display = 'block';
-    banner.textContent += '⚠ Supabase library failed to load from CDN — check internet connection or ad blocker.\n\n';
+    showBannerMsg('⚠ Supabase library object is undefined after load attempt — CDN script did not execute correctly.');
+  } else {
+    showBannerMsg('✓ Supabase library loaded OK.');
   }
 </script>
 <script>
   // ====== CONFIG ======
   const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   // Audio unlock pattern: unlock on first tap/click since browsers block autoplay
   const sfx = {
@@ -374,7 +384,7 @@
       return;
     }
 
-    const { data: sessionRow } = await supabase
+    const { data: sessionRow } = await db
       .from('crowdsays_sessions')
       .select('*')
       .eq('room_code', roomCode)
@@ -395,7 +405,7 @@
   }
 
   async function loadState() {
-    const { data } = await supabase
+    const { data } = await db
       .from('crowdsays_state')
       .select('*')
       .eq('session_id', sessionId)
@@ -403,7 +413,7 @@
     if (!data) return;
 
     if (data.current_question_id) {
-      const { data: qRow } = await supabase
+      const { data: qRow } = await db
         .from('crowdsays_questions')
         .select('*')
         .eq('id', data.current_question_id)
@@ -417,7 +427,7 @@
   }
 
   function subscribeRealtime() {
-    channel = supabase.channel(`room:${roomCode}`, { config: { broadcast: { self: false } } });
+    channel = db.channel(`room:${roomCode}`, { config: { broadcast: { self: false } } });
 
     channel.on('broadcast', { event: 'crowdsays_question_loaded' }, (msg) => {
       handleQuestionLoaded(msg.payload);
