@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Crowd Says — Play Along</title>
+<style>
+  :root {
+    --navy-deep: #06080F;
+    --navy-panel: #11162A;
+    --navy-line: #232B45;
+    --gold: #E8B84B;
+    --gold-bright: #FFD571;
+    --teal: #3DDC97;
+    --red: #D14545;
+    --text-hi: #F4F1E8;
+    --text-lo: #6E7493;
+    --font-display: 'Archivo Black', 'Arial Black', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--navy-deep); color: var(--text-hi);
+    font-family: -apple-system, 'Segoe UI', sans-serif;
+    min-height: 100vh; width: 100%;
+  }
+
+  body {
+    display: flex; flex-direction: column;
+    padding: env(safe-area-inset-top, 14px) 14px env(safe-area-inset-bottom, 14px) 14px;
+    gap: 12px;
+  }
+
+  header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 6px 2px 10px; border-bottom: 1px solid var(--navy-line);
+  }
+  .brand { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em; color: var(--text-lo); text-transform: uppercase; }
+  .brand strong { color: var(--gold); }
+  .conn-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--teal); display: inline-block; margin-right: 5px; }
+  .conn-dot.off { background: var(--red); }
+
+  /* Idle */
+  .idle-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 10px; padding: 30px 20px; }
+  .idle-state .eyebrow { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.25em; color: var(--gold); text-transform: uppercase; }
+  .idle-state h2 { font-family: var(--font-display); font-size: 28px; }
+  .idle-state p { color: var(--text-lo); font-size: 13px; max-width: 260px; line-height: 1.5; }
+
+  /* Active game */
+  .active-state { display: none; flex: 1; flex-direction: column; gap: 12px; }
+  .active-state.show { display: flex; }
+
+  .pot-strip {
+    display: flex; justify-content: space-between; align-items: center;
+    background: var(--navy-panel); border: 1px solid var(--navy-line); border-radius: 12px;
+    padding: 10px 14px;
+  }
+  .pot-strip .label { font-family: var(--font-mono); font-size: 11px; color: var(--text-lo); text-transform: uppercase; letter-spacing: 0.1em; }
+  .pot-strip .val { font-family: var(--font-display); font-size: 24px; color: var(--gold-bright); }
+
+  .prompt-card {
+    background: var(--navy-panel); border: 1px solid var(--navy-line); border-radius: 14px;
+    padding: 16px; text-align: center;
+  }
+  .prompt-card .prompt-text { font-size: 17px; font-weight: 600; line-height: 1.35; }
+
+  .status-pill {
+    text-align: center; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.12em;
+    text-transform: uppercase; padding: 8px; border-radius: 100px; background: var(--navy-panel);
+    color: var(--text-lo); border: 1px solid var(--navy-line);
+  }
+  .status-pill.randomizing { color: var(--gold); border-color: var(--gold); animation: pulseBorder 1.1s infinite; }
+  .status-pill.steal { color: var(--red); border-color: var(--red); }
+  @keyframes pulseBorder { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+  .mini-board { display: flex; flex-direction: column; gap: 7px; }
+  .mini-tile {
+    display: flex; justify-content: space-between; align-items: center;
+    background: var(--navy-panel); border: 1px solid var(--navy-line); border-radius: 10px;
+    padding: 11px 14px; font-size: 14px;
+  }
+  .mini-tile.revealed { border-color: var(--teal); background: rgba(61,220,151,0.06); }
+  .mini-tile .t-text { color: var(--text-lo); }
+  .mini-tile.revealed .t-text { color: var(--text-hi); }
+  .mini-tile .t-pts { font-family: var(--font-mono); color: var(--gold); font-size: 13px; }
+  .mini-tile.revealed .t-pts { color: var(--gold-bright); }
+
+  .teams-mini {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: auto;
+  }
+  .team-mini-card {
+    background: var(--navy-panel); border: 2px solid var(--navy-line); border-radius: 10px;
+    padding: 10px; text-align: center;
+  }
+  .team-mini-card.control { border-color: var(--gold); }
+  .team-mini-card .nm { font-family: var(--font-mono); font-size: 10px; color: var(--text-lo); text-transform: uppercase; letter-spacing: 0.1em; }
+  .team-mini-card .sc { font-family: var(--font-display); font-size: 22px; margin-top: 2px; }
+  .team-mini-card.control .sc { color: var(--gold); }
+
+  .strikes-mini { display: flex; justify-content: center; gap: 6px; }
+  .strikes-mini .s { width: 24px; height: 24px; border: 2px solid var(--navy-line); border-radius: 5px; display:flex; align-items:center; justify-content:center; font-size: 12px; color: var(--navy-line); font-family: var(--font-mono); }
+  .strikes-mini .s.hit { border-color: var(--red); color: var(--red); background: rgba(209,69,69,0.12); }
+
+  .cheer-hint {
+    text-align: center; font-size: 12px; color: var(--text-lo); padding: 4px 0 0;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">PLAY<strong>A</strong>QUIZ <span style="color:var(--text-lo)">/ CROWD SAYS</span></div>
+  <div><span class="conn-dot" id="connDot"></span></div>
+</header>
+
+<div class="idle-state" id="idleState">
+  <div class="eyebrow">Play along</div>
+  <h2>Crowd Says</h2>
+  <p>The host is setting up the next round. Keep your eyes on the big screen — this one's a watch-and-cheer segment!</p>
+</div>
+
+<div class="active-state" id="activeState">
+  <div class="status-pill" id="statusPill">—</div>
+
+  <div class="prompt-card">
+    <div class="prompt-text" id="promptText">—</div>
+  </div>
+
+  <div class="pot-strip">
+    <span class="label">Pot</span>
+    <span class="val" id="potValue">0</span>
+  </div>
+
+  <div class="mini-board" id="miniBoard"></div>
+
+  <div class="cheer-hint" id="cheerHint">Cheer your team on — the host is running the board up front.</div>
+
+  <div class="teams-mini">
+    <div class="team-mini-card" id="teamAMini">
+      <div class="nm" id="teamAName">Team A</div>
+      <div class="sc" id="teamAScore">0</div>
+    </div>
+    <div class="team-mini-card" id="teamBMini">
+      <div class="nm" id="teamBName">Team B</div>
+      <div class="sc" id="teamBScore">0</div>
+    </div>
+  </div>
+
+  <div class="strikes-mini">
+    <div class="s" id="strike1">✕</div>
+    <div class="s" id="strike2">✕</div>
+    <div class="s" id="strike3">✕</div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  // ====== CONFIG ======
+  const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
+  const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const params = new URLSearchParams(window.location.search);
+  const roomCode = (params.get('room') || '').toUpperCase();
+  let sessionId = null;
+  let channel = null;
+  let currentQuestion = null;
+  let teamNames = { a: 'Team A', b: 'Team B' };
+
+  // Session identity persistence so reconnects don't lose this player's place
+  const playerId = sessionStorage.getItem('crowdsays_player_id') || crypto.randomUUID();
+  sessionStorage.setItem('crowdsays_player_id', playerId);
+
+  function setConn(ok) {
+    document.getElementById('connDot').classList.toggle('off', !ok);
+  }
+
+  async function init() {
+    if (!roomCode) {
+      document.getElementById('idleState').querySelector('p').textContent = 'No room code in link — ask your host for the play link.';
+      return;
+    }
+
+    const { data: sessionRow } = await supabase
+      .from('crowdsays_sessions')
+      .select('*')
+      .eq('room_code', roomCode)
+      .maybeSingle();
+
+    if (!sessionRow) {
+      document.getElementById('idleState').querySelector('p').textContent = 'Room not found — check the link with your host.';
+      return;
+    }
+    sessionId = sessionRow.id;
+    teamNames = { a: sessionRow.team_a_name || 'Team A', b: sessionRow.team_b_name || 'Team B' };
+    document.getElementById('teamAName').textContent = teamNames.a;
+    document.getElementById('teamBName').textContent = teamNames.b;
+
+    await loadState();
+    subscribeRealtime();
+    startPoll();
+  }
+
+  async function loadState() {
+    const { data } = await supabase
+      .from('crowdsays_state')
+      .select('*')
+      .eq('session_id', sessionId)
+      .maybeSingle();
+    if (!data) return;
+
+    if (data.current_question_id) {
+      const { data: qRow } = await supabase
+        .from('crowdsays_questions')
+        .select('*')
+        .eq('id', data.current_question_id)
+        .single();
+      currentQuestion = qRow;
+    } else {
+      currentQuestion = null;
+    }
+    renderFromState(data);
+    setConn(true);
+  }
+
+  function subscribeRealtime() {
+    channel = supabase.channel(`room:${roomCode}`, { config: { broadcast: { self: false } } });
+
+    channel.on('broadcast', { event: 'crowdsays_question_loaded' }, (msg) => handleQuestionLoaded(msg.payload));
+    channel.on('broadcast', { event: 'crowdsays_randomize_started' }, (msg) => handleRandomizeStarted(msg.payload));
+    channel.on('broadcast', { event: 'crowdsays_answer_revealed' }, (msg) => handleAnswerRevealed(msg.payload));
+    channel.on('broadcast', { event: 'crowdsays_strike' }, (msg) => setStrikes(msg.payload.strikes));
+    channel.on('broadcast', { event: 'crowdsays_steal_started' }, (msg) => handleStealStarted(msg.payload));
+    channel.on('broadcast', { event: 'crowdsays_round_won' }, (msg) => handleRoundWon(msg.payload));
+    channel.on('broadcast', { event: 'crowdsays_board_cleared' }, () => handleBoardCleared());
+    channel.on('broadcast', { event: 'crowdsays_team_renamed' }, (msg) => {
+      teamNames[msg.payload.team] = msg.payload.name;
+      document.getElementById(msg.payload.team === 'a' ? 'teamAName' : 'teamBName').textContent = msg.payload.name;
+    });
+
+    channel.subscribe((status) => setConn(status === 'SUBSCRIBED'));
+  }
+
+  function startPoll() {
+    setInterval(loadState, 8000);
+  }
+
+  // ====== HANDLERS ======
+  function handleQuestionLoaded(payload) {
+    document.getElementById('idleState').style.display = 'none';
+    document.getElementById('activeState').classList.add('show');
+
+    document.getElementById('promptText').textContent = payload.prompt;
+    document.getElementById('potValue').textContent = '0';
+    setStatus('randomizing', 'Watch the big screen…');
+    setStrikes(0);
+    setControl(null);
+
+    currentQuestion = { id: payload.question_id, prompt: payload.prompt, answers: new Array(payload.answer_count).fill({ text: '', points: 0 }), revealed_answers: [] };
+    renderMiniBoard([]);
+    document.getElementById('cheerHint').textContent = "The host is about to randomize who controls the board.";
+  }
+
+  function handleRandomizeStarted(payload) {
+    setStatus('randomizing', 'Shuffling on the big screen…');
+    document.getElementById('cheerHint').textContent = "Eyes up — who's it gonna be?";
+    // Reveal the result slightly after the FOH animation locks, so phones
+    // don't spoil the big-screen moment for people glancing down early.
+    setTimeout(() => {
+      setStatus('playing', `${teamLabel(payload.result_team)} in control`);
+      setControl(payload.result_team);
+      document.getElementById('cheerHint').textContent = `${teamLabel(payload.result_team)} is calling out answers now.`;
+    }, 2000);
+  }
+
+  function handleAnswerRevealed(payload) {
+    if (!currentQuestion) return;
+    currentQuestion.answers[payload.index] = { text: payload.text, points: payload.points };
+    currentQuestion.revealed_answers = [...(currentQuestion.revealed_answers || []), payload.index];
+    document.getElementById('potValue').textContent = payload.pot;
+    renderMiniBoard(currentQuestion.revealed_answers);
+  }
+
+  function handleStealStarted(payload) {
+    setStatus('steal', `Steal! ${teamLabel(payload.stealing_team)} gets one guess`);
+    document.getElementById('cheerHint').textContent = `One shot for ${teamLabel(payload.stealing_team)} to steal the pot!`;
+  }
+
+  function handleRoundWon(payload) {
+    const verb = payload.by_steal ? (payload.steal_success ? 'stole' : 'held on to') : 'won';
+    setStatus('', `${teamLabel(payload.team)} ${verb} the round`);
+    document.getElementById('cheerHint').textContent = `+${payload.amount} points for ${teamLabel(payload.team)}`;
+  }
+
+  function handleBoardCleared() {
+    document.getElementById('activeState').classList.remove('show');
+    document.getElementById('idleState').style.display = 'flex';
+    document.getElementById('idleState').querySelector('p').textContent = 'Waiting for the next question — eyes on the big screen!';
+    currentQuestion = null;
+  }
+
+  // ====== RENDER ======
+  function teamLabel(t) { return t === 'a' ? teamNames.a : teamNames.b; }
+
+  function renderFromState(data) {
+    document.getElementById('teamAScore').textContent = data.team_a_score;
+    document.getElementById('teamBScore').textContent = data.team_b_score;
+    document.getElementById('potValue').textContent = data.pot;
+    setStrikes(data.strikes);
+    setControl(data.controlling_team);
+
+    if (data.round_status === 'idle' && !currentQuestion) {
+      document.getElementById('activeState').classList.remove('show');
+      document.getElementById('idleState').style.display = 'flex';
+      return;
+    }
+
+    document.getElementById('idleState').style.display = 'none';
+    document.getElementById('activeState').classList.add('show');
+
+    if (currentQuestion) {
+      document.getElementById('promptText').textContent = currentQuestion.prompt;
+      renderMiniBoard(currentQuestion.revealed_answers || []);
+    }
+
+    const map = {
+      randomizing: ['randomizing', 'Watch the big screen…'],
+      playing: ['playing', data.controlling_team ? `${teamLabel(data.controlling_team)} in control` : ''],
+      steal: ['steal', `Steal — ${teamLabel(data.controlling_team === 'a' ? 'b' : 'a')} gets one guess`]
+    };
+    const [cls, text] = map[data.round_status] || ['', ''];
+    setStatus(cls, text);
+  }
+
+  function renderMiniBoard(revealedIndices) {
+    if (!currentQuestion) return;
+    const wrap = document.getElementById('miniBoard');
+    wrap.innerHTML = currentQuestion.answers.map((a, i) => {
+      const isRevealed = revealedIndices.includes(i);
+      return `
+        <div class="mini-tile ${isRevealed ? 'revealed' : ''}">
+          <span class="t-text">${isRevealed ? escapeHtml(a.text) : `Answer ${i + 1}`}</span>
+          <span class="t-pts">${isRevealed ? a.points : ''}</span>
+        </div>`;
+    }).join('');
+  }
+
+  function setStrikes(n) {
+    [1, 2, 3].forEach(i => {
+      document.getElementById(`strike${i}`).classList.toggle('hit', n >= i);
+    });
+  }
+
+  function setControl(team) {
+    document.getElementById('teamAMini').classList.toggle('control', team === 'a');
+    document.getElementById('teamBMini').classList.toggle('control', team === 'b');
+  }
+
+  function setStatus(cls, text) {
+    const el = document.getElementById('statusPill');
+    el.className = 'status-pill' + (cls ? ' ' + cls : '');
+    el.textContent = text;
+  }
+
+  function escapeHtml(s) {
+    const div = document.createElement('div');
+    div.textContent = s || '';
+    return div.innerHTML;
+  }
+
+  init();
+</script>
+</body>
+</html>

@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crowd Says — Host Control</title>
+<style>
+  :root {
+    --navy-deep: #0B0E1A;
+    --navy-panel: #131829;
+    --navy-line: #232B45;
+    --gold: #E8B84B;
+    --gold-dim: #8A6F2E;
+    --teal: #3DDC97;
+    --red: #D14545;
+    --text-hi: #F4F1E8;
+    --text-lo: #8B91A8;
+    --font-display: 'Archivo Black', 'Arial Black', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+    --font-body: -apple-system, 'Segoe UI', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--navy-deep);
+    color: var(--text-hi);
+    font-family: var(--font-body);
+    min-height: 100vh;
+    padding: 16px;
+  }
+
+  .wrap { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+
+  header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-bottom: 12px; border-bottom: 1px solid var(--navy-line);
+  }
+  .brand { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.15em; color: var(--text-lo); text-transform: uppercase; }
+  .brand strong { color: var(--gold); }
+  .room-pill {
+    font-family: var(--font-mono); font-size: 12px; color: var(--teal);
+    border: 1px solid var(--teal); border-radius: 100px; padding: 4px 12px;
+  }
+  .conn-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--teal); display: inline-block; margin-right: 6px; box-shadow: 0 0 8px var(--teal); }
+  .conn-dot.off { background: var(--red); box-shadow: 0 0 8px var(--red); }
+
+  .panel {
+    background: var(--navy-panel); border: 1px solid var(--navy-line);
+    border-radius: 12px; padding: 16px;
+  }
+  .panel-label {
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em;
+    color: var(--text-lo); text-transform: uppercase; margin-bottom: 10px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+
+  /* Question loader */
+  textarea, input[type="text"], input[type="number"] {
+    width: 100%; background: var(--navy-deep); border: 1px solid var(--navy-line);
+    color: var(--text-hi); border-radius: 8px; padding: 10px 12px; font-family: var(--font-body);
+    font-size: 14px;
+  }
+  textarea { resize: vertical; min-height: 60px; }
+  .answer-row { display: grid; grid-template-columns: 1fr 70px; gap: 8px; margin-bottom: 8px; }
+  .btn {
+    font-family: var(--font-mono); font-size: 13px; letter-spacing: 0.05em; text-transform: uppercase;
+    border: none; border-radius: 8px; padding: 11px 16px; cursor: pointer;
+    transition: transform 0.1s, opacity 0.15s;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .btn-gold { background: var(--gold); color: #1A1306; }
+  .btn-teal { background: var(--teal); color: #06241A; }
+  .btn-red { background: var(--red); color: #fff; }
+  .btn-ghost { background: transparent; color: var(--text-hi); border: 1px solid var(--navy-line); }
+  .btn-block { width: 100%; }
+  .btn-row { display: flex; gap: 8px; }
+
+  /* Question bank list */
+  .bank-list { display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto; }
+  .bank-item {
+    display: flex; justify-content: space-between; align-items: center;
+    background: var(--navy-deep); border: 1px solid var(--navy-line); border-radius: 8px;
+    padding: 10px 12px; font-size: 13px; cursor: pointer;
+  }
+  .bank-item:hover { border-color: var(--gold-dim); }
+  .bank-item.active { border-color: var(--gold); background: rgba(232,184,75,0.08); }
+  .bank-item .idx { font-family: var(--font-mono); color: var(--text-lo); margin-right: 8px; }
+  .bank-item .del { color: var(--red); font-family: var(--font-mono); font-size: 11px; padding: 4px 8px; }
+
+  /* Live board controls */
+  .board-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
+  .board-slot {
+    display: grid; grid-template-columns: 24px 1fr 50px 90px; gap: 10px; align-items: center;
+    background: var(--navy-deep); border: 1px solid var(--navy-line); border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .board-slot.revealed { border-color: var(--teal); background: rgba(61,220,151,0.06); }
+  .slot-num { font-family: var(--font-mono); color: var(--text-lo); font-size: 13px; }
+  .slot-text { font-size: 14px; }
+  .slot-text.hidden-text { color: var(--text-lo); font-style: italic; }
+  .slot-pts { font-family: var(--font-mono); color: var(--gold); font-size: 13px; text-align: right; }
+  .slot-action button {
+    width: 100%; font-family: var(--font-mono); font-size: 11px; padding: 7px 6px;
+    border-radius: 6px; border: none; cursor: pointer;
+  }
+
+  /* Team / scoring */
+  .teams-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .team-card {
+    background: var(--navy-deep); border: 2px solid var(--navy-line); border-radius: 10px;
+    padding: 12px; text-align: center; cursor: pointer; transition: border-color 0.15s;
+  }
+  .team-card.control { border-color: var(--gold); box-shadow: 0 0 16px rgba(232,184,75,0.25); }
+  .team-name { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em; color: var(--text-lo); text-transform: uppercase; }
+  .team-name-input {
+    background: transparent; border: none; outline: none; width: 100%; text-align: center;
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em; color: var(--text-lo);
+    text-transform: uppercase; padding: 2px 0; border-bottom: 1px dashed transparent;
+  }
+  .team-name-input:focus { border-bottom-color: var(--gold-dim); color: var(--text-hi); }
+  .team-score { font-family: var(--font-display); font-size: 32px; color: var(--text-hi); margin-top: 4px; }
+  .team-card.control .team-score { color: var(--gold); }
+
+  .strikes-row { display: flex; gap: 8px; justify-content: center; margin-top: 10px; }
+  .strike-box {
+    width: 36px; height: 36px; border: 2px solid var(--navy-line); border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display); font-size: 18px; color: var(--navy-line);
+  }
+  .strike-box.hit { border-color: var(--red); color: var(--red); background: rgba(209,69,69,0.1); }
+
+  .status-banner {
+    font-family: var(--font-mono); font-size: 12px; text-align: center; padding: 8px;
+    border-radius: 8px; letter-spacing: 0.08em; text-transform: uppercase;
+  }
+  .status-randomizing { background: rgba(232,184,75,0.12); color: var(--gold); }
+  .status-playing { background: rgba(61,220,151,0.12); color: var(--teal); }
+  .status-steal { background: rgba(209,69,69,0.12); color: var(--red); }
+  .status-idle { background: var(--navy-deep); color: var(--text-lo); }
+
+  .points-pot {
+    text-align: center; font-family: var(--font-mono); font-size: 11px; color: var(--text-lo);
+    text-transform: uppercase; letter-spacing: 0.1em;
+  }
+  .points-pot strong { color: var(--gold); font-size: 16px; display: block; font-family: var(--font-display); margin-top: 2px; }
+
+  .toast {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--navy-panel); border: 1px solid var(--gold); color: var(--text-hi);
+    padding: 10px 18px; border-radius: 100px; font-size: 13px; opacity: 0;
+    transition: opacity 0.25s, transform 0.25s; pointer-events: none; z-index: 100;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-thumb { background: var(--navy-line); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="brand">PLAY<strong>A</strong>QUIZ <span style="color:var(--text-lo)">/ CROWD SAYS</span></div>
+    <div class="room-pill"><span class="conn-dot" id="connDot"></span><span id="roomLabel">— — — —</span></div>
+  </header>
+
+  <!-- Room join / create -->
+  <div class="panel" id="joinPanel">
+    <div class="panel-label">Start or rejoin a Crowd Says room</div>
+    <div class="answer-row" style="grid-template-columns: 1fr 110px;">
+      <input type="text" id="roomCodeInput" placeholder="Type any room code" maxlength="20" autocomplete="off">
+      <button class="btn btn-gold" id="joinBtn">Start</button>
+    </div>
+    <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-lo); margin-top: 8px;">
+      New code creates a fresh room. Existing code reconnects to it.
+    </div>
+  </div>
+
+  <div id="mainUI" style="display:none; flex-direction: column; gap: 14px;">
+
+    <!-- Status -->
+    <div class="status-banner status-idle" id="statusBanner">No question loaded</div>
+
+    <!-- Links to share -->
+    <div class="panel">
+      <div class="panel-label">Screens for this room</div>
+      <div class="btn-row">
+        <button class="btn btn-ghost btn-block" id="copyFohLinkBtn">Copy FOH screen link</button>
+        <button class="btn btn-ghost btn-block" id="copyPlayerLinkBtn">Copy player link</button>
+      </div>
+    </div>
+
+    <!-- Teams -->
+    <div class="panel">
+      <div class="panel-label">Teams &amp; control</div>
+      <div class="teams-grid">
+        <div class="team-card" id="teamACard">
+          <input type="text" class="team-name-input" id="teamANameInput" value="Team A" placeholder="Team A name">
+          <div class="team-score" id="teamAScore">0</div>
+        </div>
+        <div class="team-card" id="teamBCard">
+          <input type="text" class="team-name-input" id="teamBNameInput" value="Team B" placeholder="Team B name">
+          <div class="team-score" id="teamBScore">0</div>
+        </div>
+      </div>
+      <div class="strikes-row">
+        <div class="strike-box" id="strike1">✕</div>
+        <div class="strike-box" id="strike2">✕</div>
+        <div class="strike-box" id="strike3">✕</div>
+      </div>
+      <div class="points-pot" style="margin-top:10px;">Points in play<strong id="potValue">0</strong></div>
+    </div>
+
+    <!-- Live board (only visible once a question is on air) -->
+    <div class="panel" id="liveBoardPanel" style="display:none;">
+      <div class="panel-label">
+        <span>On air now</span>
+        <button class="btn btn-ghost" id="endQuestionBtn" style="padding:4px 10px; font-size:10px;">Clear board</button>
+      </div>
+      <div style="font-size:15px; margin-bottom:12px; color:var(--text-hi);" id="liveQuestionPrompt">—</div>
+      <div class="board-grid" id="liveBoardGrid"></div>
+
+      <div class="btn-row" style="margin-top:14px;">
+        <button class="btn btn-gold btn-block" id="markStrikeBtn">Mark strike</button>
+        <button class="btn btn-red btn-block" id="startStealBtn" disabled>Start steal</button>
+      </div>
+      <div class="btn-row" style="margin-top:8px;">
+        <button class="btn btn-teal btn-block" id="awardPotBtn">Award pot to controlling team</button>
+      </div>
+    </div>
+
+    <!-- Randomize control -->
+    <div class="panel" id="randomizePanel">
+      <div class="panel-label">Pick who controls the board</div>
+      <button class="btn btn-gold btn-block" id="randomizeBtn" style="font-size:14px; padding:16px;">🎲 Randomize control</button>
+      <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-lo); margin-top: 8px; text-align:center;">
+        The big screen will shuffle and lock on a team — no buzzers needed.
+      </div>
+    </div>
+
+    <!-- Question bank -->
+    <div class="panel">
+      <div class="panel-label">
+        <span>Question bank</span>
+        <button class="btn btn-ghost" id="newQuestionBtn" style="padding:4px 10px; font-size:10px;">+ New</button>
+      </div>
+      <div class="bank-list" id="bankList">
+        <div style="color: var(--text-lo); font-size: 13px; padding: 10px;">No questions yet. Tap "+ New" to add one.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- New question form (modal-ish inline panel) -->
+<div class="panel" id="newQuestionForm" style="display:none; max-width:720px; margin:14px auto; position: relative;">
+  <div class="panel-label">New question
+    <button class="btn btn-ghost" id="cancelNewQ" style="padding:4px 10px; font-size:10px;">Cancel</button>
+  </div>
+  <textarea id="newPrompt" placeholder="e.g. Name something the groom always says"></textarea>
+  <div style="margin-top:10px; font-family: var(--font-mono); font-size: 11px; color: var(--text-lo); text-transform: uppercase; letter-spacing: 0.05em;">4 answers, ranked highest points first</div>
+  <div id="answerInputs" style="margin-top:8px;"></div>
+  <button class="btn btn-teal btn-block" id="saveQuestionBtn" style="margin-top:10px;">Save question</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  // ====== CONFIG ======
+  const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
+  const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY'; // same anon key used across PlayAQuiz files
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  let roomCode = null;
+  let sessionId = null;
+  let channel = null;
+  let questions = [];          // crowdsays_questions rows for this session
+  let state = {                // crowdsays_state row
+    current_question_id: null,
+    controlling_team: null,
+    strikes: 0,
+    team_a_score: 0,
+    team_b_score: 0,
+    round_status: 'idle',      // idle | randomizing | playing | steal
+    pot: 0
+  };
+  let teamNames = { a: 'Team A', b: 'Team B' };
+
+  // ====== UTIL ======
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  function setConn(ok) {
+    document.getElementById('connDot').classList.toggle('off', !ok);
+  }
+
+  // ====== ROOM JOIN / CREATE ======
+  document.getElementById('joinBtn').addEventListener('click', async () => {
+    const code = document.getElementById('roomCodeInput').value.trim().toUpperCase();
+    if (!code) return showToast('Type a room code first');
+    await joinOrCreateRoom(code);
+  });
+
+  async function joinOrCreateRoom(code) {
+    roomCode = code;
+
+    // Crowd Says owns its own sessions — look for an existing one first.
+    const { data: existing } = await supabase
+      .from('crowdsays_sessions')
+      .select('*')
+      .eq('room_code', roomCode)
+      .maybeSingle();
+
+    let sessionRow = existing;
+
+    if (!sessionRow) {
+      // No collision check — first host to type this code creates the room.
+      const { data: created, error } = await supabase
+        .from('crowdsays_sessions')
+        .insert({ room_code: roomCode })
+        .select()
+        .single();
+
+      if (error) {
+        showToast('Could not start that room — try a different code');
+        return;
+      }
+      sessionRow = created;
+      showToast('New room created');
+    } else {
+      showToast('Reconnected to existing room');
+    }
+
+    sessionId = sessionRow.id;
+    teamNames = { a: sessionRow.team_a_name || 'Team A', b: sessionRow.team_b_name || 'Team B' };
+
+    document.getElementById('roomLabel').textContent = roomCode;
+    document.getElementById('teamANameInput').value = teamNames.a;
+    document.getElementById('teamBNameInput').value = teamNames.b;
+    document.getElementById('joinPanel').style.display = 'none';
+    document.getElementById('mainUI').style.display = 'flex';
+
+    await ensureStateRow();
+    await loadQuestions();
+    subscribeRealtime();
+    setConn(true);
+  }
+
+  // ====== TEAM NAME EDITING ======
+  async function saveTeamName(team, name) {
+    teamNames[team] = name || (team === 'a' ? 'Team A' : 'Team B');
+    const field = team === 'a' ? 'team_a_name' : 'team_b_name';
+    await supabase.from('crowdsays_sessions').update({ [field]: teamNames[team] }).eq('id', sessionId);
+    renderState();
+    broadcast('crowdsays_team_renamed', { team, name: teamNames[team] });
+  }
+
+  document.getElementById('teamANameInput').addEventListener('change', (e) => saveTeamName('a', e.target.value.trim()));
+  document.getElementById('teamBNameInput').addEventListener('change', (e) => saveTeamName('b', e.target.value.trim()));
+  // Prevent the team card's face-off click handler from firing when editing the name
+  document.getElementById('teamANameInput').addEventListener('click', (e) => e.stopPropagation());
+  document.getElementById('teamBNameInput').addEventListener('click', (e) => e.stopPropagation());
+
+  // ====== SHARE LINKS ======
+  function fohLink() {
+    const base = window.location.href.replace(/crowdsays-host\.html.*$/, 'crowdsays-foh.html');
+    return `${base}?room=${encodeURIComponent(roomCode)}`;
+  }
+  function playerLink() {
+    const base = window.location.href.replace(/crowdsays-host\.html.*$/, 'crowdsays-player.html');
+    return `${base}?room=${encodeURIComponent(roomCode)}`;
+  }
+  document.getElementById('copyFohLinkBtn').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(fohLink()); showToast('FOH link copied'); }
+    catch (e) { showToast(fohLink()); }
+  });
+  document.getElementById('copyPlayerLinkBtn').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(playerLink()); showToast('Player link copied'); }
+    catch (e) { showToast(playerLink()); }
+  });
+
+  // ====== SUPABASE STATE ======
+  async function ensureStateRow() {
+    const { data } = await supabase
+      .from('crowdsays_state')
+      .select('*')
+      .eq('session_id', sessionId)
+      .maybeSingle();
+
+    if (data) {
+      state = {
+        current_question_id: data.current_question_id,
+        controlling_team: data.controlling_team,
+        strikes: data.strikes,
+        team_a_score: data.team_a_score,
+        team_b_score: data.team_b_score,
+        round_status: data.round_status,
+        pot: data.pot || 0
+      };
+    } else {
+      await supabase.from('crowdsays_state').insert({
+        session_id: sessionId,
+        current_question_id: null,
+        controlling_team: null,
+        strikes: 0,
+        team_a_score: 0,
+        team_b_score: 0,
+        round_status: 'idle',
+        pot: 0
+      });
+    }
+    renderState();
+  }
+
+  async function saveState() {
+    await supabase
+      .from('crowdsays_state')
+      .update({
+        current_question_id: state.current_question_id,
+        controlling_team: state.controlling_team,
+        strikes: state.strikes,
+        team_a_score: state.team_a_score,
+        team_b_score: state.team_b_score,
+        round_status: state.round_status,
+        pot: state.pot
+      })
+      .eq('session_id', sessionId);
+  }
+
+  async function loadQuestions() {
+    const { data } = await supabase
+      .from('crowdsays_questions')
+      .select('*')
+      .eq('session_id', sessionId)
+      .order('order_index', { ascending: true });
+    questions = data || [];
+    renderBank();
+  }
+
+  // ====== REALTIME ======
+  function subscribeRealtime() {
+    channel = supabase.channel(`room:${roomCode}`, { config: { broadcast: { self: false } } });
+    channel.subscribe((status) => setConn(status === 'SUBSCRIBED'));
+  }
+
+  function broadcast(event, payload) {
+    if (!channel) return;
+    channel.send({ type: 'broadcast', event, payload });
+  }
+
+  // ====== RENDER ======
+  function renderBank() {
+    const list = document.getElementById('bankList');
+    if (!questions.length) {
+      list.innerHTML = `<div style="color: var(--text-lo); font-size: 13px; padding: 10px;">No questions yet. Tap "+ New" to add one.</div>`;
+      return;
+    }
+    list.innerHTML = questions.map((q, i) => `
+      <div class="bank-item ${state.current_question_id === q.id ? 'active' : ''}" data-id="${q.id}">
+        <span><span class="idx">${String(i + 1).padStart(2, '0')}</span>${escapeHtml(q.prompt)}</span>
+        <span>
+          <button class="btn-ghost del" data-del="${q.id}" style="border:none;background:none;cursor:pointer;">DELETE</button>
+        </span>
+      </div>
+    `).join('');
+
+    list.querySelectorAll('.bank-item').forEach(el => {
+      el.addEventListener('click', (e) => {
+        if (e.target.closest('[data-del]')) return;
+        loadQuestionToBoard(el.dataset.id);
+      });
+    });
+    list.querySelectorAll('[data-del]').forEach(el => {
+      el.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const id = el.dataset.del;
+        await supabase.from('crowdsays_questions').delete().eq('id', id);
+        questions = questions.filter(q => q.id !== id);
+        renderBank();
+        showToast('Question deleted');
+      });
+    });
+  }
+
+  function escapeHtml(s) {
+    const div = document.createElement('div');
+    div.textContent = s;
+    return div.innerHTML;
+  }
+
+  function currentQuestion() {
+    return questions.find(q => q.id === state.current_question_id) || null;
+  }
+
+  function renderState() {
+    document.getElementById('teamANameInput').value = teamNames.a;
+    document.getElementById('teamBNameInput').value = teamNames.b;
+    document.getElementById('teamAScore').textContent = state.team_a_score;
+    document.getElementById('teamBScore').textContent = state.team_b_score;
+    document.getElementById('teamACard').classList.toggle('control', state.controlling_team === 'a');
+    document.getElementById('teamBCard').classList.toggle('control', state.controlling_team === 'b');
+    document.getElementById('potValue').textContent = state.pot;
+
+    [1, 2, 3].forEach(n => {
+      document.getElementById(`strike${n}`).classList.toggle('hit', state.strikes >= n);
+    });
+
+    const banner = document.getElementById('statusBanner');
+    banner.className = 'status-banner';
+    const labels = {
+      idle: ['status-idle', 'No question loaded'],
+      randomizing: ['status-randomizing', 'Randomizing control on the big screen…'],
+      playing: ['status-playing', `${state.controlling_team === 'a' ? teamNames.a : teamNames.b} in control`],
+      steal: ['status-steal', `Steal attempt — ${state.controlling_team === 'a' ? teamNames.b : teamNames.a} gets one guess`]
+    };
+    const [cls, text] = labels[state.round_status] || labels.idle;
+    banner.classList.add(cls);
+    banner.textContent = text;
+
+    document.getElementById('randomizePanel').style.display = state.round_status === 'randomizing' ? 'block' : 'none';
+    document.getElementById('liveBoardPanel').style.display = (state.round_status === 'playing' || state.round_status === 'steal') ? 'block' : 'none';
+    document.getElementById('startStealBtn').disabled = state.strikes < 3 || state.round_status !== 'playing';
+
+    renderLiveBoard();
+    renderBank();
+  }
+
+  function renderLiveBoard() {
+    const q = currentQuestion();
+    if (!q) return;
+    document.getElementById('liveQuestionPrompt').textContent = q.prompt;
+    const revealed = q.revealed_answers || [];
+    const grid = document.getElementById('liveBoardGrid');
+    grid.innerHTML = q.answers.map((a, i) => `
+      <div class="board-slot ${revealed.includes(i) ? 'revealed' : ''}">
+        <span class="slot-num">${i + 1}</span>
+        <span class="slot-text ${revealed.includes(i) ? '' : 'hidden-text'}">${revealed.includes(i) ? escapeHtml(a.text) : 'Hidden'}</span>
+        <span class="slot-pts">${a.points}</span>
+        <span class="slot-action">
+          ${revealed.includes(i)
+            ? ''
+            : `<button data-reveal="${i}" style="background:var(--teal); color:#06241A;">Reveal</button>`}
+        </span>
+      </div>
+    `).join('');
+
+    grid.querySelectorAll('[data-reveal]').forEach(btn => {
+      btn.addEventListener('click', () => revealAnswer(parseInt(btn.dataset.reveal, 10)));
+    });
+  }
+
+  // ====== ACTIONS ======
+  document.getElementById('newQuestionBtn').addEventListener('click', () => openNewQuestionForm());
+  document.getElementById('cancelNewQ').addEventListener('click', () => {
+    document.getElementById('newQuestionForm').style.display = 'none';
+  });
+
+  function openNewQuestionForm() {
+    document.getElementById('newQuestionForm').style.display = 'block';
+    document.getElementById('newPrompt').value = '';
+    const wrap = document.getElementById('answerInputs');
+    wrap.innerHTML = '';
+    for (let i = 0; i < 4; i++) {
+      const row = document.createElement('div');
+      row.className = 'answer-row';
+      row.innerHTML = `
+        <input type="text" class="ans-text" placeholder="Answer ${i + 1}">
+        <input type="number" class="ans-pts" placeholder="Pts" min="0">
+      `;
+      wrap.appendChild(row);
+    }
+    document.getElementById('newQuestionForm').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  document.getElementById('saveQuestionBtn').addEventListener('click', async () => {
+    const prompt = document.getElementById('newPrompt').value.trim();
+    if (!prompt) return showToast('Add a prompt first');
+
+    const texts = Array.from(document.querySelectorAll('.ans-text')).map(el => el.value.trim());
+    const pts = Array.from(document.querySelectorAll('.ans-pts')).map(el => parseInt(el.value, 10) || 0);
+
+    if (texts.some(t => !t)) return showToast('Fill in all 4 answers');
+
+    const answers = texts.map((text, i) => ({ text, points: pts[i] }))
+      .sort((a, b) => b.points - a.points); // highest points first, board-style
+
+    const { data, error } = await supabase
+      .from('crowdsays_questions')
+      .insert({
+        session_id: sessionId,
+        prompt,
+        answers,
+        order_index: questions.length,
+        revealed_answers: []
+      })
+      .select()
+      .single();
+
+    if (error) return showToast('Could not save — try again');
+
+    questions.push(data);
+    document.getElementById('newQuestionForm').style.display = 'none';
+    renderBank();
+    showToast('Question added to bank');
+  });
+
+  async function loadQuestionToBoard(questionId) {
+    const q = questions.find(x => x.id === questionId);
+    if (!q) return;
+
+    // reset revealed answers for a fresh play of this question
+    await supabase.from('crowdsays_questions').update({ revealed_answers: [] }).eq('id', questionId);
+    q.revealed_answers = [];
+
+    state.current_question_id = questionId;
+    state.controlling_team = null;
+    state.strikes = 0;
+    state.pot = 0;
+    state.round_status = 'randomizing';
+    await saveState();
+    renderState();
+
+    broadcast('crowdsays_question_loaded', {
+      question_id: questionId,
+      prompt: q.prompt,
+      answer_count: q.answers.length
+    });
+    showToast('Question on air — tap Randomize control');
+  }
+
+  document.getElementById('randomizeBtn').addEventListener('click', () => randomizeControl());
+
+  async function randomizeControl() {
+    // The pick happens here, host-side, so it's authoritative. The FOH/player
+    // screens run their own local shuffle animation, then reveal this result
+    // once their animation finishes — the suspense is purely presentational,
+    // the outcome is decided and broadcast immediately.
+    const team = Math.random() < 0.5 ? 'a' : 'b';
+
+    document.getElementById('randomizeBtn').disabled = true;
+    broadcast('crowdsays_randomize_started', { result_team: team });
+
+    // Give the FOH shuffle animation time to play before locking in on host's own UI too
+    showToast('Shuffling on the big screen…');
+    await new Promise(r => setTimeout(r, 2400));
+
+    state.controlling_team = team;
+    state.round_status = 'playing';
+    await saveState();
+    renderState();
+    document.getElementById('randomizeBtn').disabled = false;
+    showToast(`${team === 'a' ? teamNames.a : teamNames.b} controls the board`);
+  }
+
+  async function revealAnswer(index) {
+    const q = currentQuestion();
+    if (!q) return;
+    const revealed = q.revealed_answers || [];
+    if (revealed.includes(index)) return;
+
+    const updated = [...revealed, index];
+    await supabase.from('crowdsays_questions').update({ revealed_answers: updated }).eq('id', q.id);
+    q.revealed_answers = updated;
+
+    state.pot += q.answers[index].points;
+    await saveState();
+
+    renderState();
+    broadcast('crowdsays_answer_revealed', {
+      question_id: q.id,
+      index,
+      text: q.answers[index].text,
+      points: q.answers[index].points,
+      pot: state.pot
+    });
+
+    // auto-win check: all answers revealed
+    if (updated.length === q.answers.length) {
+      showToast('Board cleared — award the pot');
+    }
+  }
+
+  document.getElementById('markStrikeBtn').addEventListener('click', async () => {
+    if (state.round_status === 'steal') {
+      // a strike during steal means the stealing team failed -> controlling team keeps the pot
+      await resolveSteal(false);
+      return;
+    }
+    state.strikes = Math.min(3, state.strikes + 1);
+    await saveState();
+    renderState();
+    broadcast('crowdsays_strike', { strikes: state.strikes });
+  });
+
+  document.getElementById('startStealBtn').addEventListener('click', async () => {
+    state.round_status = 'steal';
+    await saveState();
+    renderState();
+    broadcast('crowdsays_steal_started', {
+      stealing_team: state.controlling_team === 'a' ? 'b' : 'a'
+    });
+    showToast('Steal attempt — one guess only');
+  });
+
+  document.getElementById('awardPotBtn').addEventListener('click', async () => {
+    if (state.round_status === 'steal') {
+      await resolveSteal(true);
+      return;
+    }
+    await awardPotToControllingTeam();
+  });
+
+  async function awardPotToControllingTeam() {
+    const team = state.controlling_team;
+    if (!team) return showToast('No controlling team set');
+    if (team === 'a') state.team_a_score += state.pot;
+    else state.team_b_score += state.pot;
+
+    const wonAmount = state.pot;
+    state.pot = 0;
+    state.round_status = 'idle';
+    state.strikes = 0;
+    await saveState();
+    renderState();
+    broadcast('crowdsays_round_won', { team, amount: wonAmount, by_steal: false });
+    showToast(`${team === 'a' ? teamNames.a : teamNames.b} banks ${wonAmount} points`);
+  }
+
+  // resolveSteal(success): true = stealing team guessed correctly and steals the pot
+  async function resolveSteal(success) {
+    const stealingTeam = state.controlling_team === 'a' ? 'b' : 'a';
+    const winningTeam = success ? stealingTeam : state.controlling_team;
+
+    if (winningTeam === 'a') state.team_a_score += state.pot;
+    else state.team_b_score += state.pot;
+
+    const wonAmount = state.pot;
+    state.pot = 0;
+    state.round_status = 'idle';
+    state.strikes = 0;
+    const finalControl = state.controlling_team;
+    state.controlling_team = null;
+    await saveState();
+    renderState();
+
+    broadcast('crowdsays_round_won', {
+      team: winningTeam,
+      amount: wonAmount,
+      by_steal: true,
+      steal_success: success
+    });
+    showToast(success
+      ? `${stealingTeam === 'a' ? teamNames.a : teamNames.b} steals ${wonAmount} points!`
+      : `Steal failed — ${finalControl === 'a' ? teamNames.a : teamNames.b} keeps ${wonAmount} points`);
+  }
+
+  document.getElementById('endQuestionBtn').addEventListener('click', async () => {
+    state.current_question_id = null;
+    state.controlling_team = null;
+    state.strikes = 0;
+    state.pot = 0;
+    state.round_status = 'idle';
+    await saveState();
+    renderState();
+    broadcast('crowdsays_board_cleared', {});
+    showToast('Board cleared');
+  });
+</script>
+</body>
+</html>

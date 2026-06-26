@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crowd Says</title>
+<style>
+  :root {
+    --navy-deep: #06080F;
+    --navy-panel: #11162A;
+    --navy-line: #232B45;
+    --gold: #E8B84B;
+    --gold-bright: #FFD571;
+    --teal: #3DDC97;
+    --red: #D14545;
+    --text-hi: #F4F1E8;
+    --text-lo: #6E7493;
+    --font-display: 'Archivo Black', 'Arial Black', sans-serif;
+    --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--navy-deep); color: var(--text-hi);
+    font-family: var(--font-mono);
+    width: 100%; height: 100%; overflow: hidden;
+  }
+
+  body {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 100vh; padding: clamp(16px, 3vw, 48px);
+    background:
+      radial-gradient(ellipse at 50% -10%, rgba(232,184,75,0.08), transparent 60%),
+      var(--navy-deep);
+  }
+
+  /* Idle / waiting state */
+  .idle-screen {
+    text-align: center;
+  }
+  .idle-screen .eyebrow {
+    font-size: clamp(13px, 1.4vw, 18px); letter-spacing: 0.3em; color: var(--gold);
+    text-transform: uppercase; margin-bottom: 16px;
+  }
+  .idle-screen h1 {
+    font-family: var(--font-display); font-size: clamp(36px, 7vw, 96px);
+    color: var(--text-hi); letter-spacing: -0.01em;
+  }
+  .idle-screen p { color: var(--text-lo); margin-top: 14px; font-size: clamp(13px, 1.3vw, 18px); }
+
+  /* Main game screen */
+  .game-screen { display: none; width: 100%; max-width: 1400px; flex-direction: column; align-items: center; gap: clamp(20px, 3vw, 36px); }
+  .game-screen.show { display: flex; }
+
+  .header-row {
+    display: flex; justify-content: space-between; align-items: baseline; width: 100%;
+  }
+  .crowdsays-mark {
+    font-family: var(--font-display); font-size: clamp(20px, 2.4vw, 32px); color: var(--gold);
+    letter-spacing: -0.01em;
+  }
+  .crowdsays-mark span { color: var(--text-hi); }
+  .pot-display {
+    font-size: clamp(13px, 1.2vw, 16px); color: var(--text-lo); text-align: right;
+    text-transform: uppercase; letter-spacing: 0.15em;
+  }
+  .pot-display strong {
+    display: block; font-family: var(--font-display); font-size: clamp(28px, 3.2vw, 44px);
+    color: var(--gold-bright); letter-spacing: 0; margin-top: 2px;
+    text-shadow: 0 0 24px rgba(232,184,75,0.4);
+  }
+
+  .prompt-bar {
+    width: 100%; text-align: center; padding: clamp(14px, 1.8vw, 22px) clamp(20px, 3vw, 40px);
+    background: var(--navy-panel); border: 1px solid var(--navy-line); border-radius: 16px;
+  }
+  .prompt-bar .prompt-text {
+    font-family: var(--font-display); font-size: clamp(20px, 3vw, 34px); color: var(--text-hi);
+    line-height: 1.2; text-transform: none;
+  }
+
+  /* Board */
+  .board {
+    display: grid; grid-template-columns: 1fr 1fr; gap: clamp(10px, 1.4vw, 16px);
+    width: 100%;
+  }
+  .tile {
+    position: relative; height: clamp(70px, 9vw, 110px); border-radius: 14px;
+    background: linear-gradient(180deg, #1A2038, #11162A);
+    border: 2px solid var(--navy-line);
+    display: flex; align-items: center; padding: 0 clamp(16px, 2vw, 28px);
+    overflow: hidden;
+    transform-style: preserve-3d;
+    transition: transform 0.5s cubic-bezier(.2,.9,.25,1), border-color 0.4s, background 0.4s;
+  }
+  .tile-num {
+    font-family: var(--font-display); font-size: clamp(18px, 2vw, 26px); color: var(--navy-line);
+    width: clamp(32px, 4vw, 48px); flex-shrink: 0;
+  }
+  .tile-content { flex: 1; display: flex; justify-content: space-between; align-items: center; gap: 12px; min-width: 0; }
+  .tile-text {
+    font-size: clamp(16px, 2vw, 26px); color: var(--text-lo); letter-spacing: 0.08em;
+    text-transform: uppercase; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+  }
+  .tile-pts {
+    font-family: var(--font-display); font-size: clamp(18px, 2.2vw, 30px); color: var(--navy-line);
+    flex-shrink: 0;
+  }
+
+  .tile.revealed {
+    border-color: var(--teal);
+    background: linear-gradient(180deg, #16302A, #0D1F1B);
+  }
+  .tile.revealed .tile-num { color: var(--teal); }
+  .tile.revealed .tile-text { color: var(--text-hi); }
+  .tile.revealed .tile-pts { color: var(--gold-bright); }
+
+  .tile.flip-in {
+    animation: tileFlip 0.55s cubic-bezier(.2,.9,.25,1);
+  }
+  @keyframes tileFlip {
+    0%   { transform: rotateX(0deg) scale(1); }
+    40%  { transform: rotateX(90deg) scale(1.02); }
+    55%  { transform: rotateX(90deg) scale(1.02); }
+    80%  { transform: rotateX(-8deg) scale(1.02); }
+    100% { transform: rotateX(0deg) scale(1); }
+  }
+  .tile.flip-in::after {
+    content: ''; position: absolute; inset: 0;
+    background: radial-gradient(circle, rgba(232,184,75,0.5), transparent 70%);
+    animation: flashOut 0.6s ease-out forwards;
+  }
+  @keyframes flashOut { from { opacity: 1; } to { opacity: 0; } }
+
+  /* Teams + strikes */
+  .bottom-row {
+    display: grid; grid-template-columns: 1fr auto 1fr; gap: clamp(14px, 2vw, 28px);
+    width: 100%; align-items: center;
+  }
+  .team-block {
+    background: var(--navy-panel); border: 2px solid var(--navy-line); border-radius: 14px;
+    padding: clamp(12px, 1.6vw, 20px); text-align: center;
+    transition: border-color 0.3s, box-shadow 0.3s;
+  }
+  .team-block.control {
+    border-color: var(--gold); box-shadow: 0 0 30px rgba(232,184,75,0.25);
+  }
+  .team-block .t-name {
+    font-size: clamp(11px, 1.1vw, 14px); letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-lo);
+  }
+  .team-block.control .t-name { color: var(--gold); }
+  .team-block .t-score {
+    font-family: var(--font-display); font-size: clamp(34px, 4.5vw, 64px); color: var(--text-hi); margin-top: 4px;
+  }
+  .team-block.control .t-score { color: var(--gold-bright); }
+
+  .strikes-block { display: flex; gap: clamp(8px, 1vw, 14px); }
+  .strike-tile {
+    width: clamp(44px, 5vw, 68px); height: clamp(44px, 5vw, 68px);
+    border: 3px solid var(--navy-line); border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display); font-size: clamp(22px, 2.6vw, 36px); color: var(--navy-line);
+    transition: all 0.3s;
+  }
+  .strike-tile.hit {
+    border-color: var(--red); color: var(--red);
+    background: rgba(209,69,69,0.12);
+    animation: strikePulse 0.4s ease-out;
+  }
+  @keyframes strikePulse {
+    0% { transform: scale(1.3); }
+    100% { transform: scale(1); }
+  }
+
+  .status-flag {
+    text-align: center; font-size: clamp(13px, 1.3vw, 17px); letter-spacing: 0.2em;
+    text-transform: uppercase; padding: 8px 0; color: var(--text-lo);
+  }
+  .status-flag.randomizing { color: var(--gold); }
+  .status-flag.steal { color: var(--red); }
+
+  /* Slot-machine randomizer overlay */
+  .randomize-overlay {
+    position: fixed; inset: 0; background: rgba(6,8,15,0.95);
+    display: none; align-items: center; justify-content: center; flex-direction: column;
+    z-index: 60; text-align: center; gap: 22px;
+  }
+  .randomize-overlay.show { display: flex; animation: fadeIn 0.25s ease-out; }
+  .randomize-overlay .ro-eyebrow {
+    font-size: clamp(13px, 1.5vw, 18px); letter-spacing: 0.3em; color: var(--text-lo);
+    text-transform: uppercase;
+  }
+  .slot-window {
+    position: relative; width: min(90vw, 620px); height: clamp(90px, 13vw, 150px);
+    border: 3px solid var(--gold); border-radius: 18px;
+    background: linear-gradient(180deg, #1A2038, #0D1120);
+    overflow: hidden;
+    box-shadow: 0 0 50px rgba(232,184,75,0.25), inset 0 0 30px rgba(0,0,0,0.4);
+  }
+  .slot-window::before, .slot-window::after {
+    content: ''; position: absolute; left: 0; right: 0; height: 30%;
+    z-index: 2; pointer-events: none;
+  }
+  .slot-window::before { top: 0; background: linear-gradient(180deg, rgba(13,17,32,0.95), transparent); }
+  .slot-window::after { bottom: 0; background: linear-gradient(0deg, rgba(13,17,32,0.95), transparent); }
+  .slot-name {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-display); font-size: clamp(28px, 5vw, 56px); color: var(--text-hi);
+    letter-spacing: 0.02em;
+  }
+  .slot-name.cycling {
+    animation: slotCycle 0.09s steps(1) infinite;
+  }
+  @keyframes slotCycle {
+    0% { transform: translateY(-6px); opacity: 0.7; }
+    50% { transform: translateY(0); opacity: 1; }
+    100% { transform: translateY(6px); opacity: 0.7; }
+  }
+  .slot-name.locked {
+    animation: slotLock 0.45s cubic-bezier(.2,.9,.25,1);
+    color: var(--gold-bright);
+    text-shadow: 0 0 30px rgba(232,184,75,0.6);
+  }
+  @keyframes slotLock {
+    0% { transform: scale(1.15); }
+    60% { transform: scale(0.96); }
+    100% { transform: scale(1); }
+  }
+  .slot-window.locked {
+    border-color: var(--gold-bright);
+    box-shadow: 0 0 70px rgba(232,184,75,0.45), inset 0 0 30px rgba(0,0,0,0.4);
+  }
+  .randomize-overlay .ro-sub {
+    font-size: clamp(13px, 1.4vw, 18px); color: var(--text-lo);
+    letter-spacing: 0.1em; text-transform: uppercase; min-height: 1.4em;
+  }
+  .randomize-overlay .ro-sub.locked { color: var(--teal); }
+
+  /* Win banner overlay */
+  .win-overlay {
+    position: fixed; inset: 0; background: rgba(6,8,15,0.92);
+    display: none; align-items: center; justify-content: center; flex-direction: column;
+    z-index: 50; text-align: center;
+  }
+  .win-overlay.show { display: flex; animation: fadeIn 0.3s ease-out; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .win-overlay .win-label {
+    font-size: clamp(14px, 1.6vw, 20px); letter-spacing: 0.3em; color: var(--text-lo);
+    text-transform: uppercase; margin-bottom: 10px;
+  }
+  .win-overlay .win-team {
+    font-family: var(--font-display); font-size: clamp(40px, 7vw, 90px); color: var(--gold-bright);
+    text-shadow: 0 0 40px rgba(232,184,75,0.5);
+  }
+  .win-overlay .win-amount {
+    font-size: clamp(18px, 2.2vw, 28px); color: var(--teal); margin-top: 16px;
+  }
+</style>
+</head>
+<body>
+
+<div class="idle-screen" id="idleScreen">
+  <div class="eyebrow">PlayAQuiz</div>
+  <h1>Crowd Says</h1>
+  <p>Waiting for the host to load a question…</p>
+</div>
+
+<div class="game-screen" id="gameScreen">
+  <div class="header-row">
+    <div class="crowdsays-mark">CROWD <span>SAYS</span></div>
+    <div class="pot-display">Pot<strong id="potValue">0</strong></div>
+  </div>
+
+  <div class="prompt-bar">
+    <div class="prompt-text" id="promptText">—</div>
+  </div>
+
+  <div class="status-flag" id="statusFlag"></div>
+
+  <div class="board" id="board"></div>
+
+  <div class="bottom-row">
+    <div class="team-block" id="teamABlock">
+      <div class="t-name" id="teamAName">Team A</div>
+      <div class="t-score" id="teamAScore">0</div>
+    </div>
+    <div class="strikes-block">
+      <div class="strike-tile" id="strike1">✕</div>
+      <div class="strike-tile" id="strike2">✕</div>
+      <div class="strike-tile" id="strike3">✕</div>
+    </div>
+    <div class="team-block" id="teamBBlock">
+      <div class="t-name" id="teamBName">Team B</div>
+      <div class="t-score" id="teamBScore">0</div>
+    </div>
+  </div>
+</div>
+
+<div class="randomize-overlay" id="randomizeOverlay">
+  <div class="ro-eyebrow">Who's in control?</div>
+  <div class="slot-window" id="slotWindow">
+    <div class="slot-name" id="slotName">Team A</div>
+  </div>
+  <div class="ro-sub" id="roSub">Shuffling…</div>
+</div>
+
+<div class="win-overlay" id="winOverlay">
+  <div class="win-label" id="winLabel">Round won by</div>
+  <div class="win-team" id="winTeam">Team A</div>
+  <div class="win-amount" id="winAmount">+0 points</div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  // ====== CONFIG ======
+  const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
+  const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // Audio unlock pattern: unlock on first tap/click since browsers block autoplay
+  const sfx = {
+    reveal: new Audio('sfx/reveal.mp3'),
+    strike: new Audio('sfx/strike.mp3'),
+    win: new Audio('sfx/win.mp3')
+  };
+  let audioUnlocked = false;
+  function unlockAudio() {
+    if (audioUnlocked) return;
+    Object.values(sfx).forEach(a => { a.volume = 0; a.play().then(() => { a.pause(); a.currentTime = 0; a.volume = 1; }).catch(() => {}); });
+    audioUnlocked = true;
+  }
+  document.body.addEventListener('click', unlockAudio, { once: true });
+  document.body.addEventListener('touchstart', unlockAudio, { once: true });
+
+  function playSfx(name) {
+    const a = sfx[name];
+    if (!a) return;
+    try { a.currentTime = 0; a.play().catch(() => {}); } catch (e) {}
+  }
+
+  // ====== STATE ======
+  const params = new URLSearchParams(window.location.search);
+  const roomCode = (params.get('room') || '').toUpperCase();
+  let sessionId = null;
+  let channel = null;
+  let currentQuestion = null; // { id, prompt, answers: [{text, points}], revealed_answers: [] }
+  let teamNames = { a: 'Team A', b: 'Team B' };
+
+  async function init() {
+    if (!roomCode) {
+      document.getElementById('idleScreen').querySelector('p').textContent = 'No room code in URL — add ?room=CODE';
+      return;
+    }
+
+    const { data: sessionRow } = await supabase
+      .from('crowdsays_sessions')
+      .select('*')
+      .eq('room_code', roomCode)
+      .maybeSingle();
+
+    if (!sessionRow) {
+      document.getElementById('idleScreen').querySelector('p').textContent = 'Room not found — ask the host to start it from crowdsays-host.html';
+      return;
+    }
+    sessionId = sessionRow.id;
+    teamNames = { a: sessionRow.team_a_name || 'Team A', b: sessionRow.team_b_name || 'Team B' };
+    document.getElementById('teamAName').textContent = teamNames.a;
+    document.getElementById('teamBName').textContent = teamNames.b;
+
+    await loadState();
+    subscribeRealtime();
+    startPoll();
+  }
+
+  async function loadState() {
+    const { data } = await supabase
+      .from('crowdsays_state')
+      .select('*')
+      .eq('session_id', sessionId)
+      .maybeSingle();
+    if (!data) return;
+
+    if (data.current_question_id) {
+      const { data: qRow } = await supabase
+        .from('crowdsays_questions')
+        .select('*')
+        .eq('id', data.current_question_id)
+        .single();
+      currentQuestion = qRow;
+    } else {
+      currentQuestion = null;
+    }
+
+    renderFromState(data);
+  }
+
+  function subscribeRealtime() {
+    channel = supabase.channel(`room:${roomCode}`, { config: { broadcast: { self: false } } });
+
+    channel.on('broadcast', { event: 'crowdsays_question_loaded' }, (msg) => {
+      handleQuestionLoaded(msg.payload);
+    });
+    channel.on('broadcast', { event: 'crowdsays_randomize_started' }, (msg) => {
+      handleRandomizeStarted(msg.payload);
+    });
+    channel.on('broadcast', { event: 'crowdsays_answer_revealed' }, (msg) => {
+      handleAnswerRevealed(msg.payload);
+    });
+    channel.on('broadcast', { event: 'crowdsays_strike' }, (msg) => {
+      handleStrike(msg.payload);
+    });
+    channel.on('broadcast', { event: 'crowdsays_steal_started' }, (msg) => {
+      handleStealStarted(msg.payload);
+    });
+    channel.on('broadcast', { event: 'crowdsays_round_won' }, (msg) => {
+      handleRoundWon(msg.payload);
+    });
+    channel.on('broadcast', { event: 'crowdsays_board_cleared' }, () => {
+      handleBoardCleared();
+    });
+    channel.on('broadcast', { event: 'crowdsays_team_renamed' }, (msg) => {
+      teamNames[msg.payload.team] = msg.payload.name;
+      document.getElementById(msg.payload.team === 'a' ? 'teamAName' : 'teamBName').textContent = msg.payload.name;
+    });
+
+    channel.subscribe();
+  }
+
+  // Periodic poll as a safety net for FOH state recovery (consistent with existing reconnection patterns)
+  function startPoll() {
+    setInterval(loadState, 8000);
+  }
+
+  // ====== HANDLERS ======
+  function handleQuestionLoaded(payload) {
+    document.getElementById('idleScreen').style.display = 'none';
+    document.getElementById('gameScreen').classList.add('show');
+    document.getElementById('winOverlay').classList.remove('show');
+    document.getElementById('randomizeOverlay').classList.remove('show');
+
+    document.getElementById('promptText').textContent = payload.prompt;
+    document.getElementById('potValue').textContent = '0';
+    setStatusFlag('randomizing', 'Waiting for host to randomize control');
+    resetStrikes();
+    setControl(null);
+
+    // build empty board
+    currentQuestion = { id: payload.question_id, prompt: payload.prompt, answers: new Array(payload.answer_count).fill({ text: '', points: 0 }), revealed_answers: [] };
+    renderBoard([]);
+  }
+
+  let shuffleInterval = null;
+
+  function handleRandomizeStarted(payload) {
+    const overlay = document.getElementById('randomizeOverlay');
+    const slotWindow = document.getElementById('slotWindow');
+    const slotName = document.getElementById('slotName');
+    const roSub = document.getElementById('roSub');
+
+    overlay.classList.add('show');
+    slotWindow.classList.remove('locked');
+    roSub.classList.remove('locked');
+    roSub.textContent = 'Shuffling…';
+    slotName.classList.remove('locked');
+    slotName.classList.add('cycling');
+
+    const names = [teamNames.a, teamNames.b];
+    let i = 0;
+    if (shuffleInterval) clearInterval(shuffleInterval);
+    shuffleInterval = setInterval(() => {
+      slotName.textContent = names[i % 2];
+      i++;
+    }, 90);
+
+    // Shuffle for ~1.8s, then lock on the host-decided result
+    setTimeout(() => {
+      clearInterval(shuffleInterval);
+      shuffleInterval = null;
+      slotName.classList.remove('cycling');
+      slotName.textContent = teamLabel(payload.result_team);
+      slotName.classList.add('locked');
+      slotWindow.classList.add('locked');
+      roSub.textContent = `${teamLabel(payload.result_team)} controls the board`;
+      roSub.classList.add('locked');
+      playSfx('reveal');
+
+      setControl(payload.result_team);
+      setStatusFlag('playing', `${teamLabel(payload.result_team)} in control`);
+
+      setTimeout(() => {
+        overlay.classList.remove('show');
+      }, 1300);
+    }, 1800);
+  }
+
+  function handleAnswerRevealed(payload) {
+    if (!currentQuestion) return;
+    if (!currentQuestion.answers[payload.index] || !currentQuestion.answers[payload.index].text) {
+      currentQuestion.answers[payload.index] = { text: payload.text, points: payload.points };
+    }
+    currentQuestion.revealed_answers = [...(currentQuestion.revealed_answers || []), payload.index];
+    document.getElementById('potValue').textContent = payload.pot;
+    renderBoard(currentQuestion.revealed_answers, payload.index);
+    playSfx('reveal');
+  }
+
+  function handleStrike(payload) {
+    setStrikes(payload.strikes);
+    playSfx('strike');
+  }
+
+  function handleStealStarted(payload) {
+    setStatusFlag('steal', `Steal — ${teamLabel(payload.stealing_team)} gets one guess`);
+  }
+
+  function handleRoundWon(payload) {
+    showWinOverlay(payload.team, payload.amount, payload.by_steal, payload.steal_success);
+    playSfx('win');
+    setTimeout(() => {
+      document.getElementById('winOverlay').classList.remove('show');
+    }, 4200);
+  }
+
+  function handleBoardCleared() {
+    document.getElementById('gameScreen').classList.remove('show');
+    document.getElementById('idleScreen').style.display = 'flex';
+    document.getElementById('idleScreen').querySelector('p').textContent = 'Waiting for the host to load the next question…';
+    currentQuestion = null;
+  }
+
+  // ====== RENDER HELPERS ======
+  function teamLabel(t) { return t === 'a' ? teamNames.a : teamNames.b; }
+
+  function renderFromState(data) {
+    document.getElementById('teamAScore').textContent = data.team_a_score;
+    document.getElementById('teamBScore').textContent = data.team_b_score;
+    document.getElementById('potValue').textContent = data.pot;
+    setStrikes(data.strikes);
+    setControl(data.controlling_team);
+
+    if (data.round_status === 'idle' && !currentQuestion) {
+      document.getElementById('gameScreen').classList.remove('show');
+      document.getElementById('idleScreen').style.display = 'flex';
+      return;
+    }
+
+    document.getElementById('idleScreen').style.display = 'none';
+    document.getElementById('gameScreen').classList.add('show');
+
+    if (currentQuestion) {
+      document.getElementById('promptText').textContent = currentQuestion.prompt;
+      renderBoard(currentQuestion.revealed_answers || []);
+    }
+
+    const flagMap = {
+      randomizing: ['randomizing', 'Waiting for host to randomize control'],
+      playing: ['playing', data.controlling_team ? `${teamLabel(data.controlling_team)} in control` : ''],
+      steal: ['steal', `Steal — ${teamLabel(data.controlling_team === 'a' ? 'b' : 'a')} gets one guess`]
+    };
+    const [cls, text] = flagMap[data.round_status] || ['', ''];
+    setStatusFlag(cls, text);
+  }
+
+  function renderBoard(revealedIndices, flipIndex) {
+    if (!currentQuestion) return;
+    const board = document.getElementById('board');
+    board.innerHTML = currentQuestion.answers.map((a, i) => {
+      const isRevealed = revealedIndices.includes(i);
+      return `
+        <div class="tile ${isRevealed ? 'revealed' : ''} ${flipIndex === i ? 'flip-in' : ''}">
+          <span class="tile-num">${i + 1}</span>
+          <span class="tile-content">
+            <span class="tile-text">${isRevealed ? escapeHtml(a.text) : ''}</span>
+            <span class="tile-pts">${isRevealed ? a.points : ''}</span>
+          </span>
+        </div>`;
+    }).join('');
+  }
+
+  function setStrikes(n) {
+    [1, 2, 3].forEach(i => {
+      document.getElementById(`strike${i}`).classList.toggle('hit', n >= i);
+    });
+  }
+  function resetStrikes() { setStrikes(0); }
+
+  function setControl(team) {
+    document.getElementById('teamABlock').classList.toggle('control', team === 'a');
+    document.getElementById('teamBBlock').classList.toggle('control', team === 'b');
+  }
+
+  function setStatusFlag(cls, text) {
+    const el = document.getElementById('statusFlag');
+    el.className = 'status-flag' + (cls ? ' ' + cls : '');
+    el.textContent = text;
+  }
+
+  function showWinOverlay(team, amount, bySteal, stealSuccess) {
+    document.getElementById('winLabel').textContent = bySteal
+      ? (stealSuccess ? 'Stolen by' : 'Steal failed — kept by')
+      : 'Round won by';
+    document.getElementById('winTeam').textContent = teamLabel(team);
+    document.getElementById('winAmount').textContent = `+${amount} points`;
+    document.getElementById('winOverlay').classList.add('show');
+  }
+
+  function escapeHtml(s) {
+    const div = document.createElement('div');
+    div.textContent = s || '';
+    return div.innerHTML;
+  }
+
+  init();
+</script>
+</body>
+</html>
