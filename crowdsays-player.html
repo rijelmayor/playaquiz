@@ -154,7 +154,29 @@
   </div>
 </div>
 
+<div id="errorBanner" style="display:none; position:fixed; top:0; left:0; right:0; background:#D14545; color:#fff; padding:14px 16px; font-family:monospace; font-size:12px; z-index:9999; max-height:50vh; overflow-y:auto; white-space:pre-wrap; word-break:break-word;"></div>
+
+<script>
+  window.addEventListener('error', function(e) {
+    var banner = document.getElementById('errorBanner');
+    banner.style.display = 'block';
+    banner.textContent += '⚠ ERROR: ' + e.message + ' (line ' + e.lineno + ')\n\n';
+  });
+  window.addEventListener('unhandledrejection', function(e) {
+    var banner = document.getElementById('errorBanner');
+    banner.style.display = 'block';
+    banner.textContent += '⚠ PROMISE REJECTION: ' + (e.reason && e.reason.message ? e.reason.message : JSON.stringify(e.reason)) + '\n\n';
+  });
+</script>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  if (typeof window.supabase === 'undefined') {
+    var banner = document.getElementById('errorBanner');
+    banner.style.display = 'block';
+    banner.textContent += '⚠ Supabase library failed to load from CDN — check internet connection or ad blocker.\n\n';
+  }
+</script>
 <script>
   // ====== CONFIG ======
   const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
@@ -369,7 +391,11 @@
     return div.innerHTML;
   }
 
-  init();
+  init().catch(function(err) {
+    var banner = document.getElementById('errorBanner');
+    banner.style.display = 'block';
+    banner.textContent += '⚠ INIT ERROR: ' + (err && err.message ? err.message : String(err)) + '\n\n';
+  });
 </script>
 </body>
 </html>
