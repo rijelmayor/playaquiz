@@ -227,7 +227,10 @@
     border: 1px solid var(--navy-line); 
     border-radius: 16px;
     backdrop-filter: blur(10px);
-    background: rgba(var(--navy-panel-rgb, 17,22,42), 0.85);
+    background: rgba(17, 22, 42, 0.85);
+  }
+  body.theme-light .prompt-bar {
+    background: rgba(226, 221, 212, 0.9);
   }
   .prompt-bar .prompt-text {
     font-family: var(--font-display); 
@@ -258,6 +261,13 @@
     transition: transform 0.5s cubic-bezier(.2,.9,.25,1), border-color 0.4s, background 0.4s;
     box-shadow: 0 4px 20px rgba(0,0,0,0.3);
   }
+  body.theme-light .tile {
+    background: linear-gradient(180deg, #E8E4DA, #D8D4CA);
+    border-color: #B8B4AA;
+  }
+  body.theme-light .tile.revealed {
+    background: linear-gradient(180deg, #D4E8E0, #C4D8D0);
+  }
   .tile-num {
     font-family: var(--font-display); 
     font-size: clamp(18px, 2vw, 26px); 
@@ -285,6 +295,9 @@
   .tile.revealed {
     border-color: var(--teal);
     background: linear-gradient(180deg, #16302A, #0D1F1B);
+  }
+  body.theme-light .tile.revealed {
+    background: linear-gradient(180deg, #D4E8E0, #C4D8D0);
   }
   .tile.revealed .tile-num { color: var(--teal); }
   .tile.revealed .tile-text { color: var(--text-hi); }
@@ -362,7 +375,10 @@
     text-align: center;
     transition: border-color 0.3s, box-shadow 0.3s;
     backdrop-filter: blur(8px);
-    background: rgba(var(--navy-panel-rgb, 17,22,42), 0.85);
+    background: rgba(17, 22, 42, 0.85);
+  }
+  body.theme-light .team-block {
+    background: rgba(226, 221, 212, 0.9);
   }
   .team-block.control {
     border-color: var(--gold); 
@@ -547,29 +563,6 @@
     border-radius: 4px; 
     padding: 2px 8px;
   }
-
-  /* Light theme overrides for tiles */
-  body.theme-light .tile {
-    background: linear-gradient(180deg, #E8E4DA, #D8D4CA);
-    border-color: #B8B4AA;
-  }
-  body.theme-light .tile.revealed {
-    background: linear-gradient(180deg, #D4E8E0, #C4D8D0);
-    border-color: var(--teal);
-  }
-  body.theme-light .prompt-bar {
-    background: rgba(226,221,212,0.9);
-    border-color: #B8B4AA;
-  }
-  body.theme-light .team-block {
-    background: rgba(226,221,212,0.9);
-  }
-  body.theme-light .brand-watermark {
-    color: #8B8570;
-  }
-  body.theme-light .pot-display strong {
-    text-shadow: 0 0 24px rgba(196,160,48,0.3);
-  }
 </style>
 </head>
 <body class="theme-classic">
@@ -620,7 +613,7 @@
 </div>
 
 <script>
-  // ====== ERROR HANDLING (cleaned — only shows real errors, silent on success) ======
+  // ====== ERROR HANDLING ======
   function showBannerMsg(msg) {
     var banner = document.getElementById('errorBanner');
     var text = document.getElementById('errorBannerText');
@@ -645,7 +638,6 @@
   onerror="showBannerMsg('⚠ Supabase CDN failed to load — check internet / ad-blocker')"></script>
 
 <script>
-  // Silently verify Supabase loaded (no success banner in production)
   if (typeof window.supabase === 'undefined') {
     showBannerMsg('⚠ Supabase library undefined after load — CDN script did not execute.');
   }
@@ -683,7 +675,9 @@
   }
 
   // --- SYNTHESIZED SOUND EFFECTS ---
+
   function sfxReveal() {
+    // Question entrance / reveal: ascending "ding-dong" sweep
     ensureAudio();
     try {
       const ctx = getAudioContext();
@@ -705,6 +699,7 @@
   }
 
   function sfxWrong() {
+    // Wrong / strike: low buzzer
     ensureAudio();
     try {
       const ctx = getAudioContext();
@@ -735,6 +730,7 @@
   }
 
   function sfxQuestionEntrance() {
+    // Question entrance: dramatic rising sweep + impact
     ensureAudio();
     try {
       const ctx = getAudioContext();
@@ -775,6 +771,7 @@
   }
 
   function sfxPointsAdded() {
+    // Points added to winning team: cheerful ascending arpeggio
     ensureAudio();
     try {
       const ctx = getAudioContext();
@@ -796,6 +793,7 @@
   }
 
   function sfxWin() {
+    // Round win / full fanfare
     ensureAudio();
     try {
       const ctx = getAudioContext();
@@ -877,7 +875,7 @@
     const theme = cfg.theme || 'classic';
     document.body.classList.add('theme-' + theme);
 
-    // Custom BG image - this is the key fix
+    // Custom BG image
     if (cfg.bgImage && cfg.bgImage !== '') {
       document.body.style.setProperty('--brand-bg-image', `url('${cfg.bgImage}')`);
       document.body.classList.add('has-bg-image');
