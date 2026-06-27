@@ -17,27 +17,117 @@
     --text-lo: #6E7493;
     --font-display: 'Archivo Black', 'Arial Black', sans-serif;
     --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+
+    /* Branding overrides (set via host broadcast) */
+    --brand-bg-color: #06080F;
+    --brand-overlay: rgba(6,8,15,0.0);
+    --brand-text: 'CROWD SAYS';
+    --brand-accent: #E8B84B;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body {
-    background: var(--navy-deep); color: var(--text-hi);
+    color: var(--text-hi);
     font-family: var(--font-mono);
     width: 100%; height: 100%; overflow: hidden;
   }
 
+  /* ===================== BACKGROUND THEMES ===================== */
+  body {
+    background: var(--brand-bg-color);
+    transition: background 0.6s ease;
+  }
+
+  /* Theme: Classic (default) */
+  body.theme-classic {
+    background:
+      radial-gradient(ellipse at 50% -10%, rgba(232,184,75,0.08), transparent 60%),
+      #06080F;
+  }
+
+  /* Theme: Deep Blue */
+  body.theme-blue {
+    background:
+      radial-gradient(ellipse at 30% 20%, rgba(61,132,220,0.18), transparent 55%),
+      radial-gradient(ellipse at 70% 80%, rgba(30,60,140,0.22), transparent 55%),
+      #020815;
+  }
+
+  /* Theme: Purple/Violet */
+  body.theme-purple {
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(140,60,220,0.22), transparent 60%),
+      radial-gradient(ellipse at 80% 100%, rgba(80,20,160,0.18), transparent 50%),
+      #0A0515;
+  }
+
+  /* Theme: Red/Dark */
+  body.theme-red {
+    background:
+      radial-gradient(ellipse at 50% -10%, rgba(209,69,69,0.15), transparent 60%),
+      radial-gradient(ellipse at 20% 80%, rgba(160,20,20,0.12), transparent 50%),
+      #0F0606;
+  }
+
+  /* Theme: Teal/Green */
+  body.theme-teal {
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(61,220,151,0.12), transparent 60%),
+      radial-gradient(ellipse at 80% 90%, rgba(20,120,80,0.14), transparent 55%),
+      #030F09;
+  }
+
+  /* Theme: White/Light */
+  body.theme-light {
+    background: #F0EDE4;
+    color: #1A1306;
+    --text-hi: #1A1306;
+    --text-lo: #6B6550;
+    --navy-panel: #E2DDD4;
+    --navy-line: #C8C4BB;
+    --navy-deep: #F0EDE4;
+  }
+
+  /* Theme: Custom Image */
+  body.theme-image {
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+  body.theme-image::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: var(--brand-overlay);
+    pointer-events: none;
+    z-index: 0;
+  }
+  body.theme-image > * { position: relative; z-index: 1; }
+
   body {
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     min-height: 100vh; padding: clamp(16px, 3vw, 48px);
-    background:
-      radial-gradient(ellipse at 50% -10%, rgba(232,184,75,0.08), transparent 60%),
-      var(--navy-deep);
   }
 
-  /* Idle / waiting state */
-  .idle-screen {
-    text-align: center;
+  /* ===================== BRANDING TEXT ===================== */
+  .brand-watermark {
+    position: fixed;
+    bottom: clamp(12px, 2vw, 24px);
+    right: clamp(16px, 2.5vw, 32px);
+    font-family: var(--font-mono);
+    font-size: clamp(10px, 1vw, 13px);
+    letter-spacing: 0.18em;
+    color: var(--text-lo);
+    text-transform: uppercase;
+    opacity: 0.55;
+    pointer-events: none;
+    z-index: 5;
+    transition: opacity 0.4s;
+    white-space: nowrap;
   }
+
+  /* ===================== IDLE SCREEN ===================== */
+  .idle-screen { text-align: center; }
   .idle-screen .eyebrow {
     font-size: clamp(13px, 1.4vw, 18px); letter-spacing: 0.3em; color: var(--gold);
     text-transform: uppercase; margin-bottom: 16px;
@@ -48,7 +138,7 @@
   }
   .idle-screen p { color: var(--text-lo); margin-top: 14px; font-size: clamp(13px, 1.3vw, 18px); }
 
-  /* Main game screen */
+  /* ===================== GAME SCREEN ===================== */
   .game-screen { display: none; width: 100%; max-width: 1400px; flex-direction: column; align-items: center; gap: clamp(16px, 2.4vw, 28px); }
   .game-screen.show { display: flex; }
 
@@ -76,13 +166,12 @@
   }
   .prompt-bar .prompt-text {
     font-family: var(--font-display); font-size: clamp(20px, 3vw, 34px); color: var(--text-hi);
-    line-height: 1.2; text-transform: none;
+    line-height: 1.2;
   }
 
-  /* Board */
+  /* ===================== BOARD ===================== */
   .board {
-    display: grid; grid-template-columns: 1fr 1fr; gap: clamp(10px, 1.4vw, 16px);
-    width: 100%;
+    display: grid; grid-template-columns: 1fr 1fr; gap: clamp(10px, 1.4vw, 16px); width: 100%;
   }
   .tile {
     position: relative; height: clamp(70px, 9vw, 110px); border-radius: 14px;
@@ -115,9 +204,7 @@
   .tile.revealed .tile-text { color: var(--text-hi); }
   .tile.revealed .tile-pts { color: var(--gold-bright); }
 
-  .tile.flip-in {
-    animation: tileFlip 0.55s cubic-bezier(.2,.9,.25,1);
-  }
+  .tile.flip-in { animation: tileFlip 0.55s cubic-bezier(.2,.9,.25,1); }
   @keyframes tileFlip {
     0%   { transform: rotateX(0deg) scale(1); }
     40%  { transform: rotateX(90deg) scale(1.02); }
@@ -132,7 +219,7 @@
   }
   @keyframes flashOut { from { opacity: 1; } to { opacity: 0; } }
 
-  /* Strikes */
+  /* ===================== STRIKES ===================== */
   .strikes-block { display: flex; gap: clamp(8px, 1vw, 14px); justify-content: center; }
   .strike-tile {
     width: clamp(40px, 4.6vw, 60px); height: clamp(40px, 4.6vw, 60px);
@@ -146,10 +233,7 @@
     background: rgba(209,69,69,0.12);
     animation: strikePulse 0.4s ease-out;
   }
-  @keyframes strikePulse {
-    0% { transform: scale(1.3); }
-    100% { transform: scale(1); }
-  }
+  @keyframes strikePulse { 0% { transform: scale(1.3); } 100% { transform: scale(1); } }
 
   .status-flag {
     text-align: center; font-size: clamp(13px, 1.3vw, 17px); letter-spacing: 0.2em;
@@ -158,7 +242,7 @@
   .status-flag.randomizing { color: var(--gold); }
   .status-flag.steal { color: var(--red); }
 
-  /* Team scoreboard — flexes from 2 up to 16 teams */
+  /* ===================== TEAMS BOARD ===================== */
   .teams-board {
     display: grid; gap: clamp(6px, 0.8vw, 12px); width: 100%;
     grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
@@ -181,7 +265,7 @@
   }
   .team-block.control .t-score { color: var(--gold-bright); }
 
-  /* Slot-machine randomizer overlay */
+  /* ===================== RANDOMIZE OVERLAY ===================== */
   .randomize-overlay {
     position: fixed; inset: 0; background: rgba(6,8,15,0.95);
     display: none; align-items: center; justify-content: center; flex-direction: column;
@@ -211,9 +295,7 @@
     letter-spacing: 0.02em; padding: 0 16px; text-align: center;
     overflow: hidden; white-space: nowrap; text-overflow: ellipsis; max-width: 100%;
   }
-  .slot-name.cycling {
-    animation: slotCycle 0.09s steps(1) infinite;
-  }
+  .slot-name.cycling { animation: slotCycle 0.09s steps(1) infinite; }
   @keyframes slotCycle {
     0% { transform: translateY(-6px); opacity: 0.7; }
     50% { transform: translateY(0); opacity: 1; }
@@ -224,11 +306,7 @@
     color: var(--gold-bright);
     text-shadow: 0 0 30px rgba(232,184,75,0.6);
   }
-  @keyframes slotLock {
-    0% { transform: scale(1.15); }
-    60% { transform: scale(0.96); }
-    100% { transform: scale(1); }
-  }
+  @keyframes slotLock { 0% { transform: scale(1.15); } 60% { transform: scale(0.96); } 100% { transform: scale(1); } }
   .slot-window.locked {
     border-color: var(--gold-bright);
     box-shadow: 0 0 70px rgba(232,184,75,0.45), inset 0 0 30px rgba(0,0,0,0.4);
@@ -239,7 +317,7 @@
   }
   .randomize-overlay .ro-sub.locked { color: var(--teal); }
 
-  /* Win banner overlay */
+  /* ===================== WIN OVERLAY ===================== */
   .win-overlay {
     position: fixed; inset: 0; background: rgba(6,8,15,0.92);
     display: none; align-items: center; justify-content: center; flex-direction: column;
@@ -258,36 +336,55 @@
   .win-overlay .win-amount {
     font-size: clamp(18px, 2.2vw, 28px); color: var(--teal); margin-top: 16px;
   }
+
+  /* ===================== CONFETTI ===================== */
+  .confetti-piece {
+    position: fixed; width: 10px; height: 10px; border-radius: 2px;
+    animation: confettiFall linear forwards;
+    pointer-events: none; z-index: 55;
+  }
+  @keyframes confettiFall {
+    0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(105vh) rotate(720deg); opacity: 0.3; }
+  }
+
+  /* ===================== ERROR BANNER ===================== */
+  #errorBanner {
+    display: none; position: fixed; top: 0; left: 0; right: 0;
+    background: #D14545; color: #fff; padding: 14px 16px;
+    font-family: monospace; font-size: 12px; z-index: 9999;
+    max-height: 50vh; overflow-y: auto; white-space: pre-wrap; word-break: break-word;
+  }
+  #errorBanner .err-close {
+    float: right; cursor: pointer; font-size: 16px; line-height: 1; margin-left: 12px;
+    background: rgba(255,255,255,0.2); border: none; color: #fff;
+    border-radius: 4px; padding: 2px 8px;
+  }
 </style>
 </head>
-<body>
+<body class="theme-classic">
 
 <div class="idle-screen" id="idleScreen">
-  <div class="eyebrow">PlayAQuiz</div>
-  <h1>Crowd Says</h1>
-  <p>Waiting for the host to load a question…</p>
+  <div class="eyebrow" id="brandEyebrow">PlayAQuiz</div>
+  <h1 id="brandTitle">Crowd Says</h1>
+  <p id="idleMessage">Waiting for the host to load a question…</p>
 </div>
 
 <div class="game-screen" id="gameScreen">
   <div class="header-row">
-    <div class="crowdsays-mark">CROWD <span>SAYS</span></div>
+    <div class="crowdsays-mark" id="headerMark">CROWD <span>SAYS</span></div>
     <div class="pot-display">Pot<strong id="potValue">0</strong></div>
   </div>
-
   <div class="prompt-bar">
     <div class="prompt-text" id="promptText">—</div>
   </div>
-
   <div class="status-flag" id="statusFlag"></div>
-
   <div class="board" id="board"></div>
-
   <div class="strikes-block">
     <div class="strike-tile" id="strike1">✕</div>
     <div class="strike-tile" id="strike2">✕</div>
     <div class="strike-tile" id="strike3">✕</div>
   </div>
-
   <div class="teams-board" id="teamsBoard"></div>
 </div>
 
@@ -305,64 +402,305 @@
   <div class="win-amount" id="winAmount">+0 points</div>
 </div>
 
-<div id="errorBanner" style="display:none; position:fixed; top:0; left:0; right:0; background:#D14545; color:#fff; padding:14px 16px; font-family:monospace; font-size:12px; z-index:9999; max-height:50vh; overflow-y:auto; white-space:pre-wrap; word-break:break-word;"></div>
+<div class="brand-watermark" id="brandWatermark">PlayAQuiz</div>
+
+<div id="errorBanner">
+  <button class="err-close" onclick="document.getElementById('errorBanner').style.display='none'">✕ dismiss</button>
+  <span id="errorBannerText"></span>
+</div>
 
 <script>
+  // ====== ERROR HANDLING (cleaned — only shows real errors, silent on success) ======
   function showBannerMsg(msg) {
     var banner = document.getElementById('errorBanner');
+    var text = document.getElementById('errorBannerText');
     banner.style.display = 'block';
-    banner.textContent += msg + '\n\n';
+    text.textContent += msg + '\n\n';
   }
   window.addEventListener('error', function(e) {
     if (e.target && e.target.tagName === 'SCRIPT') {
-      showBannerMsg('⚠ SCRIPT FAILED TO LOAD: ' + (e.target.src || '(inline script)') + '\nThis usually means no internet connection, a blocked CDN, or a firewall/ad-blocker issue.');
+      showBannerMsg('⚠ SCRIPT FAILED TO LOAD: ' + (e.target.src || '(inline script)'));
       return;
     }
-    var msg = e.message || e.error && e.error.message;
-    if (!msg || msg === 'Script error.') {
-      showBannerMsg('⚠ A script error occurred but the browser hid the details (often a cross-origin script issue). Try reloading, or check your connection.');
-      return;
-    }
-    showBannerMsg('⚠ ERROR: ' + msg + ' (line ' + e.lineno + ', col ' + e.colno + ')\nFile: ' + (e.filename || 'unknown'));
+    var msg = e.message || (e.error && e.error.message);
+    if (!msg || msg === 'Script error.') return;
+    showBannerMsg('⚠ ERROR: ' + msg + ' (line ' + e.lineno + ')');
   }, true);
   window.addEventListener('unhandledrejection', function(e) {
-    showBannerMsg('⚠ PROMISE REJECTION: ' + (e.reason && e.reason.message ? e.reason.message : JSON.stringify(e.reason)));
+    showBannerMsg('⚠ UNHANDLED: ' + (e.reason && e.reason.message ? e.reason.message : JSON.stringify(e.reason)));
   });
 </script>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onerror="showBannerMsg('⚠ Supabase CDN script tag failed to fire onload — likely blocked by network/firewall/ad-blocker. URL: https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2')"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
+  onerror="showBannerMsg('⚠ Supabase CDN failed to load — check internet / ad-blocker')"></script>
+
 <script>
+  // Silently verify Supabase loaded (no success banner in production)
   if (typeof window.supabase === 'undefined') {
-    showBannerMsg('⚠ Supabase library object is undefined after load attempt — CDN script did not execute correctly.');
-  } else {
-    showBannerMsg('✓ Supabase library loaded OK.');
+    showBannerMsg('⚠ Supabase library undefined after load — CDN script did not execute.');
   }
 </script>
+
 <script>
   // ====== CONFIG ======
   const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
   const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  // Audio unlock pattern: unlock on first tap/click since browsers block autoplay
-  const sfx = {
-    reveal: new Audio('sfx/reveal.mp3'),
-    strike: new Audio('sfx/strike.mp3'),
-    win: new Audio('sfx/win.mp3')
-  };
+  // ====== WEB AUDIO SFX (no external files needed) ======
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  let actx = null;
   let audioUnlocked = false;
+
+  function getAudioContext() {
+    if (!actx) actx = new AudioCtx();
+    return actx;
+  }
+
   function unlockAudio() {
     if (audioUnlocked) return;
-    Object.values(sfx).forEach(a => { a.volume = 0; a.play().then(() => { a.pause(); a.currentTime = 0; a.volume = 1; }).catch(() => {}); });
-    audioUnlocked = true;
+    try {
+      const ctx = getAudioContext();
+      if (ctx.state === 'suspended') ctx.resume();
+      audioUnlocked = true;
+    } catch (e) {}
   }
   document.body.addEventListener('click', unlockAudio, { once: true });
   document.body.addEventListener('touchstart', unlockAudio, { once: true });
+  // Also auto-unlock on any realtime event (for TV displays with no touch)
+  function ensureAudio() {
+    if (!audioUnlocked) { unlockAudio(); }
+  }
+
+  // --- SYNTHESIZED SOUND EFFECTS ---
+
+  function sfxReveal() {
+    // Question entrance / reveal: ascending "ding-dong" sweep
+    ensureAudio();
+    try {
+      const ctx = getAudioContext();
+      const t = ctx.currentTime;
+      const freqs = [440, 550, 660, 880];
+      freqs.forEach((f, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(f, t + i * 0.09);
+        gain.gain.setValueAtTime(0, t + i * 0.09);
+        gain.gain.linearRampToValueAtTime(0.38, t + i * 0.09 + 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + i * 0.09 + 0.35);
+        osc.start(t + i * 0.09);
+        osc.stop(t + i * 0.09 + 0.4);
+      });
+    } catch (e) {}
+  }
+
+  function sfxWrong() {
+    // Wrong / strike: low buzzer
+    ensureAudio();
+    try {
+      const ctx = getAudioContext();
+      const t = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const distortion = ctx.createWaveShaper();
+
+      function makeDistortionCurve(amount) {
+        const samples = 256; const curve = new Float32Array(samples);
+        for (let i = 0; i < samples; i++) {
+          const x = (i * 2) / samples - 1;
+          curve[i] = ((Math.PI + amount) * x) / (Math.PI + amount * Math.abs(x));
+        }
+        return curve;
+      }
+      distortion.curve = makeDistortionCurve(200);
+
+      osc.connect(distortion); distortion.connect(gain); gain.connect(ctx.destination);
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(120, t);
+      osc.frequency.exponentialRampToValueAtTime(80, t + 0.5);
+      gain.gain.setValueAtTime(0.55, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.55);
+      osc.start(t);
+      osc.stop(t + 0.6);
+    } catch (e) {}
+  }
+
+  function sfxQuestionEntrance() {
+    // Question entrance: dramatic rising sweep + impact
+    ensureAudio();
+    try {
+      const ctx = getAudioContext();
+      const t = ctx.currentTime;
+
+      // Rising sweep
+      const sweep = ctx.createOscillator();
+      const sweepGain = ctx.createGain();
+      sweep.connect(sweepGain); sweepGain.connect(ctx.destination);
+      sweep.type = 'sine';
+      sweep.frequency.setValueAtTime(100, t);
+      sweep.frequency.exponentialRampToValueAtTime(800, t + 0.4);
+      sweepGain.gain.setValueAtTime(0.3, t);
+      sweepGain.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+      sweep.start(t); sweep.stop(t + 0.5);
+
+      // Impact thud
+      const thud = ctx.createOscillator();
+      const thudGain = ctx.createGain();
+      thud.connect(thudGain); thudGain.connect(ctx.destination);
+      thud.type = 'sine';
+      thud.frequency.setValueAtTime(60, t + 0.35);
+      thud.frequency.exponentialRampToValueAtTime(40, t + 0.7);
+      thudGain.gain.setValueAtTime(0.6, t + 0.35);
+      thudGain.gain.exponentialRampToValueAtTime(0.001, t + 0.75);
+      thud.start(t + 0.35); thud.stop(t + 0.8);
+
+      // High sparkle notes
+      [660, 880, 1100].forEach((f, i) => {
+        const s = ctx.createOscillator();
+        const g = ctx.createGain();
+        s.connect(g); g.connect(ctx.destination);
+        s.type = 'triangle';
+        s.frequency.value = f;
+        const st = t + 0.4 + i * 0.07;
+        g.gain.setValueAtTime(0.18, st);
+        g.gain.exponentialRampToValueAtTime(0.001, st + 0.25);
+        s.start(st); s.stop(st + 0.3);
+      });
+    } catch (e) {}
+  }
+
+  function sfxPointsAdded() {
+    // Points added to winning team: cheerful ascending arpeggio
+    ensureAudio();
+    try {
+      const ctx = getAudioContext();
+      const t = ctx.currentTime;
+      const melody = [523, 659, 784, 1047, 1319]; // C5 E5 G5 C6 E6
+      melody.forEach((f, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.type = i === melody.length - 1 ? 'sine' : 'triangle';
+        osc.frequency.value = f;
+        const st = t + i * 0.1;
+        gain.gain.setValueAtTime(0, st);
+        gain.gain.linearRampToValueAtTime(0.35, st + 0.04);
+        gain.gain.exponentialRampToValueAtTime(0.001, st + (i === melody.length - 1 ? 0.65 : 0.22));
+        osc.start(st); osc.stop(st + 0.7);
+      });
+    } catch (e) {}
+  }
+
+  function sfxWin() {
+    // Round win / full fanfare
+    ensureAudio();
+    try {
+      const ctx = getAudioContext();
+      const t = ctx.currentTime;
+
+      // Fanfare sequence
+      const fanfare = [
+        { f: 523, st: 0.0, dur: 0.15 },
+        { f: 523, st: 0.15, dur: 0.15 },
+        { f: 784, st: 0.3, dur: 0.45 },
+        { f: 659, st: 0.3, dur: 0.22 },
+        { f: 784, st: 0.52, dur: 0.22 },
+        { f: 1047, st: 0.74, dur: 0.7 },
+      ];
+      fanfare.forEach(({ f, st, dur }) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.type = 'square';
+        osc.frequency.value = f;
+        gain.gain.setValueAtTime(0, t + st);
+        gain.gain.linearRampToValueAtTime(0.22, t + st + 0.03);
+        gain.gain.setValueAtTime(0.22, t + st + dur - 0.05);
+        gain.gain.linearRampToValueAtTime(0, t + st + dur);
+        osc.start(t + st); osc.stop(t + st + dur + 0.05);
+      });
+
+      // Bass harmony
+      [130, 196, 261].forEach((f, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.value = f;
+        gain.gain.setValueAtTime(0.18, t + 0.3);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 1.5);
+        osc.start(t + 0.3); osc.stop(t + 1.6);
+      });
+    } catch (e) {}
+  }
 
   function playSfx(name) {
-    const a = sfx[name];
-    if (!a) return;
-    try { a.currentTime = 0; a.play().catch(() => {}); } catch (e) {}
+    switch (name) {
+      case 'reveal':         sfxReveal(); break;
+      case 'wrong':          sfxWrong(); break;
+      case 'questionIn':     sfxQuestionEntrance(); break;
+      case 'pointsAdded':    sfxPointsAdded(); break;
+      case 'win':            sfxWin(); break;
+    }
+  }
+
+  // ====== CONFETTI ======
+  function launchConfetti(count) {
+    const colors = ['#E8B84B', '#FFD571', '#3DDC97', '#D14545', '#fff'];
+    for (let i = 0; i < count; i++) {
+      const el = document.createElement('div');
+      el.className = 'confetti-piece';
+      el.style.cssText = `
+        left:${Math.random()*100}vw;
+        background:${colors[Math.floor(Math.random()*colors.length)]};
+        width:${6+Math.random()*8}px;
+        height:${6+Math.random()*8}px;
+        border-radius:${Math.random()>0.5?'50%':'2px'};
+        animation-duration:${1.5+Math.random()*2}s;
+        animation-delay:${Math.random()*0.6}s;
+      `;
+      document.body.appendChild(el);
+      el.addEventListener('animationend', () => el.remove());
+    }
+  }
+
+  // ====== BRANDING ======
+  let brandingConfig = {};
+
+  function applyBranding(cfg) {
+    brandingConfig = cfg || {};
+
+    // Theme
+    const themes = ['classic','blue','purple','red','teal','light','image'];
+    document.body.classList.remove(...themes.map(t => 'theme-' + t));
+    const theme = cfg.theme || 'classic';
+    document.body.classList.add('theme-' + theme);
+
+    // Custom BG image
+    if (theme === 'image' && cfg.bgImage) {
+      document.body.style.backgroundImage = `url('${cfg.bgImage}')`;
+      document.body.style.setProperty('--brand-overlay', cfg.overlayOpacity ? `rgba(0,0,0,${cfg.overlayOpacity})` : 'rgba(0,0,0,0.45)');
+    } else {
+      document.body.style.backgroundImage = '';
+    }
+
+    // Branding text
+    const eyebrow = cfg.eyebrowText || 'PlayAQuiz';
+    const title = cfg.titleText || 'Crowd Says';
+    const watermark = cfg.watermarkText || 'PlayAQuiz';
+    const headerText = cfg.headerText || null;
+
+    document.getElementById('brandEyebrow').textContent = eyebrow;
+    document.getElementById('brandTitle').textContent = title;
+    document.getElementById('brandWatermark').textContent = watermark;
+
+    if (headerText) {
+      const mark = document.getElementById('headerMark');
+      const parts = headerText.split('|');
+      mark.innerHTML = parts[0] + (parts[1] ? ` <span>${parts[1]}</span>` : '');
+    }
   }
 
   // ====== STATE ======
@@ -370,18 +708,20 @@
   const roomCode = (params.get('room') || '').toUpperCase();
   let sessionId = null;
   let channel = null;
-  let currentQuestion = null; // { id, prompt, answers: [{text, points}], revealed_answers: [] }
-  let teamNames = [];         // e.g. ["Table 1", "Table 2", ...]
+  let currentQuestion = null;
+  let teamNames = [];
   let teamScores = [];
-  let controllingTeam = null; // index into teamNames, or null
+  let controllingTeam = null;
+  let shuffleInterval = null;
 
   function teamLabel(idx) {
     return (idx !== null && idx !== undefined && teamNames[idx]) ? teamNames[idx] : '—';
   }
 
+  // ====== INIT ======
   async function init() {
     if (!roomCode) {
-      document.getElementById('idleScreen').querySelector('p').textContent = 'No room code in URL — add ?room=CODE';
+      document.getElementById('idleMessage').textContent = 'No room code in URL — add ?room=CODE';
       return;
     }
 
@@ -392,11 +732,16 @@
       .maybeSingle();
 
     if (!sessionRow) {
-      document.getElementById('idleScreen').querySelector('p').textContent = 'Room not found — ask the host to start it from crowdsays-host.html';
+      document.getElementById('idleMessage').textContent = 'Room not found — ask the host to start it';
       return;
     }
     sessionId = sessionRow.id;
     teamNames = Array.isArray(sessionRow.team_names) ? sessionRow.team_names : [];
+
+    // Load branding config if stored
+    if (sessionRow.branding) {
+      applyBranding(sessionRow.branding);
+    }
 
     await loadState();
     subscribeRealtime();
@@ -421,45 +766,31 @@
     } else {
       currentQuestion = null;
     }
-
     renderFromState(data);
   }
 
+  function startPoll() { setInterval(loadState, 8000); }
+
+  // ====== REALTIME ======
   function subscribeRealtime() {
     channel = db.channel(`room:${roomCode}`, { config: { broadcast: { self: false } } });
 
-    channel.on('broadcast', { event: 'crowdsays_question_loaded' }, (msg) => {
-      handleQuestionLoaded(msg.payload);
-    });
-    channel.on('broadcast', { event: 'crowdsays_randomize_started' }, (msg) => {
-      handleRandomizeStarted(msg.payload);
-    });
-    channel.on('broadcast', { event: 'crowdsays_answer_revealed' }, (msg) => {
-      handleAnswerRevealed(msg.payload);
-    });
-    channel.on('broadcast', { event: 'crowdsays_strike' }, (msg) => {
-      handleStrike(msg.payload);
-    });
-    channel.on('broadcast', { event: 'crowdsays_steal_started' }, (msg) => {
-      handleStealStarted(msg.payload);
-    });
-    channel.on('broadcast', { event: 'crowdsays_round_won' }, (msg) => {
-      handleRoundWon(msg.payload);
-    });
-    channel.on('broadcast', { event: 'crowdsays_board_cleared' }, () => {
-      handleBoardCleared();
-    });
+    channel.on('broadcast', { event: 'crowdsays_question_loaded' }, (msg) => handleQuestionLoaded(msg.payload));
+    channel.on('broadcast', { event: 'crowdsays_randomize_started' }, (msg) => handleRandomizeStarted(msg.payload));
+    channel.on('broadcast', { event: 'crowdsays_answer_revealed' }, (msg) => handleAnswerRevealed(msg.payload));
+    channel.on('broadcast', { event: 'crowdsays_strike' }, (msg) => handleStrike(msg.payload));
+    channel.on('broadcast', { event: 'crowdsays_steal_started' }, (msg) => handleStealStarted(msg.payload));
+    channel.on('broadcast', { event: 'crowdsays_round_won' }, (msg) => handleRoundWon(msg.payload));
+    channel.on('broadcast', { event: 'crowdsays_board_cleared' }, () => handleBoardCleared());
     channel.on('broadcast', { event: 'crowdsays_team_renamed' }, (msg) => {
       teamNames = msg.payload.team_names;
       renderTeamsBoard();
     });
+    channel.on('broadcast', { event: 'crowdsays_branding_updated' }, (msg) => {
+      applyBranding(msg.payload);
+    });
 
     channel.subscribe();
-  }
-
-  // Periodic poll as a safety net for FOH state recovery (consistent with existing reconnection patterns)
-  function startPoll() {
-    setInterval(loadState, 8000);
   }
 
   // ====== HANDLERS ======
@@ -475,12 +806,15 @@
     resetStrikes();
     setControl(null);
 
-    // build empty board
-    currentQuestion = { id: payload.question_id, prompt: payload.prompt, answers: new Array(payload.answer_count).fill({ text: '', points: 0 }), revealed_answers: [] };
+    currentQuestion = {
+      id: payload.question_id,
+      prompt: payload.prompt,
+      answers: new Array(payload.answer_count).fill({ text: '', points: 0 }),
+      revealed_answers: []
+    };
     renderBoard([]);
+    playSfx('questionIn');
   }
-
-  let shuffleInterval = null;
 
   function handleRandomizeStarted(payload) {
     teamNames = payload.team_names || teamNames;
@@ -495,6 +829,7 @@
     slotWindow.classList.remove('locked');
     roSub.classList.remove('locked');
     roSub.textContent = 'Shuffling…';
+    slotName.classList.remove('cycling');
     slotName.classList.remove('locked');
     slotName.classList.add('cycling');
 
@@ -506,7 +841,6 @@
       i++;
     }, 90);
 
-    // Shuffle for ~1.8s, then lock on the host-decided result
     setTimeout(() => {
       clearInterval(shuffleInterval);
       shuffleInterval = null;
@@ -517,13 +851,9 @@
       roSub.textContent = `${teamLabel(payload.result_index)} controls the board`;
       roSub.classList.add('locked');
       playSfx('reveal');
-
       setControl(payload.result_index);
       setStatusFlag('playing', `${teamLabel(payload.result_index)} in control`);
-
-      setTimeout(() => {
-        overlay.classList.remove('show');
-      }, 1300);
+      setTimeout(() => overlay.classList.remove('show'), 1300);
     }, 1800);
   }
 
@@ -540,7 +870,7 @@
 
   function handleStrike(payload) {
     setStrikes(payload.strikes);
-    playSfx('strike');
+    playSfx('wrong');
   }
 
   function handleStealStarted(payload) {
@@ -550,15 +880,15 @@
   function handleRoundWon(payload) {
     showWinOverlay(payload.team_index, payload.amount, payload.by_steal, payload.steal_success);
     playSfx('win');
-    setTimeout(() => {
-      document.getElementById('winOverlay').classList.remove('show');
-    }, 4200);
+    launchConfetti(60);
+    playSfx('pointsAdded');
+    setTimeout(() => document.getElementById('winOverlay').classList.remove('show'), 4200);
   }
 
   function handleBoardCleared() {
     document.getElementById('gameScreen').classList.remove('show');
     document.getElementById('idleScreen').style.display = 'flex';
-    document.getElementById('idleScreen').querySelector('p').textContent = 'Waiting for the host to load the next question…';
+    document.getElementById('idleMessage').textContent = 'Waiting for the host to load the next question…';
     currentQuestion = null;
   }
 
@@ -575,7 +905,6 @@
       document.getElementById('idleScreen').style.display = 'flex';
       return;
     }
-
     document.getElementById('idleScreen').style.display = 'none';
     document.getElementById('gameScreen').classList.add('show');
 
@@ -611,10 +940,10 @@
       return `
         <div class="tile ${isRevealed ? 'revealed' : ''} ${flipIndex === i ? 'flip-in' : ''}">
           <span class="tile-num">${i + 1}</span>
-          <span class="tile-content">
+          <div class="tile-content">
             <span class="tile-text">${isRevealed ? escapeHtml(a.text) : ''}</span>
             <span class="tile-pts">${isRevealed ? a.points : ''}</span>
-          </span>
+          </div>
         </div>`;
     }).join('');
   }

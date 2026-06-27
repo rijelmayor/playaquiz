@@ -21,15 +21,7 @@
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
-
-  body {
-    background: var(--navy-deep);
-    color: var(--text-hi);
-    font-family: var(--font-body);
-    min-height: 100vh;
-    padding: 16px;
-  }
-
+  body { background: var(--navy-deep); color: var(--text-hi); font-family: var(--font-body); min-height: 100vh; padding: 16px; }
   .wrap { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
 
   header {
@@ -45,24 +37,21 @@
   .conn-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--teal); display: inline-block; margin-right: 6px; box-shadow: 0 0 8px var(--teal); }
   .conn-dot.off { background: var(--red); box-shadow: 0 0 8px var(--red); }
 
-  .panel {
-    background: var(--navy-panel); border: 1px solid var(--navy-line);
-    border-radius: 12px; padding: 16px;
-  }
+  .panel { background: var(--navy-panel); border: 1px solid var(--navy-line); border-radius: 12px; padding: 16px; }
   .panel-label {
     font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em;
     color: var(--text-lo); text-transform: uppercase; margin-bottom: 10px;
     display: flex; justify-content: space-between; align-items: center;
   }
 
-  /* Question loader */
-  textarea, input[type="text"], input[type="number"] {
+  textarea, input[type="text"], input[type="number"], input[type="url"] {
     width: 100%; background: var(--navy-deep); border: 1px solid var(--navy-line);
     color: var(--text-hi); border-radius: 8px; padding: 10px 12px; font-family: var(--font-body);
     font-size: 14px;
   }
   textarea { resize: vertical; min-height: 60px; }
   .answer-row { display: grid; grid-template-columns: 1fr 70px; gap: 8px; margin-bottom: 8px; }
+
   .btn {
     font-family: var(--font-mono); font-size: 13px; letter-spacing: 0.05em; text-transform: uppercase;
     border: none; border-radius: 8px; padding: 11px 16px; cursor: pointer;
@@ -77,7 +66,6 @@
   .btn-block { width: 100%; }
   .btn-row { display: flex; gap: 8px; }
 
-  /* Question bank list */
   .bank-list { display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto; }
   .bank-item {
     display: flex; justify-content: space-between; align-items: center;
@@ -89,41 +77,30 @@
   .bank-item .idx { font-family: var(--font-mono); color: var(--text-lo); margin-right: 8px; }
   .bank-item .del { color: var(--red); font-family: var(--font-mono); font-size: 11px; padding: 4px 8px; }
 
-  /* Live board controls */
   .board-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
   .board-slot {
     display: grid; grid-template-columns: 24px 1fr 50px 90px; gap: 10px; align-items: center;
-    background: var(--navy-deep); border: 1px solid var(--navy-line); border-radius: 8px;
-    padding: 10px 12px;
+    background: var(--navy-deep); border: 1px solid var(--navy-line); border-radius: 8px; padding: 10px 12px;
   }
   .board-slot.revealed { border-color: var(--teal); background: rgba(61,220,151,0.06); }
   .slot-num { font-family: var(--font-mono); color: var(--text-lo); font-size: 13px; }
   .slot-text { font-size: 14px; }
   .slot-text.hidden-text { color: var(--text-lo); font-style: italic; }
   .slot-pts { font-family: var(--font-mono); color: var(--gold); font-size: 13px; text-align: right; }
-  .slot-action button {
-    width: 100%; font-family: var(--font-mono); font-size: 11px; padding: 7px 6px;
-    border-radius: 6px; border: none; cursor: pointer;
-  }
+  .slot-action button { width: 100%; font-family: var(--font-mono); font-size: 11px; padding: 7px 6px; border-radius: 6px; border: none; cursor: pointer; }
 
-  /* Team setup (first-time per room) */
   .team-count-row { display: flex; gap: 8px; align-items: center; }
   .team-count-row input[type="number"] { width: 80px; flex: none; text-align: center; font-family: var(--font-display); font-size: 18px; }
   .setup-name-list { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; max-height: 280px; overflow-y: auto; }
   .setup-name-row { display: flex; align-items: center; gap: 8px; }
   .setup-name-row .num { font-family: var(--font-mono); color: var(--text-lo); font-size: 12px; width: 24px; flex: none; text-align: right; }
 
-  /* Team / scoring grid — flexes from 2 up to 16 teams */
-  .teams-grid {
-    display: grid; gap: 8px;
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  }
+  .teams-grid { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
   .team-card {
     background: var(--navy-deep); border: 2px solid var(--navy-line); border-radius: 10px;
     padding: 10px; text-align: center; transition: border-color 0.15s;
   }
   .team-card.control { border-color: var(--gold); box-shadow: 0 0 16px rgba(232,184,75,0.25); }
-  .team-name { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em; color: var(--text-lo); text-transform: uppercase; }
   .team-name-input {
     background: transparent; border: none; outline: none; width: 100%; text-align: center;
     font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em; color: var(--text-lo);
@@ -133,11 +110,7 @@
   .team-score { font-family: var(--font-display); font-size: 26px; color: var(--text-hi); margin-top: 4px; }
   .team-card.control .team-score { color: var(--gold); }
 
-  /* Steal: open-floor team picker */
-  .steal-grid {
-    display: grid; gap: 6px; margin-top: 10px;
-    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-  }
+  .steal-grid { display: grid; gap: 6px; margin-top: 10px; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); }
   .steal-pick-btn {
     font-family: var(--font-mono); font-size: 12px; padding: 10px 8px; border-radius: 8px;
     border: 1px solid var(--red); background: rgba(209,69,69,0.1); color: var(--text-hi); cursor: pointer;
@@ -175,8 +148,58 @@
   }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
+  /* ===== BRANDING PANEL ===== */
+  .theme-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px;
+  }
+  .theme-btn {
+    border: 2px solid var(--navy-line); border-radius: 8px; padding: 10px 6px;
+    cursor: pointer; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em;
+    text-transform: uppercase; text-align: center; transition: border-color 0.15s, background 0.15s;
+    color: var(--text-hi);
+  }
+  .theme-btn:hover { border-color: var(--gold-dim); }
+  .theme-btn.active { border-color: var(--gold); background: rgba(232,184,75,0.1); color: var(--gold); }
+  .theme-swatch {
+    width: 100%; height: 28px; border-radius: 4px; margin-bottom: 5px;
+  }
+  .branding-field { margin-bottom: 10px; }
+  .branding-field label {
+    display: block; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em;
+    color: var(--text-lo); text-transform: uppercase; margin-bottom: 4px;
+  }
+  .image-preview {
+    width: 100%; height: 80px; border-radius: 6px; background: var(--navy-deep);
+    border: 1px dashed var(--navy-line); display: flex; align-items: center; justify-content: center;
+    color: var(--text-lo); font-size: 12px; margin-top: 6px; overflow: hidden; position: relative;
+  }
+  .image-preview img { width: 100%; height: 100%; object-fit: cover; }
+  .overlay-slider { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
+  .overlay-slider input[type=range] { flex: 1; }
+  .overlay-slider span { font-family: var(--font-mono); font-size: 11px; color: var(--text-lo); width: 30px; text-align: right; }
+  .image-upload-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: start; margin-top: 6px; }
+  #bgImageFileInput { display: none; }
+  .upload-trigger {
+    font-family: var(--font-mono); font-size: 11px; padding: 8px 12px;
+    border: 1px solid var(--navy-line); border-radius: 6px; cursor: pointer;
+    background: transparent; color: var(--text-lo); text-transform: uppercase; letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+  .upload-trigger:hover { border-color: var(--gold-dim); color: var(--text-hi); }
+
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-thumb { background: var(--navy-line); border-radius: 3px; }
+
+  #errorBanner {
+    display: none; position: fixed; top: 0; left: 0; right: 0;
+    background: #D14545; color: #fff; padding: 14px 16px;
+    font-family: monospace; font-size: 12px; z-index: 9999;
+    max-height: 50vh; overflow-y: auto; white-space: pre-wrap; word-break: break-word;
+  }
+  #errorBanner .err-close {
+    float: right; cursor: pointer; font-size: 16px; line-height: 1; margin-left: 12px;
+    background: rgba(255,255,255,0.2); border: none; color: #fff; border-radius: 4px; padding: 2px 8px;
+  }
 </style>
 </head>
 <body>
@@ -199,7 +222,7 @@
     </div>
   </div>
 
-  <!-- Team setup (shown once per new room, before teams exist) -->
+  <!-- Team setup (shown once per new room) -->
   <div class="panel" id="teamSetupPanel" style="display:none;">
     <div class="panel-label">How many teams / tables tonight?</div>
     <div class="team-count-row">
@@ -239,7 +262,7 @@
       <div class="points-pot" style="margin-top:10px;">Points in play<strong id="potValue">0</strong></div>
     </div>
 
-    <!-- Live board (only visible once a question is on air) -->
+    <!-- Live board -->
     <div class="panel" id="liveBoardPanel" style="display:none;">
       <div class="panel-label">
         <span>On air now</span>
@@ -247,7 +270,6 @@
       </div>
       <div style="font-size:15px; margin-bottom:12px; color:var(--text-hi);" id="liveQuestionPrompt">—</div>
       <div class="board-grid" id="liveBoardGrid"></div>
-
       <div class="btn-row" style="margin-top:14px;">
         <button class="btn btn-gold btn-block" id="markStrikeBtn">Mark strike</button>
         <button class="btn btn-red btn-block" id="startStealBtn" disabled>Open steal to the floor</button>
@@ -255,8 +277,6 @@
       <div class="btn-row" style="margin-top:8px;">
         <button class="btn btn-teal btn-block" id="awardPotBtn">Award pot to controlling team</button>
       </div>
-
-      <!-- Steal picker: host taps whichever team actually called it out -->
       <div id="stealPickerWrap" style="display:none; margin-top:12px;">
         <div class="panel-label" style="margin-bottom:6px;">Who called out the steal answer?</div>
         <div class="steal-grid" id="stealGrid"></div>
@@ -272,6 +292,92 @@
       </div>
     </div>
 
+    <!-- ===== BRANDING / FOH APPEARANCE ===== -->
+    <div class="panel">
+      <div class="panel-label">
+        <span>FOH Screen Branding</span>
+        <button class="btn btn-ghost" id="applyBrandingBtn" style="padding:4px 10px; font-size:10px;">Push to FOH</button>
+      </div>
+
+      <!-- Theme picker -->
+      <div style="font-family: var(--font-mono); font-size: 10px; color: var(--text-lo); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px;">Background Theme</div>
+      <div class="theme-grid" id="themeGrid">
+        <button class="theme-btn active" data-theme="classic">
+          <div class="theme-swatch" style="background: linear-gradient(135deg, #06080F 60%, #1a1500);"></div>
+          Classic
+        </button>
+        <button class="theme-btn" data-theme="blue">
+          <div class="theme-swatch" style="background: linear-gradient(135deg, #020815, #0a2050);"></div>
+          Deep Blue
+        </button>
+        <button class="theme-btn" data-theme="purple">
+          <div class="theme-swatch" style="background: linear-gradient(135deg, #0A0515, #2d0a60);"></div>
+          Purple
+        </button>
+        <button class="theme-btn" data-theme="red">
+          <div class="theme-swatch" style="background: linear-gradient(135deg, #0F0606, #3d1010);"></div>
+          Dark Red
+        </button>
+        <button class="theme-btn" data-theme="teal">
+          <div class="theme-swatch" style="background: linear-gradient(135deg, #030F09, #0a3020);"></div>
+          Teal
+        </button>
+        <button class="theme-btn" data-theme="light">
+          <div class="theme-swatch" style="background: linear-gradient(135deg, #F0EDE4, #D8D4CA);"></div>
+          Light
+        </button>
+        <button class="theme-btn" data-theme="image" style="grid-column: 1 / -1;">
+          <div class="theme-swatch" style="background: linear-gradient(135deg, #222 30%, #555); background-image: repeating-linear-gradient(45deg, rgba(255,255,255,0.05) 0px, rgba(255,255,255,0.05) 2px, transparent 2px, transparent 10px);"></div>
+          Custom Image (upload below)
+        </button>
+      </div>
+
+      <!-- Image upload (shown only for image theme) -->
+      <div id="imageUploadSection" style="display:none;">
+        <div class="branding-field">
+          <label>Background Image URL (or upload)</label>
+          <input type="url" id="bgImageUrl" placeholder="https://...">
+          <div class="image-upload-row">
+            <div class="image-preview" id="imagePreview">
+              <span>No image loaded</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:6px;">
+              <button class="upload-trigger" onclick="document.getElementById('bgImageFileInput').click()">Upload file</button>
+              <input type="file" id="bgImageFileInput" accept="image/*">
+              <button class="upload-trigger" id="loadImageUrlBtn">Load URL</button>
+            </div>
+          </div>
+        </div>
+        <div class="branding-field">
+          <label>Overlay Darkness (0 = none, 0.8 = very dark)</label>
+          <div class="overlay-slider">
+            <input type="range" id="overlayOpacity" min="0" max="0.9" step="0.05" value="0.45">
+            <span id="overlayVal">0.45</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Text branding -->
+      <div class="branding-field" style="margin-top:12px;">
+        <label>Idle Screen — Eyebrow text (e.g. venue name)</label>
+        <input type="text" id="brandEyebrow" placeholder="PlayAQuiz" maxlength="40">
+      </div>
+      <div class="branding-field">
+        <label>Idle Screen — Title</label>
+        <input type="text" id="brandTitle" placeholder="Crowd Says" maxlength="40">
+      </div>
+      <div class="branding-field">
+        <label>Header mark (in-game top-left — use | to split two words, e.g. CROWD|SAYS)</label>
+        <input type="text" id="brandHeader" placeholder="CROWD|SAYS" maxlength="40">
+      </div>
+      <div class="branding-field">
+        <label>Watermark (bottom-right corner)</label>
+        <input type="text" id="brandWatermark" placeholder="PlayAQuiz" maxlength="40">
+      </div>
+
+      <button class="btn btn-gold btn-block" id="applyBrandingBtn2" style="margin-top:4px;">Push branding to FOH screen</button>
+    </div>
+
     <!-- Question bank -->
     <div class="panel">
       <div class="panel-label">
@@ -283,10 +389,10 @@
       </div>
     </div>
 
-  </div>
-</div>
+  </div><!-- /mainUI -->
+</div><!-- /wrap -->
 
-<!-- New question form (modal-ish inline panel) -->
+<!-- New question form -->
 <div class="panel" id="newQuestionForm" style="display:none; max-width:720px; margin:14px auto; position: relative;">
   <div class="panel-label">New question
     <button class="btn btn-ghost" id="cancelNewQ" style="padding:4px 10px; font-size:10px;">Cancel</button>
@@ -299,57 +405,70 @@
 
 <div class="toast" id="toast"></div>
 
-<div id="errorBanner" style="display:none; position:fixed; top:0; left:0; right:0; background:#D14545; color:#fff; padding:14px 16px; font-family:monospace; font-size:12px; z-index:9999; max-height:50vh; overflow-y:auto; white-space:pre-wrap; word-break:break-word;"></div>
+<div id="errorBanner">
+  <button class="err-close" onclick="document.getElementById('errorBanner').style.display='none'">✕ dismiss</button>
+  <span id="errorBannerText"></span>
+</div>
 
 <script>
+  // ====== ERROR HANDLING ======
   function showBannerMsg(msg) {
     var banner = document.getElementById('errorBanner');
+    var text = document.getElementById('errorBannerText');
     banner.style.display = 'block';
-    banner.textContent += msg + '\n\n';
+    text.textContent += msg + '\n\n';
   }
   window.addEventListener('error', function(e) {
     if (e.target && e.target.tagName === 'SCRIPT') {
-      showBannerMsg('⚠ SCRIPT FAILED TO LOAD: ' + (e.target.src || '(inline script)') + '\nThis usually means no internet connection, a blocked CDN, or a firewall/ad-blocker issue.');
+      showBannerMsg('⚠ SCRIPT FAILED TO LOAD: ' + (e.target.src || '(inline script)'));
       return;
     }
-    var msg = e.message || e.error && e.error.message;
-    if (!msg || msg === 'Script error.') {
-      showBannerMsg('⚠ A script error occurred but the browser hid the details (often a cross-origin script issue). Try reloading, or check your connection.');
-      return;
-    }
-    showBannerMsg('⚠ ERROR: ' + msg + ' (line ' + e.lineno + ', col ' + e.colno + ')\nFile: ' + (e.filename || 'unknown'));
+    var msg = e.message || (e.error && e.error.message);
+    if (!msg || msg === 'Script error.') return;
+    showBannerMsg('⚠ ERROR: ' + msg + ' (line ' + e.lineno + ')');
   }, true);
   window.addEventListener('unhandledrejection', function(e) {
-    showBannerMsg('⚠ PROMISE REJECTION: ' + (e.reason && e.reason.message ? e.reason.message : JSON.stringify(e.reason)));
+    showBannerMsg('⚠ UNHANDLED: ' + (e.reason && e.reason.message ? e.reason.message : JSON.stringify(e.reason)));
   });
 </script>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onerror="showBannerMsg('⚠ Supabase CDN script tag failed to fire onload — likely blocked by network/firewall/ad-blocker. URL: https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2')"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
+  onerror="showBannerMsg('⚠ Supabase CDN failed to load — check internet / ad-blocker')"></script>
 <script>
   if (typeof window.supabase === 'undefined') {
-    showBannerMsg('⚠ Supabase library object is undefined after load attempt — CDN script did not execute correctly.');
-  } else {
-    showBannerMsg('✓ Supabase library loaded OK.');
+    showBannerMsg('⚠ Supabase library undefined after load.');
   }
 </script>
+
 <script>
   // ====== CONFIG ======
   const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
-  const SUPABASE_ANON_KEY = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e'; // same anon key used across PlayAQuiz files
+  const SUPABASE_ANON_KEY = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
   const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   let roomCode = null;
   let sessionId = null;
   let channel = null;
-  let questions = [];          // crowdsays_questions rows for this session
-  let teamNames = [];          // e.g. ["Table 1", "Table 2", ...]
-  let state = {                // crowdsays_state row
+  let questions = [];
+  let teamNames = [];
+  let state = {
     current_question_id: null,
-    controlling_team: null,    // 0-based index into teamNames, or null
+    controlling_team: null,
     strikes: 0,
-    team_scores: [],           // one entry per team, same order as teamNames
-    round_status: 'idle',      // idle | randomizing | playing | steal
+    team_scores: [],
+    round_status: 'idle',
     pot: 0
+  };
+
+  // Branding state
+  let brandingConfig = {
+    theme: 'classic',
+    bgImage: '',
+    overlayOpacity: 0.45,
+    eyebrowText: '',
+    titleText: '',
+    headerText: '',
+    watermarkText: ''
   };
 
   // ====== UTIL ======
@@ -359,20 +478,9 @@
     t.classList.add('show');
     setTimeout(() => t.classList.remove('show'), 2200);
   }
-
-  function setConn(ok) {
-    document.getElementById('connDot').classList.toggle('off', !ok);
-  }
-
-  function escapeHtml(s) {
-    const div = document.createElement('div');
-    div.textContent = s == null ? '' : s;
-    return div.innerHTML;
-  }
-
-  function teamLabel(idx) {
-    return (idx !== null && idx !== undefined && teamNames[idx]) ? teamNames[idx] : '—';
-  }
+  function setConn(ok) { document.getElementById('connDot').classList.toggle('off', !ok); }
+  function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; }
+  function teamLabel(idx) { return (idx !== null && idx !== undefined && teamNames[idx]) ? teamNames[idx] : '—'; }
 
   // ====== ROOM JOIN / CREATE ======
   document.getElementById('joinBtn').addEventListener('click', async () => {
@@ -381,18 +489,13 @@
       if (!code) return showToast('Type a room code first');
       await joinOrCreateRoom(code);
     } catch (err) {
-      showBannerMsg('⚠ CLICK HANDLER ERROR: ' + (err && err.message ? err.message : String(err)));
+      showBannerMsg('⚠ JOIN ERROR: ' + (err && err.message ? err.message : String(err)));
     }
   });
 
   async function joinOrCreateRoom(code) {
     roomCode = code;
 
-    function showError(label, err) {
-      showBannerMsg('⚠ ' + label + ': ' + (err && err.message ? err.message : JSON.stringify(err)));
-    }
-
-    // Crowd Says owns its own sessions — look for an existing one first.
     const { data: existing, error: lookupError } = await db
       .from('crowdsays_sessions')
       .select('*')
@@ -400,7 +503,7 @@
       .maybeSingle();
 
     if (lookupError) {
-      showError('Lookup failed', lookupError);
+      showBannerMsg('⚠ Lookup failed: ' + lookupError.message);
       showToast('Could not check room — see error above');
       return;
     }
@@ -408,15 +511,13 @@
     let sessionRow = existing;
 
     if (!sessionRow) {
-      // No collision check — first host to type this code creates the room.
       const { data: created, error } = await db
         .from('crowdsays_sessions')
-        .insert({ room_code: roomCode, team_names: [] })
+        .insert({ room_code: roomCode, team_names: [], branding: brandingConfig })
         .select()
         .single();
-
       if (error) {
-        showError('Could not create room', error);
+        showBannerMsg('⚠ Could not create room: ' + error.message);
         showToast('Could not start that room — see error above');
         return;
       }
@@ -424,6 +525,11 @@
       showToast('New room created');
     } else {
       showToast('Reconnected to existing room');
+      // Load saved branding
+      if (sessionRow.branding) {
+        brandingConfig = { ...brandingConfig, ...sessionRow.branding };
+        populateBrandingUI();
+      }
     }
 
     sessionId = sessionRow.id;
@@ -433,29 +539,25 @@
     document.getElementById('joinPanel').style.display = 'none';
 
     if (!teamNames.length) {
-      // Brand new room — ask the host how many teams/tables tonight.
       document.getElementById('teamSetupPanel').style.display = 'block';
       return;
     }
-
     await enterMainUI();
   }
 
   async function enterMainUI() {
     document.getElementById('teamSetupPanel').style.display = 'none';
     document.getElementById('mainUI').style.display = 'flex';
-
     await ensureStateRow();
     await loadQuestions();
     subscribeRealtime();
     setConn(true);
   }
 
-  // ====== TEAM SETUP (first time per room) ======
+  // ====== TEAM SETUP ======
   document.getElementById('generateTeamsBtn').addEventListener('click', () => {
     const n = Math.max(2, Math.min(16, parseInt(document.getElementById('teamCountInput').value, 10) || 2));
-    const names = Array.from({ length: n }, (_, i) => `Table ${i + 1}`);
-    renderSetupNameList(names);
+    renderSetupNameList(Array.from({ length: n }, (_, i) => `Table ${i + 1}`));
   });
 
   function renderSetupNameList(names) {
@@ -473,18 +575,13 @@
     const inputs = Array.from(document.querySelectorAll('.setup-name-input'));
     const names = inputs.map((el, i) => el.value.trim() || `Table ${i + 1}`);
     if (names.length < 2) return showToast('Need at least 2 teams');
-
     teamNames = names;
     const { error } = await db.from('crowdsays_sessions').update({ team_names: teamNames }).eq('id', sessionId);
-    if (error) {
-      showBannerMsg('⚠ Could not save teams: ' + error.message);
-      return showToast('Could not save teams — see error above');
-    }
+    if (error) { showBannerMsg('⚠ Could not save teams: ' + error.message); return; }
     showToast(`${names.length} teams set`);
     await enterMainUI();
   });
 
-  // Edit teams later (e.g. mid-event, fix a name) — re-opens setup with current names prefilled
   document.getElementById('editTeamsBtn').addEventListener('click', () => {
     document.getElementById('mainUI').style.display = 'none';
     document.getElementById('teamSetupPanel').style.display = 'block';
@@ -493,14 +590,9 @@
   });
 
   // ====== SHARE LINKS ======
-  function fohLink() {
-    const base = window.location.href.replace(/crowdsays-host\.html.*$/, 'crowdsays-foh.html');
-    return `${base}?room=${encodeURIComponent(roomCode)}`;
-  }
-  function playerLink() {
-    const base = window.location.href.replace(/crowdsays-host\.html.*$/, 'crowdsays-player.html');
-    return `${base}?room=${encodeURIComponent(roomCode)}`;
-  }
+  function fohLink() { return window.location.href.replace(/crowdsays-host\.html.*$/, 'crowdsays-foh.html') + `?room=${encodeURIComponent(roomCode)}`; }
+  function playerLink() { return window.location.href.replace(/crowdsays-host\.html.*$/, 'crowdsays-player.html') + `?room=${encodeURIComponent(roomCode)}`; }
+
   document.getElementById('copyFohLinkBtn').addEventListener('click', async () => {
     try { await navigator.clipboard.writeText(fohLink()); showToast('FOH link copied'); }
     catch (e) { showToast(fohLink()); }
@@ -512,69 +604,41 @@
 
   // ====== SUPABASE STATE ======
   async function ensureStateRow() {
-    const { data } = await db
-      .from('crowdsays_state')
-      .select('*')
-      .eq('session_id', sessionId)
-      .maybeSingle();
-
+    const { data } = await db.from('crowdsays_state').select('*').eq('session_id', sessionId).maybeSingle();
     if (data) {
       state = {
         current_question_id: data.current_question_id,
         controlling_team: data.controlling_team,
         strikes: data.strikes,
         team_scores: Array.isArray(data.team_scores) && data.team_scores.length === teamNames.length
-          ? data.team_scores
-          : teamNames.map(() => 0),
+          ? data.team_scores : teamNames.map(() => 0),
         round_status: data.round_status,
         pot: data.pot || 0
       };
-      // If team count changed since this state row was created, persist the resized scores array.
-      if (!Array.isArray(data.team_scores) || data.team_scores.length !== teamNames.length) {
-        await saveState();
-      }
+      if (!Array.isArray(data.team_scores) || data.team_scores.length !== teamNames.length) await saveState();
     } else {
-      state = {
-        current_question_id: null,
-        controlling_team: null,
-        strikes: 0,
-        team_scores: teamNames.map(() => 0),
-        round_status: 'idle',
-        pot: 0
-      };
+      state = { current_question_id: null, controlling_team: null, strikes: 0, team_scores: teamNames.map(() => 0), round_status: 'idle', pot: 0 };
       await db.from('crowdsays_state').insert({
-        session_id: sessionId,
-        current_question_id: null,
-        controlling_team: null,
-        strikes: 0,
-        team_scores: state.team_scores,
-        round_status: 'idle',
-        pot: 0
+        session_id: sessionId, current_question_id: null, controlling_team: null,
+        strikes: 0, team_scores: state.team_scores, round_status: 'idle', pot: 0
       });
     }
     renderState();
   }
 
   async function saveState() {
-    await db
-      .from('crowdsays_state')
-      .update({
-        current_question_id: state.current_question_id,
-        controlling_team: state.controlling_team,
-        strikes: state.strikes,
-        team_scores: state.team_scores,
-        round_status: state.round_status,
-        pot: state.pot
-      })
-      .eq('session_id', sessionId);
+    await db.from('crowdsays_state').update({
+      current_question_id: state.current_question_id,
+      controlling_team: state.controlling_team,
+      strikes: state.strikes,
+      team_scores: state.team_scores,
+      round_status: state.round_status,
+      pot: state.pot
+    }).eq('session_id', sessionId);
   }
 
   async function loadQuestions() {
-    const { data } = await db
-      .from('crowdsays_questions')
-      .select('*')
-      .eq('session_id', sessionId)
-      .order('order_index', { ascending: true });
+    const { data } = await db.from('crowdsays_questions').select('*').eq('session_id', sessionId).order('order_index', { ascending: true });
     questions = data || [];
     renderBank();
   }
@@ -590,6 +654,92 @@
     channel.send({ type: 'broadcast', event, payload });
   }
 
+  // ====== BRANDING PANEL ======
+  // Theme switcher
+  document.getElementById('themeGrid').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-theme]');
+    if (!btn) return;
+    document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    brandingConfig.theme = btn.dataset.theme;
+    const imageSection = document.getElementById('imageUploadSection');
+    imageSection.style.display = brandingConfig.theme === 'image' ? 'block' : 'none';
+  });
+
+  // Overlay slider
+  document.getElementById('overlayOpacity').addEventListener('input', (e) => {
+    brandingConfig.overlayOpacity = parseFloat(e.target.value);
+    document.getElementById('overlayVal').textContent = brandingConfig.overlayOpacity.toFixed(2);
+  });
+
+  // Image URL input
+  document.getElementById('loadImageUrlBtn').addEventListener('click', () => {
+    const url = document.getElementById('bgImageUrl').value.trim();
+    if (!url) return showToast('Paste a URL first');
+    brandingConfig.bgImage = url;
+    previewImage(url);
+  });
+  document.getElementById('bgImageUrl').addEventListener('blur', (e) => {
+    if (e.target.value.trim()) {
+      brandingConfig.bgImage = e.target.value.trim();
+    }
+  });
+
+  // File upload → data URL
+  document.getElementById('bgImageFileInput').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      brandingConfig.bgImage = ev.target.result;
+      document.getElementById('bgImageUrl').value = '(uploaded file)';
+      previewImage(ev.target.result);
+    };
+    reader.readAsDataURL(file);
+  });
+
+  function previewImage(src) {
+    const preview = document.getElementById('imagePreview');
+    preview.innerHTML = `<img src="${src}" onerror="this.parentNode.innerHTML='<span>Could not load image</span>'">`;
+  }
+
+  function populateBrandingUI() {
+    // Theme buttons
+    document.querySelectorAll('.theme-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.theme === brandingConfig.theme);
+    });
+    document.getElementById('imageUploadSection').style.display = brandingConfig.theme === 'image' ? 'block' : 'none';
+    document.getElementById('overlayOpacity').value = brandingConfig.overlayOpacity || 0.45;
+    document.getElementById('overlayVal').textContent = (brandingConfig.overlayOpacity || 0.45).toFixed(2);
+    if (brandingConfig.bgImage && brandingConfig.bgImage !== '(uploaded file)') {
+      document.getElementById('bgImageUrl').value = brandingConfig.bgImage;
+      previewImage(brandingConfig.bgImage);
+    }
+    document.getElementById('brandEyebrow').value = brandingConfig.eyebrowText || '';
+    document.getElementById('brandTitle').value = brandingConfig.titleText || '';
+    document.getElementById('brandHeader').value = brandingConfig.headerText || '';
+    document.getElementById('brandWatermark').value = brandingConfig.watermarkText || '';
+  }
+
+  async function pushBranding() {
+    // Read text fields
+    brandingConfig.eyebrowText = document.getElementById('brandEyebrow').value.trim();
+    brandingConfig.titleText = document.getElementById('brandTitle').value.trim();
+    brandingConfig.headerText = document.getElementById('brandHeader').value.trim();
+    brandingConfig.watermarkText = document.getElementById('brandWatermark').value.trim();
+
+    // Save to DB so FOH can reload it
+    const { error } = await db.from('crowdsays_sessions').update({ branding: brandingConfig }).eq('id', sessionId);
+    if (error) { showBannerMsg('⚠ Could not save branding: ' + error.message); return; }
+
+    // Broadcast live to FOH
+    broadcast('crowdsays_branding_updated', brandingConfig);
+    showToast('Branding pushed to FOH screen ✓');
+  }
+
+  document.getElementById('applyBrandingBtn').addEventListener('click', pushBranding);
+  document.getElementById('applyBrandingBtn2').addEventListener('click', pushBranding);
+
   // ====== RENDER ======
   function renderBank() {
     const list = document.getElementById('bankList');
@@ -600,42 +750,29 @@
     list.innerHTML = questions.map((q, i) => `
       <div class="bank-item ${state.current_question_id === q.id ? 'active' : ''}" data-id="${q.id}">
         <span><span class="idx">${String(i + 1).padStart(2, '0')}</span>${escapeHtml(q.prompt)}</span>
-        <span>
-          <button class="btn-ghost del" data-del="${q.id}" style="border:none;background:none;cursor:pointer;">DELETE</button>
-        </span>
+        <span><button class="btn-ghost del" data-del="${q.id}" style="border:none;background:none;cursor:pointer;">DELETE</button></span>
       </div>
     `).join('');
-
     list.querySelectorAll('.bank-item').forEach(el => {
-      el.addEventListener('click', (e) => {
-        if (e.target.closest('[data-del]')) return;
-        loadQuestionToBoard(el.dataset.id);
-      });
+      el.addEventListener('click', (e) => { if (e.target.closest('[data-del]')) return; loadQuestionToBoard(el.dataset.id); });
     });
     list.querySelectorAll('[data-del]').forEach(el => {
       el.addEventListener('click', async (e) => {
         e.stopPropagation();
-        const id = el.dataset.del;
-        await db.from('crowdsays_questions').delete().eq('id', id);
-        questions = questions.filter(q => q.id !== id);
+        await db.from('crowdsays_questions').delete().eq('id', el.dataset.del);
+        questions = questions.filter(q => q.id !== el.dataset.del);
         renderBank();
         showToast('Question deleted');
       });
     });
   }
 
-  function currentQuestion() {
-    return questions.find(q => q.id === state.current_question_id) || null;
-  }
+  function currentQuestion() { return questions.find(q => q.id === state.current_question_id) || null; }
 
   function renderState() {
     renderTeamsGrid();
-
     document.getElementById('potValue').textContent = state.pot;
-
-    [1, 2, 3].forEach(n => {
-      document.getElementById(`strike${n}`).classList.toggle('hit', state.strikes >= n);
-    });
+    [1, 2, 3].forEach(n => document.getElementById(`strike${n}`).classList.toggle('hit', state.strikes >= n));
 
     const banner = document.getElementById('statusBanner');
     banner.className = 'status-banner';
@@ -643,7 +780,7 @@
       idle: ['status-idle', 'No question loaded'],
       randomizing: ['status-randomizing', 'Randomizing control on the big screen…'],
       playing: ['status-playing', `${teamLabel(state.controlling_team)} in control`],
-      steal: ['status-steal', `Steal attempt — open floor`]
+      steal: ['status-steal', 'Steal attempt — open floor']
     };
     const [cls, text] = labels[state.round_status] || labels.idle;
     banner.classList.add(cls);
@@ -667,7 +804,6 @@
         <div class="team-score">${state.team_scores[i] || 0}</div>
       </div>
     `).join('');
-
     grid.querySelectorAll('.team-name-input').forEach(el => {
       el.addEventListener('click', (e) => e.stopPropagation());
       el.addEventListener('change', (e) => renameTeam(parseInt(e.target.dataset.teamIdx, 10), e.target.value.trim()));
@@ -685,7 +821,7 @@
   function renderStealGrid() {
     const grid = document.getElementById('stealGrid');
     grid.innerHTML = teamNames.map((name, i) => {
-      if (i === state.controlling_team) return ''; // controlling team isn't the one stealing
+      if (i === state.controlling_team) return '';
       return `<button class="steal-pick-btn" data-steal-idx="${i}">${escapeHtml(name)}</button>`;
     }).join('');
     grid.querySelectorAll('[data-steal-idx]').forEach(btn => {
@@ -704,24 +840,17 @@
         <span class="slot-num">${i + 1}</span>
         <span class="slot-text ${revealed.includes(i) ? '' : 'hidden-text'}">${revealed.includes(i) ? escapeHtml(a.text) : 'Hidden'}</span>
         <span class="slot-pts">${a.points}</span>
-        <span class="slot-action">
-          ${revealed.includes(i)
-            ? ''
-            : `<button data-reveal="${i}" style="background:var(--teal); color:#06241A;">Reveal</button>`}
-        </span>
+        <span class="slot-action">${revealed.includes(i) ? '' : `<button data-reveal="${i}" style="background:var(--teal); color:#06241A;">Reveal</button>`}</span>
       </div>
     `).join('');
-
     grid.querySelectorAll('[data-reveal]').forEach(btn => {
       btn.addEventListener('click', () => revealAnswer(parseInt(btn.dataset.reveal, 10)));
     });
   }
 
   // ====== ACTIONS ======
-  document.getElementById('newQuestionBtn').addEventListener('click', () => openNewQuestionForm());
-  document.getElementById('cancelNewQ').addEventListener('click', () => {
-    document.getElementById('newQuestionForm').style.display = 'none';
-  });
+  document.getElementById('newQuestionBtn').addEventListener('click', openNewQuestionForm);
+  document.getElementById('cancelNewQ').addEventListener('click', () => { document.getElementById('newQuestionForm').style.display = 'none'; });
 
   function openNewQuestionForm() {
     document.getElementById('newQuestionForm').style.display = 'block';
@@ -731,10 +860,7 @@
     for (let i = 0; i < 4; i++) {
       const row = document.createElement('div');
       row.className = 'answer-row';
-      row.innerHTML = `
-        <input type="text" class="ans-text" placeholder="Answer ${i + 1}">
-        <input type="number" class="ans-pts" placeholder="Pts" min="0">
-      `;
+      row.innerHTML = `<input type="text" class="ans-text" placeholder="Answer ${i + 1}"><input type="number" class="ans-pts" placeholder="Pts" min="0">`;
       wrap.appendChild(row);
     }
     document.getElementById('newQuestionForm').scrollIntoView({ behavior: 'smooth' });
@@ -743,29 +869,14 @@
   document.getElementById('saveQuestionBtn').addEventListener('click', async () => {
     const prompt = document.getElementById('newPrompt').value.trim();
     if (!prompt) return showToast('Add a prompt first');
-
     const texts = Array.from(document.querySelectorAll('.ans-text')).map(el => el.value.trim());
     const pts = Array.from(document.querySelectorAll('.ans-pts')).map(el => parseInt(el.value, 10) || 0);
-
     if (texts.some(t => !t)) return showToast('Fill in all 4 answers');
-
-    const answers = texts.map((text, i) => ({ text, points: pts[i] }))
-      .sort((a, b) => b.points - a.points); // highest points first, board-style
-
-    const { data, error } = await db
-      .from('crowdsays_questions')
-      .insert({
-        session_id: sessionId,
-        prompt,
-        answers,
-        order_index: questions.length,
-        revealed_answers: []
-      })
-      .select()
-      .single();
-
+    const answers = texts.map((text, i) => ({ text, points: pts[i] })).sort((a, b) => b.points - a.points);
+    const { data, error } = await db.from('crowdsays_questions').insert({
+      session_id: sessionId, prompt, answers, order_index: questions.length, revealed_answers: []
+    }).select().single();
     if (error) return showToast('Could not save — try again');
-
     questions.push(data);
     document.getElementById('newQuestionForm').style.display = 'none';
     renderBank();
@@ -775,11 +886,8 @@
   async function loadQuestionToBoard(questionId) {
     const q = questions.find(x => x.id === questionId);
     if (!q) return;
-
-    // reset revealed answers for a fresh play of this question
     await db.from('crowdsays_questions').update({ revealed_answers: [] }).eq('id', questionId);
     q.revealed_answers = [];
-
     state.current_question_id = questionId;
     state.controlling_team = null;
     state.strikes = 0;
@@ -787,12 +895,7 @@
     state.round_status = 'randomizing';
     await saveState();
     renderState();
-
-    broadcast('crowdsays_question_loaded', {
-      question_id: questionId,
-      prompt: q.prompt,
-      answer_count: q.answers.length
-    });
+    broadcast('crowdsays_question_loaded', { question_id: questionId, prompt: q.prompt, answer_count: q.answers.length });
     showToast('Question on air — tap Randomize control');
   }
 
@@ -800,24 +903,11 @@
 
   async function randomizeControl() {
     if (!teamNames.length) return showToast('No teams set up yet');
-
-    // The pick happens here, host-side, so it's authoritative. The FOH/player
-    // screens run their own local shuffle animation through the full team
-    // list, then reveal this result once their animation finishes — the
-    // suspense is purely presentational, the outcome is decided and
-    // broadcast immediately.
     const winningIndex = Math.floor(Math.random() * teamNames.length);
-
     document.getElementById('randomizeBtn').disabled = true;
-    broadcast('crowdsays_randomize_started', {
-      team_names: teamNames,
-      result_index: winningIndex
-    });
-
-    // Give the FOH shuffle animation time to play before locking in on host's own UI too
+    broadcast('crowdsays_randomize_started', { team_names: teamNames, result_index: winningIndex });
     showToast('Shuffling on the big screen…');
     await new Promise(r => setTimeout(r, 2400));
-
     state.controlling_team = winningIndex;
     state.round_status = 'playing';
     await saveState();
@@ -831,36 +921,18 @@
     if (!q) return;
     const revealed = q.revealed_answers || [];
     if (revealed.includes(index)) return;
-
     const updated = [...revealed, index];
     await db.from('crowdsays_questions').update({ revealed_answers: updated }).eq('id', q.id);
     q.revealed_answers = updated;
-
     state.pot += q.answers[index].points;
     await saveState();
-
     renderState();
-    broadcast('crowdsays_answer_revealed', {
-      question_id: q.id,
-      index,
-      text: q.answers[index].text,
-      points: q.answers[index].points,
-      pot: state.pot
-    });
-
-    // auto-win check: all answers revealed
-    if (updated.length === q.answers.length) {
-      showToast('Board cleared — award the pot');
-    }
+    broadcast('crowdsays_answer_revealed', { question_id: q.id, index, text: q.answers[index].text, points: q.answers[index].points, pot: state.pot });
+    if (updated.length === q.answers.length) showToast('Board cleared — award the pot');
   }
 
   document.getElementById('markStrikeBtn').addEventListener('click', async () => {
-    if (state.round_status === 'steal') {
-      // A strike during the open-floor steal means nobody guessed it correctly —
-      // the original controlling team keeps the pot.
-      await resolveSteal(false, null);
-      return;
-    }
+    if (state.round_status === 'steal') { await resolveSteal(false, null); return; }
     state.strikes = Math.min(3, state.strikes + 1);
     await saveState();
     renderState();
@@ -871,9 +943,7 @@
     state.round_status = 'steal';
     await saveState();
     renderState();
-    broadcast('crowdsays_steal_started', {
-      controlling_team: state.controlling_team
-    });
+    broadcast('crowdsays_steal_started', { controlling_team: state.controlling_team });
     showToast('Steal open to the floor — one guess wins it');
   });
 
@@ -886,7 +956,6 @@
     const idx = state.controlling_team;
     if (idx === null || idx === undefined) return showToast('No controlling team set');
     state.team_scores[idx] = (state.team_scores[idx] || 0) + state.pot;
-
     const wonAmount = state.pot;
     state.pot = 0;
     state.round_status = 'idle';
@@ -897,17 +966,12 @@
     showToast(`${teamLabel(idx)} banks ${wonAmount} points`);
   }
 
-  // resolveSteal(success, stealerIndex):
-  //   success=true  -> stealerIndex team guessed correctly and steals the pot
-  //   success=false -> nobody on the floor got it; controlling team keeps the pot
   async function resolveSteal(success, stealerIndex) {
     const controllingIdx = state.controlling_team;
     const winningIdx = success ? stealerIndex : controllingIdx;
-
     if (winningIdx !== null && winningIdx !== undefined) {
       state.team_scores[winningIdx] = (state.team_scores[winningIdx] || 0) + state.pot;
     }
-
     const wonAmount = state.pot;
     state.pot = 0;
     state.round_status = 'idle';
@@ -915,16 +979,8 @@
     state.controlling_team = null;
     await saveState();
     renderState();
-
-    broadcast('crowdsays_round_won', {
-      team_index: winningIdx,
-      amount: wonAmount,
-      by_steal: true,
-      steal_success: success
-    });
-    showToast(success
-      ? `${teamLabel(stealerIndex)} steals ${wonAmount} points!`
-      : `Steal failed — ${teamLabel(controllingIdx)} keeps ${wonAmount} points`);
+    broadcast('crowdsays_round_won', { team_index: winningIdx, amount: wonAmount, by_steal: true, steal_success: success });
+    showToast(success ? `${teamLabel(stealerIndex)} steals ${wonAmount} points!` : `Steal failed — ${teamLabel(controllingIdx)} keeps ${wonAmount} points`);
   }
 
   document.getElementById('endQuestionBtn').addEventListener('click', async () => {
