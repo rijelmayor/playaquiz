@@ -85,7 +85,6 @@
   .board-slot.revealed { border-color: var(--teal); background: rgba(61,220,151,0.06); }
   .slot-num { font-family: var(--font-mono); color: var(--text-lo); font-size: 13px; }
   .slot-text { font-size: 14px; }
-  .slot-text.hidden-text { color: var(--text-lo); font-style: italic; }
   .slot-pts { font-family: var(--font-mono); color: var(--gold); font-size: 13px; text-align: right; }
   .slot-action button { width: 100%; font-family: var(--font-mono); font-size: 11px; padding: 7px 6px; border-radius: 6px; border: none; cursor: pointer; }
 
@@ -148,7 +147,7 @@
   }
   .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-  /* ===== BRANDING PANEL (hidden by default) ===== */
+  /* ===== BRANDING PANEL ===== */
   #brandingPanel {
     display: none;
   }
@@ -156,65 +155,119 @@
     display: block;
   }
 
-  .theme-grid {
-    display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px;
-  }
-  .theme-btn {
-    border: 2px solid var(--navy-line); border-radius: 8px; padding: 10px 6px;
-    cursor: pointer; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.06em;
-    text-transform: uppercase; text-align: center; transition: border-color 0.15s, background 0.15s;
-    color: var(--text-hi);
-  }
-  .theme-btn:hover { border-color: var(--gold-dim); }
-  .theme-btn.active { border-color: var(--gold); background: rgba(232,184,75,0.1); color: var(--gold); }
-  .theme-swatch {
-    width: 100%; height: 28px; border-radius: 4px; margin-bottom: 5px;
-  }
   .branding-field { margin-bottom: 10px; }
   .branding-field label {
     display: block; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em;
     color: var(--text-lo); text-transform: uppercase; margin-bottom: 4px;
   }
-  .image-preview {
-    width: 100%; height: 80px; border-radius: 6px; background: var(--navy-deep);
-    border: 1px dashed var(--navy-line); display: flex; align-items: center; justify-content: center;
-    color: var(--text-lo); font-size: 12px; margin-top: 6px; overflow: hidden; position: relative;
+  
+  /* Image upload */
+  .image-upload-area {
+    border: 2px dashed var(--navy-line);
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    color: var(--text-lo);
   }
-  .image-preview img { width: 100%; height: 100%; object-fit: cover; }
+  .image-upload-area:hover {
+    border-color: var(--gold-dim);
+    background: rgba(232,184,75,0.05);
+  }
+  .image-upload-area.dragover {
+    border-color: var(--gold);
+    background: rgba(232,184,75,0.08);
+  }
+  .image-upload-area .icon { font-size: 32px; display: block; margin-bottom: 8px; }
+  .image-upload-area .hint { font-size: 12px; font-family: var(--font-mono); }
+  #bgImageFileInput { display: none; }
+  
+  .image-preview-container {
+    margin-top: 12px;
+    position: relative;
+    display: none;
+  }
+  .image-preview-container.show {
+    display: block;
+  }
+  .image-preview-container img {
+    width: 100%;
+    max-height: 200px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid var(--navy-line);
+  }
+  .image-preview-container .remove-image {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: var(--red);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+
   .overlay-slider { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
   .overlay-slider input[type=range] { flex: 1; }
   .overlay-slider span { font-family: var(--font-mono); font-size: 11px; color: var(--text-lo); width: 30px; text-align: right; }
-  .image-upload-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: start; margin-top: 6px; }
-  #bgImageFileInput { display: none; }
-  .upload-trigger {
-    font-family: var(--font-mono); font-size: 11px; padding: 8px 12px;
-    border: 1px solid var(--navy-line); border-radius: 6px; cursor: pointer;
-    background: transparent; color: var(--text-lo); text-transform: uppercase; letter-spacing: 0.05em;
-    white-space: nowrap;
-  }
-  .upload-trigger:hover { border-color: var(--gold-dim); color: var(--text-hi); }
 
-  /* ===== CSV UPLOAD ===== */
-  .csv-upload-area {
-    border: 2px dashed var(--navy-line); border-radius: 8px; padding: 20px;
-    text-align: center; color: var(--text-lo); cursor: pointer;
-    transition: border-color 0.2s, background 0.2s;
+  /* Manual team picker */
+  .manual-team-btn {
+    padding: 8px 14px;
+    font-size: 11px;
+    min-width: 60px;
+    background: var(--navy-deep);
+    border: 1px solid var(--navy-line);
+    border-radius: 6px;
+    color: var(--text-hi);
+    cursor: pointer;
+    transition: all 0.2s;
   }
-  .csv-upload-area:hover { border-color: var(--gold-dim); background: rgba(232,184,75,0.05); }
-  .csv-upload-area.dragover { border-color: var(--gold); background: rgba(232,184,75,0.08); }
-  .csv-upload-area .icon { font-size: 28px; margin-bottom: 8px; display: block; }
-  .csv-upload-area .hint { font-size: 12px; font-family: var(--font-mono); }
-  .csv-upload-area .sample-link { color: var(--gold); cursor: pointer; text-decoration: underline; }
-  #csvFileInput { display: none; }
-  .csv-preview {
-    margin-top: 12px; max-height: 200px; overflow-y: auto;
-    font-size: 12px; font-family: var(--font-mono);
+  .manual-team-btn:hover {
+    border-color: var(--gold);
+    background: rgba(232,184,75,0.08);
   }
-  .csv-preview table { width: 100%; border-collapse: collapse; }
-  .csv-preview th, .csv-preview td {
-    border: 1px solid var(--navy-line); padding: 6px 8px; text-align: left;
+  .manual-team-btn:active {
+    transform: scale(0.95);
   }
-  .csv-preview th { background: var(--navy-deep); color: var(--text-lo); font-weight: normal; }
+
+  .theme-presets {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .theme-preset-btn {
+    padding: 8px;
+    border: 2px solid var(--navy-line);
+    border-radius: 8px;
+    background: var(--navy-deep);
+    color: var(--text-lo);
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    transition: all 0.2s;
+    text-align: center;
+  }
+  .theme-preset-btn:hover {
+    border-color: var(--gold-dim);
+  }
+  .theme-preset-btn.active {
+    border-color: var(--gold);
+    color: var(--gold);
+  }
+  .theme-preset-btn .swatch {
+    width: 100%;
+    height: 30px;
+    border-radius: 4px;
+    margin-bottom: 4px;
+  }
 
   ::-webkit-scrollbar { width: 6px; }
   ::-webkit-scrollbar-thumb { background: var(--navy-line); border-radius: 3px; }
@@ -242,6 +295,28 @@
   }
   .settings-toggle:hover { border-color: var(--gold); color: var(--gold); }
   .settings-toggle.active { border-color: var(--gold); color: var(--gold); }
+
+  /* ===== CSV UPLOAD ===== */
+  .csv-upload-area {
+    border: 2px dashed var(--navy-line); border-radius: 8px; padding: 20px;
+    text-align: center; color: var(--text-lo); cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .csv-upload-area:hover { border-color: var(--gold-dim); background: rgba(232,184,75,0.05); }
+  .csv-upload-area.dragover { border-color: var(--gold); background: rgba(232,184,75,0.08); }
+  .csv-upload-area .icon { font-size: 28px; margin-bottom: 8px; display: block; }
+  .csv-upload-area .hint { font-size: 12px; font-family: var(--font-mono); }
+  .csv-upload-area .sample-link { color: var(--gold); cursor: pointer; text-decoration: underline; }
+  #csvFileInput { display: none; }
+  .csv-preview {
+    margin-top: 12px; max-height: 200px; overflow-y: auto;
+    font-size: 12px; font-family: var(--font-mono);
+  }
+  .csv-preview table { width: 100%; border-collapse: collapse; }
+  .csv-preview th, .csv-preview td {
+    border: 1px solid var(--navy-line); padding: 6px 8px; text-align: left;
+  }
+  .csv-preview th { background: var(--navy-deep); color: var(--text-lo); font-weight: normal; }
 </style>
 </head>
 <body>
@@ -290,61 +365,58 @@
         <button class="btn btn-ghost" id="applyBrandingBtn" style="padding:4px 10px; font-size:10px;">Push to FOH</button>
       </div>
 
-      <!-- Theme picker -->
-      <div style="font-family: var(--font-mono); font-size: 10px; color: var(--text-lo); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px;">Background Theme</div>
-      <div class="theme-grid" id="themeGrid">
-        <button class="theme-btn active" data-theme="classic">
-          <div class="theme-swatch" style="background: linear-gradient(135deg, #06080F 60%, #1a1500);"></div>
-          Classic
-        </button>
-        <button class="theme-btn" data-theme="blue">
-          <div class="theme-swatch" style="background: linear-gradient(135deg, #020815, #0a2050);"></div>
-          Deep Blue
-        </button>
-        <button class="theme-btn" data-theme="purple">
-          <div class="theme-swatch" style="background: linear-gradient(135deg, #0A0515, #2d0a60);"></div>
-          Purple
-        </button>
-        <button class="theme-btn" data-theme="red">
-          <div class="theme-swatch" style="background: linear-gradient(135deg, #0F0606, #3d1010);"></div>
-          Dark Red
-        </button>
-        <button class="theme-btn" data-theme="teal">
-          <div class="theme-swatch" style="background: linear-gradient(135deg, #030F09, #0a3020);"></div>
-          Teal
-        </button>
-        <button class="theme-btn" data-theme="light">
-          <div class="theme-swatch" style="background: linear-gradient(135deg, #F0EDE4, #D8D4CA);"></div>
-          Light
-        </button>
-        <button class="theme-btn" data-theme="image" style="grid-column: 1 / -1;">
-          <div class="theme-swatch" style="background: linear-gradient(135deg, #222 30%, #555); background-image: repeating-linear-gradient(45deg, rgba(255,255,255,0.05) 0px, rgba(255,255,255,0.05) 2px, transparent 2px, transparent 10px);"></div>
-          Custom Image (upload below)
-        </button>
+      <!-- Background Image Upload -->
+      <div class="branding-field">
+        <label>Background Image</label>
+        <div class="image-upload-area" id="imageDropZone">
+          <span class="icon">🖼️</span>
+          <div>Drop an image here or click to upload</div>
+          <div class="hint">PNG, JPG, GIF, SVG — recommended size: 1920x1080</div>
+        </div>
+        <input type="file" id="bgImageFileInput" accept="image/*">
+        <div class="image-preview-container" id="imagePreviewContainer">
+          <img id="imagePreview" src="" alt="Background preview">
+          <button class="remove-image" id="removeImageBtn">✕</button>
+        </div>
       </div>
 
-      <!-- Image upload (shown only for image theme) -->
-      <div id="imageUploadSection" style="display:none;">
-        <div class="branding-field">
-          <label>Background Image URL (or upload)</label>
-          <input type="url" id="bgImageUrl" placeholder="https://...">
-          <div class="image-upload-row">
-            <div class="image-preview" id="imagePreview">
-              <span>No image loaded</span>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:6px;">
-              <button class="upload-trigger" onclick="document.getElementById('bgImageFileInput').click()">Upload file</button>
-              <input type="file" id="bgImageFileInput" accept="image/*">
-              <button class="upload-trigger" id="loadImageUrlBtn">Load URL</button>
-            </div>
-          </div>
+      <!-- Overlay Darkness -->
+      <div class="branding-field">
+        <label>Overlay Darkness (0 = none, 0.8 = very dark)</label>
+        <div class="overlay-slider">
+          <input type="range" id="overlayOpacity" min="0" max="0.9" step="0.05" value="0.45">
+          <span id="overlayVal">0.45</span>
         </div>
-        <div class="branding-field">
-          <label>Overlay Darkness (0 = none, 0.8 = very dark)</label>
-          <div class="overlay-slider">
-            <input type="range" id="overlayOpacity" min="0" max="0.9" step="0.05" value="0.45">
-            <span id="overlayVal">0.45</span>
-          </div>
+      </div>
+
+      <!-- Theme Presets (optional) -->
+      <div class="branding-field">
+        <label>Quick Theme Presets</label>
+        <div class="theme-presets" id="themePresets">
+          <button class="theme-preset-btn active" data-theme="classic" data-bg="#06080F">
+            <div class="swatch" style="background:#06080F;"></div>
+            Classic
+          </button>
+          <button class="theme-preset-btn" data-theme="blue" data-bg="#020815">
+            <div class="swatch" style="background:#020815;"></div>
+            Deep Blue
+          </button>
+          <button class="theme-preset-btn" data-theme="purple" data-bg="#0A0515">
+            <div class="swatch" style="background:#0A0515;"></div>
+            Purple
+          </button>
+          <button class="theme-preset-btn" data-theme="red" data-bg="#0F0606">
+            <div class="swatch" style="background:#0F0606;"></div>
+            Dark Red
+          </button>
+          <button class="theme-preset-btn" data-theme="teal" data-bg="#030F09">
+            <div class="swatch" style="background:#030F09;"></div>
+            Teal
+          </button>
+          <button class="theme-preset-btn" data-theme="light" data-bg="#F0EDE4">
+            <div class="swatch" style="background:#F0EDE4;"></div>
+            Light
+          </button>
         </div>
       </div>
 
@@ -414,10 +486,23 @@
       </div>
     </div>
 
-    <!-- Randomize control -->
+    <!-- Randomize control with manual selection -->
     <div class="panel" id="randomizePanel">
       <div class="panel-label">Pick who controls the board</div>
-      <button class="btn btn-gold btn-block" id="randomizeBtn" style="font-size:14px; padding:16px;">🎲 Randomize control</button>
+      <button class="btn btn-gold btn-block" id="randomizeBtn" style="font-size:14px; padding:16px; margin-bottom:10px;">
+        🎲 Randomize control
+      </button>
+      
+      <!-- Manual selection -->
+      <div style="display:flex; gap:6px; flex-wrap:wrap; justify-content:center; margin-top:8px;">
+        <span style="font-family:var(--font-mono); font-size:10px; color:var(--text-lo); width:100%; text-align:center; margin-bottom:4px;">
+          — OR manually select —
+        </span>
+        <div id="manualTeamPicker" style="display:flex; gap:6px; flex-wrap:wrap; justify-content:center;">
+          <!-- Team buttons will be rendered here -->
+        </div>
+      </div>
+      
       <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-lo); margin-top: 8px; text-align:center;">
         The big screen will shuffle through every team and lock on one — no buzzers needed.
       </div>
@@ -539,6 +624,90 @@
   };
 
   let csvData = [];
+
+  // ====== AUDIO CONTEXT & SOUND EFFECTS ======
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  let audioCtx = null;
+
+  function getAudioContext() {
+    if (!audioCtx) {
+      audioCtx = new AudioCtx();
+    }
+    return audioCtx;
+  }
+
+  // Pre-warm audio context on user interaction
+  document.addEventListener('click', () => {
+    try {
+      const ctx = getAudioContext();
+      if (ctx.state === 'suspended') ctx.resume();
+    } catch (e) {}
+  }, { once: true });
+
+  function playRandomizerTick() {
+    // Quick "tick" sound during shuffling
+    try {
+      const ctx = getAudioContext();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(600 + Math.random() * 400, ctx.currentTime);
+      gain.gain.setValueAtTime(0.08, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.04);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.05);
+    } catch (e) {}
+  }
+
+  function playRandomizerSelect() {
+    // Big "WINNER" sound - ascending then a satisfying hit
+    try {
+      const ctx = getAudioContext();
+      const t = ctx.currentTime;
+      
+      // Ascending sweep
+      const sweep = ctx.createOscillator();
+      const sweepGain = ctx.createGain();
+      sweep.connect(sweepGain);
+      sweepGain.connect(ctx.destination);
+      sweep.type = 'square';
+      sweep.frequency.setValueAtTime(200, t);
+      sweep.frequency.exponentialRampToValueAtTime(800, t + 0.25);
+      sweepGain.gain.setValueAtTime(0.15, t);
+      sweepGain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+      sweep.start(t);
+      sweep.stop(t + 0.35);
+      
+      // Impact hit
+      const hit = ctx.createOscillator();
+      const hitGain = ctx.createGain();
+      hit.connect(hitGain);
+      hitGain.connect(ctx.destination);
+      hit.type = 'sine';
+      hit.frequency.setValueAtTime(880, t + 0.2);
+      hit.frequency.exponentialRampToValueAtTime(1100, t + 0.3);
+      hitGain.gain.setValueAtTime(0, t + 0.2);
+      hitGain.gain.linearRampToValueAtTime(0.35, t + 0.23);
+      hitGain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+      hit.start(t + 0.2);
+      hit.stop(t + 0.55);
+      
+      // Higher sparkle
+      const sparkle = ctx.createOscillator();
+      const sparkleGain = ctx.createGain();
+      sparkle.connect(sparkleGain);
+      sparkleGain.connect(ctx.destination);
+      sparkle.type = 'sine';
+      sparkle.frequency.setValueAtTime(1320, t + 0.3);
+      sparkleGain.gain.setValueAtTime(0, t + 0.3);
+      sparkleGain.gain.linearRampToValueAtTime(0.2, t + 0.33);
+      sparkleGain.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+      sparkle.start(t + 0.3);
+      sparkle.stop(t + 0.5);
+    } catch (e) {}
+  }
 
   // ====== UTIL ======
   function showToast(msg) {
@@ -730,60 +899,78 @@
   }
 
   // ====== BRANDING PANEL ======
-  document.getElementById('themeGrid').addEventListener('click', (e) => {
-    const btn = e.target.closest('[data-theme]');
-    if (!btn) return;
-    document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    brandingConfig.theme = btn.dataset.theme;
-    const imageSection = document.getElementById('imageUploadSection');
-    imageSection.style.display = brandingConfig.theme === 'image' ? 'block' : 'none';
+  // Image upload - click or drag
+  const imageDropZone = document.getElementById('imageDropZone');
+  const imageFileInput = document.getElementById('bgImageFileInput');
+  
+  imageDropZone.addEventListener('click', () => imageFileInput.click());
+  imageDropZone.addEventListener('dragover', (e) => { e.preventDefault(); imageDropZone.classList.add('dragover'); });
+  imageDropZone.addEventListener('dragleave', () => imageDropZone.classList.remove('dragover'));
+  imageDropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    imageDropZone.classList.remove('dragover');
+    const files = e.dataTransfer.files;
+    if (files.length > 0) handleImageFile(files[0]);
   });
 
+  imageFileInput.addEventListener('change', (e) => {
+    if (e.target.files.length > 0) handleImageFile(e.target.files[0]);
+  });
+
+  function handleImageFile(file) {
+    if (!file.type.startsWith('image/')) {
+      showToast('Please upload an image file');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      brandingConfig.bgImage = ev.target.result;
+      showImagePreview(ev.target.result);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function showImagePreview(src) {
+    const container = document.getElementById('imagePreviewContainer');
+    const img = document.getElementById('imagePreview');
+    img.src = src;
+    container.classList.add('show');
+  }
+
+  document.getElementById('removeImageBtn').addEventListener('click', () => {
+    brandingConfig.bgImage = '';
+    document.getElementById('imagePreviewContainer').classList.remove('show');
+    document.getElementById('imagePreview').src = '';
+    imageFileInput.value = '';
+  });
+
+  // Overlay slider
   document.getElementById('overlayOpacity').addEventListener('input', (e) => {
     brandingConfig.overlayOpacity = parseFloat(e.target.value);
     document.getElementById('overlayVal').textContent = brandingConfig.overlayOpacity.toFixed(2);
   });
 
-  document.getElementById('loadImageUrlBtn').addEventListener('click', () => {
-    const url = document.getElementById('bgImageUrl').value.trim();
-    if (!url) return showToast('Paste a URL first');
-    brandingConfig.bgImage = url;
-    previewImage(url);
-  });
-  document.getElementById('bgImageUrl').addEventListener('blur', (e) => {
-    if (e.target.value.trim()) {
-      brandingConfig.bgImage = e.target.value.trim();
+  // Theme presets
+  document.getElementById('themePresets').addEventListener('click', (e) => {
+    const btn = e.target.closest('.theme-preset-btn');
+    if (!btn) return;
+    document.querySelectorAll('.theme-preset-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    brandingConfig.theme = btn.dataset.theme;
+    // If we have a preset background color, use it
+    if (btn.dataset.bg) {
+      // We'll send the theme name and the FOH will handle the color
     }
   });
 
-  document.getElementById('bgImageFileInput').addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      brandingConfig.bgImage = ev.target.result;
-      document.getElementById('bgImageUrl').value = '(uploaded file)';
-      previewImage(ev.target.result);
-    };
-    reader.readAsDataURL(file);
-  });
-
-  function previewImage(src) {
-    const preview = document.getElementById('imagePreview');
-    preview.innerHTML = `<img src="${src}" onerror="this.parentNode.innerHTML='<span>Could not load image</span>'">`;
-  }
-
   function populateBrandingUI() {
-    document.querySelectorAll('.theme-btn').forEach(b => {
+    document.querySelectorAll('.theme-preset-btn').forEach(b => {
       b.classList.toggle('active', b.dataset.theme === brandingConfig.theme);
     });
-    document.getElementById('imageUploadSection').style.display = brandingConfig.theme === 'image' ? 'block' : 'none';
     document.getElementById('overlayOpacity').value = brandingConfig.overlayOpacity || 0.45;
     document.getElementById('overlayVal').textContent = (brandingConfig.overlayOpacity || 0.45).toFixed(2);
-    if (brandingConfig.bgImage && brandingConfig.bgImage !== '(uploaded file)') {
-      document.getElementById('bgImageUrl').value = brandingConfig.bgImage;
-      previewImage(brandingConfig.bgImage);
+    if (brandingConfig.bgImage) {
+      showImagePreview(brandingConfig.bgImage);
     }
     document.getElementById('brandEyebrow').value = brandingConfig.eyebrowText || '';
     document.getElementById('brandTitle').value = brandingConfig.titleText || '';
@@ -825,7 +1012,6 @@
     csvData = [];
   });
 
-  // Download sample CSV
   document.getElementById('downloadSampleCsv').addEventListener('click', () => {
     const sampleData = [
       ['Prompt', 'Answer 1', 'Points 1', 'Answer 2', 'Points 2', 'Answer 3', 'Points 3', 'Answer 4', 'Points 4'],
@@ -845,14 +1031,13 @@
     URL.revokeObjectURL(url);
   });
 
-  // Drag and drop
-  const dropZone = document.getElementById('csvDropZone');
-  dropZone.addEventListener('click', () => document.getElementById('csvFileInput').click());
-  dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
-  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-  dropZone.addEventListener('drop', (e) => {
+  const csvDropZone = document.getElementById('csvDropZone');
+  csvDropZone.addEventListener('click', () => document.getElementById('csvFileInput').click());
+  csvDropZone.addEventListener('dragover', (e) => { e.preventDefault(); csvDropZone.classList.add('dragover'); });
+  csvDropZone.addEventListener('dragleave', () => csvDropZone.classList.remove('dragover'));
+  csvDropZone.addEventListener('drop', (e) => {
     e.preventDefault();
-    dropZone.classList.remove('dragover');
+    csvDropZone.classList.remove('dragover');
     const files = e.dataTransfer.files;
     if (files.length > 0) handleCSVFile(files[0]);
   });
@@ -885,12 +1070,10 @@
     const preview = document.getElementById('csvPreview');
     let html = '<table><thead><tr>';
     
-    // Headers
     const headers = lines[0].split(',').map(h => h.trim());
     html += headers.map(h => `<th>${escapeHtml(h)}</th>`).join('');
     html += '</tr></thead><tbody>';
 
-    // Data rows
     let errorRows = [];
     for (let i = 1; i < lines.length; i++) {
       const cols = lines[i].split(',').map(c => c.trim());
@@ -960,7 +1143,7 @@
     showToast(`✅ Imported ${success} questions${failed > 0 ? `, ${failed} failed` : ''}`);
   });
 
-  // ====== RENDER ======
+  // ====== RENDER FUNCTIONS ======
   function renderBank() {
     const list = document.getElementById('bankList');
     if (!questions.length) {
@@ -991,6 +1174,7 @@
 
   function renderState() {
     renderTeamsGrid();
+    renderManualTeamPicker();
     document.getElementById('potValue').textContent = state.pot;
     [1, 2, 3].forEach(n => document.getElementById(`strike${n}`).classList.toggle('hit', state.strikes >= n));
 
@@ -1028,6 +1212,41 @@
       el.addEventListener('click', (e) => e.stopPropagation());
       el.addEventListener('change', (e) => renameTeam(parseInt(e.target.dataset.teamIdx, 10), e.target.value.trim()));
     });
+  }
+
+  function renderManualTeamPicker() {
+    const container = document.getElementById('manualTeamPicker');
+    if (!container) return;
+    
+    container.innerHTML = teamNames.map((name, i) => `
+      <button class="manual-team-btn" data-team-idx="${i}" 
+        ${state.controlling_team === i ? 'style="border-color:var(--gold);color:var(--gold);"' : ''}>
+        ${escapeHtml(name)}
+      </button>
+    `).join('');
+    
+    container.querySelectorAll('.manual-team-btn').forEach(btn => {
+      btn.addEventListener('click', () => manualSelectTeam(parseInt(btn.dataset.teamIdx, 10)));
+    });
+  }
+
+  async function manualSelectTeam(teamIndex) {
+    if (!teamNames.length) return showToast('No teams set up yet');
+    if (teamIndex < 0 || teamIndex >= teamNames.length) return;
+    if (state.controlling_team === teamIndex) {
+      showToast(`${teamLabel(teamIndex)} is already in control`);
+      return;
+    }
+    
+    // Play the selection sound
+    playRandomizerSelect();
+    
+    // Set the team as controlling
+    state.controlling_team = teamIndex;
+    state.round_status = 'playing';
+    await saveState();
+    renderState();
+    showToast(`${teamLabel(teamIndex)} manually selected as controller`);
   }
 
   async function renameTeam(idx, newName) {
@@ -1123,11 +1342,28 @@
 
   async function randomizeControl() {
     if (!teamNames.length) return showToast('No teams set up yet');
+    if (teamNames.length < 2) return showToast('Need at least 2 teams');
+    
     const winningIndex = Math.floor(Math.random() * teamNames.length);
     document.getElementById('randomizeBtn').disabled = true;
+    
     broadcast('crowdsays_randomize_started', { team_names: teamNames, result_index: winningIndex });
     showToast('Shuffling on the big screen…');
-    await new Promise(r => setTimeout(r, 2400));
+    
+    // Play tick sounds during shuffle
+    let tickInterval = setInterval(() => {
+      playRandomizerTick();
+    }, 120);
+    
+    await new Promise(r => setTimeout(r, 1800));
+    
+    // Stop ticks and play selection sound
+    clearInterval(tickInterval);
+    playRandomizerSelect();
+    
+    // Small delay before showing result
+    await new Promise(r => setTimeout(r, 300));
+    
     state.controlling_team = winningIndex;
     state.round_status = 'playing';
     await saveState();
@@ -1157,6 +1393,9 @@
     await saveState();
     renderState();
     broadcast('crowdsays_strike', { strikes: state.strikes });
+    if (state.strikes >= 3) {
+      showToast('⚠️ 3 strikes — steal opportunity available!');
+    }
   });
 
   document.getElementById('startStealBtn').addEventListener('click', async () => {
