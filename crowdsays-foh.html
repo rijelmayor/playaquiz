@@ -34,25 +34,6 @@
       var(--navy-deep);
   }
 
-  /* Event branding: background image sits behind everything, dimmed so the
-     board/text stays readable; event title shows above the Crowd Says mark. */
-  .branding-bg {
-    position: fixed; inset: 0; z-index: -1;
-    background-size: cover; background-position: center; background-repeat: no-repeat;
-    opacity: 0; transition: opacity 0.6s ease;
-  }
-  .branding-bg.show { opacity: 1; }
-  .branding-bg::after {
-    content: ''; position: absolute; inset: 0;
-    background: rgba(6,8,15,0.72);
-  }
-  .event-title-banner {
-    width: 100%; text-align: center; font-family: var(--font-mono);
-    font-size: clamp(11px, 1.1vw, 15px); letter-spacing: 0.25em; text-transform: uppercase;
-    color: var(--gold-bright); display: none;
-  }
-  .event-title-banner.show { display: block; }
-
   /* Idle / waiting state */
   .idle-screen {
     text-align: center;
@@ -281,17 +262,13 @@
 </head>
 <body>
 
-<div class="branding-bg" id="brandingBg"></div>
-
 <div class="idle-screen" id="idleScreen">
-  <div class="event-title-banner" id="idleEventTitle"></div>
   <div class="eyebrow">PlayAQuiz</div>
   <h1>Crowd Says</h1>
   <p>Waiting for the host to load a question…</p>
 </div>
 
 <div class="game-screen" id="gameScreen">
-  <div class="event-title-banner" id="activeEventTitle"></div>
   <div class="header-row">
     <div class="crowdsays-mark">CROWD <span>SAYS</span></div>
     <div class="pot-display">Pot<strong id="potValue">0</strong></div>
@@ -328,82 +305,64 @@
   <div class="win-amount" id="winAmount">+0 points</div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<div id="errorBanner" style="display:none; position:fixed; top:0; left:0; right:0; background:#D14545; color:#fff; padding:14px 16px; font-family:monospace; font-size:12px; z-index:9999; max-height:50vh; overflow-y:auto; white-space:pre-wrap; word-break:break-word;"></div>
+
+<script>
+  function showBannerMsg(msg) {
+    var banner = document.getElementById('errorBanner');
+    banner.style.display = 'block';
+    banner.textContent += msg + '\n\n';
+  }
+  window.addEventListener('error', function(e) {
+    if (e.target && e.target.tagName === 'SCRIPT') {
+      showBannerMsg('⚠ SCRIPT FAILED TO LOAD: ' + (e.target.src || '(inline script)') + '\nThis usually means no internet connection, a blocked CDN, or a firewall/ad-blocker issue.');
+      return;
+    }
+    var msg = e.message || e.error && e.error.message;
+    if (!msg || msg === 'Script error.') {
+      showBannerMsg('⚠ A script error occurred but the browser hid the details (often a cross-origin script issue). Try reloading, or check your connection.');
+      return;
+    }
+    showBannerMsg('⚠ ERROR: ' + msg + ' (line ' + e.lineno + ', col ' + e.colno + ')\nFile: ' + (e.filename || 'unknown'));
+  }, true);
+  window.addEventListener('unhandledrejection', function(e) {
+    showBannerMsg('⚠ PROMISE REJECTION: ' + (e.reason && e.reason.message ? e.reason.message : JSON.stringify(e.reason)));
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onerror="showBannerMsg('⚠ Supabase CDN script tag failed to fire onload — likely blocked by network/firewall/ad-blocker. URL: https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2')"></script>
+<script>
+  if (typeof window.supabase === 'undefined') {
+    showBannerMsg('⚠ Supabase library object is undefined after load attempt — CDN script did not execute correctly.');
+  } else {
+    showBannerMsg('✓ Supabase library loaded OK.');
+  }
+</script>
 <script>
   // ====== CONFIG ======
   const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
   const SUPABASE_ANON_KEY = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
   const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  // ====== SOUND EFFECTS (generated tones, no audio files needed) ======
-  let audioCtx = null;
-  function getAudioCtx() {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-    return audioCtx;
+  // Audio unlock pattern: unlock on first tap/click since browsers block autoplay
+  const sfx = {
+    reveal: new Audio('sfx/reveal.mp3'),
+    strike: new Audio('sfx/strike.mp3'),
+    win: new Audio('sfx/win.mp3')
+  };
+  let audioUnlocked = false;
+  function unlockAudio() {
+    if (audioUnlocked) return;
+    Object.values(sfx).forEach(a => { a.volume = 0; a.play().then(() => { a.pause(); a.currentTime = 0; a.volume = 1; }).catch(() => {}); });
+    audioUnlocked = true;
   }
-  // Unlock on first user gesture — browsers block audio until then.
-  document.body.addEventListener('click', () => getAudioCtx(), { once: true });
-  document.body.addEventListener('touchstart', () => getAudioCtx(), { once: true });
-
-  // Plays a single tone. type: oscillator waveform, freq: Hz, start/end times
-  // relative to now, peakGain: volume 0-1.
-  function tone(freq, duration, { type = 'sine', startGain = 0.001, peakGain = 0.18, delay = 0 } = {}) {
-    const ctx = getAudioCtx();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = type;
-    osc.frequency.value = freq;
-    const t0 = ctx.currentTime + delay;
-    gain.gain.setValueAtTime(startGain, t0);
-    gain.gain.exponentialRampToValueAtTime(peakGain, t0 + 0.015);
-    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.start(t0);
-    osc.stop(t0 + duration + 0.05);
-  }
+  document.body.addEventListener('click', unlockAudio, { once: true });
+  document.body.addEventListener('touchstart', unlockAudio, { once: true });
 
   function playSfx(name) {
-    try {
-      switch (name) {
-        case 'reveal':
-          // Bright upward chime — a tile flipping open
-          tone(660, 0.18, { type: 'triangle', peakGain: 0.2 });
-          tone(990, 0.22, { type: 'triangle', peakGain: 0.16, delay: 0.06 });
-          break;
-        case 'strike':
-          // Low buzzy thud — a wrong answer
-          tone(160, 0.28, { type: 'sawtooth', peakGain: 0.22 });
-          tone(110, 0.32, { type: 'sawtooth', peakGain: 0.16, delay: 0.04 });
-          break;
-        case 'award':
-          // Warm ascending triad — points banked
-          tone(440, 0.22, { type: 'triangle', peakGain: 0.18 });
-          tone(554, 0.22, { type: 'triangle', peakGain: 0.18, delay: 0.09 });
-          tone(660, 0.3, { type: 'triangle', peakGain: 0.2, delay: 0.18 });
-          break;
-        case 'steal':
-          // Sharp, urgent two-note sting
-          tone(880, 0.12, { type: 'square', peakGain: 0.15 });
-          tone(740, 0.18, { type: 'square', peakGain: 0.15, delay: 0.1 });
-          break;
-        case 'entrance':
-          // Rising sweep as a new question takes the stage
-          tone(330, 0.4, { type: 'sine', peakGain: 0.14 });
-          tone(440, 0.35, { type: 'sine', peakGain: 0.16, delay: 0.12 });
-          tone(550, 0.3, { type: 'sine', peakGain: 0.18, delay: 0.24 });
-          break;
-        case 'win':
-          // Bigger fanfare for round resolution — kept distinct from 'award'
-          tone(523, 0.2, { type: 'triangle', peakGain: 0.2 });
-          tone(659, 0.2, { type: 'triangle', peakGain: 0.2, delay: 0.1 });
-          tone(784, 0.35, { type: 'triangle', peakGain: 0.22, delay: 0.2 });
-          break;
-      }
-    } catch (e) {
-      console.error('SFX playback failed:', e);
-    }
+    const a = sfx[name];
+    if (!a) return;
+    try { a.currentTime = 0; a.play().catch(() => {}); } catch (e) {}
   }
 
   // ====== STATE ======
@@ -418,36 +377,6 @@
 
   function teamLabel(idx) {
     return (idx !== null && idx !== undefined && teamNames[idx]) ? teamNames[idx] : '—';
-  }
-
-  // ====== EVENT BRANDING ======
-  // bgImage: a data URL to set it, null to explicitly clear it, or undefined
-  // to leave whatever's currently showing untouched (used when only the
-  // title changed and the image wasn't re-sent to avoid a huge payload).
-  let currentBgImage = null;
-  function applyBranding(title, bgImage) {
-    const bg = document.getElementById('brandingBg');
-
-    if (bgImage !== undefined) {
-      currentBgImage = bgImage;
-      if (bgImage) {
-        bg.style.backgroundImage = `url(${bgImage})`;
-        bg.classList.add('show');
-      } else {
-        bg.classList.remove('show');
-        bg.style.backgroundImage = '';
-      }
-    }
-
-    [document.getElementById('idleEventTitle'), document.getElementById('activeEventTitle')].forEach(el => {
-      if (title) {
-        el.textContent = title;
-        el.classList.add('show');
-      } else {
-        el.textContent = '';
-        el.classList.remove('show');
-      }
-    });
   }
 
   async function init() {
@@ -468,7 +397,6 @@
     }
     sessionId = sessionRow.id;
     teamNames = Array.isArray(sessionRow.team_names) ? sessionRow.team_names : [];
-    applyBranding(sessionRow.event_title, sessionRow.event_bg_image);
 
     await loadState();
     subscribeRealtime();
@@ -525,9 +453,6 @@
       teamNames = msg.payload.team_names;
       renderTeamsBoard();
     });
-    channel.on('broadcast', { event: 'crowdsays_branding_updated' }, (msg) => {
-      applyBranding(msg.payload.event_title, msg.payload.event_bg_image);
-    });
 
     channel.subscribe();
   }
@@ -549,7 +474,6 @@
     setStatusFlag('randomizing', 'Waiting for host to randomize control');
     resetStrikes();
     setControl(null);
-    playSfx('entrance');
 
     // build empty board
     currentQuestion = { id: payload.question_id, prompt: payload.prompt, answers: new Array(payload.answer_count).fill({ text: '', points: 0 }), revealed_answers: [] };
@@ -621,16 +545,11 @@
 
   function handleStealStarted(payload) {
     setStatusFlag('steal', 'Steal — open floor, one guess wins it');
-    playSfx('steal');
   }
 
   function handleRoundWon(payload) {
     showWinOverlay(payload.team_index, payload.amount, payload.by_steal, payload.steal_success);
-    if (payload.by_steal) {
-      playSfx(payload.steal_success ? 'win' : 'strike');
-    } else {
-      playSfx('award');
-    }
+    playSfx('win');
     setTimeout(() => {
       document.getElementById('winOverlay').classList.remove('show');
     }, 4200);
@@ -734,7 +653,7 @@
   }
 
   init().catch(function(err) {
-    console.error('FOH init failed:', err);
+    showBannerMsg('⚠ INIT ERROR: ' + (err && err.message ? err.message : String(err)));
   });
 </script>
 </body>

@@ -224,23 +224,6 @@
       </div>
     </div>
 
-    <!-- Event branding for the FOH big screen -->
-    <div class="panel">
-      <div class="panel-label">
-        <span>Event branding (big screen)</span>
-        <button class="btn btn-ghost" id="clearBrandingBtn" style="padding:4px 10px; font-size:10px;">Clear</button>
-      </div>
-      <input type="text" id="eventTitleInput" placeholder="Event title shown on the big screen (optional)">
-      <div class="btn-row" style="margin-top:8px;">
-        <button class="btn btn-ghost btn-block" id="uploadBgBtn">Upload background image</button>
-      </div>
-      <input type="file" id="bgFileInput" accept="image/*" style="display:none;">
-      <div id="bgPreviewWrap" style="display:none; margin-top:10px;">
-        <img id="bgPreviewImg" style="width:100%; max-height:120px; object-fit:cover; border-radius:8px; border:1px solid var(--navy-line);">
-      </div>
-      <button class="btn btn-teal btn-block" id="saveBrandingBtn" style="margin-top:10px;">Save &amp; send to big screen</button>
-    </div>
-
     <!-- Teams -->
     <div class="panel">
       <div class="panel-label">
@@ -293,14 +276,7 @@
     <div class="panel">
       <div class="panel-label">
         <span>Question bank</span>
-        <span class="btn-row" style="gap:6px;">
-          <button class="btn btn-ghost" id="uploadCsvBtn" style="padding:4px 10px; font-size:10px;">Upload CSV</button>
-          <button class="btn btn-ghost" id="newQuestionBtn" style="padding:4px 10px; font-size:10px;">+ New</button>
-        </span>
-      </div>
-      <input type="file" id="csvFileInput" accept=".csv" style="display:none;">
-      <div style="font-family: var(--font-mono); font-size: 10px; color: var(--text-lo); margin-bottom: 8px;">
-        CSV columns: prompt, answer1, points1, answer2, points2, answer3, points3, answer4, points4
+        <button class="btn btn-ghost" id="newQuestionBtn" style="padding:4px 10px; font-size:10px;">+ New</button>
       </div>
       <div class="bank-list" id="bankList">
         <div style="color: var(--text-lo); font-size: 13px; padding: 10px;">No questions yet. Tap "+ New" to add one.</div>
@@ -323,7 +299,39 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<div id="errorBanner" style="display:none; position:fixed; top:0; left:0; right:0; background:#D14545; color:#fff; padding:14px 16px; font-family:monospace; font-size:12px; z-index:9999; max-height:50vh; overflow-y:auto; white-space:pre-wrap; word-break:break-word;"></div>
+
+<script>
+  function showBannerMsg(msg) {
+    var banner = document.getElementById('errorBanner');
+    banner.style.display = 'block';
+    banner.textContent += msg + '\n\n';
+  }
+  window.addEventListener('error', function(e) {
+    if (e.target && e.target.tagName === 'SCRIPT') {
+      showBannerMsg('⚠ SCRIPT FAILED TO LOAD: ' + (e.target.src || '(inline script)') + '\nThis usually means no internet connection, a blocked CDN, or a firewall/ad-blocker issue.');
+      return;
+    }
+    var msg = e.message || e.error && e.error.message;
+    if (!msg || msg === 'Script error.') {
+      showBannerMsg('⚠ A script error occurred but the browser hid the details (often a cross-origin script issue). Try reloading, or check your connection.');
+      return;
+    }
+    showBannerMsg('⚠ ERROR: ' + msg + ' (line ' + e.lineno + ', col ' + e.colno + ')\nFile: ' + (e.filename || 'unknown'));
+  }, true);
+  window.addEventListener('unhandledrejection', function(e) {
+    showBannerMsg('⚠ PROMISE REJECTION: ' + (e.reason && e.reason.message ? e.reason.message : JSON.stringify(e.reason)));
+  });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onerror="showBannerMsg('⚠ Supabase CDN script tag failed to fire onload — likely blocked by network/firewall/ad-blocker. URL: https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2')"></script>
+<script>
+  if (typeof window.supabase === 'undefined') {
+    showBannerMsg('⚠ Supabase library object is undefined after load attempt — CDN script did not execute correctly.');
+  } else {
+    showBannerMsg('✓ Supabase library loaded OK.');
+  }
+</script>
 <script>
   // ====== CONFIG ======
   const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
@@ -373,8 +381,7 @@
       if (!code) return showToast('Type a room code first');
       await joinOrCreateRoom(code);
     } catch (err) {
-      console.error('Join room failed:', err);
-      showToast('Something went wrong — try again');
+      showBannerMsg('⚠ CLICK HANDLER ERROR: ' + (err && err.message ? err.message : String(err)));
     }
   });
 
@@ -382,7 +389,7 @@
     roomCode = code;
 
     function showError(label, err) {
-      console.error(label, err);
+      showBannerMsg('⚠ ' + label + ': ' + (err && err.message ? err.message : JSON.stringify(err)));
     }
 
     // Crowd Says owns its own sessions — look for an existing one first.
@@ -421,7 +428,6 @@
 
     sessionId = sessionRow.id;
     teamNames = Array.isArray(sessionRow.team_names) ? sessionRow.team_names : [];
-    loadBrandingIntoForm(sessionRow);
 
     document.getElementById('roomLabel').textContent = roomCode;
     document.getElementById('joinPanel').style.display = 'none';
@@ -471,8 +477,8 @@
     teamNames = names;
     const { error } = await db.from('crowdsays_sessions').update({ team_names: teamNames }).eq('id', sessionId);
     if (error) {
-      console.error('Could not save teams:', error);
-      return showToast('Could not save teams — try again');
+      showBannerMsg('⚠ Could not save teams: ' + error.message);
+      return showToast('Could not save teams — see error above');
     }
     showToast(`${names.length} teams set`);
     await enterMainUI();
@@ -503,97 +509,6 @@
     try { await navigator.clipboard.writeText(playerLink()); showToast('Player link copied'); }
     catch (e) { showToast(playerLink()); }
   });
-
-  // ====== EVENT BRANDING ======
-  let pendingBgDataUrl = null; // newly chosen image, not yet saved
-
-  document.getElementById('uploadBgBtn').addEventListener('click', () => {
-    document.getElementById('bgFileInput').click();
-  });
-
-  document.getElementById('bgFileInput').addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    resizeImageToDataUrl(file, 1600, 0.82).then(dataUrl => {
-      pendingBgDataUrl = dataUrl;
-      document.getElementById('bgPreviewImg').src = dataUrl;
-      document.getElementById('bgPreviewWrap').style.display = 'block';
-    }).catch(err => {
-      console.error('Image resize failed:', err);
-      showToast('Could not read that image — try a different file');
-    });
-  });
-
-  // Resize/compress client-side before storing as base64, so a phone photo
-  // doesn't bloat the database row — long edge capped at maxDim, re-encoded
-  // as JPEG at the given quality.
-  function resizeImageToDataUrl(file, maxDim, quality) {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      const reader = new FileReader();
-      reader.onload = () => {
-        img.onload = () => {
-          let { width, height } = img;
-          if (width > maxDim || height > maxDim) {
-            if (width > height) { height = Math.round(height * (maxDim / width)); width = maxDim; }
-            else { width = Math.round(width * (maxDim / height)); height = maxDim; }
-          }
-          const canvas = document.createElement('canvas');
-          canvas.width = width;
-          canvas.height = height;
-          canvas.getContext('2d').drawImage(img, 0, 0, width, height);
-          resolve(canvas.toDataURL('image/jpeg', quality));
-        };
-        img.onerror = reject;
-        img.src = reader.result;
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  }
-
-  document.getElementById('saveBrandingBtn').addEventListener('click', async () => {
-    const title = document.getElementById('eventTitleInput').value.trim();
-    const updates = { event_title: title || null };
-    if (pendingBgDataUrl) updates.event_bg_image = pendingBgDataUrl;
-
-    const { error } = await db.from('crowdsays_sessions').update(updates).eq('id', sessionId);
-    if (error) {
-      console.error('Could not save branding:', error);
-      return showToast('Could not save branding — try again');
-    }
-
-    broadcast('crowdsays_branding_updated', {
-      event_title: updates.event_title,
-      event_bg_image: pendingBgDataUrl || undefined // only send image if it actually changed (avoid huge no-op payloads)
-    });
-    pendingBgDataUrl = null;
-    showToast('Branding sent to the big screen');
-  });
-
-  document.getElementById('clearBrandingBtn').addEventListener('click', async () => {
-    document.getElementById('eventTitleInput').value = '';
-    document.getElementById('bgPreviewWrap').style.display = 'none';
-    pendingBgDataUrl = null;
-
-    const { error } = await db.from('crowdsays_sessions').update({ event_title: null, event_bg_image: null }).eq('id', sessionId);
-    if (error) {
-      console.error('Could not clear branding:', error);
-      return showToast('Could not clear branding — try again');
-    }
-    broadcast('crowdsays_branding_updated', { event_title: null, event_bg_image: null, clear_image: true });
-    showToast('Branding cleared');
-  });
-
-  function loadBrandingIntoForm(sessionRow) {
-    document.getElementById('eventTitleInput').value = sessionRow.event_title || '';
-    if (sessionRow.event_bg_image) {
-      document.getElementById('bgPreviewImg').src = sessionRow.event_bg_image;
-      document.getElementById('bgPreviewWrap').style.display = 'block';
-    } else {
-      document.getElementById('bgPreviewWrap').style.display = 'none';
-    }
-  }
 
   // ====== SUPABASE STATE ======
   async function ensureStateRow() {
@@ -762,10 +677,7 @@
   async function renameTeam(idx, newName) {
     teamNames[idx] = newName || `Table ${idx + 1}`;
     const { error } = await db.from('crowdsays_sessions').update({ team_names: teamNames }).eq('id', sessionId);
-    if (error) {
-      console.error('Could not rename team:', error);
-      return showToast('Could not rename team — try again');
-    }
+    if (error) return showBannerMsg('⚠ Could not rename team: ' + error.message);
     renderState();
     broadcast('crowdsays_team_renamed', { team_names: teamNames });
   }
@@ -859,113 +771,6 @@
     renderBank();
     showToast('Question added to bank');
   });
-
-  // ====== BATCH CSV UPLOAD ======
-  // Expected columns (header row optional, auto-detected):
-  // prompt, answer1, points1, answer2, points2, answer3, points3, answer4, points4
-  document.getElementById('uploadCsvBtn').addEventListener('click', () => {
-    document.getElementById('csvFileInput').click();
-  });
-
-  document.getElementById('csvFileInput').addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    try {
-      const text = await file.text();
-      const rows = parseCsv(text);
-      await importQuestionRows(rows);
-    } catch (err) {
-      console.error('CSV import failed:', err);
-      showToast('Could not read that CSV — check the format');
-    }
-    e.target.value = ''; // allow re-selecting the same file later
-  });
-
-  // Minimal CSV parser: handles quoted fields and commas inside quotes.
-  function parseCsv(text) {
-    const rows = [];
-    let row = [];
-    let field = '';
-    let inQuotes = false;
-
-    for (let i = 0; i < text.length; i++) {
-      const c = text[i];
-      if (inQuotes) {
-        if (c === '"' && text[i + 1] === '"') { field += '"'; i++; }
-        else if (c === '"') { inQuotes = false; }
-        else { field += c; }
-      } else {
-        if (c === '"') { inQuotes = true; }
-        else if (c === ',') { row.push(field); field = ''; }
-        else if (c === '\n' || c === '\r') {
-          if (c === '\r' && text[i + 1] === '\n') i++;
-          row.push(field); field = '';
-          if (row.some(f => f.trim() !== '')) rows.push(row);
-          row = [];
-        } else {
-          field += c;
-        }
-      }
-    }
-    if (field !== '' || row.length) {
-      row.push(field);
-      if (row.some(f => f.trim() !== '')) rows.push(row);
-    }
-    return rows;
-  }
-
-  async function importQuestionRows(rows) {
-    if (!rows.length) return showToast('CSV looks empty');
-
-    // Skip a header row if the first cell isn't usable as a real prompt
-    // (e.g. literally says "prompt") — otherwise treat every row as data.
-    let dataRows = rows;
-    const firstCell = (rows[0][0] || '').trim().toLowerCase();
-    if (firstCell === 'prompt' || firstCell === 'question') {
-      dataRows = rows.slice(1);
-    }
-
-    const toInsert = [];
-    let skipped = 0;
-
-    dataRows.forEach((cols, i) => {
-      // prompt, a1, p1, a2, p2, a3, p3, a4, p4 = 9 columns
-      if (cols.length < 9) { skipped++; return; }
-      const prompt = (cols[0] || '').trim();
-      const answers = [];
-      for (let a = 0; a < 4; a++) {
-        const text = (cols[1 + a * 2] || '').trim();
-        const points = parseInt(cols[2 + a * 2], 10) || 0;
-        if (!text) { skipped++; return; }
-        answers.push({ text, points });
-      }
-      if (!prompt || answers.length !== 4) { skipped++; return; }
-      answers.sort((a, b) => b.points - a.points);
-      toInsert.push({
-        session_id: sessionId,
-        prompt,
-        answers,
-        order_index: questions.length + toInsert.length,
-        revealed_answers: []
-      });
-    });
-
-    if (!toInsert.length) return showToast('No valid rows found in that CSV');
-
-    const { data, error } = await db
-      .from('crowdsays_questions')
-      .insert(toInsert)
-      .select();
-
-    if (error) {
-      console.error('Batch import failed:', error);
-      return showToast('Could not import — try again');
-    }
-
-    questions.push(...data);
-    renderBank();
-    showToast(`Imported ${data.length} question${data.length === 1 ? '' : 's'}${skipped ? ` (${skipped} skipped)` : ''}`);
-  }
 
   async function loadQuestionToBoard(questionId) {
     const q = questions.find(x => x.id === questionId);
