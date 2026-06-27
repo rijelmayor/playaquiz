@@ -1,558 +1,1006 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
-  <title>PLAYAQUIZ · control nexus</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&family=Bebas+Neue&display=swap" rel="stylesheet">
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes" />
+    <title>PLAYAQUIZ · Control Nexus</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
+    </script>
+    <style>
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-    :root {
-      --bg: #020308;
-      --solar-amber: #ff9f1c;
-      --nova-gold: #ffd166;
-      --nebula-deep: #0f142c;
-      --glass-bg: rgba(10, 15, 35, 0.6);
-      --glass-border: rgba(255, 255, 255, 0.05);
-      --text: #f1f5f9;
-      --text-muted: #94a3b8;
-      --accent-blue: #3b82f6;
-    }
+        :root {
+            --bg: #020308;
+            --solar-amber: #ff9f1c;
+            --nova-gold: #ffd166;
+            --nebula-deep: #0f142c;
+            --glass-bg: rgba(10, 15, 35, 0.6);
+            --glass-border: rgba(255, 255, 255, 0.05);
+            --text: #f1f5f9;
+            --text-muted: #94a3b8;
+            --accent-blue: #3b82f6;
+        }
 
-    body {
-      background-color: var(--bg);
-      font-family: 'Space Grotesk', sans-serif;
-      color: var(--text);
-      min-height: 100vh;
-      overflow-x: hidden;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 1.5rem;
-    }
+        body {
+            background-color: var(--bg);
+            font-family: 'Space Grotesk', sans-serif;
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            position: relative;
+        }
 
-    /* cosmic canvas */
-    .universe-bg {
-      position: fixed;
-      inset: 0;
-      z-index: -3;
-      background: radial-gradient(circle at 50% 50%, var(--nebula-deep) 0%, #020308 100%);
-    }
-    .star-layer-1 {
-      position: fixed;
-      inset: 0;
-      z-index: -2;
-      background-image: radial-gradient(white, rgba(255,255,255,.1) 1px, transparent 20px);
-      background-size: 300px 300px;
-      opacity: 0.3;
-      animation: drift 140s linear infinite;
-    }
-    .star-layer-2 {
-      position: fixed;
-      inset: 0;
-      z-index: -2;
-      background-image: radial-gradient(rgba(255, 209, 102, 0.8), transparent 2px);
-      background-size: 400px 400px;
-      opacity: 0.2;
-      animation: drift 90s linear infinite reverse;
-    }
-    @keyframes drift {
-      from { transform: translateY(0px) rotate(0deg); }
-      to { transform: translateY(-400px) rotate(360deg); }
-    }
+        /* cosmic canvas + grid lines */
+        .universe-bg {
+            position: fixed;
+            inset: 0;
+            z-index: -3;
+            background: radial-gradient(circle at 50% 50%, var(--nebula-deep) 0%, #020308 100%);
+        }
+        .star-layer-1 {
+            position: fixed;
+            inset: 0;
+            z-index: -2;
+            background-image: radial-gradient(white, rgba(255, 255, 255, .1) 1px, transparent 20px);
+            background-size: 300px 300px;
+            opacity: 0.3;
+            animation: drift 140s linear infinite;
+        }
+        .star-layer-2 {
+            position: fixed;
+            inset: 0;
+            z-index: -2;
+            background-image: radial-gradient(rgba(255, 209, 102, 0.8), transparent 2px);
+            background-size: 400px 400px;
+            opacity: 0.2;
+            animation: drift 90s linear infinite reverse;
+        }
+        @keyframes drift {
+            from {
+                transform: translateY(0px) rotate(0deg);
+            }
+            to {
+                transform: translateY(-400px) rotate(360deg);
+            }
+        }
 
-    /* solar flare mouse tracker */
-    .solar-luminary {
-      position: fixed;
-      width: 600px;
-      height: 600px;
-      background: radial-gradient(circle, rgba(255, 159, 28, 0.12) 0%, rgba(255, 209, 102, 0.03) 45%, transparent 70%);
-      border-radius: 50%;
-      pointer-events: none;
-      z-index: -1;
-      transform: translate(-50%, -50%);
-      transition: width 0.2s, height 0.2s;
-      mix-blend-mode: screen;
-    }
+        /* grid overlay lines — like the image */
+        .grid-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: -1;
+            pointer-events: none;
+            background-image:
+                linear-gradient(rgba(255, 159, 28, 0.04) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 159, 28, 0.04) 1px, transparent 1px);
+            background-size: 60px 60px;
+            animation: gridPulse 8s ease-in-out infinite alternate;
+        }
+        @keyframes gridPulse {
+            0% {
+                opacity: 0.3;
+            }
+            100% {
+                opacity: 0.7;
+            }
+        }
 
-    /* main glass hub */
-    .nexus-hub {
-      background: var(--glass-bg);
-      backdrop-filter: blur(28px) saturate(180%);
-      -webkit-backdrop-filter: blur(28px) saturate(180%);
-      border: 1px solid var(--glass-border);
-      border-radius: 42px;
-      box-shadow: 0 40px 90px rgba(0, 0, 0, 0.7), inset 0 1px 1px rgba(255,255,255,0.06);
-      padding: 2.5rem 2.2rem;
-      max-width: 1400px;
-      width: 100%;
-      transition: border-color 0.6s, box-shadow 0.6s;
-      animation: floatIn 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    }
-    .nexus-hub:hover {
-      border-color: rgba(255, 159, 28, 0.25);
-      box-shadow: 0 50px 110px rgba(0, 0, 0, 0.8), 0 0 60px rgba(255, 159, 28, 0.08);
-    }
+        /* solar flare mouse tracker */
+        .solar-luminary {
+            position: fixed;
+            width: 700px;
+            height: 700px;
+            background: radial-gradient(circle, rgba(255, 159, 28, 0.10) 0%, rgba(255, 209, 102, 0.02) 45%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: -1;
+            transform: translate(-50%, -50%);
+            transition: width 0.2s, height 0.2s;
+            mix-blend-mode: screen;
+        }
 
-    @keyframes floatIn {
-      0% { opacity: 0; transform: scale(0.96) translateY(30px); filter: blur(6px); }
-      100% { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
-    }
+        /* main glass hub */
+        .nexus-hub {
+            background: var(--glass-bg);
+            backdrop-filter: blur(28px) saturate(180%);
+            -webkit-backdrop-filter: blur(28px) saturate(180%);
+            border: 1px solid var(--glass-border);
+            border-radius: 42px;
+            box-shadow: 0 40px 90px rgba(0, 0, 0, 0.7), inset 0 1px 1px rgba(255, 255, 255, 0.06);
+            padding: 2.5rem 2.2rem;
+            max-width: 1400px;
+            width: 100%;
+            transition: border-color 0.6s, box-shadow 0.6s;
+            animation: floatIn 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            position: relative;
+        }
+        .nexus-hub:hover {
+            border-color: rgba(255, 159, 28, 0.25);
+            box-shadow: 0 50px 110px rgba(0, 0, 0, 0.8), 0 0 60px rgba(255, 159, 28, 0.08);
+        }
 
-    /* header */
-    .dash-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 1rem 1.5rem;
-      border-bottom: 1px solid var(--glass-border);
-      padding-bottom: 1.8rem;
-      margin-bottom: 2.8rem;
-    }
-    .brand-wrap {
-      display: flex;
-      align-items: baseline;
-      gap: 0.3rem 1.2rem;
-      flex-wrap: wrap;
-    }
-    .logo-big {
-      font-family: 'Bebas Neue', sans-serif;
-      font-size: 3.2rem;
-      letter-spacing: 4px;
-      background: linear-gradient(135deg, #fff 30%, var(--solar-amber) 70%, var(--nova-gold) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      line-height: 1;
-      filter: drop-shadow(0 0 6px rgba(255,159,28,0.15));
-      animation: solarPulse 5s ease-in-out infinite alternate;
-    }
-    @keyframes solarPulse {
-      from { filter: drop-shadow(0 0 2px rgba(255,159,28,0)); }
-      to { filter: drop-shadow(0 0 18px rgba(255,159,28,0.3)); }
-    }
-    .badge-tag {
-      font-size: 0.7rem;
-      font-weight: 700;
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      color: var(--nova-gold);
-      background: rgba(255, 209, 102, 0.08);
-      border: 1px solid rgba(255, 209, 102, 0.15);
-      padding: 0.25rem 1rem;
-      border-radius: 30px;
-      backdrop-filter: blur(4px);
-    }
-    .user-pill {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      background: rgba(255, 159, 28, 0.06);
-      border: 1px solid rgba(255, 159, 28, 0.15);
-      padding: 0.4rem 1.2rem;
-      border-radius: 40px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: var(--nova-gold);
-      backdrop-filter: blur(4px);
-    }
+        @keyframes floatIn {
+            0% {
+                opacity: 0;
+                transform: scale(0.96) translateY(30px);
+                filter: blur(6px);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+                filter: blur(0);
+            }
+        }
 
-    /* game cards grid */
-    .game-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
-      gap: 2rem 1.8rem;
-    }
+        /* AUTH GATEWAY */
+        .gateway-container {
+            display: none;
+            width: min(440px, 92vw);
+            padding: 50px 40px;
+            text-align: center;
+            background: var(--glass-bg);
+            backdrop-filter: blur(28px) saturate(180%);
+            -webkit-backdrop-filter: blur(28px) saturate(180%);
+            border: 1px solid var(--glass-border);
+            border-radius: 42px;
+            box-shadow: 0 40px 90px rgba(0, 0, 0, 0.7);
+            animation: floatIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .gateway-container.active {
+            display: block;
+        }
+        .logo-big {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 4.2rem;
+            letter-spacing: 4px;
+            background: linear-gradient(135deg, #fff 30%, var(--solar-amber) 70%, var(--nova-gold) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            line-height: 1;
+            filter: drop-shadow(0 0 6px rgba(255, 159, 28, 0.15));
+            animation: solarPulse 5s ease-in-out infinite alternate;
+        }
+        @keyframes solarPulse {
+            from {
+                filter: drop-shadow(0 0 2px rgba(255, 159, 28, 0));
+            }
+            to {
+                filter: drop-shadow(0 0 18px rgba(255, 159, 28, 0.3));
+            }
+        }
+        .tagline {
+            font-size: 0.75rem;
+            color: var(--solar-amber);
+            margin-top: -4px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+        .input-group {
+            margin-bottom: 22px;
+            text-align: left;
+        }
+        .input-group label {
+            display: block;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-muted);
+            margin-bottom: 7px;
+        }
+        .input-field {
+            width: 100%;
+            background: rgba(2, 4, 10, 0.75);
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            padding: 16px 18px;
+            font-size: 1rem;
+            color: #fff;
+            transition: all 0.25s;
+            font-family: 'Space Grotesk', sans-serif;
+        }
+        .input-field:focus {
+            outline: none;
+            border-color: var(--solar-amber);
+            box-shadow: 0 0 20px rgba(255, 159, 28, 0.15);
+        }
+        .password-wrap {
+            position: relative;
+        }
+        .password-wrap .input-field {
+            padding-right: 50px;
+        }
+        .pw-toggle {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: color 0.2s, background 0.2s;
+        }
+        .pw-toggle:hover {
+            color: var(--solar-amber);
+            background: rgba(255, 255, 255, 0.04);
+        }
+        .btn-cosmic {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--solar-amber), #d97706);
+            border: none;
+            border-radius: 14px;
+            color: #020308;
+            font-size: 1rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            margin-top: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .btn-cosmic:hover {
+            transform: translateY(-2px);
+            filter: brightness(1.1);
+            box-shadow: 0 10px 30px rgba(255, 159, 28, 0.3);
+        }
+        .btn-cosmic:disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
+            transform: none;
+            filter: none;
+            box-shadow: none;
+        }
+        .btn-cosmic .spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 2px solid rgba(2, 4, 10, 0.3);
+            border-top-color: #020308;
+            animation: spin 0.7s linear infinite;
+            vertical-align: -2px;
+            margin-right: 8px;
+        }
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        .error-msg {
+            color: #ef4444;
+            font-size: 0.85rem;
+            margin-top: 16px;
+            min-height: 18px;
+            font-weight: 500;
+        }
+        .error-msg.success {
+            color: #4ade80;
+        }
+        .link-btn {
+            display: block;
+            margin: 20px auto 0;
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: underline;
+            text-decoration-color: transparent;
+            transition: color 0.2s, text-decoration-color 0.2s;
+        }
+        .link-btn:hover {
+            color: var(--nova-gold);
+            text-decoration-color: var(--nova-gold);
+        }
 
-    .game-module {
-      background: rgba(255, 255, 255, 0.01);
-      border: 1px solid var(--glass-border);
-      border-radius: 28px;
-      padding: 1.8rem 1.6rem 1.6rem;
-      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-      backdrop-filter: blur(2px);
-      display: flex;
-      flex-direction: column;
-    }
-    .game-module:hover {
-      transform: translateY(-6px) scale(1.01);
-      border-color: rgba(255, 209, 102, 0.2);
-      background: rgba(15, 20, 50, 0.6);
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-    }
+        /* DASHBOARD HEADER */
+        .dash-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem 1.5rem;
+            border-bottom: 1px solid var(--glass-border);
+            padding-bottom: 1.8rem;
+            margin-bottom: 2.8rem;
+        }
+        .brand-wrap {
+            display: flex;
+            align-items: baseline;
+            gap: 0.3rem 1.2rem;
+            flex-wrap: wrap;
+        }
+        .badge-tag {
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--nova-gold);
+            background: rgba(255, 209, 102, 0.08);
+            border: 1px solid rgba(255, 209, 102, 0.15);
+            padding: 0.25rem 1rem;
+            border-radius: 30px;
+            backdrop-filter: blur(4px);
+        }
+        .user-pill {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255, 159, 28, 0.06);
+            border: 1px solid rgba(255, 159, 28, 0.15);
+            padding: 0.4rem 1.2rem;
+            border-radius: 40px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--nova-gold);
+            backdrop-filter: blur(4px);
+        }
+        .btn-logout {
+            background: transparent;
+            border: 1px solid rgba(239, 68, 68, 0.25);
+            color: #f87171;
+            padding: 6px 16px;
+            border-radius: 40px;
+            cursor: pointer;
+            font-size: 0.7rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .btn-logout:hover {
+            background: rgba(239, 68, 68, 0.12);
+            border-color: rgba(239, 68, 68, 0.5);
+        }
 
-    .game-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 1.2rem;
-      border-bottom: 1px dashed rgba(255,255,255,0.03);
-      padding-bottom: 0.7rem;
-    }
-    .game-title {
-      font-size: 1.3rem;
-      font-weight: 700;
-      letter-spacing: -0.3px;
-      background: linear-gradient(to right, #fff, var(--nova-gold));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    .game-badge {
-      font-size: 0.6rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1.5px;
-      color: var(--text-muted);
-      background: rgba(255,255,255,0.03);
-      padding: 0.2rem 0.8rem;
-      border-radius: 30px;
-      border: 1px solid rgba(255,255,255,0.03);
-    }
+        /* game cards grid */
+        .game-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+            gap: 2rem 1.8rem;
+        }
 
-    .role-trio {
-      display: flex;
-      flex-direction: column;
-      gap: 0.6rem;
-      margin: 0.5rem 0 0.2rem;
-    }
-    .role-row {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      flex-wrap: wrap;
-      background: rgba(0,0,0,0.2);
-      padding: 0.3rem 0.6rem 0.3rem 0.9rem;
-      border-radius: 40px;
-      border-left: 2px solid var(--solar-amber);
-      transition: background 0.2s;
-    }
-    .role-row:hover {
-      background: rgba(255, 159, 28, 0.04);
-    }
-    .role-label {
-      font-size: 0.65rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: var(--text-muted);
-      min-width: 44px;
-    }
-    .role-link-group {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 0.4rem;
-    }
-    .role-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      font-size: 0.7rem;
-      font-weight: 600;
-      padding: 0.25rem 0.9rem 0.25rem 0.8rem;
-      border-radius: 30px;
-      background: rgba(255,255,255,0.02);
-      border: 1px solid rgba(255,255,255,0.04);
-      color: var(--text);
-      text-decoration: none;
-      transition: all 0.25s;
-      backdrop-filter: blur(4px);
-      letter-spacing: 0.2px;
-    }
-    .role-link i {
-      font-style: normal;
-      font-size: 0.8rem;
-      line-height: 1;
-    }
-    .role-link:hover {
-      background: rgba(255, 159, 28, 0.12);
-      border-color: var(--solar-amber);
-      color: #fff;
-      transform: scale(1.02);
-      box-shadow: 0 0 16px rgba(255, 159, 28, 0.08);
-    }
-    .role-link.launch {
-      background: linear-gradient(135deg, var(--solar-amber), #d97706);
-      border-color: transparent;
-      color: #020308;
-      font-weight: 700;
-    }
-    .role-link.launch:hover {
-      filter: brightness(1.15);
-      box-shadow: 0 4px 20px rgba(255, 159, 28, 0.25);
-      transform: scale(1.03);
-    }
-    .role-link.qr {
-      background: rgba(255, 209, 102, 0.04);
-      border-color: rgba(255, 209, 102, 0.08);
-      padding: 0.25rem 0.7rem;
-      font-size: 0.7rem;
-    }
-    .role-link.qr:hover {
-      background: rgba(255, 209, 102, 0.14);
-    }
+        .game-module {
+            background: rgba(255, 255, 255, 0.01);
+            border: 1px solid var(--glass-border);
+            border-radius: 28px;
+            padding: 1.8rem 1.6rem 1.6rem;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            backdrop-filter: blur(2px);
+            display: flex;
+            flex-direction: column;
+        }
+        .game-module:hover {
+            transform: translateY(-6px) scale(1.01);
+            border-color: rgba(255, 209, 102, 0.2);
+            background: rgba(15, 20, 50, 0.6);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        }
 
-    /* floating QR modal */
-    .qr-modal {
-      position: fixed;
-      inset: 0;
-      background: rgba(2, 3, 8, 0.8);
-      backdrop-filter: blur(30px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 200;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.4s ease;
-    }
-    .qr-modal.active {
-      opacity: 1;
-      pointer-events: all;
-    }
-    .qr-card {
-      background: var(--glass-bg);
-      backdrop-filter: blur(40px);
-      border: 1px solid rgba(255, 159, 28, 0.2);
-      border-radius: 32px;
-      padding: 2.2rem 2rem;
-      text-align: center;
-      max-width: 360px;
-      width: 90%;
-      box-shadow: 0 50px 100px rgba(0,0,0,0.8);
-    }
-    .qr-frame {
-      background: white;
-      padding: 12px;
-      border-radius: 18px;
-      margin: 1rem 0;
-      display: inline-block;
-    }
-    .qr-frame img {
-      display: block;
-      width: 180px;
-      height: 180px;
-    }
-    .qr-close-btn {
-      background: var(--solar-amber);
-      border: none;
-      padding: 0.6rem 1.8rem;
-      border-radius: 40px;
-      font-weight: 700;
-      color: #020308;
-      cursor: pointer;
-      transition: all 0.2s;
-      font-size: 0.9rem;
-    }
-    .qr-close-btn:hover {
-      filter: brightness(1.1);
-      transform: scale(1.02);
-    }
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.2rem;
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.03);
+            padding-bottom: 0.7rem;
+        }
+        .game-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            background: linear-gradient(to right, #fff, var(--nova-gold));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .game-badge {
+            font-size: 0.6rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-muted);
+            background: rgba(255, 255, 255, 0.03);
+            padding: 0.2rem 0.8rem;
+            border-radius: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+        }
 
-    /* toast */
-    .toast-tray {
-      position: fixed;
-      bottom: 28px;
-      right: 28px;
-      z-index: 300;
-    }
-    .toast {
-      background: #0c0f1d;
-      border: 1px solid rgba(255, 159, 28, 0.2);
-      border-left: 5px solid var(--solar-amber);
-      padding: 0.9rem 1.8rem;
-      border-radius: 14px;
-      box-shadow: 0 20px 50px rgba(0,0,0,0.7);
-      font-size: 0.85rem;
-      font-weight: 600;
-      animation: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-      backdrop-filter: blur(8px);
-    }
-    @keyframes slideIn {
-      from { transform: translateX(120%); opacity: 0; }
-      to { transform: translateX(0); opacity: 1; }
-    }
+        .role-trio {
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+            margin: 0.5rem 0 0.2rem;
+        }
+        .role-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            background: rgba(0, 0, 0, 0.2);
+            padding: 0.3rem 0.6rem 0.3rem 0.9rem;
+            border-radius: 40px;
+            border-left: 2px solid var(--solar-amber);
+            transition: background 0.2s;
+        }
+        .role-row:hover {
+            background: rgba(255, 159, 28, 0.04);
+        }
+        .role-label {
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            min-width: 44px;
+        }
+        .role-link-group {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .role-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 0.25rem 0.9rem 0.25rem 0.8rem;
+            border-radius: 30px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            color: var(--text);
+            text-decoration: none;
+            transition: all 0.25s;
+            backdrop-filter: blur(4px);
+            letter-spacing: 0.2px;
+        }
+        .role-link i {
+            font-style: normal;
+            font-size: 0.8rem;
+            line-height: 1;
+        }
+        .role-link:hover {
+            background: rgba(255, 159, 28, 0.12);
+            border-color: var(--solar-amber);
+            color: #fff;
+            transform: scale(1.02);
+            box-shadow: 0 0 16px rgba(255, 159, 28, 0.08);
+        }
+        .role-link.launch {
+            background: linear-gradient(135deg, var(--solar-amber), #d97706);
+            border-color: transparent;
+            color: #020308;
+            font-weight: 700;
+        }
+        .role-link.launch:hover {
+            filter: brightness(1.15);
+            box-shadow: 0 4px 20px rgba(255, 159, 28, 0.25);
+            transform: scale(1.03);
+        }
+        .role-link.qr {
+            background: rgba(255, 209, 102, 0.04);
+            border-color: rgba(255, 209, 102, 0.08);
+            padding: 0.25rem 0.7rem;
+            font-size: 0.7rem;
+        }
+        .role-link.qr:hover {
+            background: rgba(255, 209, 102, 0.14);
+        }
 
-    .footer-meta {
-      margin-top: 2.8rem;
-      text-align: center;
-      font-size: 0.7rem;
-      color: var(--text-muted);
-      letter-spacing: 1px;
-      border-top: 1px solid var(--glass-border);
-      padding-top: 1.8rem;
-      opacity: 0.5;
-    }
+        /* floating QR modal */
+        .qr-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(2, 3, 8, 0.8);
+            backdrop-filter: blur(30px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+        }
+        .qr-modal.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+        .qr-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(40px);
+            border: 1px solid rgba(255, 159, 28, 0.2);
+            border-radius: 32px;
+            padding: 2.2rem 2rem;
+            text-align: center;
+            max-width: 360px;
+            width: 90%;
+            box-shadow: 0 50px 100px rgba(0, 0, 0, 0.8);
+        }
+        .qr-frame {
+            background: white;
+            padding: 12px;
+            border-radius: 18px;
+            margin: 1rem 0;
+            display: inline-block;
+        }
+        .qr-frame img {
+            display: block;
+            width: 180px;
+            height: 180px;
+        }
+        .qr-close-btn {
+            background: var(--solar-amber);
+            border: none;
+            padding: 0.6rem 1.8rem;
+            border-radius: 40px;
+            font-weight: 700;
+            color: #020308;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+        .qr-close-btn:hover {
+            filter: brightness(1.1);
+            transform: scale(1.02);
+        }
 
-    @media (max-width: 680px) {
-      .nexus-hub { padding: 1.5rem 1rem; }
-      .logo-big { font-size: 2.6rem; }
-      .game-grid { grid-template-columns: 1fr; gap: 1.5rem; }
-      .role-row { flex-wrap: wrap; }
-    }
-  </style>
+        /* toast */
+        .toast-tray {
+            position: fixed;
+            bottom: 28px;
+            right: 28px;
+            z-index: 300;
+        }
+        .toast {
+            background: #0c0f1d;
+            border: 1px solid rgba(255, 159, 28, 0.2);
+            border-left: 5px solid var(--solar-amber);
+            padding: 0.9rem 1.8rem;
+            border-radius: 14px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+            font-size: 0.85rem;
+            font-weight: 600;
+            animation: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            backdrop-filter: blur(8px);
+        }
+        @keyframes slideIn {
+            from {
+                transform: translateX(120%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .footer-meta {
+            margin-top: 2.8rem;
+            text-align: center;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            letter-spacing: 1px;
+            border-top: 1px solid var(--glass-border);
+            padding-top: 1.8rem;
+            opacity: 0.5;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 680px) {
+            .nexus-hub {
+                padding: 1.5rem 1rem;
+            }
+            .logo-big {
+                font-size: 3rem;
+            }
+            .game-grid {
+                grid-template-columns: 1fr;
+                gap: 1.5rem;
+            }
+            .role-row {
+                flex-wrap: wrap;
+            }
+            .gateway-container {
+                padding: 30px 20px;
+            }
+        }
+    </style>
 </head>
 <body>
 
-  <div class="universe-bg"></div>
-  <div class="star-layer-1"></div>
-  <div class="star-layer-2"></div>
-  <div class="solar-luminary" id="solarLuminary"></div>
+    <div class="universe-bg"></div>
+    <div class="star-layer-1"></div>
+    <div class="star-layer-2"></div>
+    <div class="grid-overlay"></div>
+    <div class="solar-luminary" id="solarLuminary"></div>
 
-  <div class="nexus-hub">
-    <div class="dash-header">
-      <div class="brand-wrap">
-        <span class="logo-big">PLAYAQUIZ</span>
-        <span class="badge-tag">⚡ control center</span>
-      </div>
-      <div class="user-pill">
-        <span>☀️</span> <span id="activeUserLabel">Nexus</span>
-      </div>
-    </div>
-
-    <!-- GRID -->
-    <div class="game-grid">
-
-      <!-- ROOM MANAGER -->
-      <div class="game-module">
-        <div class="game-header">
-          <span class="game-title">Room Manager</span>
-          <span class="game-badge">setup</span>
+    <!-- AUTH GATEWAY -->
+    <div id="authGateway" class="gateway-container active">
+        <div style="margin-bottom: 28px;">
+            <div class="logo-big">PLAYAQUIZ</div>
+            <div class="tagline">✦ host &amp; admin sign in ✦</div>
         </div>
-        <div class="role-trio">
-          <div class="role-row">
-            <span class="role-label">🔧</span>
-            <div class="role-link-group">
-              <a href="https://www.playaquiz.xyz/room-manager.html" target="_blank" class="role-link launch">Launch</a>
-              <a href="#" class="role-link qr" data-url="https://www.playaquiz.xyz/room-manager.html">QR</a>
+
+        <form id="authForm" novalidate>
+            <div class="input-group">
+                <label for="emailField">Email</label>
+                <input type="email" id="emailField" class="input-field" placeholder="you@example.com" autocomplete="email" required>
             </div>
-          </div>
-        </div>
-        <div style="margin-top: 0.6rem; font-size: 0.7rem; color: var(--text-muted); opacity:0.6;">create &amp; manage rooms</div>
-      </div>
 
-      <!-- GAME 1 · SELF-PACE -->
-      <div class="game-module">
-        <div class="game-header">
-          <span class="game-title">Self-Pace · Elim</span>
-          <span class="game-badge">game 1</span>
-        </div>
-        <div class="role-trio">
-          <div class="role-row"><span class="role-label">admin</span><div class="role-link-group"><a href="https://www.playaquiz.xyz/admin-sp.html" target="_blank" class="role-link launch">Launch</a><a href="#" class="role-link qr" data-url="https://www.playaquiz.xyz/admin-sp.html">QR</a></div></div>
-          <div class="role-row"><span class="role-label">FOH</span><div class="role-link-group"><a href="https://www.playaquiz.xyz/foh-sp.html" target="_blank" class="role-link launch">Launch</a><a href="#" class="role-link qr" data-url="https://www.playaquiz.xyz/foh-sp.html">QR</a></div></div>
-          <div class="role-row"><span class="role-label">player</span><div class="role-link-group"><a href="https://www.playaquiz.xyz/player-sp.html" target="_blank" class="role-link launch">Launch</a><a href="#" class="role-link qr" data-url="https://www.playaquiz.xyz/player-sp.html">QR</a></div></div>
-        </div>
-      </div>
+            <div class="input-group">
+                <label for="passwordField">Password</label>
+                <div class="password-wrap">
+                    <input type="password" id="passwordField" class="input-field" placeholder="••••••••" autocomplete="current-password" required minlength="6">
+                    <button type="button" class="pw-toggle" id="pwToggle" aria-label="Show password">
+                        <svg id="eyeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z" />
+                            <circle cx="12" cy="12" r="3" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
 
-      <!-- GAME 2 · BUZZER FINAL -->
-      <div class="game-module">
-        <div class="game-header">
-          <span class="game-title">Buzzer Final</span>
-          <span class="game-badge">game 2</span>
-        </div>
-        <div class="role-trio">
-          <div class="role-row"><span class="role-label">admin</span><div class="role-link-group"><a href="https://www.playaquiz.xyz/hostcontrol.html" target="_blank" class="role-link launch">Launch</a><a href="#" class="role-link qr" data-url="https://www.playaquiz.xyz/hostcontrol.html">QR</a></div></div>
-          <div class="role-row"><span class="role-label">FOH</span><div class="role-link-group"><a href="https://www.playaquiz.xyz/finalroundfoh.html" target="_blank" class="role-link launch">Launch</a><a href="#" class="role-link qr" data-url="https://www.playaquiz.xyz/finalroundfoh.html">QR</a></div></div>
-          <div class="role-row"><span class="role-label">player</span><div class="role-link-group"><a href="https://www.playaquiz.xyz/finalroundplayer.html" target="_blank" class="role-link launch">Launch</a><a href="#" class="role-link qr" data-url="https://www.playaquiz.xyz/finalroundplayer.html">QR</a></div></div>
-        </div>
-      </div>
+            <button type="submit" class="btn-cosmic" id="submitBtn">
+                <span id="submitBtnText">Sign In →</span>
+            </button>
+            <div id="errorMessage" class="error-msg" role="alert"></div>
+        </form>
 
-      <!-- GAME 3 · CROWD SAYS -->
-      <div class="game-module">
-        <div class="game-header">
-          <span class="game-title">Crowd Says</span>
-          <span class="game-badge">game 3</span>
-        </div>
-        <div class="role-trio">
-          <div class="role-row"><span class="role-label">admin</span><div class="role-link-group"><a href="https://www.playaquiz.xyz/crowdsays-host.html" target="_blank" class="role-link launch">Launch</a><a href="#" class="role-link qr" data-url="https://www.playaquiz.xyz/crowdsays-host.html">QR</a></div></div>
-          <div class="role-row"><span class="role-label">FOH</span><div class="role-link-group"><a href="https://www.playaquiz.xyz/crowdsays-foh.html" target="_blank" class="role-link launch">Launch</a><a href="#" class="role-link qr" data-url="https://www.playaquiz.xyz/crowdsays-foh.html">QR</a></div></div>
-          <div class="role-row"><span class="role-label">player</span><div class="role-link-group"><a href="https://www.playaquiz.xyz/crowdsays-player.html" target="_blank" class="role-link launch">Launch</a><a href="#" class="role-link qr" data-url="https://www.playaquiz.xyz/crowdsays-player.html">QR</a></div></div>
-        </div>
-      </div>
-
+        <button type="button" class="link-btn" id="forgotBtn">Forgot your password?</button>
     </div>
 
-    <div class="footer-meta">
-      <span>✦ interactive nexus · all links active ✦</span>
+    <!-- FORGOT PASSWORD -->
+    <div id="forgotGateway" class="gateway-container" style="display:none;">
+        <div style="margin-bottom: 20px;">
+            <div class="logo-big" style="font-size:3rem;">PLAYAQUIZ</div>
+            <div class="tagline">reset password</div>
+        </div>
+        <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:22px; line-height:1.6;">Enter the email tied to your account. We'll send a secure link to reset your password.</p>
+        <form id="forgotForm" novalidate>
+            <div class="input-group">
+                <label for="resetEmailField">Email</label>
+                <input type="email" id="resetEmailField" class="input-field" placeholder="you@example.com" autocomplete="email" required>
+            </div>
+            <button type="submit" class="btn-cosmic" id="resetBtn">
+                <span id="resetBtnText">Send Reset Link</span>
+            </button>
+            <div id="resetMessage" class="error-msg" role="alert"></div>
+        </form>
+        <button type="button" class="link-btn" id="backToLoginBtn">← Back to sign in</button>
     </div>
-  </div>
 
-  <!-- QR MODAL -->
-  <div id="qrModal" class="qr-modal" onclick="closeQR()">
-    <div class="qr-card" onclick="event.stopPropagation()">
-      <h3 style="font-weight: 700; color: #fff; font-size: 1.2rem;">⏎ scan</h3>
-      <div class="qr-frame">
-        <img id="qrImg" src="" alt="QR code">
-      </div>
-      <p style="font-size:0.65rem; color:var(--text-muted); word-break:break-all; margin-bottom: 1rem;" id="qrTargetUrl"></p>
-      <button class="qr-close-btn" onclick="closeQR()">close</button>
+    <!-- DASHBOARD -->
+    <div id="controlTerminal" class="nexus-hub hidden">
+        <div class="dash-header">
+            <div class="brand-wrap">
+                <span class="logo-big" style="font-size:2.8rem;">PLAYAQUIZ</span>
+                <span class="badge-tag">⚡ control center</span>
+            </div>
+            <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+                <div class="user-pill">
+                    ☀️ <span id="activeUserLabel">Nexus</span>
+                </div>
+                <button class="btn-logout" onclick="killSession()">Log Out</button>
+            </div>
+        </div>
+
+        <!-- GRID -->
+        <div class="game-grid">
+
+            <!-- ROOM MANAGER -->
+            <div class="game-module">
+                <div class="game-header">
+                    <span class="game-title">Room Manager</span>
+                    <span class="game-badge">setup</span>
+                </div>
+                <div class="role-trio">
+                    <div class="role-row">
+                        <span class="role-label">🔧</span>
+                        <div class="role-link-group">
+                            <a href="https://www.playaquiz.xyz/room-manager.html" target="_blank" class="role-link launch">Launch</a>
+                            <a href="#" class="role-link qr" data-url="https://www.playaquiz.xyz/room-manager.html">QR</a>
+                        </div>
+                    </div>
+                </div>
+                <div style="margin-top: 0.6rem; font-size: 0.7rem; color: var(--text-muted); opacity:0.6;">create &amp; manage rooms</div>
+            </div>
+
+            <!-- GAME 1 · SELF-PACE -->
+            <div class="game-module">
+                <div class="game-header">
+                    <span class="game-title">Self-Pace · Elim</span>
+                    <span class="game-badge">game 1</span>
+                </div>
+                <div class="role-trio">
+                    <div class="role-row"><span class="role-label">admin</span><div class="role-link-group"><a href="https://www.playaquiz.xyz/admin-sp.html" target="_blank" class="role-link launch">Launch</a><a href="#" class="role-link qr" data-url="https://www.playaquiz.xyz/admin-sp.html">QR</a></div></div>
+                    <div class="role-row"><span class="role-label">FOH</span><div class="role-link-group"><a href="https://www.playaquiz.xyz/foh-sp.html" target="_blank" class="role-link launch">Launch</a><a href="#" class="role-link qr" data-url="https://www.playaquiz.xyz/foh-sp.html">QR</a></div></div>
+                    <div class="role-row"><span class="role-label">player</span><div class="role-link-group"><a href="https://www.playaquiz.xyz/player-sp.html" target="_blank" class="role-link launch">Launch</a><a href="#" class="role-link qr" data-url="https://www.playaquiz.xyz/player-sp.html">QR</a></div></div>
+                </div>
+            </div>
+
+            <!-- GAME 2 · BUZZER FINAL -->
+            <div class="game-module">
+                <div class="game-header">
+                    <span class="game-title">Buzzer Final</span>
+                    <span class="game-badge">game 2</span>
+                </div>
+                <div class="role-trio">
+                    <div class="role-row"><span class="role-label">admin</span><div class="role-link-group"><a href="https://www.playaquiz.xyz/hostcontrol.html" target="_blank" class="role-link launch">Launch</a><a href="#" class="role-link qr" data-url="https://www.playaquiz.xyz/hostcontrol.html">QR</a></div></div>
+                    <div class="role-row"><span class="role-label">FOH</span><div class="role-link-group"><a href="https://www.playaquiz.xyz/finalroundfoh.html" target="_blank" class="role-link launch">Launch</a><a href="#" class="role-link qr" data-url="https://www.playaquiz.xyz/finalroundfoh.html">QR</a></div></div>
+                    <div class="role-row"><span class="role-label">player</span><div class="role-link-group"><a href="https://www.playaquiz.xyz/finalroundplayer.html" target="_blank" class="role-link launch">Launch</a><a href="#" class="role-link qr" data-url="https://www.playaquiz.xyz/finalroundplayer.html">QR</a></div></div>
+                </div>
+            </div>
+
+            <!-- GAME 3 · CROWD SAYS -->
+            <div class="game-module">
+                <div class="game-header">
+                    <span class="game-title">Crowd Says</span>
+                    <span class="game-badge">game 3</span>
+                </div>
+                <div class="role-trio">
+                    <div class="role-row"><span class="role-label">admin</span><div class="role-link-group"><a href="https://www.playaquiz.xyz/crowdsays-host.html" target="_blank" class="role-link launch">Launch</a><a href="#" class="role-link qr" data-url="https://www.playaquiz.xyz/crowdsays-host.html">QR</a></div></div>
+                    <div class="role-row"><span class="role-label">FOH</span><div class="role-link-group"><a href="https://www.playaquiz.xyz/crowdsays-foh.html" target="_blank" class="role-link launch">Launch</a><a href="#" class="role-link qr" data-url="https://www.playaquiz.xyz/crowdsays-foh.html">QR</a></div></div>
+                    <div class="role-row"><span class="role-label">player</span><div class="role-link-group"><a href="https://www.playaquiz.xyz/crowdsays-player.html" target="_blank" class="role-link launch">Launch</a><a href="#" class="role-link qr" data-url="https://www.playaquiz.xyz/crowdsays-player.html">QR</a></div></div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="footer-meta">
+            <span>✦ interactive nexus · all links active ✦</span>
+        </div>
     </div>
-  </div>
 
-  <!-- toast -->
-  <div class="toast-tray" id="toastTray"></div>
+    <!-- QR MODAL -->
+    <div id="qrModal" class="qr-modal" onclick="closeQR()">
+        <div class="qr-card" onclick="event.stopPropagation()">
+            <h3 style="font-weight: 700; color: #fff; font-size: 1.2rem;">⏎ scan</h3>
+            <div class="qr-frame">
+                <img id="qrImg" src="" alt="QR code">
+            </div>
+            <p style="font-size:0.65rem; color:var(--text-muted); word-break:break-all; margin-bottom: 1rem;" id="qrTargetUrl"></p>
+            <button class="qr-close-btn" onclick="closeQR()">close</button>
+        </div>
+    </div>
 
-  <script>
-    // --- solar luminary (mouse tracker) ---
-    const luminary = document.getElementById('solarLuminary');
-    window.addEventListener('mousemove', (e) => {
-      luminary.style.left = e.clientX + 'px';
-      luminary.style.top = e.clientY + 'px';
-    });
+    <!-- toast -->
+    <div class="toast-tray" id="toastTray"></div>
 
-    // --- toast ---
-    function toast(msg) {
-      const tray = document.getElementById('toastTray');
-      tray.innerHTML = `<div class="toast">☀️ ${msg}</div>`;
-      setTimeout(() => { tray.innerHTML = ''; }, 2800);
-    }
+    <script>
+        // ===== SUPABASE CONFIG =====
+        const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
+        const SUPABASE_ANON = 'sb_publishable_UUGSZcCX0KVuT6h69OMoHQ_14UjDZ-e';
+        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-    // --- QR logic ---
-    const qrModal = document.getElementById('qrModal');
-    const qrImg = document.getElementById('qrImg');
-    const qrTarget = document.getElementById('qrTargetUrl');
+        // ===== SOLAR LUMINARY =====
+        const luminary = document.getElementById('solarLuminary');
+        window.addEventListener('mousemove', (e) => {
+            luminary.style.left = e.clientX + 'px';
+            luminary.style.top = e.clientY + 'px';
+        });
 
-    function openQR(url) {
-      if (!url) return;
-      qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
-      qrTarget.textContent = url;
-      qrModal.classList.add('active');
-    }
-
-    function closeQR() {
-      qrModal.classList.remove('active');
-    }
-
-    // attach QR click listeners to all .qr links
-    document.querySelectorAll('.role-link.qr').forEach(link => {
-      link.addEventListener('click', (e) => {
-        e.preventDefault();
-        const url = link.getAttribute('data-url');
-        if (url) {
-          openQR(url);
-          toast('QR code generated');
-        } else {
-          toast('no link found');
+        // ===== TOAST =====
+        function toast(msg) {
+            const tray = document.getElementById('toastTray');
+            tray.innerHTML = `<div class="toast">☀️ ${msg}</div>`;
+            setTimeout(() => { tray.innerHTML = ''; }, 2800);
         }
-      });
-    });
 
-    // close modal on background click
-    qrModal.addEventListener('click', closeQR);
+        // ===== QR LOGIC =====
+        const qrModal = document.getElementById('qrModal');
+        const qrImg = document.getElementById('qrImg');
+        const qrTarget = document.getElementById('qrTargetUrl');
 
-    // --- set active user label (static but friendly) ---
-    document.getElementById('activeUserLabel').textContent = 'Nexus · live';
+        function openQR(url) {
+            if (!url) return;
+            qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
+            qrTarget.textContent = url;
+            qrModal.classList.add('active');
+        }
 
-    // --- optional: copy route (not used, but we keep a tiny helper) ---
-    // (just for completeness)
-    console.log('PLAYAQUIZ control nexus ready');
-  </script>
+        function closeQR() {
+            qrModal.classList.remove('active');
+        }
+
+        document.querySelectorAll('.role-link.qr').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const url = link.getAttribute('data-url');
+                if (url) {
+                    openQR(url);
+                    toast('QR code generated');
+                } else {
+                    toast('no link found');
+                }
+            });
+        });
+
+        qrModal.addEventListener('click', closeQR);
+
+        // ===== AUTH =====
+        const authGateway = document.getElementById('authGateway');
+        const forgotGateway = document.getElementById('forgotGateway');
+        const controlTerminal = document.getElementById('controlTerminal');
+
+        const authForm = document.getElementById('authForm');
+        const emailField = document.getElementById('emailField');
+        const passwordField = document.getElementById('passwordField');
+        const submitBtn = document.getElementById('submitBtn');
+        const submitBtnText = document.getElementById('submitBtnText');
+        const errorMsg = document.getElementById('errorMessage');
+
+        const forgotForm = document.getElementById('forgotForm');
+        const resetEmailField = document.getElementById('resetEmailField');
+        const resetBtn = document.getElementById('resetBtn');
+        const resetBtnText = document.getElementById('resetBtnText');
+        const resetMsg = document.getElementById('resetMessage');
+
+        const forgotBtn = document.getElementById('forgotBtn');
+        const backToLoginBtn = document.getElementById('backToLoginBtn');
+
+        // Password toggle
+        const pwToggle = document.getElementById('pwToggle');
+        const eyeIcon = document.getElementById('eyeIcon');
+        const EYE_OPEN =
+            '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/>';
+        const EYE_OFF =
+            '<path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a18.5 18.5 0 0 1 4.22-5.94M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19M1 1l22 22"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/>';
+
+        pwToggle.addEventListener('click', () => {
+            const showing = passwordField.type === 'text';
+            passwordField.type = showing ? 'password' : 'text';
+            eyeIcon.innerHTML = showing ? EYE_OPEN : EYE_OFF;
+            pwToggle.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
+        });
+
+        // Show/hide gateways
+        function showAuth() {
+            authGateway.style.display = 'block';
+            authGateway.classList.add('active');
+            forgotGateway.style.display = 'none';
+            controlTerminal.classList.add('hidden');
+        }
+
+        function showForgot() {
+            authGateway.style.display = 'none';
+            forgotGateway.style.display = 'block';
+            forgotGateway.classList.add('active');
+        }
+
+        function showDashboard(user) {
+            authGateway.style.display = 'none';
+            authGateway.classList.remove('active');
+            forgotGateway.style.display = 'none';
+            controlTerminal.classList.remove('hidden');
+            document.getElementById('activeUserLabel').textContent = user || 'Operator';
+        }
+
+        forgotBtn.addEventListener('click', showForgot);
+        backToLoginBtn.addEventListener('click', () => {
+            forgotGateway.style.display = 'none';
+            authGateway.style.display = 'block';
+            authGateway.classList.add('active');
+            resetMsg.textContent = '';
+        });
+
+        // Sign in
+        authForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            errorMsg.textContent = '';
+            errorMsg.classList.remove('success');
+
+            const email = emailField.value.trim();
+            const password = passwordField.value;
+
+            if (!email || !password) {
+                errorMsg.textContent = 'Please enter both email and password.';
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtnText.innerHTML = '<span class="spinner"></span>Signing in…';
+
+            try {
+                const { data, error } = await sb.auth.signInWithPassword({ email, password });
+                if (error) {
+                    errorMsg.textContent = friendlyAuthError(error);
+                    return;
+                }
+                const displayName = data.user?.user_metadata?.full_name || data.user?.email || 'Operator';
+                toast(`Welcome back, ${displayName}.`);
+                showDashboard(displayName);
+            } catch (ex) {
+                errorMsg.textContent = 'Something went wrong. Please try again.';
+            } finally {
+                submitBtn.disabled = false;
+                submitBtnText.innerHTML = 'Sign In →';
+            }
+        });
+
+        function friendlyAuthError(error) {
+            const msg = (error.message || '').toLowerCase();
+            if (msg.includes('invalid login credentials')) return 'Incorrect email or password.';
+            if (msg.includes('email not confirmed')) return 'Please confirm your email before signing in.';
+            if (msg.includes('rate limit')) return 'Too many attempts. Please wait a moment.';
+            return error.message || 'Sign in failed. Please try again.';
+        }
+
+        // Forgot password
+        forgotForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            resetMsg.textContent = '';
+            resetMsg.classList.remove('success');
+            const email = resetEmailField.value.trim();
+            if (!email) { resetMsg.textContent = 'Please enter your email.'; return; }
+
+            resetBtn.disabled = true;
+            resetBtnText.innerHTML = '<span class="spinner"></span>Sending…';
+
+            try {
+                const { error } = await sb.auth.resetPasswordForEmail(email, {
+                    redirectTo: window.location.origin + window.location.pathname
+                });
+                if (error) {
+                    resetMsg.textContent = error.message || 'Could not send reset link.';
+                } else {
+                    resetMsg.textContent = 'Check your inbox for a password reset link.';
+                    resetMsg.classList.add('success');
+                }
+            } catch (ex) {
+                resetMsg.textContent = 'Something went wrong. Please try again.';
+            } finally {
+                resetBtn.disabled = false;
+                resetBtnText.textContent = 'Send Reset Link';
+            }
+        });
+
+        // Session check on load
+        (async () => {
+            const { data } = await sb.auth.getSession();
+            if (data.session?.user) {
+                const displayName = data.session.user.user_metadata?.full_name || data.session.user.email || 'Operator';
+                showDashboard(displayName);
+            } else {
+                showAuth();
+            }
+        })();
+
+        // Listen for auth changes
+        sb.auth.onAuthStateChange((event) => {
+            if (event === 'SIGNED_OUT') {
+                showAuth();
+            }
+        });
+
+        // Logout
+        async function killSession() {
+            await sb.auth.signOut();
+            toast('Signed out.');
+            showAuth();
+        }
+
+        console.log('PLAYAQUIZ control nexus ready');
+    </script>
 </body>
 </html>
