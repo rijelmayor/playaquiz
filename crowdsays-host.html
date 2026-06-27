@@ -106,11 +106,21 @@
     border-radius: 6px; border: none; cursor: pointer;
   }
 
-  /* Team / scoring */
-  .teams-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  /* Team setup (first-time per room) */
+  .team-count-row { display: flex; gap: 8px; align-items: center; }
+  .team-count-row input[type="number"] { width: 80px; flex: none; text-align: center; font-family: var(--font-display); font-size: 18px; }
+  .setup-name-list { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; max-height: 280px; overflow-y: auto; }
+  .setup-name-row { display: flex; align-items: center; gap: 8px; }
+  .setup-name-row .num { font-family: var(--font-mono); color: var(--text-lo); font-size: 12px; width: 24px; flex: none; text-align: right; }
+
+  /* Team / scoring grid — flexes from 2 up to 16 teams */
+  .teams-grid {
+    display: grid; gap: 8px;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  }
   .team-card {
     background: var(--navy-deep); border: 2px solid var(--navy-line); border-radius: 10px;
-    padding: 12px; text-align: center; cursor: pointer; transition: border-color 0.15s;
+    padding: 10px; text-align: center; transition: border-color 0.15s;
   }
   .team-card.control { border-color: var(--gold); box-shadow: 0 0 16px rgba(232,184,75,0.25); }
   .team-name { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.1em; color: var(--text-lo); text-transform: uppercase; }
@@ -120,8 +130,19 @@
     text-transform: uppercase; padding: 2px 0; border-bottom: 1px dashed transparent;
   }
   .team-name-input:focus { border-bottom-color: var(--gold-dim); color: var(--text-hi); }
-  .team-score { font-family: var(--font-display); font-size: 32px; color: var(--text-hi); margin-top: 4px; }
+  .team-score { font-family: var(--font-display); font-size: 26px; color: var(--text-hi); margin-top: 4px; }
   .team-card.control .team-score { color: var(--gold); }
+
+  /* Steal: open-floor team picker */
+  .steal-grid {
+    display: grid; gap: 6px; margin-top: 10px;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  }
+  .steal-pick-btn {
+    font-family: var(--font-mono); font-size: 12px; padding: 10px 8px; border-radius: 8px;
+    border: 1px solid var(--red); background: rgba(209,69,69,0.1); color: var(--text-hi); cursor: pointer;
+  }
+  .steal-pick-btn:active { transform: scale(0.97); }
 
   .strikes-row { display: flex; gap: 8px; justify-content: center; margin-top: 10px; }
   .strike-box {
@@ -178,6 +199,17 @@
     </div>
   </div>
 
+  <!-- Team setup (shown once per new room, before teams exist) -->
+  <div class="panel" id="teamSetupPanel" style="display:none;">
+    <div class="panel-label">How many teams / tables tonight?</div>
+    <div class="team-count-row">
+      <input type="number" id="teamCountInput" min="2" max="16" value="2">
+      <button class="btn btn-gold" id="generateTeamsBtn" style="flex:1;">Generate</button>
+    </div>
+    <div class="setup-name-list" id="setupNameList"></div>
+    <button class="btn btn-teal btn-block" id="confirmTeamsBtn" style="margin-top:12px; display:none;">Confirm teams &amp; start</button>
+  </div>
+
   <div id="mainUI" style="display:none; flex-direction: column; gap: 14px;">
 
     <!-- Status -->
@@ -192,19 +224,30 @@
       </div>
     </div>
 
+    <!-- Event branding for the FOH big screen -->
+    <div class="panel">
+      <div class="panel-label">
+        <span>Event branding (big screen)</span>
+        <button class="btn btn-ghost" id="clearBrandingBtn" style="padding:4px 10px; font-size:10px;">Clear</button>
+      </div>
+      <input type="text" id="eventTitleInput" placeholder="Event title shown on the big screen (optional)">
+      <div class="btn-row" style="margin-top:8px;">
+        <button class="btn btn-ghost btn-block" id="uploadBgBtn">Upload background image</button>
+      </div>
+      <input type="file" id="bgFileInput" accept="image/*" style="display:none;">
+      <div id="bgPreviewWrap" style="display:none; margin-top:10px;">
+        <img id="bgPreviewImg" style="width:100%; max-height:120px; object-fit:cover; border-radius:8px; border:1px solid var(--navy-line);">
+      </div>
+      <button class="btn btn-teal btn-block" id="saveBrandingBtn" style="margin-top:10px;">Save &amp; send to big screen</button>
+    </div>
+
     <!-- Teams -->
     <div class="panel">
-      <div class="panel-label">Teams &amp; control</div>
-      <div class="teams-grid">
-        <div class="team-card" id="teamACard">
-          <input type="text" class="team-name-input" id="teamANameInput" value="Team A" placeholder="Team A name">
-          <div class="team-score" id="teamAScore">0</div>
-        </div>
-        <div class="team-card" id="teamBCard">
-          <input type="text" class="team-name-input" id="teamBNameInput" value="Team B" placeholder="Team B name">
-          <div class="team-score" id="teamBScore">0</div>
-        </div>
+      <div class="panel-label">
+        <span>Teams &amp; control</span>
+        <button class="btn btn-ghost" id="editTeamsBtn" style="padding:4px 10px; font-size:10px;">Edit teams</button>
       </div>
+      <div class="teams-grid" id="teamsGrid"></div>
       <div class="strikes-row">
         <div class="strike-box" id="strike1">✕</div>
         <div class="strike-box" id="strike2">✕</div>
@@ -224,10 +267,16 @@
 
       <div class="btn-row" style="margin-top:14px;">
         <button class="btn btn-gold btn-block" id="markStrikeBtn">Mark strike</button>
-        <button class="btn btn-red btn-block" id="startStealBtn" disabled>Start steal</button>
+        <button class="btn btn-red btn-block" id="startStealBtn" disabled>Open steal to the floor</button>
       </div>
       <div class="btn-row" style="margin-top:8px;">
         <button class="btn btn-teal btn-block" id="awardPotBtn">Award pot to controlling team</button>
+      </div>
+
+      <!-- Steal picker: host taps whichever team actually called it out -->
+      <div id="stealPickerWrap" style="display:none; margin-top:12px;">
+        <div class="panel-label" style="margin-bottom:6px;">Who called out the steal answer?</div>
+        <div class="steal-grid" id="stealGrid"></div>
       </div>
     </div>
 
@@ -236,7 +285,7 @@
       <div class="panel-label">Pick who controls the board</div>
       <button class="btn btn-gold btn-block" id="randomizeBtn" style="font-size:14px; padding:16px;">🎲 Randomize control</button>
       <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-lo); margin-top: 8px; text-align:center;">
-        The big screen will shuffle and lock on a team — no buzzers needed.
+        The big screen will shuffle through every team and lock on one — no buzzers needed.
       </div>
     </div>
 
@@ -244,7 +293,14 @@
     <div class="panel">
       <div class="panel-label">
         <span>Question bank</span>
-        <button class="btn btn-ghost" id="newQuestionBtn" style="padding:4px 10px; font-size:10px;">+ New</button>
+        <span class="btn-row" style="gap:6px;">
+          <button class="btn btn-ghost" id="uploadCsvBtn" style="padding:4px 10px; font-size:10px;">Upload CSV</button>
+          <button class="btn btn-ghost" id="newQuestionBtn" style="padding:4px 10px; font-size:10px;">+ New</button>
+        </span>
+      </div>
+      <input type="file" id="csvFileInput" accept=".csv" style="display:none;">
+      <div style="font-family: var(--font-mono); font-size: 10px; color: var(--text-lo); margin-bottom: 8px;">
+        CSV columns: prompt, answer1, points1, answer2, points2, answer3, points3, answer4, points4
       </div>
       <div class="bank-list" id="bankList">
         <div style="color: var(--text-lo); font-size: 13px; padding: 10px;">No questions yet. Tap "+ New" to add one.</div>
@@ -267,39 +323,7 @@
 
 <div class="toast" id="toast"></div>
 
-<div id="errorBanner" style="display:none; position:fixed; top:0; left:0; right:0; background:#D14545; color:#fff; padding:14px 16px; font-family:monospace; font-size:12px; z-index:9999; max-height:50vh; overflow-y:auto; white-space:pre-wrap; word-break:break-word;"></div>
-
-<script>
-  function showBannerMsg(msg) {
-    var banner = document.getElementById('errorBanner');
-    banner.style.display = 'block';
-    banner.textContent += msg + '\n\n';
-  }
-  window.addEventListener('error', function(e) {
-    if (e.target && e.target.tagName === 'SCRIPT') {
-      showBannerMsg('⚠ SCRIPT FAILED TO LOAD: ' + (e.target.src || '(inline script)') + '\nThis usually means no internet connection, a blocked CDN, or a firewall/ad-blocker issue.');
-      return;
-    }
-    var msg = e.message || e.error && e.error.message;
-    if (!msg || msg === 'Script error.') {
-      showBannerMsg('⚠ A script error occurred but the browser hid the details (often a cross-origin script issue). Try reloading, or check your connection.');
-      return;
-    }
-    showBannerMsg('⚠ ERROR: ' + msg + ' (line ' + e.lineno + ', col ' + e.colno + ')\nFile: ' + (e.filename || 'unknown'));
-  }, true);
-  window.addEventListener('unhandledrejection', function(e) {
-    showBannerMsg('⚠ PROMISE REJECTION: ' + (e.reason && e.reason.message ? e.reason.message : JSON.stringify(e.reason)));
-  });
-</script>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" onerror="showBannerMsg('⚠ Supabase CDN script tag failed to fire onload — likely blocked by network/firewall/ad-blocker. URL: https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2')"></script>
-<script>
-  if (typeof window.supabase === 'undefined') {
-    showBannerMsg('⚠ Supabase library object is undefined after load attempt — CDN script did not execute correctly.');
-  } else {
-    showBannerMsg('✓ Supabase library loaded OK.');
-  }
-</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
   // ====== CONFIG ======
   const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
@@ -310,16 +334,15 @@
   let sessionId = null;
   let channel = null;
   let questions = [];          // crowdsays_questions rows for this session
+  let teamNames = [];          // e.g. ["Table 1", "Table 2", ...]
   let state = {                // crowdsays_state row
     current_question_id: null,
-    controlling_team: null,
+    controlling_team: null,    // 0-based index into teamNames, or null
     strikes: 0,
-    team_a_score: 0,
-    team_b_score: 0,
+    team_scores: [],           // one entry per team, same order as teamNames
     round_status: 'idle',      // idle | randomizing | playing | steal
     pot: 0
   };
-  let teamNames = { a: 'Team A', b: 'Team B' };
 
   // ====== UTIL ======
   function showToast(msg) {
@@ -333,6 +356,16 @@
     document.getElementById('connDot').classList.toggle('off', !ok);
   }
 
+  function escapeHtml(s) {
+    const div = document.createElement('div');
+    div.textContent = s == null ? '' : s;
+    return div.innerHTML;
+  }
+
+  function teamLabel(idx) {
+    return (idx !== null && idx !== undefined && teamNames[idx]) ? teamNames[idx] : '—';
+  }
+
   // ====== ROOM JOIN / CREATE ======
   document.getElementById('joinBtn').addEventListener('click', async () => {
     try {
@@ -340,7 +373,8 @@
       if (!code) return showToast('Type a room code first');
       await joinOrCreateRoom(code);
     } catch (err) {
-      showBannerMsg('⚠ CLICK HANDLER ERROR: ' + (err && err.message ? err.message : String(err)));
+      console.error('Join room failed:', err);
+      showToast('Something went wrong — try again');
     }
   });
 
@@ -348,7 +382,7 @@
     roomCode = code;
 
     function showError(label, err) {
-      showBannerMsg('⚠ ' + label + ': ' + (err && err.message ? err.message : JSON.stringify(err)));
+      console.error(label, err);
     }
 
     // Crowd Says owns its own sessions — look for an existing one first.
@@ -370,7 +404,7 @@
       // No collision check — first host to type this code creates the room.
       const { data: created, error } = await db
         .from('crowdsays_sessions')
-        .insert({ room_code: roomCode })
+        .insert({ room_code: roomCode, team_names: [] })
         .select()
         .single();
 
@@ -386,12 +420,23 @@
     }
 
     sessionId = sessionRow.id;
-    teamNames = { a: sessionRow.team_a_name || 'Team A', b: sessionRow.team_b_name || 'Team B' };
+    teamNames = Array.isArray(sessionRow.team_names) ? sessionRow.team_names : [];
+    loadBrandingIntoForm(sessionRow);
 
     document.getElementById('roomLabel').textContent = roomCode;
-    document.getElementById('teamANameInput').value = teamNames.a;
-    document.getElementById('teamBNameInput').value = teamNames.b;
     document.getElementById('joinPanel').style.display = 'none';
+
+    if (!teamNames.length) {
+      // Brand new room — ask the host how many teams/tables tonight.
+      document.getElementById('teamSetupPanel').style.display = 'block';
+      return;
+    }
+
+    await enterMainUI();
+  }
+
+  async function enterMainUI() {
+    document.getElementById('teamSetupPanel').style.display = 'none';
     document.getElementById('mainUI').style.display = 'flex';
 
     await ensureStateRow();
@@ -400,20 +445,46 @@
     setConn(true);
   }
 
-  // ====== TEAM NAME EDITING ======
-  async function saveTeamName(team, name) {
-    teamNames[team] = name || (team === 'a' ? 'Team A' : 'Team B');
-    const field = team === 'a' ? 'team_a_name' : 'team_b_name';
-    await db.from('crowdsays_sessions').update({ [field]: teamNames[team] }).eq('id', sessionId);
-    renderState();
-    broadcast('crowdsays_team_renamed', { team, name: teamNames[team] });
+  // ====== TEAM SETUP (first time per room) ======
+  document.getElementById('generateTeamsBtn').addEventListener('click', () => {
+    const n = Math.max(2, Math.min(16, parseInt(document.getElementById('teamCountInput').value, 10) || 2));
+    const names = Array.from({ length: n }, (_, i) => `Table ${i + 1}`);
+    renderSetupNameList(names);
+  });
+
+  function renderSetupNameList(names) {
+    const wrap = document.getElementById('setupNameList');
+    wrap.innerHTML = names.map((name, i) => `
+      <div class="setup-name-row">
+        <span class="num">${i + 1}.</span>
+        <input type="text" class="setup-name-input" data-i="${i}" value="${escapeHtml(name)}">
+      </div>
+    `).join('');
+    document.getElementById('confirmTeamsBtn').style.display = 'block';
   }
 
-  document.getElementById('teamANameInput').addEventListener('change', (e) => saveTeamName('a', e.target.value.trim()));
-  document.getElementById('teamBNameInput').addEventListener('change', (e) => saveTeamName('b', e.target.value.trim()));
-  // Prevent the team card's face-off click handler from firing when editing the name
-  document.getElementById('teamANameInput').addEventListener('click', (e) => e.stopPropagation());
-  document.getElementById('teamBNameInput').addEventListener('click', (e) => e.stopPropagation());
+  document.getElementById('confirmTeamsBtn').addEventListener('click', async () => {
+    const inputs = Array.from(document.querySelectorAll('.setup-name-input'));
+    const names = inputs.map((el, i) => el.value.trim() || `Table ${i + 1}`);
+    if (names.length < 2) return showToast('Need at least 2 teams');
+
+    teamNames = names;
+    const { error } = await db.from('crowdsays_sessions').update({ team_names: teamNames }).eq('id', sessionId);
+    if (error) {
+      console.error('Could not save teams:', error);
+      return showToast('Could not save teams — try again');
+    }
+    showToast(`${names.length} teams set`);
+    await enterMainUI();
+  });
+
+  // Edit teams later (e.g. mid-event, fix a name) — re-opens setup with current names prefilled
+  document.getElementById('editTeamsBtn').addEventListener('click', () => {
+    document.getElementById('mainUI').style.display = 'none';
+    document.getElementById('teamSetupPanel').style.display = 'block';
+    document.getElementById('teamCountInput').value = teamNames.length || 2;
+    renderSetupNameList(teamNames.length ? teamNames : ['Table 1', 'Table 2']);
+  });
 
   // ====== SHARE LINKS ======
   function fohLink() {
@@ -433,6 +504,97 @@
     catch (e) { showToast(playerLink()); }
   });
 
+  // ====== EVENT BRANDING ======
+  let pendingBgDataUrl = null; // newly chosen image, not yet saved
+
+  document.getElementById('uploadBgBtn').addEventListener('click', () => {
+    document.getElementById('bgFileInput').click();
+  });
+
+  document.getElementById('bgFileInput').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    resizeImageToDataUrl(file, 1600, 0.82).then(dataUrl => {
+      pendingBgDataUrl = dataUrl;
+      document.getElementById('bgPreviewImg').src = dataUrl;
+      document.getElementById('bgPreviewWrap').style.display = 'block';
+    }).catch(err => {
+      console.error('Image resize failed:', err);
+      showToast('Could not read that image — try a different file');
+    });
+  });
+
+  // Resize/compress client-side before storing as base64, so a phone photo
+  // doesn't bloat the database row — long edge capped at maxDim, re-encoded
+  // as JPEG at the given quality.
+  function resizeImageToDataUrl(file, maxDim, quality) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const reader = new FileReader();
+      reader.onload = () => {
+        img.onload = () => {
+          let { width, height } = img;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) { height = Math.round(height * (maxDim / width)); width = maxDim; }
+            else { width = Math.round(width * (maxDim / height)); height = maxDim; }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = reject;
+        img.src = reader.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  document.getElementById('saveBrandingBtn').addEventListener('click', async () => {
+    const title = document.getElementById('eventTitleInput').value.trim();
+    const updates = { event_title: title || null };
+    if (pendingBgDataUrl) updates.event_bg_image = pendingBgDataUrl;
+
+    const { error } = await db.from('crowdsays_sessions').update(updates).eq('id', sessionId);
+    if (error) {
+      console.error('Could not save branding:', error);
+      return showToast('Could not save branding — try again');
+    }
+
+    broadcast('crowdsays_branding_updated', {
+      event_title: updates.event_title,
+      event_bg_image: pendingBgDataUrl || undefined // only send image if it actually changed (avoid huge no-op payloads)
+    });
+    pendingBgDataUrl = null;
+    showToast('Branding sent to the big screen');
+  });
+
+  document.getElementById('clearBrandingBtn').addEventListener('click', async () => {
+    document.getElementById('eventTitleInput').value = '';
+    document.getElementById('bgPreviewWrap').style.display = 'none';
+    pendingBgDataUrl = null;
+
+    const { error } = await db.from('crowdsays_sessions').update({ event_title: null, event_bg_image: null }).eq('id', sessionId);
+    if (error) {
+      console.error('Could not clear branding:', error);
+      return showToast('Could not clear branding — try again');
+    }
+    broadcast('crowdsays_branding_updated', { event_title: null, event_bg_image: null, clear_image: true });
+    showToast('Branding cleared');
+  });
+
+  function loadBrandingIntoForm(sessionRow) {
+    document.getElementById('eventTitleInput').value = sessionRow.event_title || '';
+    if (sessionRow.event_bg_image) {
+      document.getElementById('bgPreviewImg').src = sessionRow.event_bg_image;
+      document.getElementById('bgPreviewWrap').style.display = 'block';
+    } else {
+      document.getElementById('bgPreviewWrap').style.display = 'none';
+    }
+  }
+
   // ====== SUPABASE STATE ======
   async function ensureStateRow() {
     const { data } = await db
@@ -446,19 +608,31 @@
         current_question_id: data.current_question_id,
         controlling_team: data.controlling_team,
         strikes: data.strikes,
-        team_a_score: data.team_a_score,
-        team_b_score: data.team_b_score,
+        team_scores: Array.isArray(data.team_scores) && data.team_scores.length === teamNames.length
+          ? data.team_scores
+          : teamNames.map(() => 0),
         round_status: data.round_status,
         pot: data.pot || 0
       };
+      // If team count changed since this state row was created, persist the resized scores array.
+      if (!Array.isArray(data.team_scores) || data.team_scores.length !== teamNames.length) {
+        await saveState();
+      }
     } else {
+      state = {
+        current_question_id: null,
+        controlling_team: null,
+        strikes: 0,
+        team_scores: teamNames.map(() => 0),
+        round_status: 'idle',
+        pot: 0
+      };
       await db.from('crowdsays_state').insert({
         session_id: sessionId,
         current_question_id: null,
         controlling_team: null,
         strikes: 0,
-        team_a_score: 0,
-        team_b_score: 0,
+        team_scores: state.team_scores,
         round_status: 'idle',
         pot: 0
       });
@@ -473,8 +647,7 @@
         current_question_id: state.current_question_id,
         controlling_team: state.controlling_team,
         strikes: state.strikes,
-        team_a_score: state.team_a_score,
-        team_b_score: state.team_b_score,
+        team_scores: state.team_scores,
         round_status: state.round_status,
         pot: state.pot
       })
@@ -536,23 +709,13 @@
     });
   }
 
-  function escapeHtml(s) {
-    const div = document.createElement('div');
-    div.textContent = s;
-    return div.innerHTML;
-  }
-
   function currentQuestion() {
     return questions.find(q => q.id === state.current_question_id) || null;
   }
 
   function renderState() {
-    document.getElementById('teamANameInput').value = teamNames.a;
-    document.getElementById('teamBNameInput').value = teamNames.b;
-    document.getElementById('teamAScore').textContent = state.team_a_score;
-    document.getElementById('teamBScore').textContent = state.team_b_score;
-    document.getElementById('teamACard').classList.toggle('control', state.controlling_team === 'a');
-    document.getElementById('teamBCard').classList.toggle('control', state.controlling_team === 'b');
+    renderTeamsGrid();
+
     document.getElementById('potValue').textContent = state.pot;
 
     [1, 2, 3].forEach(n => {
@@ -564,8 +727,8 @@
     const labels = {
       idle: ['status-idle', 'No question loaded'],
       randomizing: ['status-randomizing', 'Randomizing control on the big screen…'],
-      playing: ['status-playing', `${state.controlling_team === 'a' ? teamNames.a : teamNames.b} in control`],
-      steal: ['status-steal', `Steal attempt — ${state.controlling_team === 'a' ? teamNames.b : teamNames.a} gets one guess`]
+      playing: ['status-playing', `${teamLabel(state.controlling_team)} in control`],
+      steal: ['status-steal', `Steal attempt — open floor`]
     };
     const [cls, text] = labels[state.round_status] || labels.idle;
     banner.classList.add(cls);
@@ -574,9 +737,48 @@
     document.getElementById('randomizePanel').style.display = state.round_status === 'randomizing' ? 'block' : 'none';
     document.getElementById('liveBoardPanel').style.display = (state.round_status === 'playing' || state.round_status === 'steal') ? 'block' : 'none';
     document.getElementById('startStealBtn').disabled = state.strikes < 3 || state.round_status !== 'playing';
+    document.getElementById('stealPickerWrap').style.display = state.round_status === 'steal' ? 'block' : 'none';
 
+    if (state.round_status === 'steal') renderStealGrid();
     renderLiveBoard();
     renderBank();
+  }
+
+  function renderTeamsGrid() {
+    const grid = document.getElementById('teamsGrid');
+    grid.innerHTML = teamNames.map((name, i) => `
+      <div class="team-card ${state.controlling_team === i ? 'control' : ''}">
+        <input type="text" class="team-name-input" data-team-idx="${i}" value="${escapeHtml(name)}">
+        <div class="team-score">${state.team_scores[i] || 0}</div>
+      </div>
+    `).join('');
+
+    grid.querySelectorAll('.team-name-input').forEach(el => {
+      el.addEventListener('click', (e) => e.stopPropagation());
+      el.addEventListener('change', (e) => renameTeam(parseInt(e.target.dataset.teamIdx, 10), e.target.value.trim()));
+    });
+  }
+
+  async function renameTeam(idx, newName) {
+    teamNames[idx] = newName || `Table ${idx + 1}`;
+    const { error } = await db.from('crowdsays_sessions').update({ team_names: teamNames }).eq('id', sessionId);
+    if (error) {
+      console.error('Could not rename team:', error);
+      return showToast('Could not rename team — try again');
+    }
+    renderState();
+    broadcast('crowdsays_team_renamed', { team_names: teamNames });
+  }
+
+  function renderStealGrid() {
+    const grid = document.getElementById('stealGrid');
+    grid.innerHTML = teamNames.map((name, i) => {
+      if (i === state.controlling_team) return ''; // controlling team isn't the one stealing
+      return `<button class="steal-pick-btn" data-steal-idx="${i}">${escapeHtml(name)}</button>`;
+    }).join('');
+    grid.querySelectorAll('[data-steal-idx]').forEach(btn => {
+      btn.addEventListener('click', () => resolveSteal(true, parseInt(btn.dataset.stealIdx, 10)));
+    });
   }
 
   function renderLiveBoard() {
@@ -658,6 +860,113 @@
     showToast('Question added to bank');
   });
 
+  // ====== BATCH CSV UPLOAD ======
+  // Expected columns (header row optional, auto-detected):
+  // prompt, answer1, points1, answer2, points2, answer3, points3, answer4, points4
+  document.getElementById('uploadCsvBtn').addEventListener('click', () => {
+    document.getElementById('csvFileInput').click();
+  });
+
+  document.getElementById('csvFileInput').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const rows = parseCsv(text);
+      await importQuestionRows(rows);
+    } catch (err) {
+      console.error('CSV import failed:', err);
+      showToast('Could not read that CSV — check the format');
+    }
+    e.target.value = ''; // allow re-selecting the same file later
+  });
+
+  // Minimal CSV parser: handles quoted fields and commas inside quotes.
+  function parseCsv(text) {
+    const rows = [];
+    let row = [];
+    let field = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (inQuotes) {
+        if (c === '"' && text[i + 1] === '"') { field += '"'; i++; }
+        else if (c === '"') { inQuotes = false; }
+        else { field += c; }
+      } else {
+        if (c === '"') { inQuotes = true; }
+        else if (c === ',') { row.push(field); field = ''; }
+        else if (c === '\n' || c === '\r') {
+          if (c === '\r' && text[i + 1] === '\n') i++;
+          row.push(field); field = '';
+          if (row.some(f => f.trim() !== '')) rows.push(row);
+          row = [];
+        } else {
+          field += c;
+        }
+      }
+    }
+    if (field !== '' || row.length) {
+      row.push(field);
+      if (row.some(f => f.trim() !== '')) rows.push(row);
+    }
+    return rows;
+  }
+
+  async function importQuestionRows(rows) {
+    if (!rows.length) return showToast('CSV looks empty');
+
+    // Skip a header row if the first cell isn't usable as a real prompt
+    // (e.g. literally says "prompt") — otherwise treat every row as data.
+    let dataRows = rows;
+    const firstCell = (rows[0][0] || '').trim().toLowerCase();
+    if (firstCell === 'prompt' || firstCell === 'question') {
+      dataRows = rows.slice(1);
+    }
+
+    const toInsert = [];
+    let skipped = 0;
+
+    dataRows.forEach((cols, i) => {
+      // prompt, a1, p1, a2, p2, a3, p3, a4, p4 = 9 columns
+      if (cols.length < 9) { skipped++; return; }
+      const prompt = (cols[0] || '').trim();
+      const answers = [];
+      for (let a = 0; a < 4; a++) {
+        const text = (cols[1 + a * 2] || '').trim();
+        const points = parseInt(cols[2 + a * 2], 10) || 0;
+        if (!text) { skipped++; return; }
+        answers.push({ text, points });
+      }
+      if (!prompt || answers.length !== 4) { skipped++; return; }
+      answers.sort((a, b) => b.points - a.points);
+      toInsert.push({
+        session_id: sessionId,
+        prompt,
+        answers,
+        order_index: questions.length + toInsert.length,
+        revealed_answers: []
+      });
+    });
+
+    if (!toInsert.length) return showToast('No valid rows found in that CSV');
+
+    const { data, error } = await db
+      .from('crowdsays_questions')
+      .insert(toInsert)
+      .select();
+
+    if (error) {
+      console.error('Batch import failed:', error);
+      return showToast('Could not import — try again');
+    }
+
+    questions.push(...data);
+    renderBank();
+    showToast(`Imported ${data.length} question${data.length === 1 ? '' : 's'}${skipped ? ` (${skipped} skipped)` : ''}`);
+  }
+
   async function loadQuestionToBoard(questionId) {
     const q = questions.find(x => x.id === questionId);
     if (!q) return;
@@ -685,25 +994,31 @@
   document.getElementById('randomizeBtn').addEventListener('click', () => randomizeControl());
 
   async function randomizeControl() {
+    if (!teamNames.length) return showToast('No teams set up yet');
+
     // The pick happens here, host-side, so it's authoritative. The FOH/player
-    // screens run their own local shuffle animation, then reveal this result
-    // once their animation finishes — the suspense is purely presentational,
-    // the outcome is decided and broadcast immediately.
-    const team = Math.random() < 0.5 ? 'a' : 'b';
+    // screens run their own local shuffle animation through the full team
+    // list, then reveal this result once their animation finishes — the
+    // suspense is purely presentational, the outcome is decided and
+    // broadcast immediately.
+    const winningIndex = Math.floor(Math.random() * teamNames.length);
 
     document.getElementById('randomizeBtn').disabled = true;
-    broadcast('crowdsays_randomize_started', { result_team: team });
+    broadcast('crowdsays_randomize_started', {
+      team_names: teamNames,
+      result_index: winningIndex
+    });
 
     // Give the FOH shuffle animation time to play before locking in on host's own UI too
     showToast('Shuffling on the big screen…');
     await new Promise(r => setTimeout(r, 2400));
 
-    state.controlling_team = team;
+    state.controlling_team = winningIndex;
     state.round_status = 'playing';
     await saveState();
     renderState();
     document.getElementById('randomizeBtn').disabled = false;
-    showToast(`${team === 'a' ? teamNames.a : teamNames.b} controls the board`);
+    showToast(`${teamLabel(winningIndex)} controls the board`);
   }
 
   async function revealAnswer(index) {
@@ -736,8 +1051,9 @@
 
   document.getElementById('markStrikeBtn').addEventListener('click', async () => {
     if (state.round_status === 'steal') {
-      // a strike during steal means the stealing team failed -> controlling team keeps the pot
-      await resolveSteal(false);
+      // A strike during the open-floor steal means nobody guessed it correctly —
+      // the original controlling team keeps the pot.
+      await resolveSteal(false, null);
       return;
     }
     state.strikes = Math.min(3, state.strikes + 1);
@@ -751,24 +1067,20 @@
     await saveState();
     renderState();
     broadcast('crowdsays_steal_started', {
-      stealing_team: state.controlling_team === 'a' ? 'b' : 'a'
+      controlling_team: state.controlling_team
     });
-    showToast('Steal attempt — one guess only');
+    showToast('Steal open to the floor — one guess wins it');
   });
 
   document.getElementById('awardPotBtn').addEventListener('click', async () => {
-    if (state.round_status === 'steal') {
-      await resolveSteal(true);
-      return;
-    }
+    if (state.round_status === 'steal') return showToast('Pick who called it, or mark a strike if nobody got it');
     await awardPotToControllingTeam();
   });
 
   async function awardPotToControllingTeam() {
-    const team = state.controlling_team;
-    if (!team) return showToast('No controlling team set');
-    if (team === 'a') state.team_a_score += state.pot;
-    else state.team_b_score += state.pot;
+    const idx = state.controlling_team;
+    if (idx === null || idx === undefined) return showToast('No controlling team set');
+    state.team_scores[idx] = (state.team_scores[idx] || 0) + state.pot;
 
     const wonAmount = state.pot;
     state.pot = 0;
@@ -776,36 +1088,38 @@
     state.strikes = 0;
     await saveState();
     renderState();
-    broadcast('crowdsays_round_won', { team, amount: wonAmount, by_steal: false });
-    showToast(`${team === 'a' ? teamNames.a : teamNames.b} banks ${wonAmount} points`);
+    broadcast('crowdsays_round_won', { team_index: idx, amount: wonAmount, by_steal: false });
+    showToast(`${teamLabel(idx)} banks ${wonAmount} points`);
   }
 
-  // resolveSteal(success): true = stealing team guessed correctly and steals the pot
-  async function resolveSteal(success) {
-    const stealingTeam = state.controlling_team === 'a' ? 'b' : 'a';
-    const winningTeam = success ? stealingTeam : state.controlling_team;
+  // resolveSteal(success, stealerIndex):
+  //   success=true  -> stealerIndex team guessed correctly and steals the pot
+  //   success=false -> nobody on the floor got it; controlling team keeps the pot
+  async function resolveSteal(success, stealerIndex) {
+    const controllingIdx = state.controlling_team;
+    const winningIdx = success ? stealerIndex : controllingIdx;
 
-    if (winningTeam === 'a') state.team_a_score += state.pot;
-    else state.team_b_score += state.pot;
+    if (winningIdx !== null && winningIdx !== undefined) {
+      state.team_scores[winningIdx] = (state.team_scores[winningIdx] || 0) + state.pot;
+    }
 
     const wonAmount = state.pot;
     state.pot = 0;
     state.round_status = 'idle';
     state.strikes = 0;
-    const finalControl = state.controlling_team;
     state.controlling_team = null;
     await saveState();
     renderState();
 
     broadcast('crowdsays_round_won', {
-      team: winningTeam,
+      team_index: winningIdx,
       amount: wonAmount,
       by_steal: true,
       steal_success: success
     });
     showToast(success
-      ? `${stealingTeam === 'a' ? teamNames.a : teamNames.b} steals ${wonAmount} points!`
-      : `Steal failed — ${finalControl === 'a' ? teamNames.a : teamNames.b} keeps ${wonAmount} points`);
+      ? `${teamLabel(stealerIndex)} steals ${wonAmount} points!`
+      : `Steal failed — ${teamLabel(controllingIdx)} keeps ${wonAmount} points`);
   }
 
   document.getElementById('endQuestionBtn').addEventListener('click', async () => {
