@@ -596,6 +596,7 @@
   }
   window.addEventListener('error', function(e) {
     if (e.target && e.target.tagName === 'SCRIPT') {
+      if (e.target.dataset && e.target.dataset.optional === 'true') return; // non-critical script, fail silently
       showBannerMsg('⚠ SCRIPT FAILED TO LOAD: ' + (e.target.src || '(inline script)'));
       return;
     }
@@ -608,7 +609,7 @@
   });
 </script>
 
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js" data-optional="true"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
   onerror="showBannerMsg('⚠ Supabase CDN failed to load — check internet / ad-blocker')"></script>
 <script>
@@ -864,7 +865,17 @@
   function playerLink() { return window.location.href.replace(/crowdsays-host\.html.*$/, 'crowdsays-player.html') + `?room=${encodeURIComponent(roomCode)}`; }
 
   function renderShareQrCodes() {
-    if (!roomCode || typeof QRCode === 'undefined') return;
+    if (!roomCode) return;
+    const fohCard = document.getElementById('fohQrCard');
+    const playerCard = document.getElementById('playerQrCard');
+    if (typeof QRCode === 'undefined') {
+      // QR library didn't load (offline CDN, ad-blocker, etc) — hide cards, copy buttons still work
+      if (fohCard) fohCard.style.display = 'none';
+      if (playerCard) playerCard.style.display = 'none';
+      return;
+    }
+    if (fohCard) fohCard.style.display = '';
+    if (playerCard) playerCard.style.display = '';
     const qrOpts = { width: 150, margin: 1, color: { dark: '#06080F', light: '#FFFFFF' } };
     const fohCanvas = document.getElementById('fohQrCanvas');
     const playerCanvas = document.getElementById('playerQrCanvas');
