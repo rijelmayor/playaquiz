@@ -511,6 +511,7 @@
         </div>
         <div class="steal-grid" id="stealGrid"></div>
       </div>
+      <div id="stealResultBanner" style="display:none; margin-top:12px; padding:14px; border-radius:10px; background:rgba(61,220,151,0.12); border:1px solid var(--teal); text-align:center; font-family:var(--font-mono); font-size:13px; color:var(--teal);"></div>
     </div>
 
     <!-- Randomize control with manual selection -->
@@ -1507,37 +1508,65 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
     showToast(`${teamLabel(idx)} banks ${wonAmount} points`);
   }
 
-  async function resolveSteal(success, stealerIndex) {
-    const controllingIdx = state.controlling_team;
+  function showStealResultBanner(message, ms) {
+    const banner = document.getElementById('stealResultBanner');
+    banner.textContent = message;
+    banner.style.display = 'block';
+    document.getElementById('randomStealPickBtn').disabled = true;
+    document.querySelectorAll('.steal-pick-btn').forEach(btn => btn.disabled = true);
+    return new Promise(resolve => setTimeout(() => {
+      banner.style.display = 'none';
+      document.getElementById('randomStealPickBtn').disabled = false;
+      resolve();
+    }, ms));
+  }
 
-    if (success) {
-      // Steal succeeded — the floor team takes control and play continues
-      // on the same board/pot. Nothing is banked yet; strikes reset to zero
-      // so the new controller gets a fresh 3 strikes on the remaining answers.
-      state.controlling_team = stealerIndex;
+  let stealResolving = false;
+  async function resolveSteal(success, stealerIndex) {
+    if (stealResolving) return;
+    stealResolving = true;
+    try {
+      const controllingIdx = state.controlling_team;
+
+      if (success) {
+        // Steal succeeded — the floor team takes control and play continues
+        // on the same board/pot. Nothing is banked yet; strikes reset to zero
+        // so the new controller gets a fresh 3 strikes on the remaining answers.
+        const stealerName = teamLabel(stealerIndex);
+        const potAtSteal = state.pot;
+        await showStealResultBanner(`✅ ${stealerName} steals it! Play continues — pot carries over (${potAtSteal} pts)`, 1800);
+
+        state.controlling_team = stealerIndex;
+        state.strikes = 0;
+        state.round_status = 'playing';
+        await saveState();
+        renderState();
+        broadcast('crowdsays_steal_won', { team_index: stealerIndex, previous_controller: controllingIdx, pot: state.pot });
+        showToast(`${stealerName} now controls the board`);
+        return;
+      }
+
+      // Steal failed — nobody on the floor got it, round ends, original controller banks the pot
+      const controllingName = teamLabel(controllingIdx);
+      const potAtFail = state.pot;
+      await showStealResultBanner(`❌ Steal failed — ${controllingName} keeps ${potAtFail} pts`, 1800);
+
+      const winningIdx = controllingIdx;
+      if (winningIdx !== null && winningIdx !== undefined) {
+        state.team_scores[winningIdx] = (state.team_scores[winningIdx] || 0) + state.pot;
+      }
+      const wonAmount = state.pot;
+      state.pot = 0;
+      state.round_status = 'idle';
       state.strikes = 0;
-      state.round_status = 'playing';
+      state.controlling_team = null;
       await saveState();
       renderState();
-      broadcast('crowdsays_steal_won', { team_index: stealerIndex, previous_controller: controllingIdx, pot: state.pot });
-      showToast(`${teamLabel(stealerIndex)} steals control — pot carries over (${state.pot} pts)`);
-      return;
+      broadcast('crowdsays_round_won', { team_index: winningIdx, amount: wonAmount, by_steal: true, steal_success: false });
+      showToast(`${controllingName} banks ${wonAmount} points`);
+    } finally {
+      stealResolving = false;
     }
-
-    // Steal failed — nobody on the floor got it, round ends, original controller banks the pot
-    const winningIdx = controllingIdx;
-    if (winningIdx !== null && winningIdx !== undefined) {
-      state.team_scores[winningIdx] = (state.team_scores[winningIdx] || 0) + state.pot;
-    }
-    const wonAmount = state.pot;
-    state.pot = 0;
-    state.round_status = 'idle';
-    state.strikes = 0;
-    state.controlling_team = null;
-    await saveState();
-    renderState();
-    broadcast('crowdsays_round_won', { team_index: winningIdx, amount: wonAmount, by_steal: true, steal_success: false });
-    showToast(`Steal failed — ${teamLabel(controllingIdx)} keeps ${wonAmount} points`);
   }
 
   document.getElementById('endQuestionBtn').addEventListener('click', async () => {
