@@ -505,7 +505,10 @@
         <button class="btn btn-teal btn-block" id="awardPotBtn">Award pot to controlling team</button>
       </div>
       <div id="stealPickerWrap" style="display:none; margin-top:12px;">
-        <div class="panel-label" style="margin-bottom:6px;">Who called out the steal answer?</div>
+        <div class="panel-label" style="margin-bottom:6px;">
+          <span>Who called out the steal answer?</span>
+          <button class="btn btn-ghost" id="randomStealPickBtn" style="padding:4px 10px; font-size:10px;">🎲 Random pick</button>
+        </div>
         <div class="steal-grid" id="stealGrid"></div>
       </div>
     </div>
@@ -1478,6 +1481,13 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
     showToast('Steal open to the floor — one guess wins it');
   });
 
+  document.getElementById('randomStealPickBtn').addEventListener('click', () => {
+    const floorTeams = teamNames.map((_, i) => i).filter(i => i !== state.controlling_team);
+    if (!floorTeams.length) return showToast('No other teams to pick from');
+    const pickedIdx = floorTeams[Math.floor(Math.random() * floorTeams.length)];
+    resolveSteal(true, pickedIdx);
+  });
+
   document.getElementById('awardPotBtn').addEventListener('click', async () => {
     if (state.round_status === 'steal') return showToast('Pick who called it, or mark a strike if nobody got it');
     await awardPotToControllingTeam();
@@ -1499,7 +1509,23 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
 
   async function resolveSteal(success, stealerIndex) {
     const controllingIdx = state.controlling_team;
-    const winningIdx = success ? stealerIndex : controllingIdx;
+
+    if (success) {
+      // Steal succeeded — the floor team takes control and play continues
+      // on the same board/pot. Nothing is banked yet; strikes reset to zero
+      // so the new controller gets a fresh 3 strikes on the remaining answers.
+      state.controlling_team = stealerIndex;
+      state.strikes = 0;
+      state.round_status = 'playing';
+      await saveState();
+      renderState();
+      broadcast('crowdsays_steal_won', { team_index: stealerIndex, previous_controller: controllingIdx, pot: state.pot });
+      showToast(`${teamLabel(stealerIndex)} steals control — pot carries over (${state.pot} pts)`);
+      return;
+    }
+
+    // Steal failed — nobody on the floor got it, round ends, original controller banks the pot
+    const winningIdx = controllingIdx;
     if (winningIdx !== null && winningIdx !== undefined) {
       state.team_scores[winningIdx] = (state.team_scores[winningIdx] || 0) + state.pot;
     }
@@ -1510,8 +1536,8 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
     state.controlling_team = null;
     await saveState();
     renderState();
-    broadcast('crowdsays_round_won', { team_index: winningIdx, amount: wonAmount, by_steal: true, steal_success: success });
-    showToast(success ? `${teamLabel(stealerIndex)} steals ${wonAmount} points!` : `Steal failed — ${teamLabel(controllingIdx)} keeps ${wonAmount} points`);
+    broadcast('crowdsays_round_won', { team_index: winningIdx, amount: wonAmount, by_steal: true, steal_success: false });
+    showToast(`Steal failed — ${teamLabel(controllingIdx)} keeps ${wonAmount} points`);
   }
 
   document.getElementById('endQuestionBtn').addEventListener('click', async () => {
