@@ -65,9 +65,26 @@
   .btn-ghost { background: transparent; color: var(--text-hi); border: 1px solid var(--navy-line); }
   .btn-block { width: 100%; }
   .btn-row { display: flex; gap: 8px; }
-  .qr-output { display: none; margin-top: 10px; text-align: center; }
-  .qr-output.show { display: block; }
-  .qr-output canvas { background: #fff; padding: 8px; border-radius: 8px; }
+
+  .qr-modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(6,8,15,0.82);
+    z-index: 500; align-items: center; justify-content: center; padding: 20px;
+  }
+  .qr-modal-overlay.show { display: flex; }
+  .qr-modal-card {
+    background: var(--navy-panel); border: 1px solid var(--navy-line); border-radius: 14px;
+    padding: 24px; max-width: 320px; width: 100%; text-align: center; position: relative;
+  }
+  .qr-modal-card .qr-modal-label {
+    font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.1em; color: var(--gold);
+    text-transform: uppercase; margin-bottom: 14px;
+  }
+  .qr-modal-card .qr-modal-canvas-wrap { display: inline-block; background: #fff; padding: 10px; border-radius: 10px; }
+  .qr-modal-close {
+    position: absolute; top: 10px; right: 10px; background: transparent; border: none;
+    color: var(--text-lo); font-size: 20px; line-height: 1; cursor: pointer; padding: 6px;
+  }
+  .qr-modal-close:hover { color: var(--text-hi); }
 
   .bank-list { display: flex; flex-direction: column; gap: 6px; max-height: 320px; overflow-y: auto; }
   .bank-item {
@@ -455,8 +472,6 @@
         <button class="btn btn-ghost btn-block" id="generateFohQrBtn">Generate FOH QR</button>
         <button class="btn btn-ghost btn-block" id="generatePlayerQrBtn">Generate Player QR</button>
       </div>
-      <div class="qr-output" id="fohQrOutput"><div id="fohQrCanvas"></div></div>
-      <div class="qr-output" id="playerQrOutput"><div id="playerQrCanvas"></div></div>
     </div>
 
     <!-- Teams -->
@@ -565,6 +580,14 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<div class="qr-modal-overlay" id="qrModalOverlay">
+  <div class="qr-modal-card">
+    <button class="qr-modal-close" id="qrModalCloseBtn">✕</button>
+    <div class="qr-modal-label" id="qrModalLabel"></div>
+    <div class="qr-modal-canvas-wrap" id="qrModalCanvas"></div>
+  </div>
+</div>
 
 <div id="errorBanner">
   <button class="err-close" onclick="document.getElementById('errorBanner').style.display='none'">✕ dismiss</button>
@@ -860,28 +883,39 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
     catch (e) { showToast(playerLink()); }
   });
 
-  const qrInstances = {};
-  function generateQr(url, targetId, outputId) {
+  let qrModalInstance = null;
+  function openQrModal(url, label) {
     if (!roomCode) return showToast('Start a room first');
     if (typeof QRCode === 'undefined') return showToast('QR generator unavailable');
     try {
-      const target = document.getElementById(targetId);
-      if (qrInstances[targetId]) {
-        qrInstances[targetId].clear();
-        qrInstances[targetId].makeCode(url);
+      document.getElementById('qrModalLabel').textContent = label;
+      const target = document.getElementById('qrModalCanvas');
+      if (qrModalInstance) {
+        qrModalInstance.clear();
+        qrModalInstance.makeCode(url);
       } else {
-        qrInstances[targetId] = new QRCode(target, { text: url, width: 160, height: 160 });
+        qrModalInstance = new QRCode(target, { text: url, width: 200, height: 200 });
       }
-      document.getElementById(outputId).classList.add('show');
+      document.getElementById('qrModalOverlay').classList.add('show');
     } catch (e) {
       showToast('Could not generate QR code');
     }
   }
+  function closeQrModal() {
+    document.getElementById('qrModalOverlay').classList.remove('show');
+  }
   document.getElementById('generateFohQrBtn').addEventListener('click', () => {
-    generateQr(fohLink(), 'fohQrCanvas', 'fohQrOutput');
+    openQrModal(fohLink(), 'FOH Screen');
   });
   document.getElementById('generatePlayerQrBtn').addEventListener('click', () => {
-    generateQr(playerLink(), 'playerQrCanvas', 'playerQrOutput');
+    openQrModal(playerLink(), 'Player');
+  });
+  document.getElementById('qrModalCloseBtn').addEventListener('click', closeQrModal);
+  document.getElementById('qrModalOverlay').addEventListener('click', (e) => {
+    if (e.target.id === 'qrModalOverlay') closeQrModal();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeQrModal();
   });
 
   // ====== SUPABASE STATE ======
