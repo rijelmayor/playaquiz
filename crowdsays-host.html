@@ -596,7 +596,6 @@
   }
   window.addEventListener('error', function(e) {
     if (e.target && e.target.tagName === 'SCRIPT') {
-      if (e.target.dataset && e.target.dataset.optional === 'true') return; // non-critical script, fail silently
       showBannerMsg('⚠ SCRIPT FAILED TO LOAD: ' + (e.target.src || '(inline script)'));
       return;
     }
