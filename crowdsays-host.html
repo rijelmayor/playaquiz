@@ -66,6 +66,20 @@
   .btn-block { width: 100%; }
   .btn-row { display: flex; gap: 8px; }
 
+  .qr-row { display: flex; gap: 14px; margin-top: 14px; }
+  .qr-card {
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px;
+    background: var(--navy-deep); border: 1px solid var(--navy-line); border-radius: 10px;
+    padding: 12px; cursor: pointer; transition: border-color 0.15s;
+  }
+  .qr-card:hover { border-color: var(--gold-dim); }
+  .qr-card canvas { width: 100%; max-width: 150px; height: auto; border-radius: 6px; background: #fff; padding: 6px; }
+  .qr-card .qr-label {
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em;
+    color: var(--text-lo); text-transform: uppercase; text-align: center;
+  }
+  @media (max-width: 480px) { .qr-row { flex-direction: column; } .qr-card canvas { max-width: 200px; } }
+
   .bank-list { display: flex; flex-direction: column; gap: 6px; max-height: 320px; overflow-y: auto; }
   .bank-item {
     display: flex; justify-content: space-between; align-items: center;
@@ -448,6 +462,16 @@
         <button class="btn btn-ghost btn-block" id="copyFohLinkBtn">Copy FOH screen link</button>
         <button class="btn btn-ghost btn-block" id="copyPlayerLinkBtn">Copy player link</button>
       </div>
+      <div class="qr-row">
+        <div class="qr-card" id="fohQrCard" title="Click to copy FOH link">
+          <canvas id="fohQrCanvas"></canvas>
+          <div class="qr-label">📺 FOH Screen</div>
+        </div>
+        <div class="qr-card" id="playerQrCard" title="Click to copy player link">
+          <canvas id="playerQrCanvas"></canvas>
+          <div class="qr-label">📱 Player</div>
+        </div>
+      </div>
     </div>
 
     <!-- Teams -->
@@ -584,6 +608,7 @@
   });
 </script>
 
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"
   onerror="showBannerMsg('⚠ Supabase CDN failed to load — check internet / ad-blocker')"></script>
 <script>
@@ -796,6 +821,7 @@
     await loadQuestions();
     subscribeRealtime();
     setConn(true);
+    renderShareQrCodes();
   }
 
   // ====== TEAM SETUP ======
@@ -836,6 +862,24 @@
   // ====== SHARE LINKS ======
   function fohLink() { return window.location.href.replace(/crowdsays-host\.html.*$/, 'crowdsays-foh.html') + `?room=${encodeURIComponent(roomCode)}`; }
   function playerLink() { return window.location.href.replace(/crowdsays-host\.html.*$/, 'crowdsays-player.html') + `?room=${encodeURIComponent(roomCode)}`; }
+
+  function renderShareQrCodes() {
+    if (!roomCode || typeof QRCode === 'undefined') return;
+    const qrOpts = { width: 150, margin: 1, color: { dark: '#06080F', light: '#FFFFFF' } };
+    const fohCanvas = document.getElementById('fohQrCanvas');
+    const playerCanvas = document.getElementById('playerQrCanvas');
+    if (fohCanvas) QRCode.toCanvas(fohCanvas, fohLink(), qrOpts, (err) => { if (err) console.error(err); });
+    if (playerCanvas) QRCode.toCanvas(playerCanvas, playerLink(), qrOpts, (err) => { if (err) console.error(err); });
+  }
+
+  document.getElementById('fohQrCard').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(fohLink()); showToast('FOH link copied'); }
+    catch (e) { showToast(fohLink()); }
+  });
+  document.getElementById('playerQrCard').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(playerLink()); showToast('Player link copied'); }
+    catch (e) { showToast(playerLink()); }
+  });
 
   document.getElementById('copyFohLinkBtn').addEventListener('click', async () => {
     try { await navigator.clipboard.writeText(fohLink()); showToast('FOH link copied'); }
