@@ -65,20 +65,9 @@
   .btn-ghost { background: transparent; color: var(--text-hi); border: 1px solid var(--navy-line); }
   .btn-block { width: 100%; }
   .btn-row { display: flex; gap: 8px; }
-
-  .qr-row { display: flex; gap: 14px; margin-top: 14px; }
-  .qr-card {
-    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px;
-    background: var(--navy-deep); border: 1px solid var(--navy-line); border-radius: 10px;
-    padding: 12px; cursor: pointer; transition: border-color 0.15s;
-  }
-  .qr-card:hover { border-color: var(--gold-dim); }
-  .qr-card canvas { width: 100%; max-width: 150px; height: auto; border-radius: 6px; background: #fff; padding: 6px; }
-  .qr-card .qr-label {
-    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em;
-    color: var(--text-lo); text-transform: uppercase; text-align: center;
-  }
-  @media (max-width: 480px) { .qr-row { flex-direction: column; } .qr-card canvas { max-width: 200px; } }
+  .qr-output { display: none; margin-top: 10px; text-align: center; }
+  .qr-output.show { display: block; }
+  .qr-output canvas { background: #fff; padding: 8px; border-radius: 8px; }
 
   .bank-list { display: flex; flex-direction: column; gap: 6px; max-height: 320px; overflow-y: auto; }
   .bank-item {
@@ -462,16 +451,12 @@
         <button class="btn btn-ghost btn-block" id="copyFohLinkBtn">Copy FOH screen link</button>
         <button class="btn btn-ghost btn-block" id="copyPlayerLinkBtn">Copy player link</button>
       </div>
-      <div class="qr-row">
-        <div class="qr-card" id="fohQrCard" title="Click to copy FOH link">
-          <canvas id="fohQrCanvas"></canvas>
-          <div class="qr-label">📺 FOH Screen</div>
-        </div>
-        <div class="qr-card" id="playerQrCard" title="Click to copy player link">
-          <canvas id="playerQrCanvas"></canvas>
-          <div class="qr-label">📱 Player</div>
-        </div>
+      <div class="btn-row" style="margin-top:8px;">
+        <button class="btn btn-ghost btn-block" id="generateFohQrBtn">Generate FOH QR</button>
+        <button class="btn btn-ghost btn-block" id="generatePlayerQrBtn">Generate Player QR</button>
       </div>
+      <div class="qr-output" id="fohQrOutput"><canvas id="fohQrCanvas"></canvas></div>
+      <div class="qr-output" id="playerQrOutput"><canvas id="playerQrCanvas"></canvas></div>
     </div>
 
     <!-- Teams -->
@@ -596,6 +581,7 @@
   }
   window.addEventListener('error', function(e) {
     if (e.target && e.target.tagName === 'SCRIPT') {
+      if (e.target.dataset && e.target.dataset.optional === 'true') return;
       showBannerMsg('⚠ SCRIPT FAILED TO LOAD: ' + (e.target.src || '(inline script)'));
       return;
     }
@@ -821,7 +807,6 @@
     await loadQuestions();
     subscribeRealtime();
     setConn(true);
-    renderShareQrCodes();
   }
 
   // ====== TEAM SETUP ======
@@ -863,34 +848,6 @@
   function fohLink() { return window.location.href.replace(/crowdsays-host\.html.*$/, 'crowdsays-foh.html') + `?room=${encodeURIComponent(roomCode)}`; }
   function playerLink() { return window.location.href.replace(/crowdsays-host\.html.*$/, 'crowdsays-player.html') + `?room=${encodeURIComponent(roomCode)}`; }
 
-  function renderShareQrCodes() {
-    if (!roomCode) return;
-    const fohCard = document.getElementById('fohQrCard');
-    const playerCard = document.getElementById('playerQrCard');
-    if (typeof QRCode === 'undefined') {
-      // QR library didn't load (offline CDN, ad-blocker, etc) — hide cards, copy buttons still work
-      if (fohCard) fohCard.style.display = 'none';
-      if (playerCard) playerCard.style.display = 'none';
-      return;
-    }
-    if (fohCard) fohCard.style.display = '';
-    if (playerCard) playerCard.style.display = '';
-    const qrOpts = { width: 150, margin: 1, color: { dark: '#06080F', light: '#FFFFFF' } };
-    const fohCanvas = document.getElementById('fohQrCanvas');
-    const playerCanvas = document.getElementById('playerQrCanvas');
-    if (fohCanvas) QRCode.toCanvas(fohCanvas, fohLink(), qrOpts, (err) => { if (err) console.error(err); });
-    if (playerCanvas) QRCode.toCanvas(playerCanvas, playerLink(), qrOpts, (err) => { if (err) console.error(err); });
-  }
-
-  document.getElementById('fohQrCard').addEventListener('click', async () => {
-    try { await navigator.clipboard.writeText(fohLink()); showToast('FOH link copied'); }
-    catch (e) { showToast(fohLink()); }
-  });
-  document.getElementById('playerQrCard').addEventListener('click', async () => {
-    try { await navigator.clipboard.writeText(playerLink()); showToast('Player link copied'); }
-    catch (e) { showToast(playerLink()); }
-  });
-
   document.getElementById('copyFohLinkBtn').addEventListener('click', async () => {
     try { await navigator.clipboard.writeText(fohLink()); showToast('FOH link copied'); }
     catch (e) { showToast(fohLink()); }
@@ -898,6 +855,22 @@
   document.getElementById('copyPlayerLinkBtn').addEventListener('click', async () => {
     try { await navigator.clipboard.writeText(playerLink()); showToast('Player link copied'); }
     catch (e) { showToast(playerLink()); }
+  });
+
+  function generateQr(url, canvasId, outputId) {
+    if (!roomCode) return showToast('Start a room first');
+    if (typeof QRCode === 'undefined') return showToast('QR generator unavailable');
+    const canvas = document.getElementById(canvasId);
+    QRCode.toCanvas(canvas, url, { width: 160, margin: 1 }, (err) => {
+      if (err) return showToast('Could not generate QR code');
+      document.getElementById(outputId).classList.add('show');
+    });
+  }
+  document.getElementById('generateFohQrBtn').addEventListener('click', () => {
+    generateQr(fohLink(), 'fohQrCanvas', 'fohQrOutput');
+  });
+  document.getElementById('generatePlayerQrBtn').addEventListener('click', () => {
+    generateQr(playerLink(), 'playerQrCanvas', 'playerQrOutput');
   });
 
   // ====== SUPABASE STATE ======
