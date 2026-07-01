@@ -100,37 +100,7 @@
       border-radius: 12px;
     }
     
-    .stats-container {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 20px;
-      padding: 20px;
-      max-width: 1200px;
-      margin: 0 auto;
-    }
-    .stat-card {
-      background: transparent !important;
-      backdrop-filter: none !important;
-      -webkit-backdrop-filter: none !important;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 24px;
-      padding: 24px 16px;
-      text-align: center;
-    }
-    .stat-value {
-      font-size: 48px;
-      font-weight: 800;
-      color: #7ab7ff;
-      text-shadow: 0 0 40px rgba(59,130,246,0.15);
-    }
-    .stat-label {
-      font-size: 14px;
-      color: rgba(255,255,255,0.65);
-      margin-top: 8px;
-      letter-spacing: 0.5px;
-    }
-    
-    /* Leaderboard toggle button */
+    /* Stats removed - only leaderboard toggle remains */
     .leaderboard-toggle {
       text-align: center;
       margin: 10px auto 30px;
@@ -341,9 +311,6 @@
     @media (max-width: 640px) {
       .qr-section { padding: 24px 16px; margin: 12px; }
       .qr-title { font-size: 34px; }
-      .stats-container { grid-template-columns: 1fr 1fr; gap: 12px; padding: 12px; }
-      .stat-card { padding: 16px; }
-      .stat-value { font-size: 36px; }
       .room-code-big { font-size: 38px; letter-spacing: 4px; padding: 12px 20px; }
       .entry-card { padding: 32px 20px; }
       .leaderboard-modal-content { padding: 24px 16px; max-height: 85vh; }
@@ -384,13 +351,7 @@
       </div>
     </div>
 
-    <div class="stats-container">
-      <div class="stat-card"><div class="stat-value" id="statPlayers">0</div><div class="stat-label">Total Players</div></div>
-      <div class="stat-card"><div class="stat-value" id="statActive">0</div><div class="stat-label">Playing Now</div></div>
-      <div class="stat-card"><div class="stat-value" id="statCompleted">0</div><div class="stat-label">Completed</div></div>
-    </div>
-
-    <!-- Clickable Leaderboard Toggle -->
+    <!-- Clickable Leaderboard Toggle (stats removed) -->
     <div class="toggle-wrapper">
       <div class="leaderboard-toggle" id="leaderboardToggle" onclick="toggleLeaderboard()">
         🏆 LEADERBOARD
@@ -455,7 +416,6 @@ function displayTimezoneInfo() {
   }
 }
 
-// ── Leaderboard Toggle ────────────────────────────────────────────
 function toggleLeaderboard() {
   const modal = document.getElementById('leaderboardModal');
   modal.classList.toggle('open');
@@ -497,7 +457,6 @@ function renderModalLeaderboard() {
   }).join('');
 }
 
-// ── Room Check ─────────────────────────────────────────────────────
 async function checkAndConnectToRoom(code) {
   try {
     const { data: session, error } = await sb
@@ -674,25 +633,6 @@ async function loadStats() {
     if (error) throw error;
     
     cachedPlayers = players || [];
-    
-    if (!players || players.length === 0) {
-      document.getElementById('statPlayers').innerText = '0';
-      document.getElementById('statActive').innerText = '0';
-      document.getElementById('statCompleted').innerText = '0';
-      // Update modal if open
-      if (document.getElementById('leaderboardModal').classList.contains('open')) {
-        renderModalLeaderboard();
-      }
-      return;
-    }
-    
-    const totalPlayers = players.length;
-    const activePlayers = players.filter(p => !p.completed && !p.is_eliminated).length;
-    const completedPlayers = players.filter(p => p.completed === true).length;
-    
-    document.getElementById('statPlayers').innerText = totalPlayers;
-    document.getElementById('statActive').innerText = activePlayers;
-    document.getElementById('statCompleted').innerText = completedPlayers;
     
     // Update modal if open
     if (document.getElementById('leaderboardModal').classList.contains('open')) {
