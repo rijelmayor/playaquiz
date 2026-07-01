@@ -386,9 +386,38 @@
       gap: 6px;
       margin-top: 8px;
     }
+
+    #brandingBgLayer {
+  position: fixed;
+  inset: 0;
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  z-index: -2;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+#brandingBgLayer.active { opacity: 1; }
+#brandingBgOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(6,8,15,0.78);
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+  pointer-events: none;
+}
+#brandingBgOverlay.active { opacity: 1; }
+
+
   </style>
 </head>
 <body>
+
+  <div id="brandingBgLayer"></div>
+<div id="brandingBgOverlay"></div>
+
+
 <div class="container">
   <div id="joinScreen">
     <div class="join-card">
@@ -795,6 +824,27 @@ async function joinGame() {
   }
 }
 
+function applyBrandingImage(url) {
+  const layer = document.getElementById('brandingBgLayer');
+  const overlay = document.getElementById('brandingBgOverlay');
+  if (url) {
+    layer.style.backgroundImage = `url('${url}')`;
+    layer.classList.add('active');
+    overlay.classList.add('active');
+  } else {
+    layer.classList.remove('active');
+    overlay.classList.remove('active');
+    layer.style.backgroundImage = '';
+  }
+}
+
+async function loadBranding() {
+  if (!SESSION_ID) return;
+  const { data } = await sb.from('game_sessions').select('branding_image').eq('id', SESSION_ID).maybeSingle();
+  applyBrandingImage(data && data.branding_image ? data.branding_image : null);
+}
+
+
 async function startQuiz() {
   const isActive = await checkGameStatus();
   if (!isActive) {
@@ -976,14 +1026,12 @@ function setupRealtime() {
   if (realtimeChannel) try { sb.removeChannel(realtimeChannel); } catch(e) {}
   realtimeChannel = sb.channel(`player-${myPlayer.id}`);
   realtimeChannel
-    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'players', filter: `id=eq.${myPlayer.id}` }, (payload) => {
-      if (payload.new) {
-        myPlayer = payload.new;
-        score = myPlayer.score || 0;
-        correctCount = myPlayer.correct_count || 0;
-        if (document.getElementById('scoreDisplay')) document.getElementById('scoreDisplay').innerHTML = `${score} pts`;
-      }
-    })
+    .on('postgres_changes', {
+  event: 'UPDATE',
+  schema: 'public',
+  table: 'game_sessions',
+  filter: `session_id=eq.${SESSION_ID}`
+}, (payload) => applyBrandingImage(payload.new.branding_image))
     .subscribe();
 }
 

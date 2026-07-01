@@ -213,9 +213,36 @@
       color: rgba(255,255,255,0.3);
       font-size: 12px;
     }
+
+    #brandingBgLayer {
+  position: fixed;
+  inset: 0;
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  z-index: -2;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+#brandingBgLayer.active { opacity: 1; }
+#brandingBgOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(6,8,15,0.72);
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+  pointer-events: none;
+}
+#brandingBgOverlay.active { opacity: 1; }
+
   </style>
 </head>
 <body>
+
+  <div id="brandingBgLayer"></div>
+<div id="brandingBgOverlay"></div>
+
 <div id="roomEntry" class="room-entry">
   <div class="entry-card">
     <div style="font-size: 36px; font-weight: 800; margin-bottom: 8px;">PLAY<span style="color:#3b82f6">A</span>QUIZ</div>
@@ -405,6 +432,26 @@ async function connectToRoom() {
   btn.innerText = 'Connect →';
 }
 
+function applyBrandingImage(url) {
+  const layer = document.getElementById('brandingBgLayer');
+  const overlay = document.getElementById('brandingBgOverlay');
+  if (url) {
+    layer.style.backgroundImage = `url('${url}')`;
+    layer.classList.add('active');
+    overlay.classList.add('active');
+  } else {
+    layer.classList.remove('active');
+    overlay.classList.remove('active');
+    layer.style.backgroundImage = '';
+  }
+}
+
+async function loadBranding() {
+  if (!SESSION_ID) return;
+  const { data } = await sb.from('game_sessions').select('branding_image').eq('id', SESSION_ID).maybeSingle();
+  applyBrandingImage(data && data.branding_image ? data.branding_image : null);
+}
+
 function generateQRCode() {
   const joinUrl = `${window.location.origin}/player-sp.html?room=${ROOM_CODE}`;
   document.getElementById('joinUrlDisplay').innerText = joinUrl;
@@ -524,12 +571,12 @@ function setupRealtime() {
   
   realtimeChannel = sb.channel(`foh-${SESSION_ID}`);
   realtimeChannel
-    .on('postgres_changes', { 
-      event: '*', 
-      schema: 'public', 
-      table: 'players', 
-      filter: `session_id=eq.${SESSION_ID}` 
-    }, () => loadStats())
+    .on('postgres_changes', {
+  event: 'UPDATE',
+  schema: 'public',
+  table: 'game_sessions',
+  filter: `id=eq.${SESSION_ID}`
+}, (payload) => applyBrandingImage(payload.new.branding_image))
     .subscribe();
 }
 
