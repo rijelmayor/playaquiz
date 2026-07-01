@@ -10,30 +10,29 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      /* transparent background – your branding image will show through */
-      background: transparent;
+      background: transparent !important;
       font-family: 'Space Grotesk', sans-serif;
       color: #fff;
       min-height: 100vh;
-      /* subtle glass effect so cards pop on any image */
+      min-height: 100dvh;
     }
     
-    /* cards and containers become glass with blur – perfect for branding image */
+    /* All cards are transparent glass – your branding image shows through */
     .qr-section {
-      background: rgba(13, 17, 32, 0.55);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 32px;
       padding: 40px 32px;
       text-align: center;
       margin: 20px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
     }
     .qr-title {
       font-family: 'Bebas Neue', sans-serif;
       font-size: 48px;
-      background: linear-gradient(135deg, #fff, #93bbfc);
+      background: linear-gradient(135deg, #ffffff, #7ab7ff);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       margin-bottom: 12px;
@@ -41,7 +40,7 @@
     }
     .qr-subtitle {
       font-size: 18px;
-      color: rgba(255,255,255,0.7);
+      color: rgba(255,255,255,0.75);
       margin-bottom: 24px;
       font-weight: 400;
     }
@@ -57,7 +56,7 @@
       padding: 16px;
       border-radius: 24px;
       display: inline-block;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     }
     #qrcode canvas, #qrcode img {
       display: block;
@@ -67,15 +66,16 @@
       font-family: 'JetBrains Mono', monospace;
       font-size: 56px;
       font-weight: 700;
-      color: #93bbfc;
+      color: #7ab7ff;
       letter-spacing: 8px;
       margin: 20px 0;
-      background: rgba(0,0,0,0.3);
+      background: rgba(0,0,0,0.25);
       backdrop-filter: blur(4px);
       padding: 16px 32px;
       border-radius: 20px;
       display: inline-block;
-      border: 1px solid rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.06);
+      text-shadow: 0 0 30px rgba(59,130,246,0.2);
     }
     .join-link {
       font-family: monospace;
@@ -84,10 +84,10 @@
       word-break: break-all;
       margin-top: 16px;
       padding: 10px 16px;
-      background: rgba(0,0,0,0.25);
+      background: rgba(0,0,0,0.2);
       backdrop-filter: blur(4px);
       border-radius: 12px;
-      border: 1px solid rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.04);
     }
     
     .stats-container {
@@ -99,20 +99,20 @@
       margin: 0 auto;
     }
     .stat-card {
-      background: rgba(13, 17, 32, 0.5);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.06);
       border-radius: 24px;
       padding: 24px 16px;
       text-align: center;
-      box-shadow: 0 12px 30px rgba(0,0,0,0.3);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.3);
     }
     .stat-value {
       font-size: 48px;
       font-weight: 800;
-      color: #93bbfc;
-      text-shadow: 0 0 20px rgba(59,130,246,0.3);
+      color: #7ab7ff;
+      text-shadow: 0 0 30px rgba(59,130,246,0.2);
     }
     .stat-label {
       font-size: 14px;
@@ -122,15 +122,15 @@
     }
     
     .leaderboard-container {
-      background: rgba(13, 17, 32, 0.5);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.06);
       border-radius: 28px;
       padding: 28px 24px;
       margin: 20px auto;
       max-width: 800px;
-      box-shadow: 0 12px 30px rgba(0,0,0,0.3);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.3);
     }
     .leaderboard-title {
       font-family: 'Bebas Neue', sans-serif;
@@ -153,7 +153,7 @@
       align-items: center;
       gap: 16px;
       padding: 12px 16px;
-      background: rgba(255,255,255,0.04);
+      background: rgba(255,255,255,0.03);
       backdrop-filter: blur(4px);
       border-radius: 16px;
       border: 1px solid rgba(255,255,255,0.03);
@@ -168,11 +168,11 @@
     .name { flex: 1; font-weight: 600; color: #fff; }
     .score { font-size: 20px; font-weight: 700; color: #fbbf24; }
     .status { font-size: 12px; padding: 4px 12px; border-radius: 20px; font-weight: 500; }
-    .status-active { background: rgba(16,185,129,0.25); color: #6ee7b7; }
-    .status-complete { background: rgba(59,130,246,0.2); color: #93bbfc; }
+    .status-active { background: rgba(16,185,129,0.2); color: #6ee7b7; }
+    .status-complete { background: rgba(59,130,246,0.15); color: #7ab7ff; }
     
     .timezone-badge {
-      background: rgba(0,0,0,0.3);
+      background: rgba(0,0,0,0.25);
       backdrop-filter: blur(4px);
       border-radius: 20px;
       padding: 6px 16px;
@@ -181,7 +181,7 @@
       align-items: center;
       gap: 8px;
       margin-top: 12px;
-      border: 1px solid rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.04);
       color: rgba(255,255,255,0.7);
     }
     
@@ -195,30 +195,25 @@
       cursor: pointer;
       font-size: 16px;
       transition: all 0.15s;
-      box-shadow: 0 6px 14px rgba(59,130,246,0.3);
+      box-shadow: 0 6px 20px rgba(59,130,246,0.3);
     }
     .btn:hover { background: #2563eb; transform: scale(1.02); }
     .btn:active { transform: scale(0.96); }
-    .btn-ghost {
-      background: rgba(255,255,255,0.08);
-      border: 1px solid rgba(255,255,255,0.15);
-      backdrop-filter: blur(4px);
-    }
     
     .room-entry {
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.6);
-      backdrop-filter: blur(18px);
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(20px);
       display: flex;
       align-items: center;
       justify-content: center;
       z-index: 1000;
     }
     .entry-card {
-      background: rgba(13, 17, 32, 0.7);
+      background: rgba(0, 0, 0, 0.5);
       backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 40px;
       padding: 48px 40px;
       text-align: center;
@@ -227,8 +222,8 @@
       box-shadow: 0 30px 60px rgba(0,0,0,0.6);
     }
     .entry-input {
-      background: rgba(255,255,255,0.06);
-      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.15);
       border-radius: 16px;
       padding: 16px 20px;
       font-size: 28px;
@@ -244,7 +239,7 @@
     .entry-input:focus {
       border-color: #3b82f6;
       outline: none;
-      box-shadow: 0 0 0 3px rgba(59,130,246,0.3);
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
     }
     .error-msg {
       color: #f87171;
@@ -257,12 +252,12 @@
     .footer {
       text-align: center;
       padding: 24px 20px 30px;
-      color: rgba(255,255,255,0.3);
+      color: rgba(255,255,255,0.25);
       font-size: 12px;
       letter-spacing: 0.3px;
     }
 
-    /* branding image layers – transparent overlay to keep text readable */
+    /* Branding image layers – fully transparent overlay */
     #brandingBgLayer {
       position: fixed;
       inset: 0;
@@ -277,7 +272,7 @@
     #brandingBgOverlay {
       position: fixed;
       inset: 0;
-      background: rgba(6, 8, 15, 0.5);
+      background: rgba(0, 0, 0, 0.4);
       z-index: -1;
       opacity: 0;
       transition: opacity 0.8s ease;
@@ -285,12 +280,11 @@
     }
     #brandingBgOverlay.active { opacity: 1; }
 
-    /* scrollbar styling */
+    /* scrollbar */
     .leaderboard-list::-webkit-scrollbar { width: 5px; }
-    .leaderboard-list::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 10px; }
-    .leaderboard-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
+    .leaderboard-list::-webkit-scrollbar-track { background: rgba(255,255,255,0.03); border-radius: 10px; }
+    .leaderboard-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
 
-    /* responsive */
     @media (max-width: 640px) {
       .qr-section { padding: 24px 16px; margin: 12px; }
       .qr-title { font-size: 34px; }
@@ -312,8 +306,8 @@
 
   <div id="roomEntry" class="room-entry">
     <div class="entry-card">
-      <div style="font-size: 36px; font-weight: 800; margin-bottom: 6px; letter-spacing: 1px;">PLAY<span style="color:#93bbfc;">A</span>QUIZ</div>
-      <div style="font-size: 14px; color: rgba(255,255,255,0.6); margin-bottom: 8px;">FOH Display – Self-Paced</div>
+      <div style="font-size: 36px; font-weight: 800; margin-bottom: 6px; letter-spacing: 1px;">PLAY<span style="color:#7ab7ff;">A</span>QUIZ</div>
+      <div style="font-size: 14px; color: rgba(255,255,255,0.5); margin-bottom: 8px;">FOH Display – Self-Paced</div>
       <input type="text" id="roomInput" class="entry-input" placeholder="CODE" maxlength="8" autocomplete="off">
       <button class="btn" id="connectBtn" onclick="connectToRoom()">Connect →</button>
       <div id="roomError" class="error-msg"></div>
@@ -332,7 +326,7 @@
       </div>
       <div class="join-link" id="joinUrlDisplay"></div>
       <div class="timezone-badge" id="timezoneDisplay"></div>
-      <div style="font-size:14px; color:rgba(255,255,255,0.5); margin-top: 18px;">
+      <div style="font-size:14px; color:rgba(255,255,255,0.45); margin-top: 18px;">
         Or enter code manually on your device
       </div>
     </div>
@@ -346,7 +340,7 @@
     <div class="leaderboard-container">
       <div class="leaderboard-title">🏆 LIVE LEADERBOARD</div>
       <div class="leaderboard-list" id="leaderboardList">
-        <div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.4);">Waiting for players...</div>
+        <div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.35);">Waiting for players...</div>
       </div>
     </div>
     
@@ -365,7 +359,6 @@ let ROOM_CODE = null;
 let refreshInterval = null;
 let realtimeChannel = null;
 
-// ── Timezone utilities ────────────────────────────────────────────
 function getUserTimezone() {
   return Intl.DateTimeFormat().resolvedOptions().timeZone;
 }
@@ -395,7 +388,6 @@ function displayTimezoneInfo() {
   }
 }
 
-// ── Room check ─────────────────────────────────────────────────────
 async function checkAndConnectToRoom(code) {
   try {
     const { data: session, error } = await sb
@@ -418,7 +410,7 @@ async function checkAndConnectToRoom(code) {
         const offset = getTimezoneOffset();
         return { 
           available: false, 
-          reason: `📅 Scheduled for ${formattedDate} (${tz} UTC${offset}). FOH activates then.` 
+          reason: `📅 Scheduled for ${formattedDate} (${tz} UTC${offset})` 
         };
       }
     }
@@ -426,10 +418,6 @@ async function checkAndConnectToRoom(code) {
     let warning = null;
     if (session.status === 'ended') {
       warning = '🏁 This game has ended. Displaying final results.';
-    } else if (session.status === 'waiting') {
-      console.log('🎮 Room ready! Players can join.');
-    } else if (session.status === 'active') {
-      console.log('⚡ Game in progress!');
     }
     
     return { 
@@ -447,7 +435,6 @@ async function checkAndConnectToRoom(code) {
   }
 }
 
-// ── Main connect ──────────────────────────────────────────────────
 async function connectToRoom() {
   const code = document.getElementById('roomInput').value.trim().toUpperCase();
   if (!code) { showError('Enter room code'); return; }
@@ -484,11 +471,9 @@ async function connectToRoom() {
   displayTimezoneInfo();
   generateQRCode();
   
-  // apply branding if available
   if (result.branding) {
     applyBrandingImage(result.branding);
   } else {
-    // try load from session directly
     loadBranding();
   }
   
@@ -498,7 +483,6 @@ async function connectToRoom() {
   btn.innerText = 'Connect →';
 }
 
-// ── Branding ──────────────────────────────────────────────────────
 function applyBrandingImage(url) {
   const layer = document.getElementById('brandingBgLayer');
   const overlay = document.getElementById('brandingBgOverlay');
@@ -521,7 +505,6 @@ async function loadBranding() {
   }
 }
 
-// ── QR code ──────────────────────────────────────────────────────
 function generateQRCode() {
   const joinUrl = `${window.location.origin}/player-sp.html?room=${ROOM_CODE}`;
   document.getElementById('joinUrlDisplay').innerText = joinUrl;
@@ -540,7 +523,6 @@ function generateQRCode() {
         correctLevel: QRCode.CorrectLevel.H
       });
     } catch(e) {
-      console.error('QRCode error:', e);
       fallbackQRDisplay(qrContainer, joinUrl);
     }
   } else {
@@ -566,7 +548,6 @@ function showError(msg) {
   }, 6000);
 }
 
-// ── Init & stats ──────────────────────────────────────────────────
 async function init() {
   await loadStats();
   if (refreshInterval) clearInterval(refreshInterval);
@@ -589,7 +570,7 @@ async function loadStats() {
       document.getElementById('statPlayers').innerText = '0';
       document.getElementById('statActive').innerText = '0';
       document.getElementById('statCompleted').innerText = '0';
-      document.getElementById('leaderboardList').innerHTML = '<div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.4);">Waiting for players to join...</div>';
+      document.getElementById('leaderboardList').innerHTML = '<div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.35);">Waiting for players to join...</div>';
       return;
     }
     
@@ -657,7 +638,6 @@ function escapeHtml(str) {
   return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
 }
 
-// ── URL params direct access ──────────────────────────────────────
 const urlParams = new URLSearchParams(window.location.search);
 const sessionFromUrl = urlParams.get('session');
 const roomFromUrl = urlParams.get('room');
@@ -673,7 +653,6 @@ if (sessionFromUrl && roomFromUrl) {
   loadBranding().then(() => init());
 }
 
-// Auto-refresh QR code every 30 seconds
 setInterval(() => {
   if (ROOM_CODE && document.getElementById('mainContent').classList.contains('hidden') === false) {
     generateQRCode();
