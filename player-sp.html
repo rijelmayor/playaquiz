@@ -588,7 +588,7 @@ let realtimeChannel = null;
 let quizStarted = false;
 let ROOM_CODE = null;
 
-// Completion settings (loaded from admin)
+// Completion settings (loaded from admin via completion_settings table)
 let completionSettings = {
   title: 'CONGRATULATIONS!',
   icon: '🎉',
@@ -620,12 +620,30 @@ async function loadBranding() {
   applyBrandingImage(data && data.branding_image ? data.branding_image : null);
 }
 
-// Load completion settings from admin
+// Load completion settings from the separate completion_settings table
 async function loadCompletionSettings() {
   if (!SESSION_ID) return;
-  const { data } = await sb.from('game_sessions').select('completion_settings').eq('id', SESSION_ID).maybeSingle();
-  if (data?.completion_settings) {
-    completionSettings = { ...completionSettings, ...data.completion_settings };
+  const { data, error } = await sb
+    .from('completion_settings')
+    .select('*')
+    .eq('session_id', SESSION_ID)
+    .maybeSingle();
+  
+  if (error) {
+    console.error('Error loading completion settings:', error);
+    return;
+  }
+  
+  if (data) {
+    completionSettings = {
+      title: data.title || 'CONGRATULATIONS!',
+      icon: data.icon || '🎉',
+      nameLabel: data.name_label || 'Player',
+      scoreLabel: data.score_label || 'pts',
+      message: data.message || '✨ You\'ve completed the quiz ✨',
+      showPrize: data.show_prize !== false,
+      prizeMessage: data.prize_message || '🏆 Outstanding! You are among the top players!'
+    };
   }
   // Apply settings to UI if completion screen is visible
   applyCompletionSettings();
@@ -743,7 +761,7 @@ async function checkRoomStatus(roomCode) {
   try {
     const { data: session, error } = await sb
       .from('game_sessions')
-      .select('id, status, scheduled_date, branding_image, completion_settings')
+      .select('id, status, scheduled_date, branding_image')
       .eq('room_code', roomCode)
       .maybeSingle();
     if (error || !session) return { available: false, reason: '❌ Room not found. Please check the code.' };
@@ -760,10 +778,6 @@ async function checkRoomStatus(roomCode) {
     }
     if (session.status !== 'active' && session.status !== 'waiting') {
       return { available: false, reason: `⚠️ This room is ${session.status}. Cannot join.` };
-    }
-    // Load completion settings early
-    if (session.completion_settings) {
-      completionSettings = { ...completionSettings, ...session.completion_settings };
     }
     return { available: true, sessionId: session.id, session: session, branding: session.branding_image };
   } catch (err) {
@@ -910,7 +924,7 @@ async function joinGame() {
     document.getElementById('startScreen').classList.remove('hidden');
     document.getElementById('startTotalQuestions').innerText = questions.length;
     
-    // Load completion settings
+    // Load completion settings from separate table
     await loadCompletionSettings();
     
     setupRealtime();
@@ -1104,9 +1118,25 @@ function setupRealtime() {
       if (payload.new.branding_image) {
         applyBrandingImage(payload.new.branding_image);
       }
-      // Handle completion settings updates
-      if (payload.new.completion_settings) {
-        completionSettings = { ...completionSettings, ...payload.new.completion_settings };
+    })
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'completion_settings',
+      filter: `session_id=eq.${SESSION_ID}`
+    }, (payload) => {
+      // Handle completion settings updates from the separate table
+      const newSettings = payload.new || payload;
+      if (newSettings) {
+        completionSettings = {
+          title: newSettings.title || 'CONGRATULATIONS!',
+          icon: newSettings.icon || '🎉',
+          nameLabel: newSettings.name_label || 'Player',
+          scoreLabel: newSettings.score_label || 'pts',
+          message: newSettings.message || '✨ You\'ve completed the quiz ✨',
+          showPrize: newSettings.show_prize !== false,
+          prizeMessage: newSettings.prize_message || '🏆 Outstanding! You are among the top players!'
+        };
         // If completion screen is visible, update it
         if (!document.getElementById('completionScreen').classList.contains('hidden')) {
           applyCompletionSettings();
@@ -1192,16 +1222,16 @@ async function autoRejoin() {
 async function loadQuestionsAndResume() {
   const { data: session } = await sb
     .from('game_sessions')
-    .select('room_code, branding_image, completion_settings')
+    .select('room_code, branding_image')
     .eq('id', SESSION_ID)
     .single();
   if (session) {
     ROOM_CODE = session.room_code;
     if (session.branding_image) applyBrandingImage(session.branding_image);
-    if (session.completion_settings) {
-      completionSettings = { ...completionSettings, ...session.completion_settings };
-    }
   }
+  
+  // Load completion settings from separate table
+  await loadCompletionSettings();
   
   const { data: qs } = await sb
     .from('questions')
