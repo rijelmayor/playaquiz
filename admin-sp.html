@@ -298,11 +298,11 @@
       </div>
     </div>
 
-    <!-- ===== NEW TAB: COMPLETION SCREEN EDITOR ===== -->
+    <!-- ===== TAB: COMPLETION SCREEN EDITOR ===== -->
     <div class="tab-panel" id="tab-completion">
       <div class="card">
         <div class="card-title">🎯 Completion Screen Customization</div>
-        <p style="color:#6b7a99; font-size:13px; margin-bottom:16px;">Customize the message players see after finishing the quiz. Changes are saved to the session and applied instantly.</p>
+        <p style="color:#6b7a99; font-size:13px; margin-bottom:16px;">Customize the message players see after finishing the quiz. Changes are saved to the completion_settings table and applied instantly.</p>
         <div class="completion-editor">
           <div class="completion-config">
             <label>🏆 Title</label>
@@ -953,18 +953,28 @@ async function confirmCSVImport() {
   setTimeout(() => { closeCSVImport(); csvParsedRows = []; }, 2000);
 }
 
-// ===== COMPLETION SCREEN SETTINGS =====
+// ===== COMPLETION SCREEN SETTINGS (using separate table) =====
 async function loadCompletionSettings() {
   if (!SESSION_ID) return;
-  const { data } = await sb.from('game_sessions').select('completion_settings').eq('id', SESSION_ID).maybeSingle();
-  let settings = data?.completion_settings || {};
+  const { data, error } = await sb
+    .from('completion_settings')
+    .select('*')
+    .eq('session_id', SESSION_ID)
+    .maybeSingle();
+  
+  if (error) {
+    console.error('Error loading completion settings:', error);
+    return;
+  }
+  
+  let settings = data || {};
   document.getElementById('compTitle').value = settings.title || 'CONGRATULATIONS!';
   document.getElementById('compIcon').value = settings.icon || '🎉';
-  document.getElementById('compNameLabel').value = settings.nameLabel || 'Player';
-  document.getElementById('compScoreLabel').value = settings.scoreLabel || 'pts';
+  document.getElementById('compNameLabel').value = settings.name_label || 'Player';
+  document.getElementById('compScoreLabel').value = settings.score_label || 'pts';
   document.getElementById('compMessage').value = settings.message || '✨ You\'ve completed the quiz ✨';
-  document.getElementById('compShowPrize').checked = settings.showPrize !== false;
-  document.getElementById('compPrizeMessage').value = settings.prizeMessage || '🏆 Outstanding! You are among the top players!';
+  document.getElementById('compShowPrize').checked = settings.show_prize !== false;
+  document.getElementById('compPrizeMessage').value = settings.prize_message || '🏆 Outstanding! You are among the top players!';
   updatePreview();
 }
 
@@ -983,22 +993,54 @@ document.querySelectorAll('#compTitle, #compIcon, #compNameLabel, #compScoreLabe
 
 async function saveCompletionSettings() {
   const settings = {
+    session_id: SESSION_ID,
     title: document.getElementById('compTitle').value.trim() || 'CONGRATULATIONS!',
     icon: document.getElementById('compIcon').value.trim() || '🎉',
-    nameLabel: document.getElementById('compNameLabel').value.trim() || 'Player',
-    scoreLabel: document.getElementById('compScoreLabel').value.trim() || 'pts',
+    name_label: document.getElementById('compNameLabel').value.trim() || 'Player',
+    score_label: document.getElementById('compScoreLabel').value.trim() || 'pts',
     message: document.getElementById('compMessage').value.trim() || '✨ You\'ve completed the quiz ✨',
-    showPrize: document.getElementById('compShowPrize').checked,
-    prizeMessage: document.getElementById('compPrizeMessage').value.trim() || '🏆 Outstanding! You are among the top players!'
+    show_prize: document.getElementById('compShowPrize').checked,
+    prize_message: document.getElementById('compPrizeMessage').value.trim() || '🏆 Outstanding! You are among the top players!',
+    updated_at: new Date().toISOString()
   };
-  const { error } = await sb.from('game_sessions').update({ completion_settings: settings }).eq('id', SESSION_ID);
-  if (error) {
-    document.getElementById('compSaveStatus').innerText = '❌ Error saving: ' + error.message;
+
+  // Check if record exists
+  const { data: existing, error: checkError } = await sb
+    .from('completion_settings')
+    .select('session_id')
+    .eq('session_id', SESSION_ID)
+    .maybeSingle();
+
+  if (checkError) {
+    document.getElementById('compSaveStatus').innerText = '❌ Error checking: ' + checkError.message;
     document.getElementById('compSaveStatus').style.color = '#ef4444';
+    toast('Error checking: ' + checkError.message, 'error');
+    return;
+  }
+
+  let result;
+  if (existing) {
+    // Update existing record
+    result = await sb
+      .from('completion_settings')
+      .update(settings)
+      .eq('session_id', SESSION_ID);
+  } else {
+    // Insert new record
+    result = await sb
+      .from('completion_settings')
+      .insert(settings);
+  }
+
+  if (result.error) {
+    document.getElementById('compSaveStatus').innerText = '❌ Error saving: ' + result.error.message;
+    document.getElementById('compSaveStatus').style.color = '#ef4444';
+    toast('Error saving: ' + result.error.message, 'error');
+    console.error('Save error:', result.error);
   } else {
     document.getElementById('compSaveStatus').innerText = '✅ Settings saved and pushed to all players!';
     document.getElementById('compSaveStatus').style.color = '#10b981';
-    // also broadcast via realtime
+    // Broadcast via game_events for real-time updates
     await sb.from('game_events').insert({
       session_id: SESSION_ID,
       event_type: 'completion_settings_updated',
