@@ -17,17 +17,32 @@
       min-height: 100dvh;
     }
     
-    /* All cards are transparent glass – your branding image shows through */
+    /* Branding image - full screen, no overlay */
+    #brandingBgLayer {
+      position: fixed;
+      inset: 0;
+      background-size: cover;
+      background-position: center center;
+      background-repeat: no-repeat;
+      z-index: -1;
+      opacity: 0;
+      transition: opacity 0.8s ease;
+    }
+    #brandingBgLayer.active { opacity: 1; }
+    
+    /* No overlay - removed completely */
+    
+    /* All cards are transparent glass – your branding image shows through clearly */
     .qr-section {
-      background: rgba(0, 0, 0, 0.35);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(0, 0, 0, 0.25);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.06);
       border-radius: 32px;
       padding: 40px 32px;
       text-align: center;
       margin: 20px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
     }
     .qr-title {
       font-family: 'Bebas Neue', sans-serif;
@@ -40,7 +55,7 @@
     }
     .qr-subtitle {
       font-size: 18px;
-      color: rgba(255,255,255,0.75);
+      color: rgba(255,255,255,0.8);
       margin-bottom: 24px;
       font-weight: 400;
     }
@@ -56,7 +71,7 @@
       padding: 16px;
       border-radius: 24px;
       display: inline-block;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.4);
     }
     #qrcode canvas, #qrcode img {
       display: block;
@@ -69,13 +84,13 @@
       color: #7ab7ff;
       letter-spacing: 8px;
       margin: 20px 0;
-      background: rgba(0,0,0,0.25);
+      background: rgba(0,0,0,0.2);
       backdrop-filter: blur(4px);
       padding: 16px 32px;
       border-radius: 20px;
       display: inline-block;
-      border: 1px solid rgba(255,255,255,0.06);
-      text-shadow: 0 0 30px rgba(59,130,246,0.2);
+      border: 1px solid rgba(255,255,255,0.05);
+      text-shadow: 0 0 30px rgba(59,130,246,0.15);
     }
     .join-link {
       font-family: monospace;
@@ -84,10 +99,10 @@
       word-break: break-all;
       margin-top: 16px;
       padding: 10px 16px;
-      background: rgba(0,0,0,0.2);
+      background: rgba(0,0,0,0.15);
       backdrop-filter: blur(4px);
       border-radius: 12px;
-      border: 1px solid rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.03);
     }
     
     .stats-container {
@@ -99,38 +114,38 @@
       margin: 0 auto;
     }
     .stat-card {
-      background: rgba(0, 0, 0, 0.3);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(0, 0, 0, 0.2);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.05);
       border-radius: 24px;
       padding: 24px 16px;
       text-align: center;
-      box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.2);
     }
     .stat-value {
       font-size: 48px;
       font-weight: 800;
       color: #7ab7ff;
-      text-shadow: 0 0 30px rgba(59,130,246,0.2);
+      text-shadow: 0 0 30px rgba(59,130,246,0.15);
     }
     .stat-label {
       font-size: 14px;
-      color: rgba(255,255,255,0.6);
+      color: rgba(255,255,255,0.65);
       margin-top: 8px;
       letter-spacing: 0.5px;
     }
     
     .leaderboard-container {
-      background: rgba(0, 0, 0, 0.3);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.06);
+      background: rgba(0, 0, 0, 0.2);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.05);
       border-radius: 28px;
       padding: 28px 24px;
       margin: 20px auto;
       max-width: 800px;
-      box-shadow: 0 12px 40px rgba(0,0,0,0.3);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.2);
     }
     .leaderboard-title {
       font-family: 'Bebas Neue', sans-serif;
@@ -156,7 +171,7 @@
       background: rgba(255,255,255,0.03);
       backdrop-filter: blur(4px);
       border-radius: 16px;
-      border: 1px solid rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.02);
     }
     .rank {
       font-size: 24px;
@@ -172,7 +187,7 @@
     .status-complete { background: rgba(59,130,246,0.15); color: #7ab7ff; }
     
     .timezone-badge {
-      background: rgba(0,0,0,0.25);
+      background: rgba(0,0,0,0.2);
       backdrop-filter: blur(4px);
       border-radius: 20px;
       padding: 6px 16px;
@@ -181,7 +196,7 @@
       align-items: center;
       gap: 8px;
       margin-top: 12px;
-      border: 1px solid rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.03);
       color: rgba(255,255,255,0.7);
     }
     
@@ -195,7 +210,7 @@
       cursor: pointer;
       font-size: 16px;
       transition: all 0.15s;
-      box-shadow: 0 6px 20px rgba(59,130,246,0.3);
+      box-shadow: 0 6px 20px rgba(59,130,246,0.25);
     }
     .btn:hover { background: #2563eb; transform: scale(1.02); }
     .btn:active { transform: scale(0.96); }
@@ -203,27 +218,27 @@
     .room-entry {
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.5);
-      backdrop-filter: blur(20px);
+      background: rgba(0,0,0,0.4);
+      backdrop-filter: blur(16px);
       display: flex;
       align-items: center;
       justify-content: center;
       z-index: 1000;
     }
     .entry-card {
-      background: rgba(0, 0, 0, 0.5);
+      background: rgba(0, 0, 0, 0.4);
       backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.06);
       border-radius: 40px;
       padding: 48px 40px;
       text-align: center;
       max-width: 440px;
       width: 90%;
-      box-shadow: 0 30px 60px rgba(0,0,0,0.6);
+      box-shadow: 0 30px 60px rgba(0,0,0,0.5);
     }
     .entry-input {
       background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.12);
       border-radius: 16px;
       padding: 16px 20px;
       font-size: 28px;
@@ -239,7 +254,7 @@
     .entry-input:focus {
       border-color: #3b82f6;
       outline: none;
-      box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
     }
     .error-msg {
       color: #f87171;
@@ -252,38 +267,15 @@
     .footer {
       text-align: center;
       padding: 24px 20px 30px;
-      color: rgba(255,255,255,0.25);
+      color: rgba(255,255,255,0.2);
       font-size: 12px;
       letter-spacing: 0.3px;
     }
 
-    /* Branding image layers – fully transparent overlay */
-    #brandingBgLayer {
-      position: fixed;
-      inset: 0;
-      background-size: cover;
-      background-position: center center;
-      background-repeat: no-repeat;
-      z-index: -2;
-      opacity: 0;
-      transition: opacity 0.8s ease;
-    }
-    #brandingBgLayer.active { opacity: 1; }
-    #brandingBgOverlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.4);
-      z-index: -1;
-      opacity: 0;
-      transition: opacity 0.8s ease;
-      pointer-events: none;
-    }
-    #brandingBgOverlay.active { opacity: 1; }
-
     /* scrollbar */
     .leaderboard-list::-webkit-scrollbar { width: 5px; }
-    .leaderboard-list::-webkit-scrollbar-track { background: rgba(255,255,255,0.03); border-radius: 10px; }
-    .leaderboard-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
+    .leaderboard-list::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); border-radius: 10px; }
+    .leaderboard-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
 
     @media (max-width: 640px) {
       .qr-section { padding: 24px 16px; margin: 12px; }
@@ -302,7 +294,6 @@
 <body>
 
   <div id="brandingBgLayer"></div>
-  <div id="brandingBgOverlay"></div>
 
   <div id="roomEntry" class="room-entry">
     <div class="entry-card">
@@ -485,14 +476,11 @@ async function connectToRoom() {
 
 function applyBrandingImage(url) {
   const layer = document.getElementById('brandingBgLayer');
-  const overlay = document.getElementById('brandingBgOverlay');
   if (url) {
     layer.style.backgroundImage = `url('${url}')`;
     layer.classList.add('active');
-    overlay.classList.add('active');
   } else {
     layer.classList.remove('active');
-    overlay.classList.remove('active');
     layer.style.backgroundImage = '';
   }
 }
