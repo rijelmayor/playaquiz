@@ -10,32 +10,40 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      background: linear-gradient(135deg, #0a0c15 0%, #03050b 100%);
+      /* transparent background – your branding image will show through */
+      background: transparent;
       font-family: 'Space Grotesk', sans-serif;
       color: #fff;
       min-height: 100vh;
+      /* subtle glass effect so cards pop on any image */
     }
     
+    /* cards and containers become glass with blur – perfect for branding image */
     .qr-section {
-      background: linear-gradient(135deg, #0d1120, #06080f);
-      border: 2px solid rgba(59,130,246,0.3);
-      border-radius: 24px;
-      padding: 40px;
+      background: rgba(13, 17, 32, 0.55);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 32px;
+      padding: 40px 32px;
       text-align: center;
       margin: 20px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
     }
     .qr-title {
       font-family: 'Bebas Neue', sans-serif;
       font-size: 48px;
-      background: linear-gradient(135deg, #fff, #3b82f6);
+      background: linear-gradient(135deg, #fff, #93bbfc);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
+      letter-spacing: 1px;
     }
     .qr-subtitle {
       font-size: 18px;
-      color: rgba(255,255,255,0.5);
+      color: rgba(255,255,255,0.7);
       margin-bottom: 24px;
+      font-weight: 400;
     }
     .qr-container {
       display: flex;
@@ -45,10 +53,11 @@
       min-height: 220px;
     }
     #qrcode {
-      background: white;
+      background: rgba(255,255,255,0.95);
       padding: 16px;
-      border-radius: 20px;
+      border-radius: 24px;
       display: inline-block;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.4);
     }
     #qrcode canvas, #qrcode img {
       display: block;
@@ -58,23 +67,27 @@
       font-family: 'JetBrains Mono', monospace;
       font-size: 56px;
       font-weight: 700;
-      color: #3b82f6;
+      color: #93bbfc;
       letter-spacing: 8px;
       margin: 20px 0;
       background: rgba(0,0,0,0.3);
+      backdrop-filter: blur(4px);
       padding: 16px 32px;
       border-radius: 20px;
       display: inline-block;
+      border: 1px solid rgba(255,255,255,0.1);
     }
     .join-link {
       font-family: monospace;
       font-size: 12px;
-      color: rgba(255,255,255,0.4);
+      color: rgba(255,255,255,0.5);
       word-break: break-all;
       margin-top: 16px;
-      padding: 8px;
-      background: rgba(0,0,0,0.3);
-      border-radius: 8px;
+      padding: 10px 16px;
+      background: rgba(0,0,0,0.25);
+      backdrop-filter: blur(4px);
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.05);
     }
     
     .stats-container {
@@ -86,36 +99,46 @@
       margin: 0 auto;
     }
     .stat-card {
-      background: rgba(13,17,32,0.8);
-      border: 1px solid rgba(59,130,246,0.2);
-      border-radius: 20px;
-      padding: 24px;
+      background: rgba(13, 17, 32, 0.5);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 24px;
+      padding: 24px 16px;
       text-align: center;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.3);
     }
     .stat-value {
       font-size: 48px;
       font-weight: 800;
-      color: #3b82f6;
+      color: #93bbfc;
+      text-shadow: 0 0 20px rgba(59,130,246,0.3);
     }
     .stat-label {
       font-size: 14px;
-      color: rgba(255,255,255,0.5);
+      color: rgba(255,255,255,0.6);
       margin-top: 8px;
+      letter-spacing: 0.5px;
     }
     
     .leaderboard-container {
-      background: rgba(13,17,32,0.8);
-      border: 1px solid rgba(59,130,246,0.2);
-      border-radius: 24px;
-      padding: 24px;
+      background: rgba(13, 17, 32, 0.5);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 28px;
+      padding: 28px 24px;
       margin: 20px auto;
       max-width: 800px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.3);
     }
     .leaderboard-title {
       font-family: 'Bebas Neue', sans-serif;
       font-size: 32px;
       margin-bottom: 20px;
       text-align: center;
+      letter-spacing: 1px;
+      color: #fff;
     }
     .leaderboard-list {
       display: flex;
@@ -123,73 +146,89 @@
       gap: 10px;
       max-height: 400px;
       overflow-y: auto;
+      padding-right: 4px;
     }
     .leaderboard-row {
       display: flex;
       align-items: center;
       gap: 16px;
-      padding: 12px;
-      background: rgba(255,255,255,0.03);
-      border-radius: 12px;
+      padding: 12px 16px;
+      background: rgba(255,255,255,0.04);
+      backdrop-filter: blur(4px);
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.03);
     }
     .rank {
       font-size: 24px;
       width: 50px;
       text-align: center;
+      font-weight: 600;
     }
     .avatar { font-size: 32px; }
-    .name { flex: 1; font-weight: 600; }
-    .score { font-size: 20px; font-weight: 700; color: #f59e0b; }
-    .status { font-size: 12px; padding: 4px 12px; border-radius: 20px; }
-    .status-active { background: rgba(16,185,129,0.2); color: #10b981; }
-    .status-complete { background: rgba(59,130,246,0.2); color: #3b82f6; }
+    .name { flex: 1; font-weight: 600; color: #fff; }
+    .score { font-size: 20px; font-weight: 700; color: #fbbf24; }
+    .status { font-size: 12px; padding: 4px 12px; border-radius: 20px; font-weight: 500; }
+    .status-active { background: rgba(16,185,129,0.25); color: #6ee7b7; }
+    .status-complete { background: rgba(59,130,246,0.2); color: #93bbfc; }
     
     .timezone-badge {
-      background: rgba(59,130,246,0.2);
+      background: rgba(0,0,0,0.3);
+      backdrop-filter: blur(4px);
       border-radius: 20px;
-      padding: 4px 12px;
-      font-size: 11px;
+      padding: 6px 16px;
+      font-size: 12px;
       display: inline-flex;
       align-items: center;
-      gap: 6px;
-      margin-top: 10px;
+      gap: 8px;
+      margin-top: 12px;
+      border: 1px solid rgba(255,255,255,0.05);
+      color: rgba(255,255,255,0.7);
     }
     
     .btn {
       background: #3b82f6;
       border: none;
-      padding: 10px 20px;
-      border-radius: 12px;
+      padding: 12px 28px;
+      border-radius: 16px;
       font-weight: 700;
       color: white;
       cursor: pointer;
+      font-size: 16px;
+      transition: all 0.15s;
+      box-shadow: 0 6px 14px rgba(59,130,246,0.3);
     }
+    .btn:hover { background: #2563eb; transform: scale(1.02); }
+    .btn:active { transform: scale(0.96); }
     .btn-ghost {
-      background: rgba(255,255,255,0.1);
-      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.15);
+      backdrop-filter: blur(4px);
     }
     
     .room-entry {
       position: fixed;
       inset: 0;
-      background: rgba(3,5,11,0.98);
-      backdrop-filter: blur(20px);
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(18px);
       display: flex;
       align-items: center;
       justify-content: center;
       z-index: 1000;
     }
     .entry-card {
-      background: rgba(13,17,32,0.95);
-      border: 1px solid rgba(59,130,246,0.3);
-      border-radius: 32px;
-      padding: 48px;
+      background: rgba(13, 17, 32, 0.7);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 40px;
+      padding: 48px 40px;
       text-align: center;
-      max-width: 450px;
+      max-width: 440px;
+      width: 90%;
+      box-shadow: 0 30px 60px rgba(0,0,0,0.6);
     }
     .entry-input {
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(59,130,246,0.4);
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.2);
       border-radius: 16px;
       padding: 16px 20px;
       font-size: 28px;
@@ -198,95 +237,123 @@
       letter-spacing: 6px;
       color: #fff;
       width: 100%;
-      margin: 20px 0;
+      margin: 24px 0;
+      backdrop-filter: blur(4px);
+      transition: border 0.2s;
+    }
+    .entry-input:focus {
+      border-color: #3b82f6;
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.3);
     }
     .error-msg {
-      color: #ef4444;
+      color: #f87171;
       font-size: 13px;
       margin-top: 12px;
+      min-height: 20px;
     }
     .hidden { display: none !important; }
     
     .footer {
       text-align: center;
-      padding: 20px;
+      padding: 24px 20px 30px;
       color: rgba(255,255,255,0.3);
       font-size: 12px;
+      letter-spacing: 0.3px;
     }
 
+    /* branding image layers – transparent overlay to keep text readable */
     #brandingBgLayer {
-  position: fixed;
-  inset: 0;
-  background-size: cover;
-  background-position: center center;
-  background-repeat: no-repeat;
-  z-index: -2;
-  opacity: 0;
-  transition: opacity 0.6s ease;
-}
-#brandingBgLayer.active { opacity: 1; }
-#brandingBgOverlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(6,8,15,0.72);
-  z-index: -1;
-  opacity: 0;
-  transition: opacity 0.6s ease;
-  pointer-events: none;
-}
-#brandingBgOverlay.active { opacity: 1; }
+      position: fixed;
+      inset: 0;
+      background-size: cover;
+      background-position: center center;
+      background-repeat: no-repeat;
+      z-index: -2;
+      opacity: 0;
+      transition: opacity 0.8s ease;
+    }
+    #brandingBgLayer.active { opacity: 1; }
+    #brandingBgOverlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(6, 8, 15, 0.5);
+      z-index: -1;
+      opacity: 0;
+      transition: opacity 0.8s ease;
+      pointer-events: none;
+    }
+    #brandingBgOverlay.active { opacity: 1; }
 
+    /* scrollbar styling */
+    .leaderboard-list::-webkit-scrollbar { width: 5px; }
+    .leaderboard-list::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 10px; }
+    .leaderboard-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 10px; }
+
+    /* responsive */
+    @media (max-width: 640px) {
+      .qr-section { padding: 24px 16px; margin: 12px; }
+      .qr-title { font-size: 34px; }
+      .stats-container { grid-template-columns: 1fr 1fr; gap: 12px; padding: 12px; }
+      .stat-card { padding: 16px; }
+      .stat-value { font-size: 36px; }
+      .room-code-big { font-size: 38px; letter-spacing: 4px; padding: 12px 20px; }
+      .entry-card { padding: 32px 20px; }
+      .leaderboard-container { padding: 20px 16px; margin: 12px; }
+      .leaderboard-row { flex-wrap: wrap; gap: 8px; }
+      .rank { width: 36px; font-size: 20px; }
+    }
   </style>
 </head>
 <body>
 
   <div id="brandingBgLayer"></div>
-<div id="brandingBgOverlay"></div>
+  <div id="brandingBgOverlay"></div>
 
-<div id="roomEntry" class="room-entry">
-  <div class="entry-card">
-    <div style="font-size: 36px; font-weight: 800; margin-bottom: 8px;">PLAY<span style="color:#3b82f6">A</span>QUIZ</div>
-    <div style="font-size: 14px; color: rgba(255,255,255,0.5);">Enter Room Code to Display</div>
-    <input type="text" id="roomInput" class="entry-input" placeholder="CODE" maxlength="8" autocomplete="off">
-    <button class="btn" id="connectBtn" onclick="connectToRoom()">Connect →</button>
-    <div id="roomError" class="error-msg"></div>
-  </div>
-</div>
-
-<div id="mainContent" class="hidden">
-  <div class="qr-section">
-    <div class="qr-title">📱 SCAN TO JOIN</div>
-    <div class="qr-subtitle">Use your phone to scan the QR code and start playing</div>
-    <div class="qr-container">
-      <div id="qrcode"></div>
-    </div>
-    <div>
-      <div class="room-code-big" id="roomCodeDisplay">——</div>
-    </div>
-    <div class="join-link" id="joinUrlDisplay"></div>
-    <div class="timezone-badge" id="timezoneDisplay"></div>
-    <div style="font-size:14px; color:rgba(255,255,255,0.5); margin-top: 16px;">
-      Or enter code manually on your device
+  <div id="roomEntry" class="room-entry">
+    <div class="entry-card">
+      <div style="font-size: 36px; font-weight: 800; margin-bottom: 6px; letter-spacing: 1px;">PLAY<span style="color:#93bbfc;">A</span>QUIZ</div>
+      <div style="font-size: 14px; color: rgba(255,255,255,0.6); margin-bottom: 8px;">FOH Display – Self-Paced</div>
+      <input type="text" id="roomInput" class="entry-input" placeholder="CODE" maxlength="8" autocomplete="off">
+      <button class="btn" id="connectBtn" onclick="connectToRoom()">Connect →</button>
+      <div id="roomError" class="error-msg"></div>
     </div>
   </div>
 
-  <div class="stats-container">
-    <div class="stat-card"><div class="stat-value" id="statPlayers">0</div><div class="stat-label">Total Players</div></div>
-    <div class="stat-card"><div class="stat-value" id="statActive">0</div><div class="stat-label">Playing Now</div></div>
-    <div class="stat-card"><div class="stat-value" id="statCompleted">0</div><div class="stat-label">Completed</div></div>
-  </div>
+  <div id="mainContent" class="hidden">
+    <div class="qr-section">
+      <div class="qr-title">📱 SCAN TO JOIN</div>
+      <div class="qr-subtitle">Use your phone to scan the QR code and start playing</div>
+      <div class="qr-container">
+        <div id="qrcode"></div>
+      </div>
+      <div>
+        <div class="room-code-big" id="roomCodeDisplay">——</div>
+      </div>
+      <div class="join-link" id="joinUrlDisplay"></div>
+      <div class="timezone-badge" id="timezoneDisplay"></div>
+      <div style="font-size:14px; color:rgba(255,255,255,0.5); margin-top: 18px;">
+        Or enter code manually on your device
+      </div>
+    </div>
 
-  <div class="leaderboard-container">
-    <div class="leaderboard-title">🏆 LIVE LEADERBOARD</div>
-    <div class="leaderboard-list" id="leaderboardList">
-      <div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.5);">Waiting for players...</div>
+    <div class="stats-container">
+      <div class="stat-card"><div class="stat-value" id="statPlayers">0</div><div class="stat-label">Total Players</div></div>
+      <div class="stat-card"><div class="stat-value" id="statActive">0</div><div class="stat-label">Playing Now</div></div>
+      <div class="stat-card"><div class="stat-value" id="statCompleted">0</div><div class="stat-label">Completed</div></div>
+    </div>
+
+    <div class="leaderboard-container">
+      <div class="leaderboard-title">🏆 LIVE LEADERBOARD</div>
+      <div class="leaderboard-list" id="leaderboardList">
+        <div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.4);">Waiting for players...</div>
+      </div>
+    </div>
+    
+    <div class="footer">
+      PlayAQuiz — Self-Paced Mode • Room active until game ends
     </div>
   </div>
-  
-  <div class="footer">
-    PlayAQuiz — Self-Paced Mode | Room active until game ends
-  </div>
-</div>
 
 <script>
 const SUPABASE_URL = 'https://efgirqbaayfjwswnwbop.supabase.co';
@@ -298,11 +365,10 @@ let ROOM_CODE = null;
 let refreshInterval = null;
 let realtimeChannel = null;
 
-// ── Timezone utilities (identical to room-manager.html) ──────────────────────
+// ── Timezone utilities ────────────────────────────────────────────
 function getUserTimezone() {
   return Intl.DateTimeFormat().resolvedOptions().timeZone;
 }
-
 function getTimezoneOffset() {
   const offset = new Date().getTimezoneOffset();
   const hours = Math.abs(Math.floor(offset / 60));
@@ -310,21 +376,16 @@ function getTimezoneOffset() {
   const sign = offset <= 0 ? '+' : '-';
   return `${sign}${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
 }
-
-// Convert UTC timestamp → local Date object  (same as room-manager UTCToLocal)
 function UTCToLocal(utcDate) {
   const date = new Date(utcDate);
   return new Date(date.getTime() + (date.getTimezoneOffset() * 60000));
 }
-
-// Format a local Date for display  (same as room-manager formatLocalDate)
 function formatLocalDate(date) {
   return date.toLocaleString(undefined, {
     year: 'numeric', month: 'short', day: 'numeric',
     hour: '2-digit', minute: '2-digit', hour12: true
   });
 }
-
 function displayTimezoneInfo() {
   const tz = getUserTimezone();
   const offset = getTimezoneOffset();
@@ -334,12 +395,12 @@ function displayTimezoneInfo() {
   }
 }
 
-// Check room status before connecting
+// ── Room check ─────────────────────────────────────────────────────
 async function checkAndConnectToRoom(code) {
   try {
     const { data: session, error } = await sb
       .from('game_sessions')
-      .select('id, room_code, status, scheduled_date, title')
+      .select('id, room_code, status, scheduled_date, title, branding_image')
       .eq('room_code', code)
       .maybeSingle();
     
@@ -347,29 +408,26 @@ async function checkAndConnectToRoom(code) {
       return { available: false, reason: '❌ Room not found' };
     }
     
-    // Check if room is scheduled for future
     if (session.status === 'scheduled') {
-      const scheduledDate = new Date(session.scheduled_date); // raw UTC
+      const scheduledDate = new Date(session.scheduled_date);
       const now = new Date();
       if (scheduledDate > now) {
-        // Convert UTC → local using same method as room-manager
         const localDate = UTCToLocal(session.scheduled_date);
         const formattedDate = formatLocalDate(localDate);
         const tz = getUserTimezone();
         const offset = getTimezoneOffset();
         return { 
           available: false, 
-          reason: `📅 This room is scheduled for ${formattedDate} (${tz} UTC${offset}). FOH display will activate at that time.` 
+          reason: `📅 Scheduled for ${formattedDate} (${tz} UTC${offset}). FOH activates then.` 
         };
       }
     }
     
-    // Allow FOH for waiting, active, and ended rooms
     let warning = null;
     if (session.status === 'ended') {
       warning = '🏁 This game has ended. Displaying final results.';
     } else if (session.status === 'waiting') {
-      console.log('🎮 Room is ready! Players can join.');
+      console.log('🎮 Room ready! Players can join.');
     } else if (session.status === 'active') {
       console.log('⚡ Game in progress!');
     }
@@ -379,7 +437,8 @@ async function checkAndConnectToRoom(code) {
       sessionId: session.id, 
       roomCode: session.room_code,
       status: session.status,
-      warning: warning
+      warning: warning,
+      branding: session.branding_image
     };
     
   } catch (err) {
@@ -388,7 +447,7 @@ async function checkAndConnectToRoom(code) {
   }
 }
 
-// Main connect function
+// ── Main connect ──────────────────────────────────────────────────
 async function connectToRoom() {
   const code = document.getElementById('roomInput').value.trim().toUpperCase();
   if (!code) { showError('Enter room code'); return; }
@@ -410,28 +469,36 @@ async function connectToRoom() {
   
   btn.innerText = 'Connecting...';
   
-  // Show warning if any
   if (result.warning) {
     showError(result.warning);
     setTimeout(() => {
       const errDiv = document.getElementById('roomError');
       if (errDiv) errDiv.innerText = '';
-    }, 4000);
+    }, 5000);
   }
   
-  // Proceed to display
   document.getElementById('roomEntry').classList.add('hidden');
   document.getElementById('mainContent').classList.remove('hidden');
   document.getElementById('roomCodeDisplay').innerText = ROOM_CODE;
   
   displayTimezoneInfo();
   generateQRCode();
+  
+  // apply branding if available
+  if (result.branding) {
+    applyBrandingImage(result.branding);
+  } else {
+    // try load from session directly
+    loadBranding();
+  }
+  
   init();
   
   btn.disabled = false;
   btn.innerText = 'Connect →';
 }
 
+// ── Branding ──────────────────────────────────────────────────────
 function applyBrandingImage(url) {
   const layer = document.getElementById('brandingBgLayer');
   const overlay = document.getElementById('brandingBgOverlay');
@@ -449,9 +516,12 @@ function applyBrandingImage(url) {
 async function loadBranding() {
   if (!SESSION_ID) return;
   const { data } = await sb.from('game_sessions').select('branding_image').eq('id', SESSION_ID).maybeSingle();
-  applyBrandingImage(data && data.branding_image ? data.branding_image : null);
+  if (data && data.branding_image) {
+    applyBrandingImage(data.branding_image);
+  }
 }
 
+// ── QR code ──────────────────────────────────────────────────────
 function generateQRCode() {
   const joinUrl = `${window.location.origin}/player-sp.html?room=${ROOM_CODE}`;
   document.getElementById('joinUrlDisplay').innerText = joinUrl;
@@ -469,23 +539,21 @@ function generateQRCode() {
         colorLight: "#ffffff",
         correctLevel: QRCode.CorrectLevel.H
       });
-      console.log('QR Code generated for:', joinUrl);
     } catch(e) {
       console.error('QRCode error:', e);
       fallbackQRDisplay(qrContainer, joinUrl);
     }
   } else {
-    console.warn('QRCode library not loaded, using fallback');
     fallbackQRDisplay(qrContainer, joinUrl);
   }
 }
 
 function fallbackQRDisplay(container, url) {
   container.innerHTML = `
-    <div style="background: white; border-radius: 16px; padding: 16px; text-align: center;">
-      <div style="width: 180px; height: 180px; background: repeating-linear-gradient(45deg, #000 0px, #000 4px, #fff 4px, #fff 12px); border-radius: 8px; margin: 0 auto;"></div>
+    <div style="background: white; border-radius: 20px; padding: 16px; text-align: center; box-shadow: 0 8px 20px rgba(0,0,0,0.3);">
+      <div style="width: 180px; height: 180px; background: repeating-linear-gradient(45deg, #000 0px, #000 4px, #fff 4px, #fff 12px); border-radius: 12px; margin: 0 auto;"></div>
       <div style="margin-top: 12px; font-family: monospace; font-size: 10px; color: #000; word-break: break-all;">${url}</div>
-      <div style="margin-top: 8px; font-size: 11px; color: #666;">Enter code: ${ROOM_CODE}</div>
+      <div style="margin-top: 8px; font-size: 11px; color: #444;">Enter code: ${ROOM_CODE}</div>
     </div>
   `;
 }
@@ -495,9 +563,10 @@ function showError(msg) {
   err.innerText = msg;
   setTimeout(() => {
     if (err.innerText === msg) err.innerText = '';
-  }, 5000);
+  }, 6000);
 }
 
+// ── Init & stats ──────────────────────────────────────────────────
 async function init() {
   await loadStats();
   if (refreshInterval) clearInterval(refreshInterval);
@@ -520,7 +589,7 @@ async function loadStats() {
       document.getElementById('statPlayers').innerText = '0';
       document.getElementById('statActive').innerText = '0';
       document.getElementById('statCompleted').innerText = '0';
-      document.getElementById('leaderboardList').innerHTML = '<div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.5);">Waiting for players to join...</div>';
+      document.getElementById('leaderboardList').innerHTML = '<div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.4);">Waiting for players to join...</div>';
       return;
     }
     
@@ -566,17 +635,20 @@ function setupRealtime() {
   if (realtimeChannel) {
     try { sb.removeChannel(realtimeChannel); } catch(e) {}
   }
-  
   if (!SESSION_ID) return;
   
   realtimeChannel = sb.channel(`foh-${SESSION_ID}`);
   realtimeChannel
     .on('postgres_changes', {
-  event: 'UPDATE',
-  schema: 'public',
-  table: 'game_sessions',
-  filter: `id=eq.${SESSION_ID}`
-}, (payload) => applyBrandingImage(payload.new.branding_image))
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'game_sessions',
+      filter: `id=eq.${SESSION_ID}`
+    }, (payload) => {
+      if (payload.new.branding_image) {
+        applyBrandingImage(payload.new.branding_image);
+      }
+    })
     .subscribe();
 }
 
@@ -585,7 +657,7 @@ function escapeHtml(str) {
   return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
 }
 
-// Check URL parameters for direct access
+// ── URL params direct access ──────────────────────────────────────
 const urlParams = new URLSearchParams(window.location.search);
 const sessionFromUrl = urlParams.get('session');
 const roomFromUrl = urlParams.get('room');
@@ -598,7 +670,7 @@ if (sessionFromUrl && roomFromUrl) {
   document.getElementById('roomCodeDisplay').innerText = ROOM_CODE;
   displayTimezoneInfo();
   generateQRCode();
-  init();
+  loadBranding().then(() => init());
 }
 
 // Auto-refresh QR code every 30 seconds
@@ -608,7 +680,6 @@ setInterval(() => {
   }
 }, 30000);
 
-// Display timezone info on page load even before connection
 displayTimezoneInfo();
 </script>
 </body>
