@@ -37,7 +37,7 @@
       opacity: 0;
       transition: opacity 0.8s ease;
       pointer-events: none;
-      background: radial-gradient(ellipse at center, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.3) 70%, rgba(0,0,0,0.5) 100%);
+      background: radial-gradient(ellipse at center, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.25) 70%, rgba(0,0,0,0.45) 100%);
     }
     #brandingOverlay.active { opacity: 1; }
     
@@ -52,28 +52,32 @@
       margin: 20px;
     }
     
-    /* SCAN TO JOIN - border highlight */
+    /* SCAN TO JOIN - with transparent background + border */
     .qr-title {
       font-family: 'Bebas Neue', sans-serif;
       font-size: 48px;
+      background: rgba(0, 0, 0, 0.25);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      padding: 8px 32px;
+      border: 2px solid rgba(122, 183, 255, 0.35);
+      border-radius: 16px;
+      display: inline-block;
+      margin-bottom: 12px;
+      letter-spacing: 1px;
+      box-shadow: 0 0 40px rgba(122, 183, 255, 0.05);
+    }
+    .qr-title .gradient-text {
       background: linear-gradient(135deg, #ffffff, #7ab7ff);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      margin-bottom: 12px;
-      letter-spacing: 1px;
-      text-shadow: 0 0 60px rgba(59,130,246,0.15);
-      display: inline-block;
-      padding: 8px 32px;
-      border: 2px solid rgba(122, 183, 255, 0.3);
-      border-radius: 16px;
-      box-shadow: 0 0 40px rgba(122, 183, 255, 0.05);
     }
     .qr-subtitle {
       font-size: 18px;
       color: rgba(255,255,255,0.85);
       margin-bottom: 24px;
       font-weight: 400;
-      text-shadow: 0 2px 20px rgba(0,0,0,0.3);
+      text-shadow: 0 2px 20px rgba(0,0,0,0.4);
       margin-top: 16px;
     }
     .qr-container {
@@ -84,22 +88,21 @@
       min-height: 220px;
     }
     
-    /* QR Code - border highlight */
+    /* QR Code - with transparent background + border */
     #qrcode {
-      background: rgba(255,255,255,0.95);
+      background: rgba(255, 255, 255, 0.92);
       padding: 16px;
       border-radius: 24px;
       display: inline-block;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.3);
-      border: 2px solid rgba(122, 183, 255, 0.4);
-      box-shadow: 0 0 40px rgba(122, 183, 255, 0.08), 0 10px 40px rgba(0,0,0,0.3);
+      border: 2px solid rgba(122, 183, 255, 0.35);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.3), 0 0 40px rgba(122, 183, 255, 0.05);
     }
     #qrcode canvas, #qrcode img {
       display: block;
       margin: 0 auto;
     }
     
-    /* Room Code - border highlight */
+    /* Room Code - with transparent background + border */
     .room-code-big {
       font-family: 'JetBrains Mono', monospace;
       font-size: 56px;
@@ -107,34 +110,32 @@
       color: #7ab7ff;
       letter-spacing: 8px;
       margin: 20px 0;
-      background: transparent !important;
-      backdrop-filter: none !important;
+      background: rgba(0, 0, 0, 0.2);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
       padding: 16px 32px;
       border-radius: 20px;
       display: inline-block;
-      border: 2px solid rgba(122, 183, 255, 0.4);
+      border: 2px solid rgba(122, 183, 255, 0.3);
       text-shadow: 0 0 40px rgba(59,130,246,0.15);
       box-shadow: 0 0 30px rgba(122, 183, 255, 0.05);
     }
     
-    /* Website Link - border highlight */
+    /* Website Link - with transparent background + border */
     .join-link {
       font-family: monospace;
       font-size: 13px;
-      color: rgba(255,255,255,0.7);
+      color: rgba(255,255,255,0.75);
       word-break: break-all;
       margin-top: 16px;
       padding: 12px 20px;
-      background: transparent !important;
-      backdrop-filter: none !important;
-      border: 1.5px solid rgba(122, 183, 255, 0.25);
+      background: rgba(0, 0, 0, 0.15);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      border: 1.5px solid rgba(122, 183, 255, 0.2);
       border-radius: 12px;
       display: inline-block;
       box-shadow: 0 0 20px rgba(122, 183, 255, 0.03);
-    }
-    .join-link a {
-      color: rgba(255,255,255,0.7);
-      text-decoration: none;
     }
     
     .leaderboard-toggle {
@@ -151,11 +152,14 @@
       border-radius: 16px;
       padding: 12px 40px;
       display: inline-block;
-      background: transparent !important;
+      background: rgba(0, 0, 0, 0.1);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
     }
     .leaderboard-toggle:hover {
       color: #7ab7ff;
-      border-color: rgba(255,255,255,0.2);
+      border-color: rgba(122, 183, 255, 0.3);
+      background: rgba(0, 0, 0, 0.2);
     }
     .toggle-wrapper {
       text-align: center;
@@ -255,8 +259,9 @@
     }
     
     .timezone-badge {
-      background: transparent !important;
-      backdrop-filter: none !important;
+      background: rgba(0, 0, 0, 0.15);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
       border-radius: 20px;
       padding: 6px 16px;
       font-size: 12px;
@@ -376,7 +381,9 @@
 
   <div id="mainContent" class="hidden">
     <div class="qr-section">
-      <div class="qr-title">📱 SCAN TO JOIN</div>
+      <div class="qr-title">
+        <span class="gradient-text">📱 SCAN TO JOIN</span>
+      </div>
       <div class="qr-subtitle">Use your phone to scan the QR code and start playing</div>
       <div class="qr-container">
         <div id="qrcode"></div>
