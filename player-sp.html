@@ -10,12 +10,38 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body {
-      background: linear-gradient(135deg, #06080f 0%, #03050b 100%);
+      background: transparent !important;
       font-family: 'Space Grotesk', sans-serif;
       color: #fff;
       min-height: 100vh;
       padding: 16px;
     }
+    
+    /* Branding image - full screen */
+    #brandingBgLayer {
+      position: fixed;
+      inset: 0;
+      background-size: cover;
+      background-position: center center;
+      background-repeat: no-repeat;
+      z-index: -2;
+      opacity: 0;
+      transition: opacity 0.8s ease;
+    }
+    #brandingBgLayer.active { opacity: 1; }
+    
+    /* Subtle gradient overlay for readability */
+    #brandingBgOverlay {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      opacity: 0;
+      transition: opacity 0.8s ease;
+      pointer-events: none;
+      background: radial-gradient(ellipse at center, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.6) 80%, rgba(0,0,0,0.8) 100%);
+    }
+    #brandingBgOverlay.active { opacity: 1; }
+    
     .container { max-width: 600px; margin: 0 auto; }
     .header {
       display: flex;
@@ -23,10 +49,11 @@
       align-items: center;
       margin-bottom: 20px;
       padding: 12px 16px;
-      background: rgba(13,17,32,0.8);
+      background: rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
       border-radius: 20px;
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(59,130,246,0.2);
+      border: 1px solid rgba(255, 255, 255, 0.06);
     }
     .player-info { display: flex; align-items: center; gap: 12px; }
     .player-avatar { font-size: 32px; }
@@ -41,30 +68,36 @@
       font-size: 14px;
     }
     .progress-section {
-      background: rgba(13,17,32,0.8);
+      background: rgba(0, 0, 0, 0.25);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
       border-radius: 16px;
       padding: 12px 16px;
       margin-bottom: 20px;
-      border: 1px solid rgba(59,130,246,0.2);
+      border: 1px solid rgba(255, 255, 255, 0.04);
     }
     .progress-bar { height: 8px; background: rgba(255,255,255,0.1); border-radius: 10px; overflow: hidden; margin: 8px 0; }
     .progress-fill { height: 100%; background: linear-gradient(90deg, #3b82f6, #10b981); border-radius: 10px; transition: width 0.3s ease; }
     .progress-text { display: flex; justify-content: space-between; font-size: 12px; color: rgba(255,255,255,0.5); }
     .question-card {
-      background: rgba(13,17,32,0.9);
-      border: 1px solid rgba(59,130,246,0.2);
+      background: rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.06);
       border-radius: 24px;
       padding: 24px;
       margin-bottom: 20px;
     }
     .timer-bar {
-      background: rgba(0,0,0,0.5);
+      background: rgba(0,0,0,0.4);
+      backdrop-filter: blur(4px);
       border-radius: 40px;
       padding: 10px 16px;
       margin-bottom: 20px;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      border: 1px solid rgba(255,255,255,0.03);
     }
     .timer-label { font-size: 12px; color: rgba(255,255,255,0.5); }
     .timer-value { font-family: 'JetBrains Mono', monospace; font-size: 24px; font-weight: 700; color: #f59e0b; }
@@ -74,8 +107,8 @@
       display: flex;
       align-items: center;
       gap: 16px;
-      background: rgba(255,255,255,0.05);
-      border: 2px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.04);
+      border: 2px solid rgba(255,255,255,0.06);
       border-radius: 16px;
       padding: 16px 20px;
       font-size: 16px;
@@ -85,14 +118,16 @@
       transition: all 0.15s;
       width: 100%;
       text-align: left;
+      backdrop-filter: blur(4px);
     }
     .option-btn:active { transform: scale(0.98); }
     .option-btn.disabled, .option-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .option-btn:hover { border-color: rgba(59,130,246,0.3); }
     .option-letter {
       width: 40px;
       height: 40px;
       border-radius: 12px;
-      background: rgba(59,130,246,0.2);
+      background: rgba(59,130,246,0.15);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -128,13 +163,15 @@
     @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
     .start-title { font-family: 'Bebas Neue', sans-serif; font-size: 36px; margin-bottom: 16px; }
     .start-info {
-      background: rgba(255,255,255,0.05);
+      background: rgba(0,0,0,0.2);
+      backdrop-filter: blur(8px);
       border-radius: 16px;
       padding: 20px;
       margin: 24px 0;
       text-align: left;
+      border: 1px solid rgba(255,255,255,0.04);
     }
-    .start-info-item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .start-info-item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
     .start-info-item:last-child { border-bottom: none; }
     .start-info-icon { font-size: 24px; }
     .start-info-text { flex: 1; }
@@ -155,11 +192,12 @@
     }
     .start-btn:active { transform: scale(0.98); }
     
-    /* Completion Screen — Mobile-Friendly */
     .completion-card {
       text-align: center;
       padding: 28px 16px;
-      background: rgba(13,17,32,0.9);
+      background: rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
       border: 2px solid rgba(16,185,129,0.4);
       border-radius: 32px;
       animation: glowPulse 2s ease infinite;
@@ -194,6 +232,7 @@
       gap: clamp(12px, 4vw, 30px);
       margin: 16px 0;
       background: rgba(0,0,0,0.4);
+      backdrop-filter: blur(8px);
       border-radius: 24px;
       padding: 14px 10px;
       flex-wrap: wrap;
@@ -208,7 +247,6 @@
       font-size: clamp(10px, 2.5vw, 12px);
       color: rgba(255,255,255,0.6);
     }
-    /* Prize Claim Button */
     .prize-claim-btn {
       background: linear-gradient(135deg, #f59e0b, #ef4444);
       border: none;
@@ -227,11 +265,10 @@
       0%,100% { transform: scale(1); box-shadow: 0 4px 24px rgba(245,158,11,0.4); }
       50% { transform: scale(1.03); box-shadow: 0 6px 32px rgba(245,158,11,0.7); }
     }
-    /* Prize Popup Overlay */
     .prize-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.85);
+      background: rgba(0,0,0,0.7);
       backdrop-filter: blur(12px);
       display: flex;
       align-items: center;
@@ -240,7 +277,8 @@
       padding: 16px;
     }
     .prize-popup {
-      background: linear-gradient(135deg, #0d1120, #1a0a2e);
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(20px);
       border: 2px solid rgba(245,158,11,0.5);
       border-radius: 28px;
       padding: 32px 24px;
@@ -305,8 +343,10 @@
     }
     
     .join-card {
-      background: rgba(13,17,32,0.9);
-      border: 1px solid rgba(59,130,246,0.3);
+      background: rgba(0, 0, 0, 0.3);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.06);
       border-radius: 32px;
       padding: 40px 24px;
       text-align: center;
@@ -316,7 +356,7 @@
     .join-sub { font-size: 14px; color: rgba(255,255,255,0.5); margin-bottom: 24px; }
     .join-input {
       background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(59,130,246,0.3);
+      border: 1px solid rgba(255,255,255,0.08);
       border-radius: 16px;
       padding: 16px;
       width: 100%;
@@ -324,7 +364,14 @@
       font-size: 18px;
       text-align: center;
       margin: 12px 0;
+      backdrop-filter: blur(4px);
     }
+    .join-input:focus {
+      border-color: #3b82f6;
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+    }
+    .join-input::placeholder { color: rgba(255,255,255,0.3); }
     .avatar-grid {
       display: grid;
       grid-template-columns: repeat(6, 1fr);
@@ -337,12 +384,13 @@
       font-size: 28px;
       padding: 8px;
       text-align: center;
-      background: rgba(255,255,255,0.05);
+      background: rgba(255,255,255,0.04);
       border-radius: 12px;
       cursor: pointer;
       transition: all 0.1s;
+      border: 2px solid transparent;
     }
-    .avatar-opt.selected { background: rgba(59,130,246,0.3); border: 2px solid #3b82f6; transform: scale(1.05); }
+    .avatar-opt.selected { background: rgba(59,130,246,0.2); border: 2px solid #3b82f6; transform: scale(1.05); }
     .btn {
       background: #3b82f6;
       border: none;
@@ -356,7 +404,7 @@
       transition: all 0.15s;
     }
     .btn:active { transform: scale(0.98); }
-    .btn-secondary { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); }
+    .btn-secondary { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); }
     .error-msg { color: #ef4444; font-size: 13px; margin-top: 12px; }
     .hidden { display: none; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -364,7 +412,8 @@
       position: fixed;
       bottom: 16px;
       left: 16px;
-      background: rgba(0,0,0,0.6);
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(8px);
       padding: 6px 12px;
       border-radius: 20px;
       font-size: 10px;
@@ -372,12 +421,13 @@
       align-items: center;
       gap: 6px;
       z-index: 100;
+      border: 1px solid rgba(255,255,255,0.04);
     }
     .conn-dot { width: 8px; height: 8px; border-radius: 50%; background: #ef4444; }
     .conn-dot.connected { background: #10b981; animation: pulse 1.5s infinite; }
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
     .timezone-badge {
-      background: rgba(59,130,246,0.15);
+      background: rgba(59,130,246,0.1);
       border-radius: 20px;
       padding: 4px 12px;
       font-size: 10px;
@@ -385,38 +435,14 @@
       align-items: center;
       gap: 6px;
       margin-top: 8px;
+      border: 1px solid rgba(255,255,255,0.04);
     }
-
-    #brandingBgLayer {
-  position: fixed;
-  inset: 0;
-  background-size: cover;
-  background-position: center center;
-  background-repeat: no-repeat;
-  z-index: -2;
-  opacity: 0;
-  transition: opacity 0.6s ease;
-}
-#brandingBgLayer.active { opacity: 1; }
-#brandingBgOverlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(6,8,15,0.78);
-  z-index: -1;
-  opacity: 0;
-  transition: opacity 0.6s ease;
-  pointer-events: none;
-}
-#brandingBgOverlay.active { opacity: 1; }
-
-
   </style>
 </head>
 <body>
 
   <div id="brandingBgLayer"></div>
-<div id="brandingBgOverlay"></div>
-
+  <div id="brandingBgOverlay"></div>
 
 <div class="container">
   <div id="joinScreen">
@@ -461,7 +487,7 @@
           </div>
         </div>
       </div>
-      <div style="background: rgba(59,130,246,0.1); border-radius: 12px; padding: 12px; margin: 16px 0;">
+      <div style="background: rgba(59,130,246,0.08); border-radius: 12px; padding: 12px; margin: 16px 0; border: 1px solid rgba(59,130,246,0.1);">
         <div style="font-size: 12px; color: #3b82f6;">📊 Your Progress</div>
         <div style="font-size: 28px; font-weight: 700;" id="startTotalQuestions">0</div>
         <div style="font-size: 11px; color: rgba(255,255,255,0.5);">Total Questions to Answer</div>
@@ -497,7 +523,6 @@
     </div>
   </div>
   
-  <!-- COMPLETION SCREEN: Mobile-friendly -->
   <div id="completionScreen" class="hidden">
     <div class="completion-card">
       <div class="completion-icon">🎉</div>
@@ -523,7 +548,6 @@
     </div>
   </div>
 
-  <!-- CONGRATULATORY OVERLAY -->
   <div id="prizeOverlay" class="prize-overlay hidden">
     <div class="prize-popup">
       <div class="prize-popup-icon">🎉</div>
@@ -567,15 +591,31 @@ let realtimeChannel = null;
 let quizStarted = false;
 let ROOM_CODE = null;
 
-// ============================================
-// SECURITY: Player Token Management
-// ============================================
+// Branding functions
+function applyBrandingImage(url) {
+  const layer = document.getElementById('brandingBgLayer');
+  const overlay = document.getElementById('brandingBgOverlay');
+  if (url) {
+    layer.style.backgroundImage = `url('${url}')`;
+    layer.classList.add('active');
+    overlay.classList.add('active');
+  } else {
+    layer.classList.remove('active');
+    overlay.classList.remove('active');
+    layer.style.backgroundImage = '';
+  }
+}
 
-// Generate or retrieve player token for security verification
+async function loadBranding() {
+  if (!SESSION_ID) return;
+  const { data } = await sb.from('game_sessions').select('branding_image').eq('id', SESSION_ID).maybeSingle();
+  applyBrandingImage(data && data.branding_image ? data.branding_image : null);
+}
+
+// Player Token Management
 function getPlayerToken() {
     let token = localStorage.getItem('sp_player_token');
     if (!token) {
-        // Generate a secure UUID v4 compatible token
         token = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
             var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
             return v.toString(16);
@@ -585,7 +625,6 @@ function getPlayerToken() {
     return token;
 }
 
-// Clear player session (logout)
 function clearPlayerSession() {
     localStorage.removeItem('sp_player_token');
     localStorage.removeItem('sp_player_id');
@@ -593,7 +632,7 @@ function clearPlayerSession() {
     localStorage.removeItem('sp_player');
 }
 
-// ── Timezone utilities ──────────────────────
+// Timezone utilities
 function getUserTimezone() {
   return Intl.DateTimeFormat().resolvedOptions().timeZone;
 }
@@ -646,7 +685,7 @@ async function checkRoomStatus(roomCode) {
   try {
     const { data: session, error } = await sb
       .from('game_sessions')
-      .select('id, status, scheduled_date')
+      .select('id, status, scheduled_date, branding_image')
       .eq('room_code', roomCode)
       .maybeSingle();
     if (error || !session) return { available: false, reason: '❌ Room not found. Please check the code.' };
@@ -664,7 +703,7 @@ async function checkRoomStatus(roomCode) {
     if (session.status !== 'active' && session.status !== 'waiting') {
       return { available: false, reason: `⚠️ This room is ${session.status}. Cannot join.` };
     }
-    return { available: true, sessionId: session.id, session: session };
+    return { available: true, sessionId: session.id, session: session, branding: session.branding_image };
   } catch (err) {
     console.error('Status check error:', err);
     return { available: false, reason: '🔌 Connection error. Please try again.' };
@@ -698,9 +737,6 @@ async function checkConnection() {
   }
 }
 
-// ============================================
-// MAIN JOIN FUNCTION with Token Security
-// ============================================
 async function joinGame() {
   const roomCode = document.getElementById('roomInput').value.trim().toUpperCase();
   const playerName = document.getElementById('nameInput').value.trim();
@@ -723,6 +759,11 @@ async function joinGame() {
   SESSION_ID = statusCheck.sessionId;
   ROOM_CODE = roomCode;
   
+  // Apply branding if available
+  if (statusCheck.branding) {
+    applyBrandingImage(statusCheck.branding);
+  }
+  
   const isActive = await checkGameStatus();
   if (!isActive) {
     showError('⏳ The game has not been activated yet. Please wait for the admin to start the game.');
@@ -734,10 +775,8 @@ async function joinGame() {
   joinBtn.innerText = 'Joining...';
   
   try {
-    // Get or generate player token
     const playerToken = getPlayerToken();
     
-    // Check if name already taken
     const { data: existing } = await sb
       .from('players')
       .select('id')
@@ -752,14 +791,13 @@ async function joinGame() {
       return;
     }
     
-    // Create new player with token
     const { data: player, error: playerError } = await sb
       .from('players')
       .insert({
         session_id: SESSION_ID,
         name: playerName,
         avatar_color: selectedAvatar,
-        player_token: playerToken,  // SECURITY: Store token
+        player_token: playerToken,
         score: 0,
         correct_count: 0,
         current_q_index: 0
@@ -768,7 +806,7 @@ async function joinGame() {
       .single();
       
     if (playerError) {
-      if (playerError.code === '23505') { // Unique violation
+      if (playerError.code === '23505') {
         showError('Name already taken in this room');
       } else {
         showError('Could not join: ' + playerError.message);
@@ -780,7 +818,6 @@ async function joinGame() {
     
     myPlayer = player;
     
-    // Store player info with token
     localStorage.setItem('sp_player', JSON.stringify({ 
       id: myPlayer.id, 
       session: SESSION_ID, 
@@ -790,7 +827,6 @@ async function joinGame() {
     localStorage.setItem('sp_player_id', myPlayer.id);
     localStorage.setItem('sp_session_id', SESSION_ID);
     
-    // Load questions
     const { data: qs, error: qError } = await sb
       .from('questions')
       .select('*')
@@ -813,6 +849,7 @@ async function joinGame() {
     document.getElementById('startTotalQuestions').innerText = questions.length;
     
     setupRealtime();
+    loadBranding();
     
   } catch (err) {
     console.error('Join error:', err);
@@ -823,27 +860,6 @@ async function joinGame() {
     joinBtn.innerText = '🚀 Join Game';
   }
 }
-
-function applyBrandingImage(url) {
-  const layer = document.getElementById('brandingBgLayer');
-  const overlay = document.getElementById('brandingBgOverlay');
-  if (url) {
-    layer.style.backgroundImage = `url('${url}')`;
-    layer.classList.add('active');
-    overlay.classList.add('active');
-  } else {
-    layer.classList.remove('active');
-    overlay.classList.remove('active');
-    layer.style.backgroundImage = '';
-  }
-}
-
-async function loadBranding() {
-  if (!SESSION_ID) return;
-  const { data } = await sb.from('game_sessions').select('branding_image').eq('id', SESSION_ID).maybeSingle();
-  applyBrandingImage(data && data.branding_image ? data.branding_image : null);
-}
-
 
 async function startQuiz() {
   const isActive = await checkGameStatus();
@@ -905,9 +921,6 @@ function updateTimerDisplay(remaining) {
   }
 }
 
-// ============================================
-// SUBMIT ANSWER
-// ============================================
 function submitAnswer(selectedIdx) {
   if (answered) return;
   answered = true;
@@ -926,7 +939,6 @@ function submitAnswer(selectedIdx) {
     correctCount++;
   }
 
-  // Show feedback immediately — UI never waits on network
   const letters = ['A', 'B', 'C', 'D'];
   const feedbackDiv = document.getElementById('feedback');
   feedbackDiv.classList.remove('hidden');
@@ -949,7 +961,6 @@ function submitAnswer(selectedIdx) {
   document.getElementById('nextBtn').classList.remove('hidden');
   document.getElementById('scoreDisplay').innerHTML = `${score} pts`;
 
-  // Fire-and-forget — nothing blocks the UI
   const playerId = localStorage.getItem('sp_player_id');
   sb.from('players').update({ score, correct_count: correctCount, current_q_index: currentIndex + 1 })
     .eq('id', playerId).then(() => {}).catch(() => {});
@@ -969,7 +980,6 @@ function loadNextQuestion() {
 function completeQuiz() {
   if (timerInterval) clearInterval(timerInterval);
 
-  // Show completion screen instantly — no awaiting network
   const accuracy = questions.length > 0 ? Math.round((correctCount / questions.length) * 100) : 0;
   document.getElementById('finalScore').innerText = score;
   document.getElementById('finalCorrect').innerText = `${correctCount}/${questions.length}`;
@@ -979,7 +989,6 @@ function completeQuiz() {
   for (let i = 0; i < 100; i++) setTimeout(() => createConfetti(), i * 30);
   setTimeout(() => showPrizeClaim(), 1200);
 
-  // Fire-and-forget DB update
   const playerId = localStorage.getItem('sp_player_id');
   sb.from('players').update({ completed: true, completed_at: new Date() })
     .eq('id', playerId).then(() => {}).catch(() => {});
@@ -1014,24 +1023,20 @@ function showError(msg) {
   setTimeout(() => errDiv.innerText = '', 5000);
 }
 
-function toast(msg, type = 'info') {
-  const toastDiv = document.createElement('div');
-  toastDiv.className = 'toast';
-  toastDiv.innerText = msg;
-  document.body.appendChild(toastDiv);
-  setTimeout(() => toastDiv.remove(), 3000);
-}
-
 function setupRealtime() {
   if (realtimeChannel) try { sb.removeChannel(realtimeChannel); } catch(e) {}
-  realtimeChannel = sb.channel(`player-${myPlayer.id}`);
+  realtimeChannel = sb.channel(`player-${myPlayer?.id || 'temp'}`);
   realtimeChannel
     .on('postgres_changes', {
-  event: 'UPDATE',
-  schema: 'public',
-  table: 'game_sessions',
-  filter: `session_id=eq.${SESSION_ID}`
-}, (payload) => applyBrandingImage(payload.new.branding_image))
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'game_sessions',
+      filter: `id=eq.${SESSION_ID}`
+    }, (payload) => {
+      if (payload.new.branding_image) {
+        applyBrandingImage(payload.new.branding_image);
+      }
+    })
     .subscribe();
 }
 
@@ -1040,16 +1045,12 @@ function escapeHtml(str) {
   return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;'); 
 }
 
-// ============================================
-// AUTO REJOIN with Token Verification
-// ============================================
 async function autoRejoin() {
   const playerToken = getPlayerToken();
   const playerId = localStorage.getItem('sp_player_id');
   const sessionId = localStorage.getItem('sp_session_id');
   
   if (!playerToken || !playerId || !sessionId) {
-    // Try old format for backward compatibility
     const saved = localStorage.getItem('sp_player');
     if (saved) {
       try {
@@ -1060,7 +1061,6 @@ async function autoRejoin() {
           .eq('id', data.id)
           .maybeSingle();
         if (!error && player) {
-          // Migrate to new token system
           const newToken = getPlayerToken();
           await sb.from('players')
             .update({ player_token: newToken })
@@ -1080,7 +1080,6 @@ async function autoRejoin() {
     return;
   }
   
-  // Verify player with token
   const { data: player, error } = await sb
     .from('players')
     .select('*')
@@ -1111,10 +1110,13 @@ async function autoRejoin() {
 async function loadQuestionsAndResume() {
   const { data: session } = await sb
     .from('game_sessions')
-    .select('room_code')
+    .select('room_code, branding_image')
     .eq('id', SESSION_ID)
     .single();
-  if (session) ROOM_CODE = session.room_code;
+  if (session) {
+    ROOM_CODE = session.room_code;
+    if (session.branding_image) applyBrandingImage(session.branding_image);
+  }
   
   const { data: qs } = await sb
     .from('questions')
