@@ -17,7 +17,6 @@
       min-height: 100dvh;
     }
     
-    /* Branding image - full screen, no overlay, no glass */
     #brandingBgLayer {
       position: fixed;
       inset: 0;
@@ -30,7 +29,6 @@
     }
     #brandingBgLayer.active { opacity: 1; }
     
-    /* No background, no blur, no glass - completely transparent */
     .qr-section {
       background: transparent !important;
       backdrop-filter: none !important;
@@ -132,53 +130,122 @@
       letter-spacing: 0.5px;
     }
     
-    .leaderboard-container {
+    /* Leaderboard toggle button */
+    .leaderboard-toggle {
+      text-align: center;
+      margin: 10px auto 30px;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 28px;
+      letter-spacing: 3px;
+      color: rgba(255,255,255,0.6);
+      cursor: pointer;
+      transition: color 0.2s;
+      user-select: none;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 12px 40px;
+      display: inline-block;
       background: transparent !important;
-      backdrop-filter: none !important;
-      -webkit-backdrop-filter: none !important;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 28px;
-      padding: 28px 24px;
-      margin: 20px auto;
-      max-width: 800px;
     }
-    .leaderboard-title {
+    .leaderboard-toggle:hover {
+      color: #7ab7ff;
+      border-color: rgba(255,255,255,0.2);
+    }
+    .toggle-wrapper {
+      text-align: center;
+    }
+
+    /* Leaderboard Modal Overlay */
+    #leaderboardModal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.2);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+    }
+    #leaderboardModal.open {
+      display: flex;
+    }
+    .leaderboard-modal-content {
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 32px;
+      padding: 32px 28px;
+      max-width: 700px;
+      width: 100%;
+      max-height: 80vh;
+      overflow-y: auto;
+      position: relative;
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .modal-title {
       font-family: 'Bebas Neue', sans-serif;
       font-size: 32px;
-      margin-bottom: 20px;
-      text-align: center;
-      letter-spacing: 1px;
+      letter-spacing: 2px;
       color: #fff;
     }
-    .leaderboard-list {
+    .modal-close {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      font-size: 20px;
+      color: rgba(255,255,255,0.6);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    .modal-close:hover {
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+    }
+
+    .leaderboard-list-modal {
       display: flex;
       flex-direction: column;
       gap: 10px;
-      max-height: 400px;
-      overflow-y: auto;
-      padding-right: 4px;
     }
-    .leaderboard-row {
+    .leaderboard-row-modal {
       display: flex;
       align-items: center;
       gap: 16px;
       padding: 12px 16px;
-      background: rgba(255,255,255,0.04);
+      background: rgba(255,255,255,0.03);
       border-radius: 16px;
       border: 1px solid rgba(255,255,255,0.03);
     }
-    .rank {
+    .leaderboard-row-modal .rank {
       font-size: 24px;
       width: 50px;
       text-align: center;
       font-weight: 600;
     }
-    .avatar { font-size: 32px; }
-    .name { flex: 1; font-weight: 600; color: #fff; }
-    .score { font-size: 20px; font-weight: 700; color: #fbbf24; }
-    .status { font-size: 12px; padding: 4px 12px; border-radius: 20px; font-weight: 500; }
-    .status-active { background: rgba(16,185,129,0.15); color: #6ee7b7; }
-    .status-complete { background: rgba(59,130,246,0.1); color: #7ab7ff; }
+    .leaderboard-row-modal .avatar { font-size: 32px; }
+    .leaderboard-row-modal .name { flex: 1; font-weight: 600; color: #fff; }
+    .leaderboard-row-modal .score { font-size: 20px; font-weight: 700; color: #fbbf24; }
+    .leaderboard-row-modal .status { font-size: 12px; padding: 4px 12px; border-radius: 20px; font-weight: 500; }
+    .leaderboard-row-modal .status-active { background: rgba(16,185,129,0.15); color: #6ee7b7; }
+    .leaderboard-row-modal .status-complete { background: rgba(59,130,246,0.1); color: #7ab7ff; }
+    .empty-leaderboard {
+      text-align: center;
+      padding: 40px;
+      color: rgba(255,255,255,0.35);
+    }
     
     .timezone-badge {
       background: transparent !important;
@@ -217,7 +284,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 1000;
+      z-index: 1001;
     }
     .entry-card {
       background: rgba(0, 0, 0, 0.3);
@@ -264,9 +331,12 @@
       letter-spacing: 0.3px;
     }
 
-    .leaderboard-list::-webkit-scrollbar { width: 5px; }
-    .leaderboard-list::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); border-radius: 10px; }
-    .leaderboard-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+    .leaderboard-list-modal::-webkit-scrollbar,
+    .leaderboard-modal-content::-webkit-scrollbar { width: 5px; }
+    .leaderboard-list-modal::-webkit-scrollbar-track,
+    .leaderboard-modal-content::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); border-radius: 10px; }
+    .leaderboard-list-modal::-webkit-scrollbar-thumb,
+    .leaderboard-modal-content::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
 
     @media (max-width: 640px) {
       .qr-section { padding: 24px 16px; margin: 12px; }
@@ -276,9 +346,10 @@
       .stat-value { font-size: 36px; }
       .room-code-big { font-size: 38px; letter-spacing: 4px; padding: 12px 20px; }
       .entry-card { padding: 32px 20px; }
-      .leaderboard-container { padding: 20px 16px; margin: 12px; }
-      .leaderboard-row { flex-wrap: wrap; gap: 8px; }
-      .rank { width: 36px; font-size: 20px; }
+      .leaderboard-modal-content { padding: 24px 16px; max-height: 85vh; }
+      .leaderboard-row-modal { flex-wrap: wrap; gap: 8px; }
+      .leaderboard-row-modal .rank { width: 36px; font-size: 20px; }
+      .leaderboard-toggle { font-size: 22px; padding: 10px 24px; }
     }
   </style>
 </head>
@@ -319,15 +390,28 @@
       <div class="stat-card"><div class="stat-value" id="statCompleted">0</div><div class="stat-label">Completed</div></div>
     </div>
 
-    <div class="leaderboard-container">
-      <div class="leaderboard-title">🏆 LIVE LEADERBOARD</div>
-      <div class="leaderboard-list" id="leaderboardList">
-        <div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.35);">Waiting for players...</div>
+    <!-- Clickable Leaderboard Toggle -->
+    <div class="toggle-wrapper">
+      <div class="leaderboard-toggle" id="leaderboardToggle" onclick="toggleLeaderboard()">
+        🏆 LEADERBOARD
       </div>
     </div>
-    
+
     <div class="footer">
       PlayAQuiz — Self-Paced Mode • Room active until game ends
+    </div>
+  </div>
+
+  <!-- Leaderboard Modal -->
+  <div id="leaderboardModal" onclick="if(event.target===this) toggleLeaderboard()">
+    <div class="leaderboard-modal-content">
+      <div class="modal-header">
+        <div class="modal-title">🏆 LEADERBOARD</div>
+        <div class="modal-close" onclick="toggleLeaderboard()">✕</div>
+      </div>
+      <div class="leaderboard-list-modal" id="leaderboardListModal">
+        <div class="empty-leaderboard">Loading players...</div>
+      </div>
     </div>
   </div>
 
@@ -340,6 +424,7 @@ let SESSION_ID = null;
 let ROOM_CODE = null;
 let refreshInterval = null;
 let realtimeChannel = null;
+let cachedPlayers = [];
 
 function getUserTimezone() {
   return Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -370,6 +455,49 @@ function displayTimezoneInfo() {
   }
 }
 
+// ── Leaderboard Toggle ────────────────────────────────────────────
+function toggleLeaderboard() {
+  const modal = document.getElementById('leaderboardModal');
+  modal.classList.toggle('open');
+  if (modal.classList.contains('open')) {
+    renderModalLeaderboard();
+  }
+}
+
+function renderModalLeaderboard() {
+  const container = document.getElementById('leaderboardListModal');
+  if (!cachedPlayers || cachedPlayers.length === 0) {
+    container.innerHTML = '<div class="empty-leaderboard">Waiting for players...</div>';
+    return;
+  }
+  
+  const sorted = [...cachedPlayers].sort((a, b) => (b.score || 0) - (a.score || 0));
+  
+  container.innerHTML = sorted.slice(0, 20).map((p, i) => {
+    let statusText = 'Playing';
+    let statusClass = 'status-active';
+    if (p.completed === true) {
+      statusText = '✓ Completed';
+      statusClass = 'status-complete';
+    } else if (p.is_eliminated) {
+      statusText = '❌ Eliminated';
+    }
+    
+    const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}`;
+    
+    return `
+      <div class="leaderboard-row-modal">
+        <div class="rank">${medal}</div>
+        <div class="avatar">${p.avatar_color || '👤'}</div>
+        <div class="name">${escapeHtml(p.name)}</div>
+        <div class="score">${p.score || 0}</div>
+        <div class="status ${statusClass}">${statusText}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ── Room Check ─────────────────────────────────────────────────────
 async function checkAndConnectToRoom(code) {
   try {
     const { data: session, error } = await sb
@@ -545,11 +673,16 @@ async function loadStats() {
     
     if (error) throw error;
     
+    cachedPlayers = players || [];
+    
     if (!players || players.length === 0) {
       document.getElementById('statPlayers').innerText = '0';
       document.getElementById('statActive').innerText = '0';
       document.getElementById('statCompleted').innerText = '0';
-      document.getElementById('leaderboardList').innerHTML = '<div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.35);">Waiting for players to join...</div>';
+      // Update modal if open
+      if (document.getElementById('leaderboardModal').classList.contains('open')) {
+        renderModalLeaderboard();
+      }
       return;
     }
     
@@ -561,30 +694,10 @@ async function loadStats() {
     document.getElementById('statActive').innerText = activePlayers;
     document.getElementById('statCompleted').innerText = completedPlayers;
     
-    const sorted = [...players].sort((a, b) => (b.score || 0) - (a.score || 0));
-    
-    document.getElementById('leaderboardList').innerHTML = sorted.slice(0, 10).map((p, i) => {
-      let statusText = 'Playing';
-      let statusClass = 'status-active';
-      if (p.completed === true) {
-        statusText = '✓ Completed';
-        statusClass = 'status-complete';
-      } else if (p.is_eliminated) {
-        statusText = '❌ Eliminated';
-      }
-      
-      const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}`;
-      
-      return `
-        <div class="leaderboard-row">
-          <div class="rank">${medal}</div>
-          <div class="avatar">${p.avatar_color || '👤'}</div>
-          <div class="name">${escapeHtml(p.name)}</div>
-          <div class="score">${p.score || 0}</div>
-          <div class="status ${statusClass}">${statusText}</div>
-        </div>
-      `;
-    }).join('');
+    // Update modal if open
+    if (document.getElementById('leaderboardModal').classList.contains('open')) {
+      renderModalLeaderboard();
+    }
     
   } catch (err) {
     console.error('Error loading stats:', err);
