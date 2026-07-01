@@ -17,7 +17,6 @@
       padding: 16px;
     }
     
-    /* Branding image - full screen */
     #brandingBgLayer {
       position: fixed;
       inset: 0;
@@ -29,8 +28,6 @@
       transition: opacity 0.8s ease;
     }
     #brandingBgLayer.active { opacity: 1; }
-    
-    /* Subtle gradient overlay for readability */
     #brandingBgOverlay {
       position: fixed;
       inset: 0;
@@ -192,6 +189,7 @@
     }
     .start-btn:active { transform: scale(0.98); }
     
+    /* Dynamic Completion Screen - updated with editable fields */
     .completion-card {
       text-align: center;
       padding: 28px 16px;
@@ -217,14 +215,30 @@
       background: linear-gradient(135deg, #10b981, #fbbf24);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      margin-bottom: 10px;
+      margin-bottom: 6px;
       line-height: 1.1;
     }
-    .completion-message {
-      font-size: clamp(14px, 4vw, 20px);
+    .completion-player-name {
+      font-size: 20px;
+      font-weight: 600;
       color: #fbbf24;
+      margin-bottom: 4px;
+    }
+    .completion-score-display {
+      font-size: 16px;
+      color: rgba(255,255,255,0.65);
+      margin-bottom: 12px;
+    }
+    .completion-message {
+      font-size: clamp(14px, 4vw, 18px);
+      color: #e8edf7;
       margin-bottom: 16px;
-      font-weight: 500;
+      background: rgba(0,0,0,0.2);
+      padding: 8px 16px;
+      border-radius: 40px;
+      display: inline-block;
+      backdrop-filter: blur(4px);
+      border: 1px solid rgba(255,255,255,0.05);
     }
     .final-stats {
       display: flex;
@@ -246,24 +260,6 @@
     .final-stat-label {
       font-size: clamp(10px, 2.5vw, 12px);
       color: rgba(255,255,255,0.6);
-    }
-    .prize-claim-btn {
-      background: linear-gradient(135deg, #f59e0b, #ef4444);
-      border: none;
-      border-radius: 50px;
-      padding: 14px 28px;
-      font-size: clamp(14px, 4vw, 18px);
-      font-weight: 800;
-      color: white;
-      cursor: pointer;
-      margin-top: 16px;
-      width: 100%;
-      animation: prizePulse 1.5s ease infinite;
-      box-shadow: 0 4px 24px rgba(245,158,11,0.4);
-    }
-    @keyframes prizePulse {
-      0%,100% { transform: scale(1); box-shadow: 0 4px 24px rgba(245,158,11,0.4); }
-      50% { transform: scale(1.03); box-shadow: 0 6px 32px rgba(245,158,11,0.7); }
     }
     .prize-overlay {
       position: fixed;
@@ -523,15 +519,18 @@
     </div>
   </div>
   
+  <!-- DYNAMIC COMPLETION SCREEN - updated with editable fields -->
   <div id="completionScreen" class="hidden">
     <div class="completion-card">
-      <div class="completion-icon">🎉</div>
-      <div class="completion-title">CONGRATULATIONS!</div>
-      <div class="completion-message">Thank you for playing!</div>
+      <div class="completion-icon" id="compIcon">🎉</div>
+      <div class="completion-title" id="compTitle">CONGRATULATIONS!</div>
+      <div class="completion-player-name" id="compPlayerName">Player</div>
+      <div class="completion-score-display" id="compScoreDisplay">0 pts</div>
+      <div class="completion-message" id="compMessage">✨ You've completed the quiz ✨</div>
       <div class="final-stats">
         <div class="final-stat">
           <div class="final-stat-value" id="finalScore">0</div>
-          <div class="final-stat-label">Your Score</div>
+          <div class="final-stat-label">Score</div>
         </div>
         <div class="final-stat">
           <div class="final-stat-value" id="finalCorrect">0</div>
@@ -542,18 +541,16 @@
           <div class="final-stat-label">Accuracy</div>
         </div>
       </div>
-      <div style="margin-top: 12px; font-size: clamp(12px,3.5vw,14px); color: rgba(255,255,255,0.5);">
-        ✨ You've completed the quiz ✨
-      </div>
     </div>
   </div>
 
+  <!-- DYNAMIC PRIZE OVERLAY -->
   <div id="prizeOverlay" class="prize-overlay hidden">
     <div class="prize-popup">
-      <div class="prize-popup-icon">🎉</div>
-      <div class="prize-popup-title">CONGRATULATIONS!</div>
+      <div class="prize-popup-icon" id="prizeIcon">🎉</div>
+      <div class="prize-popup-title" id="prizeTitle">CONGRATULATIONS!</div>
       <div class="prize-popup-score" id="prizeScoreInfo">Score: 0 pts</div>
-      <div class="prize-popup-body">
+      <div class="prize-popup-body" id="prizeBody">
         🌟 Well done and thank you for joining the game!<br><br>
         <div style="background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.4); border-radius: 14px; padding: 14px 16px; margin: 8px 0 12px;">
           🏆 <strong style="color:#fbbf24; font-size: 1.05em;">Only the TOP 5 Players</strong> on the leaderboard will advance to the <strong style="color:#fbbf24;">Final Round!</strong>
@@ -591,6 +588,17 @@ let realtimeChannel = null;
 let quizStarted = false;
 let ROOM_CODE = null;
 
+// Completion settings (loaded from admin)
+let completionSettings = {
+  title: 'CONGRATULATIONS!',
+  icon: '🎉',
+  nameLabel: 'Player',
+  scoreLabel: 'pts',
+  message: '✨ You\'ve completed the quiz ✨',
+  showPrize: true,
+  prizeMessage: '🏆 Outstanding! You are among the top players!'
+};
+
 // Branding functions
 function applyBrandingImage(url) {
   const layer = document.getElementById('brandingBgLayer');
@@ -610,6 +618,56 @@ async function loadBranding() {
   if (!SESSION_ID) return;
   const { data } = await sb.from('game_sessions').select('branding_image').eq('id', SESSION_ID).maybeSingle();
   applyBrandingImage(data && data.branding_image ? data.branding_image : null);
+}
+
+// Load completion settings from admin
+async function loadCompletionSettings() {
+  if (!SESSION_ID) return;
+  const { data } = await sb.from('game_sessions').select('completion_settings').eq('id', SESSION_ID).maybeSingle();
+  if (data?.completion_settings) {
+    completionSettings = { ...completionSettings, ...data.completion_settings };
+  }
+  // Apply settings to UI if completion screen is visible
+  applyCompletionSettings();
+}
+
+// Apply completion settings to UI elements
+function applyCompletionSettings() {
+  document.getElementById('compIcon').innerText = completionSettings.icon || '🎉';
+  document.getElementById('compTitle').innerText = completionSettings.title || 'CONGRATULATIONS!';
+  const playerName = myPlayer?.name || completionSettings.nameLabel || 'Player';
+  document.getElementById('compPlayerName').innerText = playerName;
+  document.getElementById('compScoreDisplay').innerHTML = `${score} ${completionSettings.scoreLabel || 'pts'}`;
+  document.getElementById('compMessage').innerText = completionSettings.message || '✨ You\'ve completed the quiz ✨';
+}
+
+// Update prize overlay with settings
+function updatePrizeOverlay() {
+  document.getElementById('prizeIcon').innerText = completionSettings.icon || '🎉';
+  document.getElementById('prizeTitle').innerText = completionSettings.title || 'CONGRATULATIONS!';
+  
+  const playerName = myPlayer?.name || 'Player';
+  document.getElementById('prizeScoreInfo').innerHTML =
+    `👤 <strong>${escapeHtml(playerName)}</strong> &nbsp;|&nbsp; 🏅 Score: <strong>${score} ${completionSettings.scoreLabel || 'pts'}</strong> &nbsp;|&nbsp; ✅ ${correctCount}/${questions.length} correct`;
+  
+  const prizeBody = document.getElementById('prizeBody');
+  if (completionSettings.showPrize !== false) {
+    prizeBody.innerHTML = `
+      🌟 Well done and thank you for joining the game!<br><br>
+      <div style="background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.4); border-radius: 14px; padding: 14px 16px; margin: 8px 0 12px;">
+        ${completionSettings.prizeMessage || '🏆 Outstanding! You are among the top players!'}
+      </div>
+      A Final Round will commence in a moment — stay tuned and see if you made the cut!
+    `;
+  } else {
+    prizeBody.innerHTML = `
+      🙌 Thank you for playing! You showed great knowledge.<br><br>
+      <div style="background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.4); border-radius: 14px; padding: 14px 16px; margin: 8px 0 12px;">
+        💡 <strong style="color:#10b981;">Keep learning and improving!</strong>
+      </div>
+      Your final score: <strong>${score} ${completionSettings.scoreLabel || 'pts'}</strong>
+    `;
+  }
 }
 
 // Player Token Management
@@ -685,7 +743,7 @@ async function checkRoomStatus(roomCode) {
   try {
     const { data: session, error } = await sb
       .from('game_sessions')
-      .select('id, status, scheduled_date, branding_image')
+      .select('id, status, scheduled_date, branding_image, completion_settings')
       .eq('room_code', roomCode)
       .maybeSingle();
     if (error || !session) return { available: false, reason: '❌ Room not found. Please check the code.' };
@@ -702,6 +760,10 @@ async function checkRoomStatus(roomCode) {
     }
     if (session.status !== 'active' && session.status !== 'waiting') {
       return { available: false, reason: `⚠️ This room is ${session.status}. Cannot join.` };
+    }
+    // Load completion settings early
+    if (session.completion_settings) {
+      completionSettings = { ...completionSettings, ...session.completion_settings };
     }
     return { available: true, sessionId: session.id, session: session, branding: session.branding_image };
   } catch (err) {
@@ -848,6 +910,9 @@ async function joinGame() {
     document.getElementById('startScreen').classList.remove('hidden');
     document.getElementById('startTotalQuestions').innerText = questions.length;
     
+    // Load completion settings
+    await loadCompletionSettings();
+    
     setupRealtime();
     loadBranding();
     
@@ -870,7 +935,7 @@ async function startQuiz() {
   quizStarted = true;
   document.getElementById('startScreen').classList.add('hidden');
   document.getElementById('quizScreen').classList.remove('hidden');
-  document.getElementById('scoreDisplay').innerHTML = '0 pts';
+  document.getElementById('scoreDisplay').innerHTML = `0 ${completionSettings.scoreLabel || 'pts'}`;
   const savedIndex = myPlayer?.current_q_index || 0;
   loadQuestion(savedIndex);
 }
@@ -887,7 +952,7 @@ async function loadQuestion(index) {
   document.getElementById('questionText').innerHTML = escapeHtml(q.question_text);
   document.getElementById('progressText').innerHTML = `${index + 1} / ${questions.length}`;
   document.getElementById('progressFill').style.width = `${((index) / questions.length) * 100}%`;
-  document.getElementById('scoreDisplay').innerHTML = `${score} pts`;
+  document.getElementById('scoreDisplay').innerHTML = `${score} ${completionSettings.scoreLabel || 'pts'}`;
   document.getElementById('feedback').classList.add('hidden');
   document.getElementById('nextBtn').classList.add('hidden');
   const letters = ['A', 'B', 'C', 'D'];
@@ -944,7 +1009,7 @@ function submitAnswer(selectedIdx) {
   feedbackDiv.classList.remove('hidden');
   if (isCorrect) {
     feedbackDiv.className = 'feedback feedback-correct';
-    feedbackDiv.innerHTML = `✅ Correct! +${pointsEarned} points${elapsed < 10 ? ' ⚡ Speed bonus!' : ''}`;
+    feedbackDiv.innerHTML = `✅ Correct! +${pointsEarned} ${completionSettings.scoreLabel || 'pts'}${elapsed < 10 ? ' ⚡ Speed bonus!' : ''}`;
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
       const o = ctx.createOscillator(); const g = ctx.createGain();
@@ -959,7 +1024,7 @@ function submitAnswer(selectedIdx) {
   }
   document.querySelectorAll('.option-btn').forEach(btn => btn.disabled = true);
   document.getElementById('nextBtn').classList.remove('hidden');
-  document.getElementById('scoreDisplay').innerHTML = `${score} pts`;
+  document.getElementById('scoreDisplay').innerHTML = `${score} ${completionSettings.scoreLabel || 'pts'}`;
 
   const playerId = localStorage.getItem('sp_player_id');
   sb.from('players').update({ score, correct_count: correctCount, current_q_index: currentIndex + 1 })
@@ -984,6 +1049,10 @@ function completeQuiz() {
   document.getElementById('finalScore').innerText = score;
   document.getElementById('finalCorrect').innerText = `${correctCount}/${questions.length}`;
   document.getElementById('finalAccuracy').innerText = `${accuracy}%`;
+  
+  // Apply completion settings to the screen
+  applyCompletionSettings();
+  
   document.getElementById('quizScreen').classList.add('hidden');
   document.getElementById('completionScreen').classList.remove('hidden');
   for (let i = 0; i < 100; i++) setTimeout(() => createConfetti(), i * 30);
@@ -1007,9 +1076,7 @@ function createConfetti() {
 }
 
 function showPrizeClaim() {
-  const playerName = myPlayer?.name || 'Player';
-  document.getElementById('prizeScoreInfo').innerHTML =
-    `👤 <strong>${escapeHtml(playerName)}</strong> &nbsp;|&nbsp; 🏅 Score: <strong>${score} pts</strong> &nbsp;|&nbsp; ✅ ${correctCount}/${questions.length} correct`;
+  updatePrizeOverlay();
   document.getElementById('prizeOverlay').classList.remove('hidden');
 }
 
@@ -1033,8 +1100,23 @@ function setupRealtime() {
       table: 'game_sessions',
       filter: `id=eq.${SESSION_ID}`
     }, (payload) => {
+      // Handle branding updates
       if (payload.new.branding_image) {
         applyBrandingImage(payload.new.branding_image);
+      }
+      // Handle completion settings updates
+      if (payload.new.completion_settings) {
+        completionSettings = { ...completionSettings, ...payload.new.completion_settings };
+        // If completion screen is visible, update it
+        if (!document.getElementById('completionScreen').classList.contains('hidden')) {
+          applyCompletionSettings();
+        }
+        // If prize overlay is visible, update it
+        if (!document.getElementById('prizeOverlay').classList.contains('hidden')) {
+          updatePrizeOverlay();
+        }
+        // Update score display label if needed
+        document.getElementById('scoreDisplay').innerHTML = `${score} ${completionSettings.scoreLabel || 'pts'}`;
       }
     })
     .subscribe();
@@ -1110,12 +1192,15 @@ async function autoRejoin() {
 async function loadQuestionsAndResume() {
   const { data: session } = await sb
     .from('game_sessions')
-    .select('room_code, branding_image')
+    .select('room_code, branding_image, completion_settings')
     .eq('id', SESSION_ID)
     .single();
   if (session) {
     ROOM_CODE = session.room_code;
     if (session.branding_image) applyBrandingImage(session.branding_image);
+    if (session.completion_settings) {
+      completionSettings = { ...completionSettings, ...session.completion_settings };
+    }
   }
   
   const { data: qs } = await sb
@@ -1137,6 +1222,14 @@ async function loadQuestionsAndResume() {
     document.getElementById('finalScore').innerText = myPlayer.score || 0;
     document.getElementById('finalCorrect').innerText = `${myPlayer.correct_count || 0}/${questions.length}`;
     document.getElementById('finalAccuracy').innerText = `${accuracy}%`;
+    
+    // Apply completion settings
+    document.getElementById('compIcon').innerText = completionSettings.icon || '🎉';
+    document.getElementById('compTitle').innerText = completionSettings.title || 'CONGRATULATIONS!';
+    document.getElementById('compPlayerName').innerText = myPlayer.name || completionSettings.nameLabel || 'Player';
+    document.getElementById('compScoreDisplay').innerHTML = `${myPlayer.score || 0} ${completionSettings.scoreLabel || 'pts'}`;
+    document.getElementById('compMessage').innerText = completionSettings.message || '✨ You\'ve completed the quiz ✨';
+    
     document.getElementById('joinScreen').classList.add('hidden');
     document.getElementById('completionScreen').classList.remove('hidden');
     for (let i = 0; i < 50; i++) setTimeout(() => createConfetti(), i * 30);

@@ -31,13 +31,13 @@
     .stat-number { font-size: 36px; font-weight: 800; color: #3b82f6; }
     .stat-label { font-size: 12px; color: #6b7a99; margin-top: 5px; }
 
-    /* ===== Menu / Tab navigation ===== */
     .menu-nav {
       display: flex;
       gap: 10px;
       margin-bottom: 24px;
       overflow-x: auto;
       padding-bottom: 4px;
+      flex-wrap: wrap;
     }
     .menu-tab {
       background: rgba(13,17,32,0.8);
@@ -75,24 +75,12 @@
     .tab-panel.active { display: block; animation: fadeIn 0.2s ease; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 
-    .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
     .card { background: rgba(13,17,32,0.8); border: 1px solid rgba(59,130,246,0.2); border-radius: 20px; padding: 24px; margin-bottom: 24px; }
     .card-title { font-size: 18px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
-    .category-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px; }
-    .category-card { background: rgba(255,255,255,0.05); border: 2px solid rgba(59,130,246,0.2); border-radius: 12px; padding: 16px; text-align: center; position: relative; }
-    .category-icon { font-size: 32px; margin-bottom: 8px; }
-    .category-name { font-size: 14px; font-weight: 600; }
-    .category-count { font-size: 11px; color: #6b7a99; margin-top: 4px; }
-    .category-actions { position: absolute; top: 8px; right: 8px; display: flex; gap: 4px; }
-    .cat-action { background: rgba(0,0,0,0.5); border: none; border-radius: 6px; padding: 4px 8px; cursor: pointer; font-size: 12px; }
-
-    .question-list { max-height: 500px; overflow-y: auto; }
-    .question-item { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 12px; margin-bottom: 8px; display: flex; align-items: center; gap: 12px; }
-    .question-checkbox { width: 24px; height: 24px; cursor: pointer; accent-color: #3b82f6; }
-    .question-content { flex: 1; }
-    .question-text { font-weight: 600; margin-bottom: 8px; }
-    .question-meta { display: flex; gap: 12px; font-size: 11px; color: #6b7a99; }
-
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .flex { display: flex; gap: 10px; flex-wrap: wrap; }
+    .mb-3 { margin-bottom: 12px; }
+    .mt-3 { margin-top: 12px; }
     input, select, textarea { background: #06080f; border: 1px solid #2d3b52; border-radius: 10px; padding: 10px 14px; color: #e8edf7; width: 100%; outline: none; }
     input:focus, select:focus, textarea:focus { border-color: #3b82f6; }
     label { font-size: 11px; font-weight: 600; color: #6b7a99; display: block; margin-bottom: 5px; text-transform: uppercase; }
@@ -104,85 +92,85 @@
     .btn-ghost { background: #111827; border: 1px solid #2d3b52; }
     .btn-sm { padding: 6px 12px; font-size: 12px; }
 
-    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .flex { display: flex; gap: 10px; flex-wrap: wrap; }
-    .mb-3 { margin-bottom: 12px; }
-    .mt-3 { margin-top: 12px; }
-
     .player-list { max-height: 500px; overflow-y: auto; }
     .player-row { display: flex; align-items: center; gap: 12px; padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
-    .player-rank { font-size: 18px; width: 40px; }
-    .player-avatar { font-size: 28px; }
-    .player-info { flex: 1; }
-    .player-name { font-weight: 600; }
-    .player-score { font-weight: 700; color: #f59e0b; }
 
-    .filter-bar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
-    .batch-actions { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
-
-    .status-badge {
-      padding: 6px 12px;
-      border-radius: 40px;
-      font-size: 12px;
-      font-weight: 700;
-      margin-right: 12px;
+    /* Completion Screen Editor */
+    .completion-editor {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
     }
-    .status-badge.waiting { background: rgba(245,158,11,0.2); color: #f59e0b; }
-    .status-badge.active { background: rgba(16,185,129,0.2); color: #10b981; animation: pulse 1.5s infinite; }
-    .status-badge.ended { background: rgba(239,68,68,0.2); color: #ef4444; }
-
-    .toast { position: fixed; bottom: 20px; right: 20px; background: #0d1120; border: 1px solid #2d3b52; border-radius: 10px; padding: 12px 20px; z-index: 1000; animation: slideIn 0.3s ease; }
+    .completion-preview {
+      background: rgba(0,0,0,0.3);
+      border-radius: 20px;
+      padding: 24px;
+      border: 1px solid rgba(255,255,255,0.06);
+      min-height: 300px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+    .completion-preview .icon { font-size: 64px; margin-bottom: 12px; }
+    .completion-preview .title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 32px;
+      background: linear-gradient(135deg, #10b981, #fbbf24);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .completion-preview .player-name-display {
+      font-size: 20px;
+      font-weight: 600;
+      color: #fbbf24;
+      margin: 4px 0;
+    }
+    .completion-preview .score-display {
+      font-size: 16px;
+      color: rgba(255,255,255,0.65);
+      margin-bottom: 6px;
+    }
+    .completion-preview .msg-display {
+      background: rgba(0,0,0,0.2);
+      padding: 8px 16px;
+      border-radius: 40px;
+      font-size: 16px;
+      color: #e8edf7;
+      border: 1px solid rgba(255,255,255,0.05);
+      display: inline-block;
+    }
+    .completion-preview .stats-mini {
+      display: flex;
+      gap: 20px;
+      margin-top: 12px;
+      background: rgba(0,0,0,0.2);
+      padding: 10px 20px;
+      border-radius: 20px;
+    }
+    .completion-preview .stats-mini div { text-align: center; }
+    .completion-preview .stats-mini .num { font-size: 24px; font-weight: 800; color: #f59e0b; }
+    .completion-preview .stats-mini .lbl { font-size: 10px; color: rgba(255,255,255,0.5); }
+    .completion-config label { margin-top: 10px; }
+    .completion-config textarea { min-height: 80px; resize: vertical; }
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: #0d1120;
+      border: 1px solid #2d3b52;
+      border-radius: 10px;
+      padding: 12px 20px;
+      z-index: 1000;
+      animation: slideIn 0.3s ease;
+    }
     @keyframes slideIn { from { opacity: 0; transform: translateX(100px); } to { opacity: 1; transform: translateX(0); } }
-
     .verification-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.95); backdrop-filter: blur(20px); display: flex; align-items: center; justify-content: center; z-index: 2000; }
     .verification-card { background: #0d1120; border: 2px solid rgba(59,130,246,0.3); border-radius: 32px; padding: 48px; text-align: center; max-width: 450px; }
     .hidden { display: none; }
-
-    /* ===== FOH Menu — Branding ===== */
-    .branding-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-    .branding-upload-zone {
-      border: 2px dashed rgba(59,130,246,0.35);
-      border-radius: 16px;
-      padding: 24px;
-      text-align: center;
-      cursor: pointer;
-      transition: all 0.15s;
-      background: rgba(59,130,246,0.03);
-    }
-    .branding-upload-zone:hover { border-color: #3b82f6; background: rgba(59,130,246,0.08); }
-    .branding-upload-zone .icon { font-size: 36px; margin-bottom: 8px; }
-    .branding-upload-zone .hint { font-size: 12px; color: #6b7a99; margin-top: 6px; }
-    #brandingFileInput { display: none; }
-    .branding-preview-wrap { margin-top: 16px; }
-    .branding-preview-frame {
-      position: relative;
-      border-radius: 14px;
-      overflow: hidden;
-      border: 1px solid rgba(59,130,246,0.3);
-      aspect-ratio: 16/9;
-      background: #06080f;
-    }
-    #brandingPreviewImg { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .branding-preview-label {
-      position: absolute; top: 8px; left: 8px;
-      background: rgba(0,0,0,0.6); padding: 4px 10px; border-radius: 20px;
-      font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
-    }
-    .branding-live-frame {
-      border-radius: 14px;
-      overflow: hidden;
-      border: 1px solid rgba(16,185,129,0.35);
-      aspect-ratio: 16/9;
-      background: #06080f;
-      position: relative;
-    }
-    #brandingLiveImg { width: 100%; height: 100%; object-fit: cover; display: block; }
-    .branding-empty-state { display: flex; align-items: center; justify-content: center; height: 100%; color: #6b7a99; font-size: 13px; text-align: center; padding: 20px; }
-    .branding-status { font-size: 12px; color: #6b7a99; margin-top: 10px; }
-    .branding-status.success { color: #10b981; }
-    .branding-status.error { color: #ef4444; }
     @media (max-width: 900px) {
-      .branding-layout { grid-template-columns: 1fr; }
+      .completion-editor { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -232,18 +220,18 @@
         <span class="tab-icon">👥</span> Players & Leaderboard
         <span class="tab-badge" id="playerCountBadge">0</span>
       </div>
-      <div class="menu-tab" data-tab="foh" onclick="switchTab('foh')">
-        <span class="tab-icon">🎨</span> FOH Menu
+      <div class="menu-tab" data-tab="completion" onclick="switchTab('completion')">
+        <span class="tab-icon">🎯</span> Completion Screen
       </div>
     </div>
 
     <!-- ===== TAB: CATEGORIES & ADD QUESTION ===== -->
     <div class="tab-panel active" id="tab-content">
-      <div class="main-grid">
+      <div class="grid-2">
         <div>
           <div class="card">
             <div class="card-title">📁 Categories</div>
-            <div class="category-grid" id="categoryGrid"></div>
+            <div id="categoryGrid" style="display:grid; grid-template-columns:repeat(auto-fill,minmax(140px,1fr)); gap:12px; margin-bottom:16px;"></div>
             <div class="flex">
               <input type="text" id="newCatName" placeholder="New category name" style="flex:1">
               <input type="text" id="newCatIcon" placeholder="Icon" maxlength="4" style="width:60px">
@@ -251,7 +239,6 @@
             </div>
           </div>
         </div>
-
         <div>
           <div class="card">
             <div class="card-title">➕ Add Question</div>
@@ -279,15 +266,15 @@
     <!-- ===== TAB: QUESTION BANK ===== -->
     <div class="tab-panel" id="tab-bank">
       <div class="card">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap:wrap; gap:10px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:12px;">
           <span class="card-title">📋 Question Bank</span>
           <div>
-            <span id="gameStatusBadge" class="status-badge waiting">⚪ WAITING</span>
+            <span id="gameStatusBadge" class="status-badge waiting" style="padding:6px 12px;border-radius:40px;font-size:12px;font-weight:700;background:rgba(245,158,11,0.2);color:#f59e0b;">⚪ WAITING</span>
             <button id="activateGameBtn" class="btn btn-sm btn-green" onclick="activateGame()">🚀 Activate Game</button>
           </div>
         </div>
-        <div class="filter-bar" id="categoryFilter"></div>
-        <div class="batch-actions">
+        <div class="flex" id="categoryFilter" style="margin-bottom:12px;"></div>
+        <div class="flex" style="margin-bottom:12px; flex-wrap:wrap; gap:6px;">
           <button class="btn btn-sm btn-red" onclick="batchDeleteQuestions()">🗑️ Delete Selected</button>
           <button class="btn btn-sm btn-green" onclick="exportQuestionsCSV()">📥 Export CSV</button>
           <button class="btn btn-sm" style="background:#8b5cf6;" onclick="openCSVImport()">📤 Import CSV</button>
@@ -295,7 +282,7 @@
           <button class="btn btn-sm btn-ghost" onclick="selectAllQuestions()">✅ Select All</button>
           <button class="btn btn-sm btn-ghost" onclick="deselectAllQuestions()">❌ Deselect All</button>
         </div>
-        <div class="question-list" id="questionList"></div>
+        <div id="questionList" style="max-height:500px;overflow-y:auto;"></div>
       </div>
     </div>
 
@@ -303,7 +290,7 @@
     <div class="tab-panel" id="tab-players">
       <div class="card">
         <div class="card-title">👥 Players & Leaderboard</div>
-        <div class="player-list" id="playerList"></div>
+        <div id="playerList" class="player-list"></div>
         <div class="mt-3 flex">
           <button class="btn btn-red btn-sm" onclick="resetGame()">🔄 Reset Game</button>
           <button class="btn btn-ghost btn-sm" onclick="exportScores()">📥 Export CSV</button>
@@ -311,40 +298,50 @@
       </div>
     </div>
 
-    <!-- ===== TAB: FOH MENU (BRANDING) ===== -->
-    <div class="tab-panel" id="tab-foh">
+    <!-- ===== NEW TAB: COMPLETION SCREEN EDITOR ===== -->
+    <div class="tab-panel" id="tab-completion">
       <div class="card">
-        <div class="card-title">🎨 FOH Menu — Event Branding</div>
-        <div style="font-size:13px; color:#6b7a99; margin-bottom:20px;">
-          Upload a background image and push it live to the FOH display and player screens. Updates instantly — no refresh needed.
-        </div>
-        <div class="branding-layout">
-          <div>
-            <label>Upload Background Image</label>
-            <div class="branding-upload-zone" onclick="document.getElementById('brandingFileInput').click()">
-              <div class="icon">🖼️</div>
-              <div>Click to select an image</div>
-              <div class="hint">JPG or PNG, up to 5MB. 16:9 landscape works best.</div>
-              <input type="file" id="brandingFileInput" accept="image/*" onchange="previewBrandingImage()">
+        <div class="card-title">🎯 Completion Screen Customization</div>
+        <p style="color:#6b7a99; font-size:13px; margin-bottom:16px;">Customize the message players see after finishing the quiz. Changes are saved to the session and applied instantly.</p>
+        <div class="completion-editor">
+          <div class="completion-config">
+            <label>🏆 Title</label>
+            <input type="text" id="compTitle" value="CONGRATULATIONS!" placeholder="Title">
+            <label>🎉 Icon (emoji)</label>
+            <input type="text" id="compIcon" value="🎉" placeholder="🎉" maxlength="4">
+            <label>👤 Player Name Label</label>
+            <input type="text" id="compNameLabel" value="Player" placeholder="Name">
+            <label>⭐ Score Label</label>
+            <input type="text" id="compScoreLabel" value="pts" placeholder="pts">
+            <label>💬 Custom Message (supports emoji)</label>
+            <textarea id="compMessage" rows="3">✨ You've completed the quiz ✨</textarea>
+            <div style="margin:12px 0;">
+              <label style="display:inline-flex; align-items:center; gap:8px; cursor:pointer; text-transform:none; font-weight:400; color:#e8edf7;">
+                <input type="checkbox" id="compShowPrize" checked> Show prize message
+              </label>
             </div>
-            <div class="branding-preview-wrap" id="brandingPreviewWrap" style="display:none;">
-              <div class="branding-preview-frame">
-                <div class="branding-preview-label">Preview</div>
-                <img id="brandingPreviewImg">
-              </div>
+            <div id="compPrizeSection">
+              <label>🏅 Prize Message</label>
+              <textarea id="compPrizeMessage" rows="3">🏆 Outstanding! You are among the top players!</textarea>
             </div>
-            <div class="flex mt-3">
-              <button class="btn btn-green btn-sm" id="pushBrandingBtn" onclick="pushBrandingImage()" disabled>📤 Push to FOH & Player</button>
-              <button class="btn btn-red btn-sm" onclick="removeBrandingImage()">🗑️ Remove Branding</button>
-            </div>
-            <div id="brandingStatus" class="branding-status"></div>
+            <button class="btn btn-green" onclick="saveCompletionSettings()" style="margin-top:8px;">💾 Save & Push to Players</button>
+            <div id="compSaveStatus" style="margin-top:8px; font-size:13px; color:#10b981;"></div>
           </div>
           <div>
-            <label>Currently Live</label>
-            <div class="branding-live-frame" id="brandingLiveFrame">
-              <div class="branding-empty-state" id="brandingLiveEmpty">No branding image is live yet.<br>Uploaded images will appear here once pushed.</div>
-              <img id="brandingLiveImg" style="display:none;">
+            <label style="margin-bottom:8px;">Live Preview</label>
+            <div class="completion-preview" id="completionPreview">
+              <div class="icon" id="previewIcon">🎉</div>
+              <div class="title" id="previewTitle">CONGRATULATIONS!</div>
+              <div class="player-name-display" id="previewName">Player</div>
+              <div class="score-display" id="previewScore">0 pts</div>
+              <div class="msg-display" id="previewMsg">✨ You've completed the quiz ✨</div>
+              <div class="stats-mini">
+                <div><div class="num">0</div><div class="lbl">Score</div></div>
+                <div><div class="num">0/0</div><div class="lbl">Correct</div></div>
+                <div><div class="num">0%</div><div class="lbl">Accuracy</div></div>
+              </div>
             </div>
+            <div style="margin-top:12px; font-size:12px; color:#6b7a99;">Preview updates as you type. Click "Save" to push to all players.</div>
           </div>
         </div>
       </div>
@@ -447,7 +444,6 @@ function showVerifyError(msg) {
   setTimeout(() => err.innerText = '', 3000);
 }
 
-// ===================== MENU / TAB NAVIGATION =====================
 function switchTab(tabName) {
   document.querySelectorAll('.menu-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
@@ -521,7 +517,7 @@ async function init() {
   await loadQuestions();
   await loadPlayers();
   await updateGameStatus();
-  await loadExistingBranding();
+  await loadCompletionSettings();
   setupRealtime();
   setInterval(updateGameStatus, 5000);
 }
@@ -560,14 +556,14 @@ function renderCategoryGrid() {
     return;
   }
   grid.innerHTML = categories.map(cat => `
-    <div class="category-card">
-      <div class="category-actions">
-        <button class="cat-action" onclick="editCategory('${cat.id}', '${cat.name}', '${cat.icon}')">✏️</button>
-        <button class="cat-action" onclick="deleteCategory('${cat.id}')">🗑️</button>
+    <div style="background:rgba(255,255,255,0.05);border:2px solid rgba(59,130,246,0.2);border-radius:12px;padding:12px;text-align:center;position:relative;">
+      <div style="position:absolute;top:6px;right:6px;display:flex;gap:4px;">
+        <button style="background:rgba(0,0,0,0.5);border:none;border-radius:6px;padding:2px 8px;cursor:pointer;font-size:12px;" onclick="editCategory('${cat.id}','${cat.name}','${cat.icon}')">✏️</button>
+        <button style="background:rgba(0,0,0,0.5);border:none;border-radius:6px;padding:2px 8px;cursor:pointer;font-size:12px;" onclick="deleteCategory('${cat.id}')">🗑️</button>
       </div>
-      <div class="category-icon">${cat.icon || '📁'}</div>
-      <div class="category-name">${escapeHtml(cat.name)}</div>
-      <div class="category-count">${allQuestions.filter(q => q.category_id === cat.id).length} questions</div>
+      <div style="font-size:32px;margin-bottom:6px;">${cat.icon || '📁'}</div>
+      <div style="font-weight:600;">${escapeHtml(cat.name)}</div>
+      <div style="font-size:11px;color:#6b7a99;">${allQuestions.filter(q => q.category_id === cat.id).length} questions</div>
     </div>
   `).join('');
 }
@@ -582,11 +578,11 @@ function renderQuestionList() {
     const cat = categories.find(c => c.id === q.category_id);
     const isChecked = selectedQuestionIds.has(q.id);
     return `
-      <div class="question-item">
-        <input type="checkbox" class="question-checkbox" data-id="${q.id}" ${isChecked ? 'checked' : ''} onchange="toggleSelectQuestion('${q.id}')">
-        <div class="question-content">
-          <div class="question-text">${i+1}. ${escapeHtml(q.question_text)}</div>
-          <div class="question-meta">
+      <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:12px;">
+        <input type="checkbox" class="question-checkbox" data-id="${q.id}" ${isChecked ? 'checked' : ''} onchange="toggleSelectQuestion('${q.id}')" style="width:20px;height:20px;accent-color:#3b82f6;cursor:pointer;">
+        <div style="flex:1;">
+          <div style="font-weight:600;">${i+1}. ${escapeHtml(q.question_text)}</div>
+          <div style="display:flex;gap:12px;font-size:11px;color:#6b7a99;">
             <span>${cat?.icon || '📁'} ${cat?.name || 'Uncategorized'}</span>
             <span>⭐ ${q.points || 100} pts</span>
           </div>
@@ -604,13 +600,10 @@ function renderPlayerList() {
   }
   container.innerHTML = players.map((p, idx) => `
     <div class="player-row">
-      <div class="player-rank">${idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}`}</div>
-      <div class="player-avatar">${p.avatar_color || '👤'}</div>
-      <div class="player-info">
-        <div class="player-name">${escapeHtml(p.name)}</div>
-        <div class="player-score">${p.score || 0} pts</div>
-      </div>
-      <div class="player-complete">${p.completed ? '✅ Completed' : `${p.current_q_index || 0}/${allQuestions.length}`}</div>
+      <div style="font-size:18px;width:40px;">${idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}`}</div>
+      <div style="font-size:28px;">${p.avatar_color || '👤'}</div>
+      <div style="flex:1;"><strong>${escapeHtml(p.name)}</strong> <span style="color:#f59e0b;">${p.score || 0} pts</span></div>
+      <div style="font-size:12px;color:#6b7a99;">${p.completed ? '✅ Completed' : `${p.current_q_index || 0}/${allQuestions.length}`}</div>
     </div>
   `).join('');
 }
@@ -630,11 +623,11 @@ function filterQuestions(catId) {
     const cat = categories.find(c => c.id === q.category_id);
     const isChecked = selectedQuestionIds.has(q.id);
     return `
-      <div class="question-item">
-        <input type="checkbox" class="question-checkbox" data-id="${q.id}" ${isChecked ? 'checked' : ''} onchange="toggleSelectQuestion('${q.id}')">
-        <div class="question-content">
-          <div class="question-text">${i+1}. ${escapeHtml(q.question_text)}</div>
-          <div class="question-meta">
+      <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:12px;">
+        <input type="checkbox" class="question-checkbox" data-id="${q.id}" ${isChecked ? 'checked' : ''} onchange="toggleSelectQuestion('${q.id}')" style="width:20px;height:20px;accent-color:#3b82f6;cursor:pointer;">
+        <div style="flex:1;">
+          <div style="font-weight:600;">${i+1}. ${escapeHtml(q.question_text)}</div>
+          <div style="display:flex;gap:12px;font-size:11px;color:#6b7a99;">
             <span>${cat?.icon || '📁'} ${cat?.name || 'Uncategorized'}</span>
             <span>⭐ ${q.points || 100} pts</span>
           </div>
@@ -647,6 +640,8 @@ function filterQuestions(catId) {
 function populateCategorySelects() {
   const options = '<option value="">— Select Category —</option>' + categories.map(c => `<option value="${c.id}">${c.icon} ${c.name}</option>`).join('');
   document.getElementById('qCategory').innerHTML = options;
+  // also for csv override
+  document.getElementById('csvCategoryOverride').innerHTML = '<option value="">— Use category from CSV —</option>' + categories.map(c => `<option value="${c.id}">${c.icon || ''} ${c.name}</option>`).join('');
 }
 
 async function addCategory() {
@@ -817,30 +812,11 @@ function exportQuestionsCSV() {
   toast('Questions exported to CSV', 'success');
 }
 
-window.addCategory = addCategory;
-window.editCategory = editCategory;
-window.deleteCategory = deleteCategory;
-window.addQuestion = addQuestion;
-window.loadSampleQuestions = loadSampleQuestions;
-window.activateGame = activateGame;
-window.resetGame = resetGame;
-window.exportScores = exportScores;
-window.filterQuestions = filterQuestions;
-window.toggleSelectQuestion = toggleSelectQuestion;
-window.batchDeleteQuestions = batchDeleteQuestions;
-window.exportQuestionsCSV = exportQuestionsCSV;
-window.deleteAllQuestionsInCategory = deleteAllQuestionsInCategory;
-window.selectAllQuestions = selectAllQuestions;
-window.deselectAllQuestions = deselectAllQuestions;
-
-// ===================== CSV BULK IMPORT =====================
+// ===== CSV BULK IMPORT =====
 let csvParsedRows = [];
-
 function openCSVImport() {
-  // Populate category override select
   const sel = document.getElementById('csvCategoryOverride');
-  sel.innerHTML = '<option value="">— Use category from CSV —</option>' +
-    categories.map(c => `<option value="${c.id}">${c.icon || ''} ${c.name}</option>`).join('');
+  sel.innerHTML = '<option value="">— Use category from CSV —</option>' + categories.map(c => `<option value="${c.id}">${c.icon || ''} ${c.name}</option>`).join('');
   document.getElementById('csvFileInput').value = '';
   document.getElementById('csvPreviewSection').style.display = 'none';
   document.getElementById('importConfirmBtn').style.display = 'none';
@@ -849,24 +825,16 @@ function openCSVImport() {
   csvParsedRows = [];
   document.getElementById('csvImportOverlay').style.display = 'flex';
 }
-
-function closeCSVImport() {
-  document.getElementById('csvImportOverlay').style.display = 'none';
-}
-
+function closeCSVImport() { document.getElementById('csvImportOverlay').style.display = 'none'; }
 function downloadImportTemplate() {
   const header = 'Question,Option A,Option B,Option C,Option D,Correct Option,Points,Category Name,Category Icon';
   const sample1 = '"What is the capital of France?",Berlin,Madrid,Paris,Lisbon,C,100,Geography,🌍';
   const sample2 = '"Which planet is the Red Planet?",Mars,Jupiter,Venus,Saturn,A,150,Science,🔬';
   const csv = [header, sample1, sample2].join('\n');
   const blob = new Blob([csv], { type: 'text/csv' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'import_template.csv';
-  a.click();
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'import_template.csv'; a.click();
   toast('Template downloaded!', 'success');
 }
-
 function parseCSVLine(line) {
   const result = [];
   let cur = '', inQuote = false;
@@ -884,7 +852,6 @@ function parseCSVLine(line) {
   result.push(cur.trim());
   return result;
 }
-
 function previewCSV() {
   const file = document.getElementById('csvFileInput').files[0];
   if (!file) { toast('Select a CSV file first', 'error'); return; }
@@ -893,7 +860,6 @@ function previewCSV() {
     const text = e.target.result;
     const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').filter(l => l.trim());
     if (lines.length < 2) { toast('CSV must have a header row and at least one data row', 'error'); return; }
-
     const EXPECTED = ['question','option a','option b','option c','option d','correct option'];
     const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase().trim());
     const missing = EXPECTED.filter(e => !headers.includes(e));
@@ -903,13 +869,10 @@ function previewCSV() {
       document.getElementById('importConfirmBtn').style.display = 'none';
       return;
     }
-
     const colIdx = {};
     headers.forEach((h, i) => colIdx[h] = i);
-
     csvParsedRows = [];
     const errors = [];
-
     for (let i = 1; i < lines.length; i++) {
       if (!lines[i].trim()) continue;
       const cols = parseCSVLine(lines[i]);
@@ -923,13 +886,11 @@ function previewCSV() {
       const points = parseInt(get('points')) || 100;
       const catName = get('category name');
       const catIcon = get('category icon') || '📁';
-
       if (!question || !a || !b || !c || !d) { errors.push(`Row ${i+1}: Missing required fields`); continue; }
       if (!['A','B','C','D'].includes(correctLetter)) { errors.push(`Row ${i+1}: Correct Option must be A/B/C/D, got "${correctLetter}"`); continue; }
       const correctIdx = ['A','B','C','D'].indexOf(correctLetter);
       csvParsedRows.push({ question, a, b, c, d, correctIdx, points, catName, catIcon });
     }
-
     const previewHtml = csvParsedRows.slice(0, 10).map((r, i) => `
       <div style="padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.07);">
         <strong>${i+1}. ${escapeHtml(r.question)}</strong><br>
@@ -937,7 +898,6 @@ function previewCSV() {
         <span style="color:#10b981;">✅ Correct: ${['A','B','C','D'][r.correctIdx]} | ⭐ ${r.points}pts${r.catName ? ' | 📁 ' + escapeHtml(r.catName) : ''}</span>
       </div>
     `).join('');
-
     document.getElementById('csvPreviewTitle').innerText =
       `Found ${csvParsedRows.length} valid question(s)${csvParsedRows.length < lines.length - 1 ? ` (${lines.length - 1 - csvParsedRows.length} skipped)` : ''}${lines.length > 11 ? ' — showing first 10' : ''}`;
     document.getElementById('csvPreviewTable').innerHTML = previewHtml || '<em style="color:#6b7a99;">No valid rows found</em>';
@@ -947,33 +907,25 @@ function previewCSV() {
   };
   reader.readAsText(file);
 }
-
 async function confirmCSVImport() {
   if (!csvParsedRows.length) { toast('Nothing to import', 'error'); return; }
   const overrideCatId = document.getElementById('csvCategoryOverride').value || null;
-
   document.getElementById('importConfirmBtn').style.display = 'none';
   document.getElementById('csvImportProgress').style.display = 'block';
-
-  // Build a map of category name → id, creating new categories as needed
   const catMap = {};
   categories.forEach(c => { catMap[c.name.toLowerCase()] = c.id; });
-
   let imported = 0;
   const total = csvParsedRows.length;
-
   for (let i = 0; i < csvParsedRows.length; i++) {
     const row = csvParsedRows[i];
     document.getElementById('csvProgressText').innerText = `Importing ${i+1} / ${total}...`;
     document.getElementById('csvProgressBar').style.width = `${Math.round(((i+1)/total)*100)}%`;
-
     let categoryId = overrideCatId;
     if (!categoryId && row.catName) {
       const key = row.catName.toLowerCase();
       if (catMap[key]) {
         categoryId = catMap[key];
       } else {
-        // Create new category
         const { data: newCat, error: catErr } = await sb.from('categories').insert({
           name: row.catName, icon: row.catIcon, session_id: SESSION_ID
         }).select().single();
@@ -983,7 +935,6 @@ async function confirmCSVImport() {
         }
       }
     }
-
     const { error } = await sb.from('questions').insert({
       question_text: row.question,
       option_a: row.a, option_b: row.b, option_c: row.c, option_d: row.d,
@@ -994,117 +945,93 @@ async function confirmCSVImport() {
     });
     if (!error) imported++;
   }
-
   document.getElementById('csvProgressText').innerText = `✅ Done! ${imported} / ${total} questions imported.`;
   document.getElementById('csvProgressBar').style.width = '100%';
-
   await loadCategories();
   await loadQuestions();
   toast(`✅ Imported ${imported} questions!`, 'success');
-
-  setTimeout(() => {
-    closeCSVImport();
-    csvParsedRows = [];
-  }, 2000);
+  setTimeout(() => { closeCSVImport(); csvParsedRows = []; }, 2000);
 }
 
+// ===== COMPLETION SCREEN SETTINGS =====
+async function loadCompletionSettings() {
+  if (!SESSION_ID) return;
+  const { data } = await sb.from('game_sessions').select('completion_settings').eq('id', SESSION_ID).maybeSingle();
+  let settings = data?.completion_settings || {};
+  document.getElementById('compTitle').value = settings.title || 'CONGRATULATIONS!';
+  document.getElementById('compIcon').value = settings.icon || '🎉';
+  document.getElementById('compNameLabel').value = settings.nameLabel || 'Player';
+  document.getElementById('compScoreLabel').value = settings.scoreLabel || 'pts';
+  document.getElementById('compMessage').value = settings.message || '✨ You\'ve completed the quiz ✨';
+  document.getElementById('compShowPrize').checked = settings.showPrize !== false;
+  document.getElementById('compPrizeMessage').value = settings.prizeMessage || '🏆 Outstanding! You are among the top players!';
+  updatePreview();
+}
+
+function updatePreview() {
+  document.getElementById('previewIcon').innerText = document.getElementById('compIcon').value || '🎉';
+  document.getElementById('previewTitle').innerText = document.getElementById('compTitle').value || 'CONGRATULATIONS!';
+  document.getElementById('previewName').innerText = document.getElementById('compNameLabel').value || 'Player';
+  document.getElementById('previewScore').innerHTML = `0 ${document.getElementById('compScoreLabel').value || 'pts'}`;
+  document.getElementById('previewMsg').innerText = document.getElementById('compMessage').value || '✨ You\'ve completed the quiz ✨';
+}
+
+// Live preview on input
+document.querySelectorAll('#compTitle, #compIcon, #compNameLabel, #compScoreLabel, #compMessage').forEach(el => {
+  el.addEventListener('input', updatePreview);
+});
+
+async function saveCompletionSettings() {
+  const settings = {
+    title: document.getElementById('compTitle').value.trim() || 'CONGRATULATIONS!',
+    icon: document.getElementById('compIcon').value.trim() || '🎉',
+    nameLabel: document.getElementById('compNameLabel').value.trim() || 'Player',
+    scoreLabel: document.getElementById('compScoreLabel').value.trim() || 'pts',
+    message: document.getElementById('compMessage').value.trim() || '✨ You\'ve completed the quiz ✨',
+    showPrize: document.getElementById('compShowPrize').checked,
+    prizeMessage: document.getElementById('compPrizeMessage').value.trim() || '🏆 Outstanding! You are among the top players!'
+  };
+  const { error } = await sb.from('game_sessions').update({ completion_settings: settings }).eq('id', SESSION_ID);
+  if (error) {
+    document.getElementById('compSaveStatus').innerText = '❌ Error saving: ' + error.message;
+    document.getElementById('compSaveStatus').style.color = '#ef4444';
+  } else {
+    document.getElementById('compSaveStatus').innerText = '✅ Settings saved and pushed to all players!';
+    document.getElementById('compSaveStatus').style.color = '#10b981';
+    // also broadcast via realtime
+    await sb.from('game_events').insert({
+      session_id: SESSION_ID,
+      event_type: 'completion_settings_updated',
+      payload: settings
+    });
+    toast('Completion settings updated!', 'success');
+  }
+}
+
+// Expose functions globally
+window.addCategory = addCategory;
+window.editCategory = editCategory;
+window.deleteCategory = deleteCategory;
+window.addQuestion = addQuestion;
+window.loadSampleQuestions = loadSampleQuestions;
+window.activateGame = activateGame;
+window.resetGame = resetGame;
+window.exportScores = exportScores;
+window.filterQuestions = filterQuestions;
+window.toggleSelectQuestion = toggleSelectQuestion;
+window.batchDeleteQuestions = batchDeleteQuestions;
+window.exportQuestionsCSV = exportQuestionsCSV;
+window.deleteAllQuestionsInCategory = deleteAllQuestionsInCategory;
+window.selectAllQuestions = selectAllQuestions;
+window.deselectAllQuestions = deselectAllQuestions;
 window.openCSVImport = openCSVImport;
 window.closeCSVImport = closeCSVImport;
 window.downloadImportTemplate = downloadImportTemplate;
 window.previewCSV = previewCSV;
 window.confirmCSVImport = confirmCSVImport;
-
-// ===================== FOH MENU — EVENT BRANDING =====================
-let brandingFile = null;
-
-function previewBrandingImage() {
-  const file = document.getElementById('brandingFileInput').files[0];
-  if (!file) return;
-  if (!file.type.startsWith('image/')) { toast('Please select an image file', 'error'); return; }
-  if (file.size > 5 * 1024 * 1024) { toast('Image must be under 5MB', 'error'); return; }
-  brandingFile = file;
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    document.getElementById('brandingPreviewImg').src = e.target.result;
-    document.getElementById('brandingPreviewWrap').style.display = 'block';
-    document.getElementById('pushBrandingBtn').disabled = false;
-  };
-  reader.readAsDataURL(file);
-}
-
-async function pushBrandingImage() {
-  if (!brandingFile || !SESSION_ID) { toast('Select an image first', 'error'); return; }
-  const btn = document.getElementById('pushBrandingBtn');
-  btn.disabled = true;
-  btn.innerText = '⏳ Uploading...';
-
-  try {
-    const ext = brandingFile.name.split('.').pop();
-    const path = `${SESSION_ID}/branding.${ext}`;
-    const { error: uploadErr } = await sb.storage
-      .from('event-branding')
-      .upload(path, brandingFile, { upsert: true, cacheControl: '3600' });
-    if (uploadErr) throw uploadErr;
-
-    const { data: urlData } = sb.storage.from('event-branding').getPublicUrl(path);
-    const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`; // cache-bust so re-uploads refresh instantly
-
-    const { error: updateErr } = await sb.from('game_sessions')
-      .update({ branding_image: publicUrl })
-      .eq('id', SESSION_ID);
-    if (updateErr) throw updateErr;
-
-    setLiveBrandingPreview(publicUrl);
-    document.getElementById('brandingStatus').innerText = '✅ Branding is now live on FOH & Player screens!';
-    document.getElementById('brandingStatus').className = 'branding-status success';
-    toast('🎨 Branding pushed live!', 'success');
-  } catch (err) {
-    console.error('Branding push error:', err);
-    document.getElementById('brandingStatus').innerText = '❌ Failed: ' + (err.message || 'Unknown error');
-    document.getElementById('brandingStatus').className = 'branding-status error';
-    toast('Failed to push branding', 'error');
-  } finally {
-    btn.disabled = false;
-    btn.innerText = '📤 Push to FOH & Player';
-  }
-}
-
-async function removeBrandingImage() {
-  if (!SESSION_ID) return;
-  const { error } = await sb.from('game_sessions').update({ branding_image: null }).eq('id', SESSION_ID);
-  if (error) { toast('Failed to remove branding', 'error'); return; }
-  brandingFile = null;
-  document.getElementById('brandingFileInput').value = '';
-  document.getElementById('brandingPreviewWrap').style.display = 'none';
-  document.getElementById('pushBrandingBtn').disabled = true;
-  setLiveBrandingPreview(null);
-  document.getElementById('brandingStatus').innerText = '🗑️ Branding removed from FOH & Player screens.';
-  document.getElementById('brandingStatus').className = 'branding-status';
-  toast('Branding removed', 'success');
-}
-
-async function loadExistingBranding() {
-  if (!SESSION_ID) return;
-  const { data } = await sb.from('game_sessions').select('branding_image').eq('id', SESSION_ID).maybeSingle();
-  setLiveBrandingPreview(data && data.branding_image ? data.branding_image : null);
-}
-
-function setLiveBrandingPreview(url) {
-  const img = document.getElementById('brandingLiveImg');
-  const empty = document.getElementById('brandingLiveEmpty');
-  if (url) {
-    img.src = url;
-    img.style.display = 'block';
-    empty.style.display = 'none';
-  } else {
-    img.style.display = 'none';
-    empty.style.display = 'flex';
-  }
-}
-
-window.previewBrandingImage = previewBrandingImage;
-window.pushBrandingImage = pushBrandingImage;
-window.removeBrandingImage = removeBrandingImage;
+window.saveCompletionSettings = saveCompletionSettings;
+window.updatePreview = updatePreview;
+window.verifyAndLoad = verifyAndLoad;
 </script>
 </body>
 </html>
