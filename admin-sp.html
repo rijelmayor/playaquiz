@@ -95,6 +95,50 @@
     .player-list { max-height: 500px; overflow-y: auto; }
     .player-row { display: flex; align-items: center; gap: 12px; padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
 
+    /* Branding/FOH Styles */
+    .branding-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .branding-upload-zone {
+      border: 2px dashed rgba(59,130,246,0.35);
+      border-radius: 16px;
+      padding: 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.15s;
+      background: rgba(59,130,246,0.03);
+    }
+    .branding-upload-zone:hover { border-color: #3b82f6; background: rgba(59,130,246,0.08); }
+    .branding-upload-zone .icon { font-size: 36px; margin-bottom: 8px; }
+    .branding-upload-zone .hint { font-size: 12px; color: #6b7a99; margin-top: 6px; }
+    #brandingFileInput { display: none; }
+    .branding-preview-wrap { margin-top: 16px; }
+    .branding-preview-frame {
+      position: relative;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid rgba(59,130,246,0.3);
+      aspect-ratio: 16/9;
+      background: #06080f;
+    }
+    #brandingPreviewImg { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .branding-preview-label {
+      position: absolute; top: 8px; left: 8px;
+      background: rgba(0,0,0,0.6); padding: 4px 10px; border-radius: 20px;
+      font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+    }
+    .branding-live-frame {
+      border-radius: 14px;
+      overflow: hidden;
+      border: 1px solid rgba(16,185,129,0.35);
+      aspect-ratio: 16/9;
+      background: #06080f;
+      position: relative;
+    }
+    #brandingLiveImg { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .branding-empty-state { display: flex; align-items: center; justify-content: center; height: 100%; color: #6b7a99; font-size: 13px; text-align: center; padding: 20px; }
+    .branding-status { font-size: 12px; color: #6b7a99; margin-top: 10px; }
+    .branding-status.success { color: #10b981; }
+    .branding-status.error { color: #ef4444; }
+
     /* Completion Screen Editor */
     .completion-editor {
       display: grid;
@@ -171,6 +215,7 @@
     .hidden { display: none; }
     @media (max-width: 900px) {
       .completion-editor { grid-template-columns: 1fr; }
+      .branding-layout { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -219,6 +264,9 @@
       <div class="menu-tab" data-tab="players" onclick="switchTab('players')">
         <span class="tab-icon">👥</span> Players & Leaderboard
         <span class="tab-badge" id="playerCountBadge">0</span>
+      </div>
+      <div class="menu-tab" data-tab="foh" onclick="switchTab('foh')">
+        <span class="tab-icon">🎨</span> FOH Menu
       </div>
       <div class="menu-tab" data-tab="completion" onclick="switchTab('completion')">
         <span class="tab-icon">🎯</span> Completion Screen
@@ -294,6 +342,45 @@
         <div class="mt-3 flex">
           <button class="btn btn-red btn-sm" onclick="resetGame()">🔄 Reset Game</button>
           <button class="btn btn-ghost btn-sm" onclick="exportScores()">📥 Export CSV</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== TAB: FOH MENU (BRANDING) ===== -->
+    <div class="tab-panel" id="tab-foh">
+      <div class="card">
+        <div class="card-title">🎨 FOH Menu — Event Branding</div>
+        <div style="font-size:13px; color:#6b7a99; margin-bottom:20px;">
+          Upload a background image and push it live to the FOH display and player screens. Updates instantly — no refresh needed.
+        </div>
+        <div class="branding-layout">
+          <div>
+            <label>Upload Background Image</label>
+            <div class="branding-upload-zone" onclick="document.getElementById('brandingFileInput').click()">
+              <div class="icon">🖼️</div>
+              <div>Click to select an image</div>
+              <div class="hint">JPG or PNG, up to 5MB. 16:9 landscape works best.</div>
+              <input type="file" id="brandingFileInput" accept="image/*" onchange="previewBrandingImage()">
+            </div>
+            <div class="branding-preview-wrap" id="brandingPreviewWrap" style="display:none;">
+              <div class="branding-preview-frame">
+                <div class="branding-preview-label">Preview</div>
+                <img id="brandingPreviewImg">
+              </div>
+            </div>
+            <div class="flex mt-3">
+              <button class="btn btn-green btn-sm" id="pushBrandingBtn" onclick="pushBrandingImage()" disabled>📤 Push to FOH & Player</button>
+              <button class="btn btn-red btn-sm" onclick="removeBrandingImage()">🗑️ Remove Branding</button>
+            </div>
+            <div id="brandingStatus" class="branding-status"></div>
+          </div>
+          <div>
+            <label>Currently Live</label>
+            <div class="branding-live-frame" id="brandingLiveFrame">
+              <div class="branding-empty-state" id="brandingLiveEmpty">No branding image is live yet.<br>Uploaded images will appear here once pushed.</div>
+              <img id="brandingLiveImg" style="display:none;">
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -404,6 +491,7 @@ let categories = [];
 let allQuestions = [];
 let players = [];
 let selectedQuestionIds = new Set();
+let brandingFile = null;
 
 const urlParams = new URLSearchParams(window.location.search);
 const sessionFromUrl = urlParams.get('session');
@@ -518,6 +606,7 @@ async function init() {
   await loadPlayers();
   await updateGameStatus();
   await loadCompletionSettings();
+  await loadExistingBranding();
   setupRealtime();
   setInterval(updateGameStatus, 5000);
 }
@@ -741,6 +830,11 @@ function exportScores() {
 function setupRealtime() {
   sb.channel(`sp-admin-${SESSION_ID}`)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'players', filter: `session_id=eq.${SESSION_ID}` }, () => loadPlayers())
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'game_sessions', filter: `id=eq.${SESSION_ID}` }, (payload) => {
+      if (payload.new.branding_image) {
+        setLiveBrandingPreview(payload.new.branding_image);
+      }
+    })
     .subscribe();
 }
 
@@ -1050,6 +1144,92 @@ async function saveCompletionSettings() {
   }
 }
 
+// ===== BRANDING FUNCTIONS =====
+function previewBrandingImage() {
+  const file = document.getElementById('brandingFileInput').files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) { toast('Please select an image file', 'error'); return; }
+  if (file.size > 5 * 1024 * 1024) { toast('Image must be under 5MB', 'error'); return; }
+  brandingFile = file;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    document.getElementById('brandingPreviewImg').src = e.target.result;
+    document.getElementById('brandingPreviewWrap').style.display = 'block';
+    document.getElementById('pushBrandingBtn').disabled = false;
+  };
+  reader.readAsDataURL(file);
+}
+
+async function pushBrandingImage() {
+  if (!brandingFile || !SESSION_ID) { toast('Select an image first', 'error'); return; }
+  const btn = document.getElementById('pushBrandingBtn');
+  btn.disabled = true;
+  btn.innerText = '⏳ Uploading...';
+
+  try {
+    const ext = brandingFile.name.split('.').pop();
+    const path = `${SESSION_ID}/branding.${ext}`;
+    const { error: uploadErr } = await sb.storage
+      .from('event-branding')
+      .upload(path, brandingFile, { upsert: true, cacheControl: '3600' });
+    if (uploadErr) throw uploadErr;
+
+    const { data: urlData } = sb.storage.from('event-branding').getPublicUrl(path);
+    const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+
+    const { error: updateErr } = await sb.from('game_sessions')
+      .update({ branding_image: publicUrl })
+      .eq('id', SESSION_ID);
+    if (updateErr) throw updateErr;
+
+    setLiveBrandingPreview(publicUrl);
+    document.getElementById('brandingStatus').innerText = '✅ Branding is now live on FOH & Player screens!';
+    document.getElementById('brandingStatus').className = 'branding-status success';
+    toast('🎨 Branding pushed live!', 'success');
+  } catch (err) {
+    console.error('Branding push error:', err);
+    document.getElementById('brandingStatus').innerText = '❌ Failed: ' + (err.message || 'Unknown error');
+    document.getElementById('brandingStatus').className = 'branding-status error';
+    toast('Failed to push branding', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerText = '📤 Push to FOH & Player';
+  }
+}
+
+async function removeBrandingImage() {
+  if (!SESSION_ID) return;
+  const { error } = await sb.from('game_sessions').update({ branding_image: null }).eq('id', SESSION_ID);
+  if (error) { toast('Failed to remove branding', 'error'); return; }
+  brandingFile = null;
+  document.getElementById('brandingFileInput').value = '';
+  document.getElementById('brandingPreviewWrap').style.display = 'none';
+  document.getElementById('pushBrandingBtn').disabled = true;
+  setLiveBrandingPreview(null);
+  document.getElementById('brandingStatus').innerText = '🗑️ Branding removed from FOH & Player screens.';
+  document.getElementById('brandingStatus').className = 'branding-status';
+  toast('Branding removed', 'success');
+}
+
+async function loadExistingBranding() {
+  if (!SESSION_ID) return;
+  const { data } = await sb.from('game_sessions').select('branding_image').eq('id', SESSION_ID).maybeSingle();
+  setLiveBrandingPreview(data && data.branding_image ? data.branding_image : null);
+}
+
+function setLiveBrandingPreview(url) {
+  const img = document.getElementById('brandingLiveImg');
+  const empty = document.getElementById('brandingLiveEmpty');
+  if (url) {
+    img.src = url;
+    img.style.display = 'block';
+    empty.style.display = 'none';
+  } else {
+    img.style.display = 'none';
+    empty.style.display = 'flex';
+  }
+}
+
 // Expose functions globally
 window.addCategory = addCategory;
 window.editCategory = editCategory;
@@ -1074,6 +1254,9 @@ window.confirmCSVImport = confirmCSVImport;
 window.saveCompletionSettings = saveCompletionSettings;
 window.updatePreview = updatePreview;
 window.verifyAndLoad = verifyAndLoad;
+window.previewBrandingImage = previewBrandingImage;
+window.pushBrandingImage = pushBrandingImage;
+window.removeBrandingImage = removeBrandingImage;
 </script>
 </body>
 </html>
