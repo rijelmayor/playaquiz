@@ -3,7 +3,7 @@
 Lead-to-closeout pipeline for a signage/print advertising company. Four role-based
 portals share one Supabase database, deployed on Vercel.
 
-## Folder structure — where to make changes
+## Folder structure — where to make changes 001
 
 ```
 app/
