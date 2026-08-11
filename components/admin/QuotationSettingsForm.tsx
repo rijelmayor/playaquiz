@@ -139,7 +139,7 @@ export function QuotationSettingsForm({ settings }: { settings: QuotationSetting
               disabled={saving}
               className="rounded-md bg-gray-900 px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
             >
-              {saving ? "Saving…" : "Save defaults"}
+              {saving && <span className="mr-1 inline-block h-3 w-3 animate-spin rounded-full border-2 border-white/40 border-t-white" />}{saving ? "Saving…" : "Save defaults"}
             </button>
             {saved && <span className="text-xs text-emerald-600">Saved.</span>}
           </div>

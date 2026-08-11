@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { StatusBadge } from "@/components/shared/StatusBadge";
@@ -18,13 +19,18 @@ interface CommissionRow {
 export function CommissionQueue({ rows }: { rows: CommissionRow[] }) {
   const supabase = createClient();
   const router = useRouter();
+  const [savingId, setSavingId] = useState<string | null>(null);
+  const actionLock = useRef(false);
 
   async function markPaid(commissionId: string) {
-    await supabase
+    if (actionLock.current) return;
+    actionLock.current = true; setSavingId(commissionId);
+    const { error } = await supabase
       .from("job_commissions")
       .update({ status: "paid", paid_date: new Date().toISOString() })
       .eq("commission_id", commissionId);
-    router.refresh();
+    actionLock.current = false; setSavingId(null);
+    if (!error) router.refresh();
   }
 
   return (
@@ -41,14 +47,15 @@ export function CommissionQueue({ rows }: { rows: CommissionRow[] }) {
             <p className="text-sm font-medium">
               {row.client_name} - agent {row.agent_name}
             </p>
-            <p className="text-xs text-gray-500">₱{row.amount.toLocaleString()}</p>
+            <p className="text-xs text-gray-500">₱{row.amount.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
           </div>
           {row.status === "payable" ? (
             <button
               onClick={() => markPaid(row.commission_id)}
-              className="rounded-md border border-gray-800 px-3 py-1.5 text-xs font-medium"
+              disabled={savingId !== null}
+              className="inline-flex items-center gap-2 rounded-md border border-gray-800 px-3 py-1.5 text-xs font-medium disabled:cursor-wait disabled:opacity-60"
             >
-              Release ₱{row.amount.toLocaleString()}
+              {savingId === row.commission_id ? "Saving…" : "Release ₱"}{row.amount.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </button>
           ) : (
             <StatusBadge status={row.status} />

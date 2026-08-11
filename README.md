@@ -3,7 +3,7 @@
 Lead-to-closeout pipeline for a signage/print advertising company. Four role-based
 portals share one Supabase database, deployed on Vercel.
 
-## Folder structure — where to make changes 001
+## Folder structure — where to make changes
 
 ```
 app/
@@ -38,45 +38,54 @@ kept in sync.
 ## Setup
 
 1. Create a Supabase project.
-2. Run `supabase/migrations/0001_init.sql` in the Supabase SQL editor.
-3. Run `supabase/migrations/0002_job_attachments.sql` in the Supabase SQL
-   editor. This adds the `job_attachments` table and creates the private
-   `job-attachments` storage bucket (transaction photos, site visit photos,
-   and each job order's approved design photo).
-4. Run `supabase/migrations/0003_missing_rls_policies.sql`. This adds
-   policies for `clients`, `payments`, `quotations`, and `designs` — these
-   tables had row level security enabled with no policies defined, which
-   blocked every role, including admin, from reading or writing them.
-5. Run `supabase/migrations/0004_security_and_automation.sql`. This closes
-   a real hole — `users` had RLS enabled nowhere in `0001`, so the anon key
-   could read every user's row, or write to it (including setting your own
-   role to `admin`). It also adds the automation the spec describes but
-   `0001`–`0003` never implemented: `booked_by` immutability (with an
-   audit-logged `override_booked_by()` escape hatch), a `job_commissions`
-   row auto-created per job at intake (10% default rate — override
-   `commission_rate`/`split_pct` per row for multi-agent splits or a
-   different rate), commission `pending → payable`/`void` transitions,
-   `funds_release_status` roll-up from `fund_releases`, and `job_orders`
-   reaching `installed` flowing back to `jobs.status`.
-6. Manually add your first `admin` row to the `users` table, linked via
+2. Open the Supabase SQL Editor and run every file in `supabase/migrations/`
+   **in numeric order, 0001 through 0014**, each as its own run. Don't skip
+   any — later ones repair/tighten what earlier ones set up (site-visit
+   tracking in particular went through three corrective passes: 0012, 0013,
+   0014). Migrations are written to be safe to run once, in order, on a
+   database that has none of them yet.
+3. Manually add your first `admin` row to the `users` table, linked via
    `auth_id` to a Supabase Auth user you create in the Auth dashboard.
-7. Copy `.env.example` to `.env.local` and fill in your Supabase URL/anon key.
-8. `npm install`
-9. `npm run dev`
+4. Copy `.env.example` to `.env.local` and fill in your Supabase URL/anon key.
+5. `npm install`
+6. `npm run dev`
 
-**Your live Supabase project currently has no `public` schema tables at
-all** (checked against the CSV you exported) — none of the four
-migrations have been run against it yet. Run all four, in order, before
-anything will work. That also explains what dwcrm.xyz was showing: every
-query fails and the page components render on empty data.
+**If a portal page ever shows a red "couldn't load its data" panel** (in
+production or locally), the error message it prints tells you exactly which
+query failed and why — almost always it's a specific column or table not
+existing yet, which means one of the 14 migrations above hasn't been run
+against that Supabase project. Run it, then reload. This replaces the old
+behavior of silently rendering an empty page when a query failed.
 
-## Deployment
+## Deployment (and why "two versions" confuses Vercel)
 
-1. Push this repo to GitHub.
-2. Import the repo in Vercel.
-3. Add `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` as
-   environment variables in the Vercel project settings.
-4. Every push to `main` auto-deploys.
+Vercel deployments are triggered by **git commits**, not by uploading a
+folder. If you're working from two separate exported zip folders instead of
+one git repository with a commit history, Vercel has no way to tell which
+one is "newer" — there's no timeline for it to compare, so re-uploading a
+folder doesn't reliably produce a new deployment or show up in the
+Deployments/Activity tab.
+
+The fix is to have exactly **one** git repository be the source of truth:
+
+1. Pick one of the two versions as the starting point (the newer one has
+   all the fixes the older one doesn't — check `git log` once this is a
+   real repo, or just compare file-by-file, so a delivered zip's date isn't
+   the deciding factor if the two were exported unevenly).
+2. If this folder isn't already a git repo: `git init`, `git add -A`,
+   `git commit -m "current state"`.
+3. Push it to a GitHub repo: `git remote add origin <your-repo-url>` then
+   `git push -u origin main`.
+4. In Vercel: Project Settings → Git, connect that exact GitHub repo/branch.
+   Every `git push` to that branch from then on creates a new deployment
+   automatically, visible immediately in the Deployments tab.
+5. Add `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` under
+   Project Settings → Environment Variables, for the **Production**
+   environment specifically (Preview/Development are separate — it's easy
+   to set a var for one and not the other, which looks identical to a
+   missing var when the page fails to load).
+6. From now on, don't upload zips to replace the project — edit the repo,
+   commit, push. That's what gives Vercel something to diff and deploy.
 
 ## Adding a new portal or role
 

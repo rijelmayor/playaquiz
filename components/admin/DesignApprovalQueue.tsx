@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -15,15 +15,22 @@ interface DesignRow {
 
 export function DesignApprovalQueue({ rows }: { rows: DesignRow[] }) {
   const [newLink, setNewLink] = useState<Record<string, string>>({});
+  const [savingId, setSavingId] = useState<string | null>(null);
+  const actionLock = useRef(false);
   const router = useRouter();
   const supabase = createClient();
 
   async function approve(designId: string) {
+    if (actionLock.current) return;
+    actionLock.current = true; setSavingId(designId);
     await supabase.from("designs").update({ status: "approved" }).eq("design_id", designId);
+    actionLock.current = false; setSavingId(null);
     router.refresh();
   }
 
   async function requestRevision(designId: string, jobId: string, revisionNo: number) {
+    if (actionLock.current) return;
+    actionLock.current = true; setSavingId(designId);
     await supabase.from("designs").update({ status: "revision_requested" }).eq("design_id", designId);
     const link = newLink[jobId];
     if (link) {
@@ -35,6 +42,7 @@ export function DesignApprovalQueue({ rows }: { rows: DesignRow[] }) {
       });
     }
     setNewLink((s) => ({ ...s, [jobId]: "" }));
+    actionLock.current = false; setSavingId(null);
     router.refresh();
   }
 
@@ -72,9 +80,10 @@ export function DesignApprovalQueue({ rows }: { rows: DesignRow[] }) {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => approve(row.design_id)}
+                disabled={savingId !== null}
                 className="rounded-md border border-gray-800 px-3 py-1.5 text-xs font-medium"
               >
-                Approve
+                {savingId === row.design_id ? "Saving…" : "Approve"}
               </button>
             </div>
           </div>
@@ -87,9 +96,10 @@ export function DesignApprovalQueue({ rows }: { rows: DesignRow[] }) {
             />
             <button
               onClick={() => requestRevision(row.design_id, row.job_id, row.revision_no)}
+              disabled={savingId !== null}
               className="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600"
             >
-              Request revision
+              {savingId === row.design_id ? "Saving…" : "Request revision"}
             </button>
           </div>
         </div>

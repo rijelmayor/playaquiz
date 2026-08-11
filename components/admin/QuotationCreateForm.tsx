@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -17,18 +17,24 @@ export function QuotationCreateForm({ rows }: { rows: JobNeedingQuote[] }) {
   const [openId, setOpenId] = useState<string | null>(null);
   const [total, setTotal] = useState("");
   const [validUntil, setValidUntil] = useState("");
+  const [saving, setSaving] = useState(false);
+  const actionLock = useRef(false);
   const router = useRouter();
   const supabase = createClient();
 
   async function create(jobId: string, version: number) {
-    if (!total) return;
+    if (!total || saving || actionLock.current) return;
+    actionLock.current = true; setSaving(true);
     const { error } = await supabase.from("quotations").insert({
       job_id: jobId,
       version,
       total: Number(total),
       valid_until: validUntil || null
     });
-    if (error) return;
+    if (error) {
+      actionLock.current = false; setSaving(false);
+      return;
+    }
     await supabase
       .from("jobs")
       .update({ status: "quoted", quoted_value: Number(total) })
@@ -36,6 +42,7 @@ export function QuotationCreateForm({ rows }: { rows: JobNeedingQuote[] }) {
     setOpenId(null);
     setTotal("");
     setValidUntil("");
+    actionLock.current = false; setSaving(false);
     router.refresh();
   }
 
@@ -65,7 +72,7 @@ export function QuotationCreateForm({ rows }: { rows: JobNeedingQuote[] }) {
           {openId === row.job_id && (
             <div className="mt-3 flex flex-wrap gap-2">
               <input
-                type="number"
+                type="number" step="0.01"
                 placeholder="Total (₱)"
                 value={total}
                 onChange={(e) => setTotal(e.target.value)}
@@ -79,9 +86,11 @@ export function QuotationCreateForm({ rows }: { rows: JobNeedingQuote[] }) {
               />
               <button
                 onClick={() => create(row.job_id, row.next_version)}
-                className="rounded-md bg-gray-900 px-3 py-1.5 text-xs font-medium text-white"
+                disabled={saving}
+                className="inline-flex items-center gap-2 rounded-md bg-gray-900 px-3 py-1.5 text-xs font-medium text-white disabled:cursor-wait disabled:opacity-60"
               >
-                Send to client
+                {saving && <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/40 border-t-white" />}
+                {saving ? "Saving…" : "Send to client"}
               </button>
             </div>
           )}

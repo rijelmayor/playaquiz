@@ -91,6 +91,19 @@ export interface JobOrder {
   funds_release_status: "not_released" | "partially_released" | "fully_released" | "reconciled";
   deadline: string | null;
   status: "sourcing" | "in_production" | "qa" | "ready_for_install" | "installed";
+  order_description: string | null;
+  dimensions: string | null;
+  quantity: number | null;
+  specifications: string | null;
+  installation_notes: string | null;
+  production_notes: string | null;
+  priority: "low" | "normal" | "high" | "urgent";
+  production_stage: "materials" | "fabrication" | "printing" | "finishing" | "electrical" | "assembly" | "qc" | "ready_for_delivery" | "installation" | "completed" | "on_hold";
+  previous_production_stage: string | null;
+  started_at: string | null;
+  completed_at: string | null;
+  hold_reason: string | null;
+  scheduled_installation_date: string | null;
 }
 
 export interface FundRelease {
@@ -113,7 +126,7 @@ export interface JobCommission {
   paid_date: string | null;
 }
 
-export type AttachmentCategory = "transaction" | "site_visit" | "approved_design" | "reference";
+export type AttachmentCategory = "transaction" | "site_visit" | "approved_design" | "reference" | "order_reference" | "production_progress" | "qc" | "installation_proof";
 
 export interface JobAttachment {
   attachment_id: string;

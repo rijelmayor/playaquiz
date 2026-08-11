@@ -92,7 +92,7 @@ const tabTips: Record<string, string> = {
 };
 
 function money(value: number | null | undefined) {
-  return `₱${(value ?? 0).toLocaleString("en-PH", { maximumFractionDigits: 2 })}`;
+  return `₱${(value ?? 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function dateOnly(value: string) {

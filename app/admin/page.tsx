@@ -1,36 +1,35 @@
 import { createClient } from "@/lib/supabase/server";
 import { signAttachmentUrls } from "@/lib/supabase/signedUrls";
 import { PortalShell } from "@/components/shared/PortalShell";
+import { renderPortal } from "@/components/shared/renderPortal";
 import { QuotationCreateForm } from "@/components/shared/QuotationCreateForm";
 import { QuotationSettingsForm } from "@/components/admin/QuotationSettingsForm";
 import { QuotationQueue } from "@/components/admin/QuotationQueue";
 import { DesignApprovalQueue } from "@/components/admin/DesignApprovalQueue";
 import { JobOrderCreateForm } from "@/components/admin/JobOrderCreateForm";
+import { JobOrderDetailManager, type AdminJobOrderDetailRow } from "@/components/admin/JobOrderDetailManager";
 import { AdminWorkspace, type AdminJobRow } from "@/components/admin/AdminWorkspace";
 import { type AdminPaymentJob } from "@/components/admin/AdminPaymentManager";
 import type { PaymentTerms } from "@/lib/types/database";
 
 export default async function AdminPortal() {
+  return renderPortal("Admin", async () => {
   const supabase = createClient();
   const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session) {
+    throw new Error(
+      "No signed-in session was found for this request. If this happens on every load, the auth cookie likely isn't reaching the server — check that middleware.ts is running for /admin (see the `matcher` export) and that the Supabase env vars match the project the person logged into."
+    );
+  }
 
   const { data: admin } = await supabase
     .from("users")
     .select("user_id, name")
-    .eq("auth_id", session!.user.id)
+    .eq("auth_id", session.user.id)
     .single();
 
-  const [
-    { data: jobs },
-    { data: quotations },
-    { data: payments },
-    { data: paymentSchedules },
-    { data: designs },
-    { data: jobOrders },
-    { data: attachments },
-    { data: fabricators },
-    { data: quotationSettings }
-  ] = await Promise.all([
+  const results = await Promise.all([
     supabase
       .from("jobs")
       .select("job_id, client_id, booked_by, job_name, notes, status, follow_up_status, follow_up_note, quoted_value, final_value, payment_terms, needs_site_visit, site_visit_status, site_visit_date, site_visit_by, site_visit_note, created_at, updated_at, clients(name, contact, email, location), users!jobs_booked_by_fkey(name)")
@@ -53,15 +52,45 @@ export default async function AdminPortal() {
       .order("created_at", { ascending: false }),
     supabase
       .from("job_orders")
-      .select("job_order_id, job_id, status")
+      .select("job_order_id, job_id, fabricator_id, status, production_stage, deadline, quantity, priority, order_description, dimensions, specifications, installation_notes, production_notes")
       .order("job_order_id", { ascending: false }),
     supabase
       .from("job_attachments")
-      .select("attachment_id, job_id, category, file_path, caption, created_at")
+      .select("attachment_id, job_id, job_order_id, category, file_path, caption, created_at")
       .order("created_at", { ascending: false }),
     supabase.from("users").select("user_id, name").eq("role", "fabricator"),
     supabase.from("quotation_settings").select("*").eq("id", 1).single()
-  ]);
+  ] as const);
+
+  // Supabase queries return { data, error } instead of throwing — surface
+  // the first real error here (with which query it came from) so it hits
+  // the diagnostic panel in renderPortal, instead of silently falling back
+  // to `?? []` and rendering a page that looks loaded but is missing data.
+  const queryNames = [
+    "jobs", "quotations", "payments", "payment_schedules", "designs",
+    "job_orders", "job_attachments", "fabricators", "quotation_settings"
+  ];
+  results.forEach((r, i) => {
+    if (!r.error) return;
+    // quotation_settings is a singleton the app seeds itself the first
+    // time Admin saves quotation defaults — a missing row there just
+    // means "use the built-in defaults" (handled below), not a real
+    // failure, so it shouldn't trip the diagnostic panel.
+    if (queryNames[i] === "quotation_settings" && r.error.code === "PGRST116") return;
+    throw new Error(`Query "${queryNames[i]}" failed: ${r.error.message}`);
+  });
+
+  const [
+    { data: jobs },
+    { data: quotations },
+    { data: payments },
+    { data: paymentSchedules },
+    { data: designs },
+    { data: jobOrders },
+    { data: attachments },
+    { data: fabricators },
+    { data: quotationSettings }
+  ] = results;
 
   const quotationRows = quotations ?? [];
   const paymentRows = payments ?? [];
@@ -70,6 +99,18 @@ export default async function AdminPortal() {
   const orderRows = jobOrders ?? [];
   const attachmentRows = attachments ?? [];
   const attachmentsWithUrls = await signAttachmentUrls(supabase, attachmentRows);
+
+  const adminJobOrderIds = orderRows.map((o: any) => o.job_order_id).filter(Boolean);
+  const [adminMaterials, adminQc, adminInstallations, adminRequests, adminHistory] = await Promise.all([
+    adminJobOrderIds.length ? supabase.from("job_order_materials").select("material_id,job_order_id,status,estimated_qty,actual_qty,estimated_unit_cost,actual_unit_cost").in("job_order_id", adminJobOrderIds) : Promise.resolve({ data: [], error: null } as any),
+    adminJobOrderIds.length ? supabase.from("job_order_qc_checks").select("qc_id,job_order_id,result,rework_required,inspected_at").in("job_order_id", adminJobOrderIds).order("inspected_at", { ascending: false }) : Promise.resolve({ data: [], error: null } as any),
+    adminJobOrderIds.length ? supabase.from("job_order_installations").select("installation_id,job_order_id,status,verified,scheduled_date,updated_at,created_at").in("job_order_id", adminJobOrderIds).order("updated_at", { ascending: false, nullsFirst: false }) : Promise.resolve({ data: [], error: null } as any),
+    adminJobOrderIds.length ? supabase.from("job_order_material_requests").select("request_id,job_order_id,status").in("job_order_id", adminJobOrderIds) : Promise.resolve({ data: [], error: null } as any),
+    adminJobOrderIds.length ? supabase.from("job_order_stage_history").select("history_id,job_order_id,from_stage,to_stage,changed_at,note").in("job_order_id", adminJobOrderIds).order("changed_at", { ascending: false }) : Promise.resolve({ data: [], error: null } as any)
+  ]);
+  for (const [name, result] of [["job_order_materials", adminMaterials], ["job_order_qc_checks", adminQc], ["job_order_installations", adminInstallations], ["job_order_material_requests", adminRequests], ["job_order_stage_history", adminHistory]] as const) {
+    if (result.error) throw new Error(`Query "${name}" failed: ${result.error.message}`);
+  }
 
   const latestQuotation = new Map<string, any>();
   for (const quotation of quotationRows) {
@@ -212,6 +253,51 @@ export default async function AdminPortal() {
       down_payment_received: job.payment_terms !== "50_50" || job.deposit_received > 0
     }));
 
+  const latestQcByOrder = new Map<string, any>();
+  for (const q of adminQc.data ?? []) if (!latestQcByOrder.has(q.job_order_id)) latestQcByOrder.set(q.job_order_id, q);
+  const latestInstallationByOrder = new Map<string, any>();
+  for (const i of adminInstallations.data ?? []) if (!latestInstallationByOrder.has(i.job_order_id)) latestInstallationByOrder.set(i.job_order_id, i);
+  const materialCountsByOrder = new Map<string, { total: number; completed: number; shortages: number }>();
+  for (const m of adminMaterials.data ?? []) {
+    const current = materialCountsByOrder.get(m.job_order_id) ?? { total: 0, completed: 0, shortages: 0 };
+    current.total += 1;
+    if (["used", "available"].includes(m.status) || (m.actual_qty != null && m.actual_qty > 0)) current.completed += 1;
+    if (m.status === "shortage") current.shortages += 1;
+    materialCountsByOrder.set(m.job_order_id, current);
+  }
+  const pendingRequestsByOrder = new Map<string, number>();
+  for (const r of adminRequests.data ?? []) if (r.status === "pending") pendingRequestsByOrder.set(r.job_order_id, (pendingRequestsByOrder.get(r.job_order_id) ?? 0) + 1);
+
+  const fabricatorNames = new Map((fabricators ?? []).map((f: any) => [f.user_id, f.name]));
+  const jobOrderDetailRows: AdminJobOrderDetailRow[] = orderRows.map((order: any) => {
+    const job = adminJobs.find((j) => j.job_id === order.job_id);
+    return {
+      job_order_id: order.job_order_id,
+      job_id: order.job_id,
+      client_name: job?.client_name ?? "Unknown",
+      job_name: job?.job_name ?? null,
+      fabricator_name: fabricatorNames.get(order.fabricator_id) ?? null,
+      status: order.status,
+      production_stage: order.production_stage ?? "materials",
+      deadline: order.deadline ?? null,
+      material_summary: materialCountsByOrder.get(order.job_order_id) ?? { total: 0, completed: 0, shortages: 0 },
+      pending_material_requests: pendingRequestsByOrder.get(order.job_order_id) ?? 0,
+      latest_qc: latestQcByOrder.get(order.job_order_id) ?? null,
+      latest_installation: latestInstallationByOrder.get(order.job_order_id) ?? null,
+      stage_history: (adminHistory.data ?? []).filter((h: any) => h.job_order_id === order.job_order_id),
+
+      quantity: order.quantity ?? 1,
+      priority: order.priority ?? "normal",
+      order_description: order.order_description ?? null,
+      dimensions: order.dimensions ?? null,
+      specifications: order.specifications ?? null,
+      installation_notes: order.installation_notes ?? null,
+      production_notes: order.production_notes ?? null,
+      approved_design: attachmentsWithUrls.filter((a) => a.job_order_id === order.job_order_id && a.category === "approved_design"),
+      order_reference: attachmentsWithUrls.filter((a) => a.job_order_id === order.job_order_id && a.category === "order_reference")
+    };
+  });
+
   return (
     <PortalShell
       active="/admin"
@@ -242,7 +328,9 @@ export default async function AdminPortal() {
         <QuotationQueue rows={pendingQuoteRows} />
         <DesignApprovalQueue rows={pendingDesignRows} />
         <JobOrderCreateForm rows={jobOrderCandidateRows} fabricators={fabricators ?? []} />
+        <JobOrderDetailManager rows={jobOrderDetailRows} adminId={admin?.user_id ?? ""} />
       </div>
     </PortalShell>
   );
+  });
 }

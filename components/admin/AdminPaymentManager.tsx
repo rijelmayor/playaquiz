@@ -41,7 +41,7 @@ export interface AdminPaymentJob {
 }
 
 function money(value: number) {
-  return `₱${value.toLocaleString("en-PH", { maximumFractionDigits: 2 })}`;
+  return `₱${value.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 function dueStageLabel(stage: PaymentScheduleDueStage) {
@@ -206,13 +206,13 @@ export function AdminPaymentManager({ jobs }: { jobs: AdminPaymentJob[] }) {
                     <option value="">Select milestone…</option>
                     {job.schedules.filter((s) => s.status !== "paid").map((s) => <option key={s.payment_schedule_id} value={s.payment_schedule_id}>{s.label} · {money(s.amount)}</option>)}
                   </select>
-                  <input type="number" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Amount received ₱" className="rounded-md border border-gray-300 bg-white px-2 py-2 text-xs" />
+                  <input type="number" step="0.01" min="0" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Amount received ₱" className="rounded-md border border-gray-300 bg-white px-2 py-2 text-xs" />
                   <input type="date" value={paidDate} onChange={(e) => setPaidDate(e.target.value)} className="rounded-md border border-gray-300 bg-white px-2 py-2 text-xs" />
                   <input value={referenceNo} onChange={(e) => setReferenceNo(e.target.value)} placeholder="OR / reference no." className="rounded-md border border-gray-300 bg-white px-2 py-2 text-xs" />
                   <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Payment note (optional)" className="min-h-16 rounded-md border border-gray-300 bg-white px-2 py-2 text-xs md:col-span-2" />
                   <div className="flex items-end gap-2 md:col-span-2 xl:justify-end">
                     {error && <p className="mr-auto text-xs text-red-600">{error}</p>}
-                    <button disabled={saving} onClick={() => recordPayment(job)} className="rounded-md bg-gray-900 px-4 py-2 text-xs font-semibold text-white disabled:opacity-50">{saving ? "Saving…" : "Confirm payment received"}</button>
+                    <button disabled={saving} onClick={() => recordPayment(job)} className="rounded-md bg-gray-900 px-4 py-2 text-xs font-semibold text-white disabled:opacity-50">{saving && <span className="mr-1 inline-block h-3 w-3 animate-spin rounded-full border-2 border-white/40 border-t-white" />}{saving ? "Saving…" : "Confirm payment received"}</button>
                   </div>
                 </div>
               </div>

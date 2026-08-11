@@ -25,11 +25,11 @@ export function ProfitabilityView({
               )}
             </p>
             <p className="text-xs text-gray-500">
-              value ₱{row.final_value?.toLocaleString() ?? "—"} · materials ₱
-              {row.materials_cost.toLocaleString()} · labor ₱
-              {row.labor_cost.toLocaleString()} · logistics ₱
-              {row.logistics_cost.toLocaleString()} · commission ₱
-              {row.commission_cost.toLocaleString()}
+              value ₱{row.final_value?.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? "—"} · materials ₱
+              {row.materials_cost.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} · labor ₱
+              {row.labor_cost.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} · logistics ₱
+              {row.logistics_cost.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} · commission ₱
+              {row.commission_cost.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </p>
           </div>
           <div className="text-right">
@@ -38,7 +38,7 @@ export function ProfitabilityView({
                 (row.margin_pct ?? 0) < 20 ? "text-amber-600" : "text-green-700"
               }`}
             >
-              ₱{row.net_profit?.toLocaleString() ?? "—"}
+              ₱{row.net_profit?.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? "—"}
             </p>
             <p className="text-xs text-gray-500">{row.margin_pct ?? "—"}% margin</p>
           </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -24,6 +24,8 @@ export function JobOrderCreateForm({
   fabricators: Fabricator[];
 }) {
   const [openId, setOpenId] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const actionLock = useRef(false);
   const [fabricatorId, setFabricatorId] = useState("");
   const [materials, setMaterials] = useState("");
   const [estMaterials, setEstMaterials] = useState("");
@@ -35,7 +37,9 @@ export function JobOrderCreateForm({
   const supabase = createClient();
 
   async function create(jobId: string) {
-    if (!fabricatorId) return;
+    if (!fabricatorId || saving || actionLock.current) return;
+    actionLock.current = true;
+    setSaving(true);
     const { error } = await supabase.from("job_orders").insert({
       job_id: jobId,
       fabricator_id: fabricatorId,
@@ -46,8 +50,14 @@ export function JobOrderCreateForm({
       logistics_vendor: vendor || null,
       deadline: deadline || null
     });
-    if (error) return;
+    if (error) {
+      actionLock.current = false;
+      setSaving(false);
+      return;
+    }
     await supabase.from("jobs").update({ status: "in_production" }).eq("job_id", jobId);
+    actionLock.current = false;
+    setSaving(false);
     setOpenId(null);
     router.refresh();
   }
@@ -101,21 +111,21 @@ export function JobOrderCreateForm({
                 className="col-span-2 rounded-md border border-gray-300 px-2 py-1.5 text-xs"
               />
               <input
-                type="number"
+                type="number" step="0.01"
                 placeholder="Est. materials ₱"
                 value={estMaterials}
                 onChange={(e) => setEstMaterials(e.target.value)}
                 className="rounded-md border border-gray-300 px-2 py-1.5 text-xs"
               />
               <input
-                type="number"
+                type="number" step="0.01"
                 placeholder="Est. labor ₱"
                 value={estLabor}
                 onChange={(e) => setEstLabor(e.target.value)}
                 className="rounded-md border border-gray-300 px-2 py-1.5 text-xs"
               />
               <input
-                type="number"
+                type="number" step="0.01"
                 placeholder="Est. logistics ₱"
                 value={estLogistics}
                 onChange={(e) => setEstLogistics(e.target.value)}
@@ -134,10 +144,12 @@ export function JobOrderCreateForm({
                 className="rounded-md border border-gray-300 px-2 py-1.5 text-xs"
               />
               <button
+                disabled={saving}
                 onClick={() => create(row.job_id)}
-                className="col-span-2 rounded-md bg-gray-900 py-1.5 text-xs font-medium text-white"
+                className="col-span-2 inline-flex items-center justify-center gap-2 rounded-md bg-gray-900 py-1.5 text-xs font-medium text-white disabled:cursor-wait disabled:opacity-60"
               >
-                Forward to fabrication
+                {saving && <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/40 border-t-white" />}
+                {saving ? "Creating…" : "Forward to fabrication"}
               </button>
             </div>
           )}

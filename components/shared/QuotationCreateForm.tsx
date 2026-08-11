@@ -305,7 +305,7 @@ export function QuotationCreateForm({
                   Valid for
                   <input type="number" min="1" value={validDays} onChange={(e) => setValidDays(e.target.value)} className={`${inputClass} w-14`} /> days
                 </label>
-                <p className="text-sm font-semibold text-gray-900">Total: ₱{total.toLocaleString()}</p>
+                <p className="text-sm font-semibold text-gray-900">Total: ₱{total.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
               </div>
 
               <button type="button" onClick={() => setShowAdvanced((v) => !v)} className="text-xs font-medium text-gray-600 underline">

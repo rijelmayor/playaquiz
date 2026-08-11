@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { StatusBadge } from "@/components/shared/StatusBadge";
@@ -22,17 +22,23 @@ export function FundReleaseQueue({ rows, accountingUserId }: { rows: JobOrderRow
   const [amount, setAmount] = useState("");
   const [category, setCategory] = useState<"materials" | "labor" | "logistics">("materials");
   const [note, setNote] = useState("");
+  const [saving, setSaving] = useState(false);
+  const actionLock = useRef(false);
   const router = useRouter();
   const supabase = createClient();
 
   async function release(jobOrderId: string) {
-    await supabase.from("fund_releases").insert({
+    if (!amount || Number(amount) <= 0 || saving || actionLock.current) return;
+    actionLock.current = true; setSaving(true);
+    const { error } = await supabase.from("fund_releases").insert({
       job_order_id: jobOrderId,
       released_by: accountingUserId,
       category,
       amount: Number(amount),
       note
     });
+    actionLock.current = false; setSaving(false);
+    if (error) return;
     setOpenId(null);
     setAmount("");
     setNote("");
@@ -50,9 +56,9 @@ export function FundReleaseQueue({ rows, accountingUserId }: { rows: JobOrderRow
             <div>
               <p className="text-sm font-medium">{row.client_name}</p>
               <p className="text-xs text-gray-500">
-                est. materials ₱{(row.estimated_materials_cost ?? 0).toLocaleString()} · labor ₱
-                {(row.estimated_labor_cost ?? 0).toLocaleString()} · logistics ₱
-                {(row.estimated_logistics_cost ?? 0).toLocaleString()}
+                est. materials ₱{(row.estimated_materials_cost ?? 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} · labor ₱
+                {(row.estimated_labor_cost ?? 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} · logistics ₱
+                {(row.estimated_logistics_cost ?? 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -77,7 +83,7 @@ export function FundReleaseQueue({ rows, accountingUserId }: { rows: JobOrderRow
                 <option value="logistics">Logistics</option>
               </select>
               <input
-                type="number"
+                type="number" step="0.01"
                 placeholder="Amount"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
@@ -91,9 +97,11 @@ export function FundReleaseQueue({ rows, accountingUserId }: { rows: JobOrderRow
               />
               <button
                 onClick={() => release(row.job_order_id)}
-                className="rounded-md bg-gray-900 px-3 py-1.5 text-xs font-medium text-white"
+                disabled={saving}
+                className="inline-flex items-center gap-2 rounded-md bg-gray-900 px-3 py-1.5 text-xs font-medium text-white disabled:cursor-wait disabled:opacity-60"
               >
-                Confirm
+                {saving && <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/40 border-t-white" />}
+                {saving ? "Saving…" : "Confirm"}
               </button>
             </div>
           )}

@@ -2,24 +2,32 @@ import { createClient } from "@/lib/supabase/server";
 import { signAttachmentUrls } from "@/lib/supabase/signedUrls";
 import { MetricCard } from "@/components/shared/MetricCard";
 import { PortalShell } from "@/components/shared/PortalShell";
+import { renderPortal } from "@/components/shared/renderPortal";
 import { ClientList } from "@/components/sales/ClientList";
 import { NewClientForm } from "@/components/sales/NewClientForm";
 import { CommissionMetric } from "@/components/sales/CommissionMetric";
 import { QuotationCreateForm } from "@/components/shared/QuotationCreateForm";
 
 export default async function SalesPortal() {
+  return renderPortal("Sales", async () => {
   const supabase = createClient();
   const { data: { session } } = await supabase.auth.getSession();
+
+  if (!session) {
+    throw new Error(
+      "No signed-in session was found for this request. If this happens on every load, check that the Supabase env vars in Vercel match the project the person logged into."
+    );
+  }
 
   const { data: agent } = await supabase
     .from("users")
     .select("user_id, name")
-    .eq("auth_id", session!.user.id)
+    .eq("auth_id", session.user.id)
     .single();
 
   // jobs + commissions + quotation settings don't depend on each other —
   // run them together instead of one after another.
-  const [{ data: jobs }, { data: commissions }, { data: quotationSettings }] = await Promise.all([
+  const [jobsResult, commissionsResult, settingsResult] = await Promise.all([
     supabase
       .from("jobs")
       .select("*, clients(name, contact, email, location)")
@@ -31,6 +39,19 @@ export default async function SalesPortal() {
       .eq("agent_id", agent?.user_id),
     supabase.from("quotation_settings").select("*").eq("id", 1).single()
   ]);
+
+  if (jobsResult.error) throw new Error(`Query "jobs" failed: ${jobsResult.error.message}`);
+  if (commissionsResult.error) throw new Error(`Query "job_commissions" failed: ${commissionsResult.error.message}`);
+  // quotation_settings is a singleton the app seeds itself the first time
+  // Admin saves quotation defaults — a missing row just means "use the
+  // built-in defaults" below, not a real failure.
+  if (settingsResult.error && settingsResult.error.code !== "PGRST116") {
+    throw new Error(`Query "quotation_settings" failed: ${settingsResult.error.message}`);
+  }
+
+  const { data: jobs } = jobsResult;
+  const { data: commissions } = commissionsResult;
+  const { data: quotationSettings } = settingsResult;
 
   const pending = commissions
     ?.filter((c) => c.status === "pending" || c.status === "payable")
@@ -118,4 +139,5 @@ export default async function SalesPortal() {
       />
     </PortalShell>
   );
+  });
 }
