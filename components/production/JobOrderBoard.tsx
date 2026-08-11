@@ -3,7 +3,6 @@
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { StatusBadge } from "@/components/shared/StatusBadge";
-import { ImageUpload } from "@/components/shared/ImageUpload";
 import { AttachmentGallery } from "@/components/shared/AttachmentGallery";
 import type { JobOrder } from "@/lib/types/database";
 
@@ -64,18 +63,9 @@ export function JobOrderBoard({
             </div>
           </div>
 
-          <div className="mt-3">
-            <ImageUpload
-              jobId={row.job_id}
-              jobOrderId={row.job_order_id}
-              category="approved_design"
-              uploadedBy={fabricatorId}
-            />
-          </div>
-
           {row.approved_design_photos.length > 0 && (
             <div className="mt-2">
-              <p className="text-xs text-gray-400">Approved design</p>
+              <p className="text-xs text-gray-400">Approved design · Admin-controlled fabrication reference</p>
               <AttachmentGallery attachments={row.approved_design_photos} />
             </div>
           )}

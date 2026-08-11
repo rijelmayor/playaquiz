@@ -3,7 +3,7 @@
 This update changes only the Production/Admin job-order side of the CRM. Existing Sales, Admin, Accounting and historical workflows are retained.
 
 ## Required Supabase migration
- TEST RUN
+
 Run:
 
 `supabase/migrations/0016_production_system.sql`
