@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  color: #1a1a1a;
+  background: #f4f5f7;
+  min-width: 320px;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+@layer utilities {
+  .touch-target {
+    min-height: 42px;
+  }
+
+  .crm-card-pattern {
+    background-image:
+      radial-gradient(circle at 90% 8%, rgba(255,255,255,.72) 0 22px, transparent 23px),
+      radial-gradient(circle at 8% 92%, rgba(255,255,255,.46) 0 30px, transparent 31px);
+  }
+}
