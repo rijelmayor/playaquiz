@@ -119,6 +119,15 @@ export interface FundRelease {
   released_date: string;
 }
 
+
+export interface CommissionSettings {
+  settings_id: number;
+  commission_type: CommissionType;
+  commission_value: number;
+  updated_by: string | null;
+  updated_at: string;
+}
+
 export interface JobCommission {
   commission_id: string;
   job_id: string;

@@ -9,6 +9,8 @@ import { DesignApprovalQueue } from "@/components/admin/DesignApprovalQueue";
 import { JobOrderCreateForm } from "@/components/admin/JobOrderCreateForm";
 import { JobOrderDetailManager, type AdminJobOrderDetailRow } from "@/components/admin/JobOrderDetailManager";
 import { CommissionControl, type AdminCommissionRow } from "@/components/admin/CommissionControl";
+import { CommissionSettingsForm, type CommissionSettingsRow } from "@/components/admin/CommissionSettingsForm";
+import { AuditTrail } from "@/components/admin/AuditTrail";
 import { CompletionAcknowledgment, type CompletionRow } from "@/components/admin/CompletionAcknowledgment";
 import { AdminWorkspace, type AdminJobRow } from "@/components/admin/AdminWorkspace";
 import { type AdminPaymentJob } from "@/components/admin/AdminPaymentManager";
@@ -64,7 +66,9 @@ export default async function AdminPortal() {
     supabase.from("quotation_settings").select("*").eq("id", 1).single(),
     supabase.from("job_commissions").select("commission_id, job_id, agent_id, split_pct, commission_type, commission_value, commission_rate, amount, status"),
     supabase.from("users").select("user_id, name").in("role", ["sales", "admin"]),
-    supabase.from("job_acknowledgments").select("*").order("updated_at", { ascending: false })
+    supabase.from("job_acknowledgments").select("*").order("updated_at", { ascending: false }),
+    supabase.from("commission_settings").select("settings_id, commission_type, commission_value, updated_at").eq("settings_id", 1).maybeSingle(),
+    supabase.from("audit_logs").select("audit_id, action, table_name, record_id, created_at, users!audit_logs_actor_id_fkey(name)").order("created_at", { ascending: false }).limit(30)
   ] as const);
 
   // Supabase queries return { data, error } instead of throwing — surface
@@ -73,7 +77,7 @@ export default async function AdminPortal() {
   // to `?? []` and rendering a page that looks loaded but is missing data.
   const queryNames = [
     "jobs", "quotations", "payments", "payment_schedules", "designs",
-    "job_orders", "job_attachments", "fabricators", "quotation_settings", "job_commissions", "commission_users", "job_acknowledgments"
+    "job_orders", "job_attachments", "fabricators", "quotation_settings", "job_commissions", "commission_users", "job_acknowledgments", "commission_settings", "audit_logs"
   ];
   results.forEach((r, i) => {
     if (!r.error) return;
@@ -97,7 +101,9 @@ export default async function AdminPortal() {
     { data: quotationSettings },
     { data: commissionRows },
     { data: commissionUsers },
-    { data: acknowledgments }
+    { data: acknowledgments },
+    { data: commissionSettings },
+    { data: auditRows }
   ] = results;
 
   const quotationRows = quotations ?? [];
@@ -108,6 +114,7 @@ export default async function AdminPortal() {
   const attachmentRows = attachments ?? [];
   const attachmentsWithUrls = await signAttachmentUrls(supabase, attachmentRows);
   const commissionUserNames = new Map((commissionUsers ?? []).map((u: any) => [u.user_id, u.name]));
+  const auditTrailRows = (auditRows ?? []).map((r: any) => ({ audit_id: r.audit_id, action: r.action, table_name: r.table_name, record_id: r.record_id, actor_name: r.users?.name ?? null, created_at: r.created_at }));
 
   const adminJobOrderIds = orderRows.map((o: any) => o.job_order_id).filter(Boolean);
   const [adminMaterials, adminQc, adminInstallations, adminRequests, adminHistory] = await Promise.all([
@@ -336,6 +343,7 @@ export default async function AdminPortal() {
       <AdminWorkspace jobs={adminJobs} paymentJobs={adminPaymentJobs} />
 
       <div className="mt-6 space-y-6">
+        <CommissionSettingsForm settings={commissionSettings as CommissionSettingsRow | null} adminId={admin?.user_id ?? ""} />
         <CommissionControl rows={adminCommissionRows} />
         <CompletionAcknowledgment rows={completionRows} adminId={admin?.user_id ?? ""} />
 
@@ -359,6 +367,7 @@ export default async function AdminPortal() {
         <DesignApprovalQueue rows={pendingDesignRows} />
         <JobOrderCreateForm rows={jobOrderCandidateRows} fabricators={fabricators ?? []} />
         <JobOrderDetailManager rows={jobOrderDetailRows} adminId={admin?.user_id ?? ""} />
+        <AuditTrail rows={auditTrailRows} />
       </div>
     </PortalShell>
   );

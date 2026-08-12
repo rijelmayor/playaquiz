@@ -87,10 +87,17 @@ before insert or update of commission_type, commission_value on job_commissions
 for each row execute function job_commission_config_trigger();
 
 -- Recalculate immediately when Admin changes the commission rule.
+create or replace function job_commissions_after_config_change() returns trigger as $$
+begin
+  perform calc_commission_amount(new.job_id);
+  return new;
+end;
+$$ language plpgsql security definer;
+
 drop trigger if exists job_commissions_after_config_change on job_commissions;
 create trigger job_commissions_after_config_change
 after update of commission_type, commission_value, split_pct on job_commissions
-for each row execute function jobs_after_update_commission_amount();
+for each row execute function job_commissions_after_config_change();
 
 -- ── 3. Designs: revision notes/audit metadata ──────────────────────────
 alter table designs add column if not exists revision_note text;

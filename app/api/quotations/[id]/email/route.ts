@@ -99,11 +99,11 @@ export async function POST(request: Request, { params }: { params: { id: string 
     );
   }
 
-  if (!process.env.SMTP_HOST) {
+  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS || !process.env.SMTP_FROM) {
     return NextResponse.json(
       {
         error:
-          "Email sending isn't configured yet. Set SMTP_HOST/SMTP_PORT/SMTP_USER/SMTP_PASS/SMTP_FROM in your environment."
+          "Email sending is not fully configured. Set SMTP_HOST, SMTP_PORT, SMTP_SECURE, SMTP_USER, SMTP_PASS and SMTP_FROM in Vercel Environment Variables."
       },
       { status: 500 }
     );
@@ -122,7 +122,8 @@ export async function POST(request: Request, { params }: { params: { id: string 
 
   try {
     await transporter.sendMail({
-      from: process.env.SMTP_FROM ?? process.env.SMTP_USER,
+      from: process.env.SMTP_FROM,
+      replyTo: process.env.SMTP_FROM,
       to: recipient,
       subject: `Quotation ${quotation.project_job_id ?? ""}${customerName ? ` — ${customerName}` : ""}`,
       text: `Good day${customerName ? ` ${customerName}` : ""},\n\nPlease find attached our quotation for your signage project. If you have any questions or would like any revisions, please let us know.\n\nThank you,\nDelight Works Advertising Signages`,
@@ -140,10 +141,14 @@ export async function POST(request: Request, { params }: { params: { id: string 
     );
   }
 
-  await supabase
+  const { error: sentUpdateError } = await supabase
     .from("quotations")
     .update({ sent_at: new Date().toISOString(), sent_to: recipient, quotation_status: "sent" })
     .eq("quotation_id", params.id);
+
+  if (sentUpdateError) {
+    return NextResponse.json({ error: `Email was sent, but the quotation status could not be updated: ${sentUpdateError.message}` }, { status: 500 });
+  }
 
   return NextResponse.json({ ok: true });
 }
