@@ -67,14 +67,28 @@ export async function POST(request: Request, { params }: { params: { id: string 
       website: settings?.website,
       logoBytes,
       dateCreated: formatDate(quotation.created_at),
+      validUntil: quotation.valid_until ? formatDate(quotation.valid_until) : undefined,
       customerName: quotation.customer_name ?? quotation.jobs?.clients?.name ?? "—",
+      customerContact: quotation.jobs?.clients?.contact ?? null,
+      customerEmail: quotation.jobs?.clients?.email ?? null,
+      customerLocation: quotation.jobs?.clients?.location ?? null,
       projectJobId: quotation.project_job_id ?? String(quotation.job_id).slice(0, 8).toUpperCase(),
+      version: quotation.version ?? 1,
       items: quotation.items ?? [],
       servicesNote:
         quotation.services_note ||
         settings?.services_note ||
         "Mock-Up/Mobilization/Installation FREE",
       terms: quotation.terms || settings?.terms || "",
+      additionalNotes: quotation.additional_notes,
+      discountType: quotation.discount_type,
+      discountValue: quotation.discount_value,
+      discountAmount: quotation.discount_amount,
+      taxEnabled: quotation.tax_enabled,
+      taxRate: quotation.tax_rate,
+      taxAmount: quotation.tax_amount,
+      otherCharges: quotation.other_charges,
+      otherChargesNote: quotation.other_charges_note,
       validDays: quotation.valid_days ?? settings?.valid_days ?? 15,
       paymentTerms: quotation.payment_terms ?? "50_50"
     });
@@ -110,8 +124,8 @@ export async function POST(request: Request, { params }: { params: { id: string 
     await transporter.sendMail({
       from: process.env.SMTP_FROM ?? process.env.SMTP_USER,
       to: recipient,
-      subject: `Project Quotation${customerName ? ` — ${customerName}` : ""}`,
-      text: "Please find attached your project quotation from Delight Works Advertising Signages.",
+      subject: `Quotation ${quotation.project_job_id ?? ""}${customerName ? ` — ${customerName}` : ""}`,
+      text: `Good day${customerName ? ` ${customerName}` : ""},\n\nPlease find attached our quotation for your signage project. If you have any questions or would like any revisions, please let us know.\n\nThank you,\nDelight Works Advertising Signages`,
       attachments: [
         {
           filename: `quotation-${quotation.project_job_id ?? quotation.quotation_id.slice(0, 8)}.pdf`,
@@ -128,7 +142,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
 
   await supabase
     .from("quotations")
-    .update({ sent_at: new Date().toISOString(), sent_to: recipient })
+    .update({ sent_at: new Date().toISOString(), sent_to: recipient, quotation_status: "sent" })
     .eq("quotation_id", params.id);
 
   return NextResponse.json({ ok: true });

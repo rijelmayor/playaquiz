@@ -4,106 +4,12 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-interface DesignRow {
-  design_id: string;
-  job_id: string;
-  client_name: string;
-  revision_no: number;
-  status: string;
-  file_url: string | null;
-}
+interface DesignRow { design_id: string; job_id: string; client_name: string; revision_no: number; status: string; file_url: string | null; revision_note: string | null; file_name: string | null; }
 
 export function DesignApprovalQueue({ rows }: { rows: DesignRow[] }) {
-  const [newLink, setNewLink] = useState<Record<string, string>>({});
-  const [savingId, setSavingId] = useState<string | null>(null);
-  const actionLock = useRef(false);
-  const router = useRouter();
-  const supabase = createClient();
-
-  async function approve(designId: string) {
-    if (actionLock.current) return;
-    actionLock.current = true; setSavingId(designId);
-    await supabase.from("designs").update({ status: "approved" }).eq("design_id", designId);
-    actionLock.current = false; setSavingId(null);
-    router.refresh();
-  }
-
-  async function requestRevision(designId: string, jobId: string, revisionNo: number) {
-    if (actionLock.current) return;
-    actionLock.current = true; setSavingId(designId);
-    await supabase.from("designs").update({ status: "revision_requested" }).eq("design_id", designId);
-    const link = newLink[jobId];
-    if (link) {
-      await supabase.from("designs").insert({
-        job_id: jobId,
-        revision_no: revisionNo + 1,
-        status: "pending",
-        file_url: link
-      });
-    }
-    setNewLink((s) => ({ ...s, [jobId]: "" }));
-    actionLock.current = false; setSavingId(null);
-    router.refresh();
-  }
-
-  if (rows.length === 0) return null;
-
-  return (
-    <div className="mb-6 rounded-xl border border-gray-200">
-      <div className="border-b border-gray-200 px-4 py-3 text-sm text-gray-500">
-        Design approvals
-      </div>
-      {rows.map((row) => (
-        <div key={row.design_id} className="border-b border-gray-100 px-4 py-3 last:border-0">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium">
-                {row.client_name}
-                <span className="ml-2 text-xs text-gray-400">rev {row.revision_no}</span>
-                {row.revision_no > 2 && (
-                  <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-800">
-                    revision fee applies
-                  </span>
-                )}
-              </p>
-              {row.file_url && (
-                <a
-                  href={row.file_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-xs text-blue-600 underline"
-                >
-                  view mockup
-                </a>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => approve(row.design_id)}
-                disabled={savingId !== null}
-                className="rounded-md border border-gray-800 px-3 py-1.5 text-xs font-medium"
-              >
-                {savingId === row.design_id ? "Saving…" : "Approve"}
-              </button>
-            </div>
-          </div>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <input
-              placeholder="New revision link (if requesting changes)"
-              value={newLink[row.job_id] ?? ""}
-              onChange={(e) => setNewLink((s) => ({ ...s, [row.job_id]: e.target.value }))}
-              className="flex-1 rounded-md border border-gray-300 px-2 py-1.5 text-xs"
-            />
-            <button
-              onClick={() => requestRevision(row.design_id, row.job_id, row.revision_no)}
-              disabled={savingId !== null}
-              className="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-600"
-            >
-              {savingId === row.design_id ? "Saving…" : "Request revision"}
-            </button>
-          </div>
-        </div>
-      ))}
-    </div>
-  );
+  const [newLink, setNewLink] = useState<Record<string, string>>({}); const [revisionNote, setRevisionNote] = useState<Record<string, string>>({}); const [savingId, setSavingId] = useState<string | null>(null); const actionLock = useRef(false); const router = useRouter(); const supabase = createClient();
+  async function approve(row: DesignRow) { if (actionLock.current) return; actionLock.current = true; setSavingId(row.design_id); const { data: user } = await supabase.auth.getUser(); const { data: me } = await supabase.from("users").select("user_id").eq("auth_id", user.user?.id ?? "").single(); await supabase.from("designs").update({ status: "approved", approved_at: new Date().toISOString(), approved_by: me?.user_id ?? null }).eq("design_id", row.design_id); actionLock.current = false; setSavingId(null); router.refresh(); }
+  async function requestRevision(row: DesignRow) { if (actionLock.current) return; actionLock.current = true; setSavingId(row.design_id); const note = revisionNote[row.design_id]?.trim() || "Revision requested"; await supabase.from("designs").update({ status: "revision_requested", revision_note: note }).eq("design_id", row.design_id); const link = newLink[row.job_id]?.trim(); if (link) await supabase.from("designs").insert({ job_id: row.job_id, revision_no: row.revision_no + 1, status: "pending", file_url: link, revision_note: note, file_name: `Revision ${row.revision_no + 1}` }); setNewLink((s) => ({ ...s, [row.job_id]: "" })); setRevisionNote((s) => ({ ...s, [row.design_id]: "" })); actionLock.current = false; setSavingId(null); router.refresh(); }
+  if (!rows.length) return null;
+  return <div className="mb-6 rounded-xl border border-gray-200 bg-white shadow-sm"><div className="border-b border-gray-200 px-4 py-3"><p className="text-sm font-semibold text-gray-900">Design approvals</p><p className="text-xs text-gray-500">Keep the revision reason with the design record so production always knows which version was approved.</p></div>{rows.map((row) => <div key={row.design_id} className="border-b border-gray-100 px-4 py-4 last:border-0"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-sm font-semibold">{row.client_name}<span className="ml-2 rounded bg-cyan-50 px-1.5 py-0.5 text-xs text-[#087eb9]">Rev {row.revision_no}</span></p>{row.file_name && <p className="mt-1 text-[11px] text-gray-400">{row.file_name}</p>}{row.revision_note && <p className="mt-1 max-w-xl text-xs text-gray-600">Note: {row.revision_note}</p>}{row.file_url && <a href={row.file_url} target="_blank" rel="noreferrer" className="mt-2 inline-flex rounded-md border border-gray-300 px-2.5 py-1.5 text-xs font-medium text-[#087eb9]">Open design preview ↗</a>}</div><button onClick={() => approve(row)} disabled={savingId !== null} className="rounded-md bg-[#0784c8] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50">{savingId === row.design_id ? "Saving…" : "Approve design"}</button></div><div className="mt-3 grid gap-2 rounded-lg border border-gray-200 bg-gray-50 p-3 sm:grid-cols-[1fr_1.5fr_auto]"><input value={revisionNote[row.design_id] ?? ""} onChange={(e) => setRevisionNote((s) => ({ ...s, [row.design_id]: e.target.value }))} placeholder="Reason / customer revision request" className="rounded-md border border-gray-300 px-2.5 py-2 text-xs" /><input value={newLink[row.job_id] ?? ""} onChange={(e) => setNewLink((s) => ({ ...s, [row.job_id]: e.target.value }))} placeholder="Optional next revision file link" className="rounded-md border border-gray-300 px-2.5 py-2 text-xs" /><button onClick={() => requestRevision(row)} disabled={savingId !== null} className="rounded-md border border-gray-400 bg-white px-3 py-2 text-xs font-semibold text-gray-700 disabled:opacity-50">Request revision</button></div></div>)}</div>;
 }

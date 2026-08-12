@@ -135,3 +135,22 @@ DW AdSign CRM
 - Admin → Quotation defaults includes optional Social Media Account, Email Address, and Website fields.
 - Those optional lines are displayed on quotations only when the corresponding field contains data.
 - Apply `supabase/migrations/0008_quotation_contact_channels.sql` after the existing migrations.
+
+## V12.2 quotation / Gmail setup
+
+The quotation workflow now uses the DW logo palette (charcoal/black, electric blue, teal and gold), supports discounts, optional VAT/tax, other charges, quotation notes, versioned Sales/Admin editing, and customer completion acknowledgment.
+
+For Gmail SMTP in Vercel, add these environment variables:
+
+```text
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=465
+SMTP_SECURE=true
+SMTP_USER=your-gmail-address@gmail.com
+SMTP_PASS=your-google-app-password
+SMTP_FROM=your-gmail-address@gmail.com
+```
+
+Use a Google App Password rather than the normal Gmail password. Keep SMTP credentials only in Vercel/server environment variables; never expose them in client code.
+
+Before using the new quotation/commission/completion features, run the new Supabase migration `0019_quotation_commission_completion_upgrade.sql` after migrations 0015-0018.

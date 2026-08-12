@@ -19,8 +19,9 @@ export function QuotationList({
         <div key={q.quotation_id} className="rounded-xl border border-black/10 bg-white/60 p-2.5">
           <div className="mb-1.5 flex items-center justify-between">
             <p className="text-xs font-medium text-gray-700">
-              {q.project_job_id ?? q.quotation_id.slice(0, 8).toUpperCase()}
+              {q.project_job_id ?? q.quotation_id.slice(0, 8).toUpperCase()} · v{q.version ?? 1}
             </p>
+            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-500">{q.quotation_status ?? "draft"}</span>
             <p className="text-xs text-gray-400">
               {new Date(q.created_at).toLocaleDateString("en-PH", {
                 year: "numeric",

@@ -18,6 +18,9 @@ export type JobStatus =
 export type FollowUpStatus = "follow_up" | "drawing" | "approved" | "other";
 
 export type PaymentTerms = "50_50" | "full_on_completion" | "full_on_installation" | "custom";
+export type CommissionType = "percentage" | "fixed";
+export type QuotationStatus = "draft" | "sent" | "accepted" | "rejected" | "expired" | "superseded";
+export type DiscountType = "none" | "percentage" | "fixed";
 
 export type PaymentScheduleDueStage = "approval" | "production" | "completion" | "installation" | "custom";
 export type PaymentScheduleStatus = "pending" | "partial" | "paid";
@@ -121,6 +124,9 @@ export interface JobCommission {
   job_id: string;
   agent_id: string;
   split_pct: number;
+  commission_type: CommissionType;
+  commission_value: number;
+  commission_rate: number;
   amount: number | null;
   status: "pending" | "payable" | "paid" | "void";
   paid_date: string | null;
@@ -151,6 +157,17 @@ export interface Quotation {
   job_id: string;
   version: number;
   items: QuotationItem[];
+  discount_type: DiscountType;
+  discount_value: number;
+  discount_amount: number;
+  tax_enabled: boolean;
+  tax_rate: number;
+  tax_amount: number;
+  other_charges: number;
+  other_charges_note: string | null;
+  additional_notes: string | null;
+  quotation_status: QuotationStatus;
+  supersedes_quotation_id: string | null;
   total: number;
   valid_until: string | null;
   valid_days: number;
@@ -163,6 +180,23 @@ export interface Quotation {
   sent_at: string | null;
   sent_to: string | null;
   created_at: string;
+}
+
+export interface JobAcknowledgment {
+  acknowledgment_id: string;
+  job_id: string;
+  status: "pending" | "accepted" | "correction_requested";
+  customer_name: string | null;
+  authorized_representative: string | null;
+  signature_name: string | null;
+  remarks: string | null;
+  installation_checked: boolean;
+  project_received: boolean;
+  accepted_at: string | null;
+  created_by: string | null;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface QuotationSettings {
@@ -186,6 +220,11 @@ export interface Design {
   revision_no: number;
   status: "pending" | "approved" | "revision_requested";
   file_url: string | null;
+  revision_note: string | null;
+  file_name: string | null;
+  uploaded_by: string | null;
+  approved_at: string | null;
+  approved_by: string | null;
   created_at: string;
 }
 

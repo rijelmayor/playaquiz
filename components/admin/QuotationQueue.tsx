@@ -8,6 +8,8 @@ interface QuotationRow {
   job_id: string;
   client_name: string;
   quoted_value: number;
+  quotation_id: string | null;
+  version: number | null;
 }
 
 export function QuotationQueue({ rows }: { rows: QuotationRow[] }) {
@@ -20,6 +22,7 @@ export function QuotationQueue({ rows }: { rows: QuotationRow[] }) {
     if (actionLock.current) return;
     actionLock.current = true; setSavingId(jobId);
     await supabase.from("jobs").update({ status: "approved" }).eq("job_id", jobId);
+    await supabase.from("quotations").update({ quotation_status: "accepted" }).eq("job_id", jobId).in("quotation_status", ["draft", "sent"]);
     actionLock.current = false; setSavingId(null);
     router.refresh();
   }
@@ -36,8 +39,10 @@ export function QuotationQueue({ rows }: { rows: QuotationRow[] }) {
         >
           <div>
             <p className="text-sm font-medium">{row.client_name}</p>
-            <p className="text-xs text-gray-500">₱{row.quoted_value.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+            <p className="text-xs text-gray-500">₱{row.quoted_value.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {row.version ? `· v${row.version}` : ""}</p>
           </div>
+          <div className="flex items-center gap-2">
+            {row.quotation_id && <a href={`/admin/quotations/${row.quotation_id}/edit`} className="rounded-md border border-cyan-600/40 bg-cyan-50 px-3 py-1.5 text-xs font-semibold text-[#087eb9]">Edit quote</a>}
           <button
             onClick={() => approve(row.job_id)}
             disabled={savingId !== null}
@@ -45,6 +50,7 @@ export function QuotationQueue({ rows }: { rows: QuotationRow[] }) {
           >
             Approve
           </button>
+          </div>
         </div>
       ))}
     </div>

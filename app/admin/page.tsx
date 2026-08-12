@@ -8,6 +8,8 @@ import { QuotationQueue } from "@/components/admin/QuotationQueue";
 import { DesignApprovalQueue } from "@/components/admin/DesignApprovalQueue";
 import { JobOrderCreateForm } from "@/components/admin/JobOrderCreateForm";
 import { JobOrderDetailManager, type AdminJobOrderDetailRow } from "@/components/admin/JobOrderDetailManager";
+import { CommissionControl, type AdminCommissionRow } from "@/components/admin/CommissionControl";
+import { CompletionAcknowledgment, type CompletionRow } from "@/components/admin/CompletionAcknowledgment";
 import { AdminWorkspace, type AdminJobRow } from "@/components/admin/AdminWorkspace";
 import { type AdminPaymentJob } from "@/components/admin/AdminPaymentManager";
 import type { PaymentTerms } from "@/lib/types/database";
@@ -48,7 +50,7 @@ export default async function AdminPortal() {
       .order("sequence_no", { ascending: true }),
     supabase
       .from("designs")
-      .select("design_id, job_id, revision_no, status, file_url")
+      .select("design_id, job_id, revision_no, status, file_url, revision_note, file_name")
       .order("created_at", { ascending: false }),
     supabase
       .from("job_orders")
@@ -59,7 +61,10 @@ export default async function AdminPortal() {
       .select("attachment_id, job_id, job_order_id, category, file_path, caption, created_at")
       .order("created_at", { ascending: false }),
     supabase.from("users").select("user_id, name").eq("role", "fabricator"),
-    supabase.from("quotation_settings").select("*").eq("id", 1).single()
+    supabase.from("quotation_settings").select("*").eq("id", 1).single(),
+    supabase.from("job_commissions").select("commission_id, job_id, agent_id, split_pct, commission_type, commission_value, commission_rate, amount, status"),
+    supabase.from("users").select("user_id, name").in("role", ["sales", "admin"]),
+    supabase.from("job_acknowledgments").select("*").order("updated_at", { ascending: false })
   ] as const);
 
   // Supabase queries return { data, error } instead of throwing — surface
@@ -68,7 +73,7 @@ export default async function AdminPortal() {
   // to `?? []` and rendering a page that looks loaded but is missing data.
   const queryNames = [
     "jobs", "quotations", "payments", "payment_schedules", "designs",
-    "job_orders", "job_attachments", "fabricators", "quotation_settings"
+    "job_orders", "job_attachments", "fabricators", "quotation_settings", "job_commissions", "commission_users", "job_acknowledgments"
   ];
   results.forEach((r, i) => {
     if (!r.error) return;
@@ -89,7 +94,10 @@ export default async function AdminPortal() {
     { data: jobOrders },
     { data: attachments },
     { data: fabricators },
-    { data: quotationSettings }
+    { data: quotationSettings },
+    { data: commissionRows },
+    { data: commissionUsers },
+    { data: acknowledgments }
   ] = results;
 
   const quotationRows = quotations ?? [];
@@ -99,6 +107,7 @@ export default async function AdminPortal() {
   const orderRows = jobOrders ?? [];
   const attachmentRows = attachments ?? [];
   const attachmentsWithUrls = await signAttachmentUrls(supabase, attachmentRows);
+  const commissionUserNames = new Map((commissionUsers ?? []).map((u: any) => [u.user_id, u.name]));
 
   const adminJobOrderIds = orderRows.map((o: any) => o.job_order_id).filter(Boolean);
   const [adminMaterials, adminQc, adminInstallations, adminRequests, adminHistory] = await Promise.all([
@@ -136,6 +145,22 @@ export default async function AdminPortal() {
     if (payment.type === "balance") current.balance += Number(payment.amount ?? 0);
     totals.set(payment.job_id, current);
   }
+
+
+  const adminCommissionRows: AdminCommissionRow[] = (commissionRows ?? []).map((row: any) => ({
+    commission_id: row.commission_id, job_id: row.job_id, agent_name: commissionUserNames.get(row.agent_id) ?? "Agent",
+    client_name: (jobs ?? []).find((j: any) => j.job_id === row.job_id)?.clients?.name ?? "Unknown",
+    commission_type: row.commission_type ?? "percentage", commission_value: Number(row.commission_value ?? row.commission_rate ?? 0),
+    split_pct: Number(row.split_pct ?? 100), amount: row.amount == null ? null : Number(row.amount), status: row.status
+  }));
+
+  const completionRows: CompletionRow[] = (acknowledgments ?? [])
+    .filter((a: any) => (jobs ?? []).some((j: any) => j.job_id === a.job_id && ["installed", "paid", "closed"].includes(j.status)))
+    .map((a: any) => {
+      const job = (jobs ?? []).find((j: any) => j.job_id === a.job_id);
+      const quote = latestQuotation.get(a.job_id);
+      return { acknowledgment_id: a.acknowledgment_id, job_id: a.job_id, client_name: job?.clients?.name ?? "Unknown", display_job_id: quote?.project_job_id ?? `JOB-${a.job_id.slice(0, 8).toUpperCase()}`, status: a.status, customer_name: a.customer_name, authorized_representative: a.authorized_representative, signature_name: a.signature_name, remarks: a.remarks, installation_checked: Boolean(a.installation_checked), project_received: Boolean(a.project_received) };
+    });
 
   const adminJobs: AdminJobRow[] = (jobs ?? []).map((job: any) => {
     const quote = latestQuotation.get(job.job_id);
@@ -231,7 +256,7 @@ export default async function AdminPortal() {
 
   const pendingQuoteRows = adminJobs
     .filter((job) => job.status === "quoted")
-    .map((job) => ({ job_id: job.job_id, client_name: job.client_name, quoted_value: job.latest_quotation_total ?? job.quoted_value ?? 0 }));
+    .map((job) => ({ job_id: job.job_id, client_name: job.client_name, quoted_value: job.latest_quotation_total ?? job.quoted_value ?? 0, quotation_id: job.latest_quotation_id, version: quotationRows.find((q: any) => q.quotation_id === job.latest_quotation_id)?.version ?? null }));
 
   const pendingDesignRows = designRows
     .filter((d: any) => d.status === "pending")
@@ -241,7 +266,9 @@ export default async function AdminPortal() {
       client_name: adminJobs.find((j) => j.job_id === d.job_id)?.client_name ?? "Unknown",
       revision_no: d.revision_no,
       status: d.status,
-      file_url: d.file_url
+      file_url: d.file_url,
+      revision_note: d.revision_note ?? null,
+      file_name: d.file_name ?? null
     }));
 
   const jobOrderCandidateRows = adminJobs
@@ -309,6 +336,9 @@ export default async function AdminPortal() {
       <AdminWorkspace jobs={adminJobs} paymentJobs={adminPaymentJobs} />
 
       <div className="mt-6 space-y-6">
+        <CommissionControl rows={adminCommissionRows} />
+        <CompletionAcknowledgment rows={completionRows} adminId={admin?.user_id ?? ""} />
+
         <QuotationSettingsForm settings={quotationSettings ?? {
           id: 1,
           company_name: "Delight Works Advertising Signages",
