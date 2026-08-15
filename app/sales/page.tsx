@@ -6,6 +6,7 @@ import { renderPortal } from "@/components/shared/renderPortal";
 import { ClientList } from "@/components/sales/ClientList";
 import { NewClientForm } from "@/components/sales/NewClientForm";
 import { CommissionMetric } from "@/components/sales/CommissionMetric";
+import { PaidCommissions } from "@/components/sales/PaidCommissions";
 import { QuotationCreateForm } from "@/components/shared/QuotationCreateForm";
 
 export default async function SalesPortal() {
@@ -35,7 +36,7 @@ export default async function SalesPortal() {
       .order("created_at", { ascending: false }),
     supabase
       .from("job_commissions")
-      .select("amount, status")
+      .select("commission_id, job_id, amount, status")
       .eq("agent_id", agent?.user_id),
     supabase.from("quotation_settings").select("*").eq("id", 1).single()
   ]);
@@ -56,6 +57,18 @@ export default async function SalesPortal() {
   const pending = commissions
     ?.filter((c) => c.status === "pending" || c.status === "payable")
     .reduce((sum, c) => sum + (c.amount ?? 0), 0) ?? 0;
+
+  // Commission is only "complete" once accounting has actually released it —
+  // that's the `paid` status set by CommissionQueue.markPaid in Accounting.
+  // One row per project, not summed, so the agent can see which job it came from.
+  const paidCommissions = (commissions ?? [])
+    .filter((c) => c.status === "paid")
+    .map((c: any) => ({
+      commission_id: c.commission_id,
+      client_name:
+        (jobs ?? []).find((j: any) => j.job_id === c.job_id)?.clients?.name ?? "Unknown",
+      amount: c.amount ?? 0
+    }));
 
   const jobIds = (jobs ?? []).map((j: any) => j.job_id);
 
@@ -124,6 +137,7 @@ export default async function SalesPortal() {
         />
         <CommissionMetric amount={pending} />
       </div>
+      <PaidCommissions rows={paidCommissions} />
       <div className="mb-6">
         <NewClientForm agentId={agent?.user_id ?? ""} />
       </div>
