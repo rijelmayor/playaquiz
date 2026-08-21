@@ -169,7 +169,6 @@ begin
   return coalesce(new, old);
 end;
 $$;
-
 create or replace function recalc_job_order_labor_actuals() returns trigger
 language plpgsql security definer as $$
 declare v_job_order_id uuid;
