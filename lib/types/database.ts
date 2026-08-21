@@ -158,6 +158,7 @@ export interface QuotationItem {
   id: string;
   description: string;
   quantity: number;
+  unit?: string;
   unit_price: number;
 }
 
@@ -219,6 +220,12 @@ export interface QuotationSettings {
   services_note: string;
   terms: string;
   valid_days: number;
+  bank_name: string | null;
+  bank_account_name: string | null;
+  bank_account_number: string | null;
+  gcash_number: string | null;
+  gcash_account_name: string | null;
+  gcash_qr_url: string | null;
   updated_by: string | null;
   updated_at: string;
 }

@@ -4,11 +4,14 @@ import type { QuotationSettings } from "@/lib/types/database";
 export function QuotationList({
   quotations,
   settings,
-  defaultEmail
+  defaultEmail,
+  mockupUrls = []
 }: {
   quotations: QuotationForDocument[];
   settings: QuotationSettings | null;
   defaultEmail: string | null;
+  /** Signed URLs for Sample Mock-Up photos to embed in generated PDFs. */
+  mockupUrls?: (string | null | undefined)[];
 }) {
   if (quotations.length === 0) return null;
 
@@ -30,7 +33,12 @@ export function QuotationList({
               })}
             </p>
           </div>
-          <QuotationDocumentActions quotation={q} settings={settings} defaultEmail={defaultEmail} />
+          <QuotationDocumentActions
+            quotation={q}
+            settings={settings}
+            defaultEmail={defaultEmail}
+            mockupUrls={mockupUrls}
+          />
         </div>
       ))}
     </div>

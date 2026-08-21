@@ -3,8 +3,10 @@ import { PortalShell } from "@/components/shared/PortalShell";
 import { renderPortal } from "@/components/shared/renderPortal";
 import { AccountingWorkspace, type AccountingExpense, type AccountingJob } from "@/components/accounting/AccountingWorkspace";
 import { PaymentLogger } from "@/components/accounting/PaymentLogger";
-import { FundReleaseQueue } from "@/components/accounting/FundReleaseQueue";
 import { CommissionQueue } from "@/components/accounting/CommissionQueue";
+import { CommissionControl, type AdminCommissionRow } from "@/components/accounting/CommissionControl";
+import { CommissionSettingsForm, type CommissionSettingsRow } from "@/components/accounting/CommissionSettingsForm";
+import { getJobControlTier } from "@/lib/workflow/jobControl";
 
 export default async function AccountingPortal() {
   return renderPortal("Accounting", async () => {
@@ -15,16 +17,30 @@ export default async function AccountingPortal() {
     const { data: accountingUser } = await supabase.from("users").select("user_id, name").eq("auth_id", session.user.id).single();
     if (!accountingUser) throw new Error("The signed-in account is not linked to an Accounting user record.");
 
-    const [jobsResult, expensesResult, openingResult] = await Promise.all([
-      supabase.from("jobs").select(`job_id,status,quoted_value,final_value,clients(name),job_orders(job_order_id,funds_release_status,estimated_materials_cost,actual_materials_cost,estimated_labor_cost,actual_labor_cost,estimated_logistics_cost,actual_logistics_cost,production_stage,priority,deadline,fund_releases(amount,released_date)),payments(amount,status,type,paid_date),job_commissions(commission_id,amount,status,paid_date,users(name))`)
+    const [jobsResult, expensesResult, openingResult, cashTrendResult, dashboardCashResult, dashboardReceivableResult, dashboardRevenueResult, dashboardProfitResult] = await Promise.all([
+      supabase.from("jobs").select(`job_id,status,quoted_value,final_value,clients(name),job_orders(job_order_id,estimated_materials_cost,actual_materials_cost,estimated_labor_cost,actual_labor_cost,estimated_logistics_cost,actual_logistics_cost,production_stage,priority,deadline),payments(amount,status,type,paid_date),job_commissions(commission_id,agent_id,split_pct,commission_type,commission_value,commission_rate,amount,status,paid_date,users(name))`)
         .in("status", ["approved", "in_production", "installed", "paid", "closed"]),
       supabase.from("accounting_expenses").select("expense_id,job_id,category,description,payee,amount,status,expense_date,reference_no,jobs(clients(name))").order("expense_date", { ascending: false }),
-      supabase.from("accounting_opening_balances").select("*").eq("period_start", `${new Date().toISOString().slice(0, 7)}-01`).maybeSingle()
+      supabase.from("accounting_opening_balances").select("*").eq("period_start", `${new Date().toISOString().slice(0, 7)}-01`).maybeSingle(),
+      supabase.from("payments").select("amount,paid_date,status").in("status", ["received","paid","completed"]).gte("paid_date", new Date(Date.now() - 365*24*60*60*1000).toISOString()).order("paid_date", { ascending: true }),
+      supabase.from("accounting_cash_position").select("current_cash_position").maybeSingle(),
+      supabase.from("accounting_customer_receivables").select("customer_receivables").maybeSingle(),
+      supabase.from("accounting_approved_revenue").select("approved_revenue").maybeSingle(),
+      supabase.from("accounting_estimated_job_profit").select("estimated_job_profit").maybeSingle()
     ]);
+
+    const commissionSettingsResult = await supabase.from("commission_settings").select("settings_id, commission_type, commission_value, updated_at").eq("settings_id", 1).maybeSingle();
+    if (commissionSettingsResult.error) throw new Error(`Commission settings query failed: ${commissionSettingsResult.error.message}`);
+    const commissionSettings = commissionSettingsResult.data;
 
     if (jobsResult.error) throw new Error(`Accounting jobs query failed: ${jobsResult.error.message}`);
     if (expensesResult.error) throw new Error(`Accounting expenses query failed: ${expensesResult.error.message}`);
     if (openingResult.error) throw new Error(`Opening balance query failed: ${openingResult.error.message}`);
+    if (cashTrendResult.error) throw new Error(`Payment trend query failed: ${cashTrendResult.error.message}`);
+    if (dashboardCashResult.error) throw new Error(`Cash dashboard query failed: ${dashboardCashResult.error.message}`);
+    if (dashboardReceivableResult.error) throw new Error(`Receivables dashboard query failed: ${dashboardReceivableResult.error.message}`);
+    if (dashboardRevenueResult.error) throw new Error(`Revenue dashboard query failed: ${dashboardRevenueResult.error.message}`);
+    if (dashboardProfitResult.error) throw new Error(`Profit dashboard query failed: ${dashboardProfitResult.error.message}`);
 
     const jobOrderIds = (jobsResult.data ?? []).flatMap((j: any) => (j.job_orders ?? []).map((jo: any) => jo.job_order_id)).filter(Boolean);
     const [materialResult, qcResult, installationResult, requestResult] = await Promise.all([
@@ -72,7 +88,6 @@ export default async function AccountingPortal() {
       const received = (j.payments ?? []).filter((p: any) => p.status === "received").reduce((s: number, p: any) => s + Number(p.amount ?? 0), 0);
       const commission = (j.job_commissions ?? []).filter((c: any) => c.status !== "void").reduce((s: number, c: any) => s + Number(c.amount ?? 0), 0);
       const commissionPaid = (j.job_commissions ?? []).filter((c: any) => c.status === "paid").reduce((s: number, c: any) => s + Number(c.amount ?? 0), 0);
-      const fundsReleased = (jo.fund_releases ?? []).reduce((s: number, r: any) => s + Number(r.amount ?? 0), 0);
       const finalValue = Number(j.final_value ?? j.quoted_value ?? 0);
       return {
         job_id: j.job_id,
@@ -100,32 +115,43 @@ export default async function AccountingPortal() {
         actual_logistics: jo.actual_logistics_cost == null ? null : Number(jo.actual_logistics_cost),
         commission,
         commission_paid: commissionPaid,
-        funds_released: fundsReleased,
         expenses: jobExpenseTotals.get(j.job_id) ?? 0,
-        closed: false
+        closed: false,
+        override: false,
+        override_reason: null,
+        control_tier: getJobControlTier(finalValue)
       };
     });
 
     const closureResult = jobs.length
-      ? await supabase.from("accounting_job_closures").select("job_id").in("job_id", jobs.map(j => j.job_id))
+      ? await supabase.from("accounting_job_closures").select("job_id, override, override_reason").in("job_id", jobs.map(j => j.job_id))
       : { data: [], error: null };
     if (closureResult.error) throw new Error(`Accounting closure query failed: ${closureResult.error.message}`);
-    const closedIds = new Set((closureResult.data ?? []).map((r: any) => r.job_id));
-    jobs.forEach(j => { j.closed = closedIds.has(j.job_id); });
+    const closuresById = new Map((closureResult.data ?? []).map((r: any) => [r.job_id, r]));
+    jobs.forEach(j => {
+      const closure = closuresById.get(j.job_id);
+      j.closed = Boolean(closure);
+      j.override = Boolean(closure?.override);
+      j.override_reason = closure?.override_reason ?? null;
+    });
 
-    const jobOrderRows = (jobsResult.data ?? []).flatMap((j: any) => (j.job_orders ?? []).map((jo: any) => ({
-      job_order_id: jo.job_order_id ?? j.job_id,
-      client_name: j.clients?.name ?? "Unknown",
-      estimated_materials_cost: jo.estimated_materials_cost,
-      estimated_labor_cost: jo.estimated_labor_cost,
-      estimated_logistics_cost: jo.estimated_logistics_cost,
-      funds_release_status: jo.funds_release_status ?? "not_released"
-    })));
     const commissionRows = (jobsResult.data ?? []).flatMap((j: any) => (j.job_commissions ?? []).map((c: any) => ({
       commission_id: c.commission_id ?? `${j.job_id}-commission`,
       agent_name: c.users?.name ?? "Sales agent",
       client_name: j.clients?.name ?? "Unknown",
       amount: Number(c.amount ?? 0),
+      status: c.status
+    })));
+
+    const commissionControlRows: AdminCommissionRow[] = (jobsResult.data ?? []).flatMap((j: any) => (j.job_commissions ?? []).map((c: any) => ({
+      commission_id: c.commission_id ?? `${j.job_id}-commission`,
+      job_id: j.job_id,
+      agent_name: c.users?.name ?? "Sales agent",
+      client_name: j.clients?.name ?? "Unknown",
+      commission_type: c.commission_type ?? "percentage",
+      commission_value: Number(c.commission_value ?? c.commission_rate ?? 0),
+      split_pct: Number(c.split_pct ?? 100),
+      amount: c.amount == null ? null : Number(c.amount),
       status: c.status
     })));
 
@@ -135,21 +161,45 @@ export default async function AccountingPortal() {
     }).map((j: any) => ({ job_id: j.job_id, client_name: j.clients?.name ?? "Unknown", quoted_value: j.quoted_value, final_value: j.final_value }));
 
     const opening = openingResult.data;
+    const trendMap = new Map<string, { month: string; collections: number; expenses: number }>();
+    const monthKey = (value: string) => value.slice(0, 7);
+    for (const p of cashTrendResult.data ?? []) {
+      const key = monthKey(p.paid_date);
+      const row = trendMap.get(key) ?? { month: key, collections: 0, expenses: 0 };
+      row.collections += Number(p.amount ?? 0);
+      trendMap.set(key, row);
+    }
+    for (const e of expensesResult.data ?? []) if (e.status === "paid" && !e.job_id) {
+      const key = String(e.expense_date).slice(0, 7);
+      const row = trendMap.get(key) ?? { month: key, collections: 0, expenses: 0 };
+      row.expenses += Number(e.amount ?? 0);
+      trendMap.set(key, row);
+    }
+    const cashTrend = Array.from(trendMap.values()).sort((a,b) => a.month.localeCompare(b.month)).slice(-12);
+    const dashboardMetrics = {
+      currentCash: Number(dashboardCashResult.data?.current_cash_position ?? 0),
+      receivable: Number(dashboardReceivableResult.data?.customer_receivables ?? 0),
+      revenue: Number(dashboardRevenueResult.data?.approved_revenue ?? 0),
+      profit: Number(dashboardProfitResult.data?.estimated_job_profit ?? 0)
+    };
     const currentMonth = new Date().toISOString().slice(0, 7);
     const inCurrentMonth = (value: string | null | undefined) => Boolean(value && value.slice(0, 7) === currentMonth);
     const cashMovement = {
       collections: (jobsResult.data ?? []).reduce((sum: number, j: any) => sum + (j.payments ?? []).filter((p: any) => p.status === "received" && inCurrentMonth(p.paid_date)).reduce((s: number, p: any) => s + Number(p.amount ?? 0), 0), 0),
-      releases: (jobsResult.data ?? []).reduce((sum: number, j: any) => sum + (j.job_orders ?? []).reduce((s: number, jo: any) => s + (jo.fund_releases ?? []).filter((r: any) => inCurrentMonth(r.released_date)).reduce((rs: number, r: any) => rs + Number(r.amount ?? 0), 0), 0), 0),
+      releases: 0,
       commissionPayouts: (jobsResult.data ?? []).reduce((sum: number, j: any) => sum + (j.job_commissions ?? []).filter((c: any) => c.status === "paid" && inCurrentMonth(c.paid_date)).reduce((s: number, c: any) => s + Number(c.amount ?? 0), 0), 0),
       paidExpenses: expenses.filter(e => e.status === "paid" && e.expense_date.slice(0, 7) === currentMonth).reduce((s, e) => s + e.amount, 0)
     };
 
 
     return <PortalShell active="/accounting" eyebrow="Accounting portal" title="Financial control center" roleLabel="Accounting" personName={accountingUser.name}>
-      <AccountingWorkspace jobs={jobs} expenses={expenses} openingBalance={opening} accountingUserId={accountingUser.user_id} currentMonth={currentMonth} cashMovement={cashMovement} />
+      <AccountingWorkspace jobs={jobs} expenses={expenses} openingBalance={opening} accountingUserId={accountingUser.user_id} currentMonth={currentMonth} cashMovement={cashMovement} dashboardMetrics={dashboardMetrics} cashTrend={cashTrend} />
       <div className="mt-5"><PaymentLogger rows={paymentRows} /></div>
-      <div className="mt-5"><FundReleaseQueue rows={jobOrderRows} accountingUserId={accountingUser.user_id} /></div>
-      <div className="mt-5"><CommissionQueue rows={commissionRows} /></div>
+            <div className="mt-5 space-y-5">
+        <CommissionSettingsForm settings={commissionSettings as CommissionSettingsRow | null} accountingUserId={accountingUser.user_id} />
+        <CommissionControl rows={commissionControlRows} />
+        <CommissionQueue rows={commissionRows} />
+      </div>
     </PortalShell>;
   });
 }

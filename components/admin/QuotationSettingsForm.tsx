@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { QuotationSettings } from "@/lib/types/database";
+
+const MAX_QR_BYTES = 3 * 1024 * 1024;
 
 const inputClass =
   "w-full rounded-md border border-gray-300 bg-white px-2.5 py-1.5 text-xs text-gray-900 focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900";
@@ -24,11 +26,42 @@ export function QuotationSettingsForm({ settings }: { settings: QuotationSetting
   const [servicesNote, setServicesNote] = useState(settings.services_note);
   const [terms, setTerms] = useState(settings.terms);
   const [validDays, setValidDays] = useState(String(settings.valid_days));
+  const [bankName, setBankName] = useState(settings.bank_name ?? "");
+  const [bankAccountName, setBankAccountName] = useState(settings.bank_account_name ?? "");
+  const [bankAccountNumber, setBankAccountNumber] = useState(settings.bank_account_number ?? "");
+  const [gcashNumber, setGcashNumber] = useState(settings.gcash_number ?? "");
+  const [gcashAccountName, setGcashAccountName] = useState(settings.gcash_account_name ?? "");
+  const [gcashQrUrl, setGcashQrUrl] = useState(settings.gcash_qr_url ?? "");
+  const [uploadingQr, setUploadingQr] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const router = useRouter();
   const supabase = createClient();
+  const qrInputRef = useRef<HTMLInputElement>(null);
+
+  async function uploadQr(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) { setError("QR code must be an image file."); return; }
+    if (file.size > MAX_QR_BYTES) { setError("QR code image is too large. Please use a file under 3 MB."); return; }
+
+    setUploadingQr(true);
+    setError(null);
+    const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+    const path = `gcash-qr/${Date.now()}.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("quotation-assets")
+      .upload(path, file, { upsert: false, contentType: file.type, cacheControl: "31536000" });
+
+    if (uploadError) { setError(uploadError.message); setUploadingQr(false); return; }
+
+    const { data: publicUrlData } = supabase.storage.from("quotation-assets").getPublicUrl(path);
+    setGcashQrUrl(publicUrlData.publicUrl);
+    setUploadingQr(false);
+  }
 
   async function save() {
     setSaving(true);
@@ -47,6 +80,12 @@ export function QuotationSettingsForm({ settings }: { settings: QuotationSetting
         services_note: servicesNote,
         terms,
         valid_days: Number(validDays) || 15,
+        bank_name: bankName.trim() || null,
+        bank_account_name: bankAccountName.trim() || null,
+        bank_account_number: bankAccountNumber.trim() || null,
+        gcash_number: gcashNumber.trim() || null,
+        gcash_account_name: gcashAccountName.trim() || null,
+        gcash_qr_url: gcashQrUrl.trim() || null,
         updated_at: new Date().toISOString()
       })
       .eq("id", 1);
@@ -130,6 +169,55 @@ export function QuotationSettingsForm({ settings }: { settings: QuotationSetting
               onChange={(e) => setValidDays(e.target.value)}
               className={inputClass}
             />
+          </div>
+          <div className="rounded-lg border border-gray-200 p-3">
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500">Payment options (printed at the bottom of the quotation PDF)</p>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div>
+                <label className={labelClass}>Bank name</label>
+                <input value={bankName} onChange={(e) => setBankName(e.target.value)} placeholder="BDO" className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Account name</label>
+                <input value={bankAccountName} onChange={(e) => setBankAccountName(e.target.value)} placeholder="Delight Works AdSign" className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Account number</label>
+                <input value={bankAccountNumber} onChange={(e) => setBankAccountNumber(e.target.value)} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>GCash number</label>
+                <input value={gcashNumber} onChange={(e) => setGcashNumber(e.target.value)} placeholder="09XX XXX XXXX" className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>GCash account name</label>
+                <input value={gcashAccountName} onChange={(e) => setGcashAccountName(e.target.value)} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>GCash QR code</label>
+                <div className="flex items-center gap-2">
+                  {gcashQrUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={gcashQrUrl} alt="GCash QR" className="h-10 w-10 rounded border border-gray-200 object-cover" />
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => qrInputRef.current?.click()}
+                    disabled={uploadingQr}
+                    className="rounded-md border border-gray-300 bg-white px-2.5 py-1.5 text-[11px] font-semibold text-gray-700 disabled:opacity-50"
+                  >
+                    {uploadingQr ? "Uploading…" : gcashQrUrl ? "Replace" : "Upload"}
+                  </button>
+                  {gcashQrUrl && (
+                    <button type="button" onClick={() => setGcashQrUrl("")} className="text-[11px] text-red-600">
+                      Remove
+                    </button>
+                  )}
+                </div>
+                <input ref={qrInputRef} type="file" accept="image/png,image/jpeg" className="hidden" onChange={uploadQr} />
+              </div>
+            </div>
+            <p className="mt-2 text-[10px] text-gray-400">Leave any of these blank to skip that payment method on the quotation. The QR only appears if uploaded.</p>
           </div>
           {error && <p className="text-xs text-red-600">{error}</p>}
           <div className="flex items-center gap-2">

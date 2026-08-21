@@ -1,13 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { signAttachmentUrls } from "@/lib/supabase/signedUrls";
-import { MetricCard } from "@/components/shared/MetricCard";
 import { PortalShell } from "@/components/shared/PortalShell";
 import { renderPortal } from "@/components/shared/renderPortal";
 import { ClientList } from "@/components/sales/ClientList";
 import { NewClientForm } from "@/components/sales/NewClientForm";
 import { CommissionMetric } from "@/components/sales/CommissionMetric";
-import { PaidCommissions } from "@/components/sales/PaidCommissions";
-import { QuotationCreateForm } from "@/components/shared/QuotationCreateForm";
 
 export default async function SalesPortal() {
   return renderPortal("Sales", async () => {
@@ -26,8 +23,6 @@ export default async function SalesPortal() {
     .eq("auth_id", session.user.id)
     .single();
 
-  // jobs + commissions + quotation settings don't depend on each other —
-  // run them together instead of one after another.
   const [jobsResult, commissionsResult, settingsResult] = await Promise.all([
     supabase
       .from("jobs")
@@ -36,16 +31,13 @@ export default async function SalesPortal() {
       .order("created_at", { ascending: false }),
     supabase
       .from("job_commissions")
-      .select("commission_id, job_id, amount, status")
+      .select("amount, status")
       .eq("agent_id", agent?.user_id),
     supabase.from("quotation_settings").select("*").eq("id", 1).single()
   ]);
 
   if (jobsResult.error) throw new Error(`Query "jobs" failed: ${jobsResult.error.message}`);
   if (commissionsResult.error) throw new Error(`Query "job_commissions" failed: ${commissionsResult.error.message}`);
-  // quotation_settings is a singleton the app seeds itself the first time
-  // Admin saves quotation defaults — a missing row just means "use the
-  // built-in defaults" below, not a real failure.
   if (settingsResult.error && settingsResult.error.code !== "PGRST116") {
     throw new Error(`Query "quotation_settings" failed: ${settingsResult.error.message}`);
   }
@@ -55,20 +47,8 @@ export default async function SalesPortal() {
   const { data: quotationSettings } = settingsResult;
 
   const pending = commissions
-    ?.filter((c) => c.status === "pending" || c.status === "payable")
+    ?.filter((c) => c.status === "payable")
     .reduce((sum, c) => sum + (c.amount ?? 0), 0) ?? 0;
-
-  // Commission is only "complete" once accounting has actually released it —
-  // that's the `paid` status set by CommissionQueue.markPaid in Accounting.
-  // One row per project, not summed, so the agent can see which job it came from.
-  const paidCommissions = (commissions ?? [])
-    .filter((c) => c.status === "paid")
-    .map((c: any) => ({
-      commission_id: c.commission_id,
-      client_name:
-        (jobs ?? []).find((j: any) => j.job_id === c.job_id)?.clients?.name ?? "Unknown",
-      amount: c.amount ?? 0
-    }));
 
   const jobIds = (jobs ?? []).map((j: any) => j.job_id);
 
@@ -89,7 +69,6 @@ export default async function SalesPortal() {
       : Promise.resolve({ data: [] as any[] })
   ]);
 
-  // one signing call for every photo, instead of one call per photo
   const attachmentsWithUrls = await signAttachmentUrls(supabase, attachments ?? []);
 
   const jobsWithClientName = (jobs ?? []).map((j: any) => ({
@@ -110,42 +89,93 @@ export default async function SalesPortal() {
     quotations: (quotations ?? []).filter((q: any) => q.job_id === j.job_id)
   }));
 
-  // Jobs that still need a quotation created — mirrors the same logic
-  // admin uses, scoped to this agent's own bookings.
-  const preQuoteRows = (jobs ?? [])
-    .filter((j: any) => ["site_visit", "design_review"].includes(j.status))
-    .map((j: any) => ({
-      job_id: j.job_id,
-      client_name: j.clients?.name ?? "Unknown",
-      next_version:
-        ((quotations ?? []).filter((q: any) => q.job_id === j.job_id).length ?? 0) + 1
-    }));
+  const activeLeads = jobsWithClientName.length;
+  const booked = jobsWithClientName.filter((j) => j.status !== "lead").length;
+  const needsQuote = jobsWithClientName.filter((j) =>
+    ["site_visit", "design_review"].includes(j.status)
+  ).length;
+  const followUps = jobsWithClientName.filter(
+    (j) => j.follow_up_status === "follow_up"
+  ).length;
 
   return (
     <PortalShell
       active="/sales"
       eyebrow="Sales portal"
-      title="Your clients"
+      title="Lead arena"
       roleLabel="Agent"
       personName={agent?.name ?? "—"}
     >
-      <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <MetricCard label="Active leads" value={String(jobsWithClientName.length)} />
-        <MetricCard
-          label="Booked this month"
-          value={String(jobsWithClientName.filter((j) => j.status !== "lead").length)}
-        />
-        <CommissionMetric amount={pending} />
+      {/* Game-style metric tiles */}
+      <div className="mb-5 grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
+        <div className="relative overflow-hidden rounded-2xl border border-sky-200 bg-gradient-to-br from-sky-50 to-white p-3.5 shadow-sm transition hover:-translate-y-0.5 hover:border-sky-400 hover:shadow-md">
+          <div className="pointer-events-none absolute -right-3 -top-3 h-14 w-14 rounded-full bg-sky-200/30" />
+          <span className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-white/90 text-lg shadow-sm ring-1 ring-sky-100">
+            🎯
+          </span>
+          <p className="relative mt-2 text-[11px] font-semibold uppercase tracking-wide text-sky-700/80">
+            Active leads
+          </p>
+          <p className="relative mt-0.5 text-2xl font-bold tracking-tight text-gray-900">
+            {activeLeads}
+          </p>
+        </div>
+
+        <div className="relative overflow-hidden rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-3.5 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-400 hover:shadow-md">
+          <div className="pointer-events-none absolute -right-3 -top-3 h-14 w-14 rounded-full bg-emerald-200/30" />
+          <span className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-white/90 text-lg shadow-sm ring-1 ring-emerald-100">
+            🤝
+          </span>
+          <p className="relative mt-2 text-[11px] font-semibold uppercase tracking-wide text-emerald-700/80">
+            Booked
+          </p>
+          <p className="relative mt-0.5 text-2xl font-bold tracking-tight text-gray-900">
+            {booked}
+          </p>
+        </div>
+
+        <div className="relative overflow-hidden rounded-2xl border border-violet-200 bg-gradient-to-br from-violet-50 to-white p-3.5 shadow-sm transition hover:-translate-y-0.5 hover:border-violet-400 hover:shadow-md">
+          <div className="pointer-events-none absolute -right-3 -top-3 h-14 w-14 rounded-full bg-violet-200/30" />
+          <span className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-white/90 text-lg shadow-sm ring-1 ring-violet-100">
+            📄
+          </span>
+          <p className="relative mt-2 text-[11px] font-semibold uppercase tracking-wide text-violet-700/80">
+            Needs quote
+          </p>
+          <p className="relative mt-0.5 text-2xl font-bold tracking-tight text-gray-900">
+            {needsQuote}
+          </p>
+        </div>
+
+        <div className="relative overflow-hidden rounded-2xl border border-rose-200 bg-gradient-to-br from-rose-50 to-white p-3.5 shadow-sm transition hover:-translate-y-0.5 hover:border-rose-400 hover:shadow-md">
+          <div className="pointer-events-none absolute -right-3 -top-3 h-14 w-14 rounded-full bg-rose-200/30" />
+          <span className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-white/90 text-lg shadow-sm ring-1 ring-rose-100">
+            🔔
+          </span>
+          <p className="relative mt-2 text-[11px] font-semibold uppercase tracking-wide text-rose-700/80">
+            Follow-ups
+          </p>
+          <p className="relative mt-0.5 text-2xl font-bold tracking-tight text-gray-900">
+            {followUps}
+          </p>
+        </div>
+
+        <div className="col-span-2 sm:col-span-1">
+          <CommissionMetric amount={pending} />
+        </div>
       </div>
-      <PaidCommissions rows={paidCommissions} />
-      <div className="mb-6">
+
+      {/* Header row */}
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="text-sm font-bold text-gray-800">Your pipeline</h2>
+          <p className="text-[11px] text-gray-500">
+            Tap a row to open the full client workspace
+          </p>
+        </div>
         <NewClientForm agentId={agent?.user_id ?? ""} />
       </div>
-      <QuotationCreateForm
-        rows={preQuoteRows}
-        settings={quotationSettings ?? null}
-        createdBy={agent?.user_id ?? ""}
-      />
+
       <ClientList
         jobs={jobsWithClientName}
         agentId={agent?.user_id ?? ""}

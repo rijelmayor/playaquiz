@@ -9,7 +9,7 @@ const CATEGORY_LABELS: Record<AttachmentCategory, string> = {
   transaction: "Transaction photo",
   site_visit: "Site visit photo",
   approved_design: "Approved design photo",
-  reference: "Desired sample photo",
+  reference: "Sample Mock Up",
   order_reference: "Order reference image",
   production_progress: "Production progress photo",
   qc: "QC photo",
@@ -37,7 +37,7 @@ function formatMb(bytes: number) {
   return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
 }
 
-function newStoragePath(jobId: string, category: AttachmentCategory, jobOrderId?: string) {
+export function newStoragePath(jobId: string, category: AttachmentCategory, jobOrderId?: string) {
   const token = typeof crypto !== "undefined" && "randomUUID" in crypto
     ? crypto.randomUUID()
     : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -49,7 +49,7 @@ function newStoragePath(jobId: string, category: AttachmentCategory, jobOrderId?
   return `${jobId}/${category}/${token}.webp`;
 }
 
-async function compressImage(file: File): Promise<Blob> {
+export async function compressImage(file: File): Promise<Blob> {
   if (!file.type.startsWith("image/")) {
     throw new Error("Please select an image file.");
   }
